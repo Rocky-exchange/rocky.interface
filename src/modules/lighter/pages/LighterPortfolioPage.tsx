@@ -97,7 +97,16 @@ export default function LighterPortfolioPage() {
               <span className={styles.badgeGhost}>+125 ROCKY</span>
             </div>
 
-            <img src="/stone.png" alt="Rocky" className={styles.totalRock} />
+            <video
+              className={styles.totalRock}
+              src="/stone.mp4"
+              poster="/stone.png"
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden
+            />
 
             <div className={styles.totalActions}>
               <button type="button" className={styles.btnPrimary}>
