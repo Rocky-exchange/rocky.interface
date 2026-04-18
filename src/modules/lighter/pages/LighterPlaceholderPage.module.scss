@@ -11,7 +11,10 @@
   overflow: hidden;
 }
 
-.topnav { border-bottom: 1px solid var(--ltr-border); }
+.topnav {
+  border-bottom: 1px solid var(--ltr-border);
+  background: var(--ltr-bg-root);
+}
 
 .body {
   display: flex;

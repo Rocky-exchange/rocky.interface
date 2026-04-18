@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 
+import { emitToast } from "../LighterToast/toastBus";
 import styles from "./ClaimRewardsFlow.module.scss";
+
+const TX_HASH = "0xa1b2c3d4e5f6789012345678901234567890abcd1234ef5678901234567890ef";
 
 export type ClaimStep = "claim" | "processing" | "success";
 
@@ -134,7 +138,11 @@ function ClaimStepView({ onClaim }: { onClaim: () => void }) {
         </svg>
       </button>
 
-      <button type="button" className={styles.ctaOutline}>
+      <button
+        type="button"
+        className={styles.ctaOutline}
+        onClick={() => emitToast("Staking UI not yet implemented in demo", "info")}
+      >
         Stake to Earn Fee Rewards(cc)
         <span className={styles.apyPill}>15% APY</span>
       </button>
@@ -147,8 +155,8 @@ function ClaimStepView({ onClaim }: { onClaim: () => void }) {
         All signatures are completed in your wallet · Your funds never leave the Canton Protocol
       </div>
       <div className={styles.footLinks}>
-        <button type="button" className={styles.footLink}>Learn How Mining Works</button>
-        <button type="button" className={styles.footLink}>View Staking Rewards</button>
+        <button type="button" className={styles.footLink} onClick={() => emitToast("Opening mining docs...", "info")}>Learn How Mining Works</button>
+        <button type="button" className={styles.footLink} onClick={() => emitToast("Opening staking rewards...", "info")}>View Staking Rewards</button>
       </div>
     </>
   );
@@ -207,6 +215,19 @@ function ProcessingStepView() {
 }
 
 function SuccessStepView({ onClose }: { onClose: () => void }) {
+  const history = useHistory();
+  const handleContinue = () => {
+    onClose();
+    history.push("/trade");
+  };
+  const handleViewTx = async () => {
+    try {
+      await navigator.clipboard.writeText(TX_HASH);
+      emitToast(`Tx hash copied: ${TX_HASH.slice(0, 10)}...`, "success");
+    } catch {
+      emitToast("Unable to copy tx hash", "error");
+    }
+  };
   return (
     <>
       <div className={styles.header}>
@@ -237,7 +258,7 @@ function SuccessStepView({ onClose }: { onClose: () => void }) {
         <span className={styles.successMetaItalic}>Keep trading to unlock lower fees</span>
       </div>
 
-      <button type="button" className={styles.ctaPrimary} onClick={onClose}>
+      <button type="button" className={styles.ctaPrimary} onClick={handleContinue}>
         Continue Trading
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <line x1="5" y1="12" x2="19" y2="12" />
@@ -245,7 +266,7 @@ function SuccessStepView({ onClose }: { onClose: () => void }) {
         </svg>
       </button>
 
-      <button type="button" className={styles.ctaOutline}>View Transaction</button>
+      <button type="button" className={styles.ctaOutline} onClick={handleViewTx}>View Transaction</button>
     </>
   );
 }

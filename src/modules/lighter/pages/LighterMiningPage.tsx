@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import "../styles/global.scss";
+import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
+import { LighterToastContainer } from "../components/LighterToast/LighterToast";
+import { emitToast } from "../components/LighterToast/toastBus";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterMiningPage.module.scss";
 
@@ -78,7 +82,9 @@ const FEED = [
 ];
 
 export default function LighterMiningPage() {
+  const history = useHistory();
   const [activeTab, setActiveTab] = useState<(typeof TRACKER_TABS)[number]["key"]>("pending");
+  const [claimOpen, setClaimOpen] = useState(false);
 
   useEffect(() => {
     document.body.classList.add("lighter-active");
@@ -146,7 +152,7 @@ export default function LighterMiningPage() {
                 </button>
               ))}
               <div className={styles.tabSpacer} />
-              <button type="button" className={styles.tabViewAll}>
+              <button type="button" className={styles.tabViewAll} onClick={() => emitToast("Full rewards history coming soon", "info")}>
                 View all
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -274,7 +280,7 @@ export default function LighterMiningPage() {
                 You have <strong>1,082.5 ROCKY</strong> available to claim to your wallet.
               </div>
             </div>
-            <button type="button" className={styles.claimBtn}>
+            <button type="button" className={styles.claimBtn} onClick={() => setClaimOpen(true)}>
               Claim 1,082.5 ROCKY
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -289,7 +295,7 @@ export default function LighterMiningPage() {
               </div>
               <div className={styles.actionDesc}>Staking rewards to receive fee dividends (CC)</div>
             </div>
-            <button type="button" className={styles.stakeBtn}>
+            <button type="button" className={styles.stakeBtn} onClick={() => { emitToast("Redirecting to staking...", "info"); history.push("/vip"); }}>
               Stake for Dividends
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -299,6 +305,9 @@ export default function LighterMiningPage() {
           </div>
         </div>
       </div>
+
+      <ClaimRewardsFlow open={claimOpen} onClose={() => setClaimOpen(false)} />
+      <LighterToastContainer />
     </div>
   );
 }

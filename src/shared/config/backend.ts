@@ -6,14 +6,16 @@ export const GMX_STATS_API_URL = "https://stats.gmx.io/api";
 // 统一的后端服务 URL 配置
 // ============================================
 const X10000_API_DOMAINS: Record<number, string> = {
-  [ARBITRUM]: import.meta.env.VITE_PROXY_API_URL || "https://api.rocky.xyz",
-  [ARBITRUM_SEPOLIA]: import.meta.env.VITE_PROXY_SEPOLIA_API_URL || "https://api-sepolia.rocky.xyz",
+  [ARBITRUM]: import.meta.env.VITE_PROXY_API_URL || "https://api.primit.io",
+  // api-sepolia.primit.io 目前不可达，暂时复用 mainnet 域名；
+  // 通过 .env 设置 VITE_PROXY_SEPOLIA_API_URL 可覆盖。
+  [ARBITRUM_SEPOLIA]: import.meta.env.VITE_PROXY_SEPOLIA_API_URL || "https://api.primit.io",
 };
 
 // WebSocket URL（与 API 域名相同，仅协议不同）
 const X10000_WS_DOMAINS: Record<number, string> = {
-  [ARBITRUM]: import.meta.env.VITE_PROXY_WS_URL || "wss://api.rocky.xyz",
-  [ARBITRUM_SEPOLIA]: import.meta.env.VITE_PROXY_SEPOLIA_WS_URL || "wss://api-sepolia.rocky.xyz",
+  [ARBITRUM]: import.meta.env.VITE_PROXY_WS_URL || "wss://api.primit.io",
+  [ARBITRUM_SEPOLIA]: import.meta.env.VITE_PROXY_SEPOLIA_WS_URL || "wss://api.primit.io",
 };
 
 // Legacy ZTDX 后端 URL（已弃用，保留兼容）

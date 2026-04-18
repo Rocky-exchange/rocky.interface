@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 import "../styles/global.scss";
+import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
+import { LighterToastContainer } from "../components/LighterToast/LighterToast";
+import { emitToast } from "../components/LighterToast/toastBus";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterPortfolioPage.module.scss";
 
@@ -61,7 +65,9 @@ const ACTIVITIES: Activity[] = [
 ];
 
 export default function LighterPortfolioPage() {
+  const history = useHistory();
   const [range, setRange] = useState<HistoryRange>("7D");
+  const [claimOpen, setClaimOpen] = useState(false);
   const historyData = buildHistory(range);
 
   useEffect(() => {
@@ -109,7 +115,7 @@ export default function LighterPortfolioPage() {
             />
 
             <div className={styles.totalActions}>
-              <button type="button" className={styles.btnPrimary}>
+              <button type="button" className={styles.btnPrimary} onClick={() => setClaimOpen(true)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 3v3M10 3v3M14 3v3M18 3v3" />
                   <rect x="3" y="8" width="18" height="12" rx="2" />
@@ -117,7 +123,7 @@ export default function LighterPortfolioPage() {
                 </svg>
                 Claim Rewards
               </button>
-              <button type="button" className={styles.btnOutline}>Start Trading</button>
+              <button type="button" className={styles.btnOutline} onClick={() => history.push("/trade")}>Start Trading</button>
             </div>
           </div>
 
@@ -208,7 +214,7 @@ export default function LighterPortfolioPage() {
                 </svg>
                 VIP Level
               </div>
-              <button type="button" className={styles.vipBadge}>
+              <button type="button" className={styles.vipBadge} onClick={() => history.push("/vip")}>
                 VIP2
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -277,7 +283,7 @@ export default function LighterPortfolioPage() {
               </svg>
               Today's Activity
             </div>
-            <button type="button" className={styles.viewAll}>
+            <button type="button" className={styles.viewAll} onClick={() => emitToast("Full activity history coming soon", "info")}>
               View all
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
@@ -313,6 +319,9 @@ export default function LighterPortfolioPage() {
           </div>
         </div>
       </div>
+
+      <ClaimRewardsFlow open={claimOpen} onClose={() => setClaimOpen(false)} />
+      <LighterToastContainer />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import "../styles/global.scss";
 import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
+import { LighterToastContainer } from "../components/LighterToast/LighterToast";
+import { emitToast } from "../components/LighterToast/toastBus";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterVipPage.module.scss";
 
@@ -293,8 +295,20 @@ export default function LighterVipPage() {
 
         <div className={styles.ctaRow}>
           <div className={styles.ctaLeft}>
-            <button type="button" className={styles.btnOutline}>Buy ROCKY</button>
-            <button type="button" className={styles.btnOutline}>Check Staking Details</button>
+            <button
+              type="button"
+              className={styles.btnOutline}
+              onClick={() => emitToast("Opening ROCKY purchase flow...", "info")}
+            >
+              Buy ROCKY
+            </button>
+            <button
+              type="button"
+              className={styles.btnOutline}
+              onClick={() => emitToast("Staking details: 15% APY · auto-compound weekly", "info")}
+            >
+              Check Staking Details
+            </button>
           </div>
           <button type="button" className={styles.btnPrimaryLg} onClick={() => setClaimOpen(true)}>
             Start Earning ROCKY Now
@@ -307,6 +321,7 @@ export default function LighterVipPage() {
       </div>
 
       <ClaimRewardsFlow open={claimOpen} onClose={() => setClaimOpen(false)} />
+      <LighterToastContainer />
     </div>
   );
 }

@@ -1,0 +1,100 @@
+.container {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: 340px;
+  padding: 10px 14px 10px 12px;
+  background: #0f0f15;
+  border: 1px solid #1b1b22;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ltr-text-primary);
+  font-size: 13px;
+  line-height: 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: slideIn 180ms ease-out;
+}
+
+.toastExit {
+  animation: slideOut 220ms ease-in forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.iconSuccess {
+  background: rgba(61, 214, 140, 0.18);
+  color: #3dd68c;
+}
+
+.iconError {
+  background: rgba(255, 56, 79, 0.18);
+  color: #ff384f;
+}
+
+.iconInfo {
+  background: rgba(247, 164, 59, 0.18);
+  color: #f7a43b;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.closeBtn {
+  background: none;
+  border: 0;
+  color: var(--ltr-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: var(--ltr-text-primary);
+  }
+}

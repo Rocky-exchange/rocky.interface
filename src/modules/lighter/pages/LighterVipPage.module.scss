@@ -2,13 +2,18 @@
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background: var(--ltr-bg-root);
+  background: #000;
+  padding: 4px;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .topnav {
+  height: var(--ltr-topnav-h);
+  flex: 0 0 var(--ltr-topnav-h);
   border-bottom: 1px solid var(--ltr-border);
+  background: var(--ltr-bg-root);
 }
 
 .holdingBadge {

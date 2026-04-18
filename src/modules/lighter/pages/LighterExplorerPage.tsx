@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import "../styles/global.scss";
+import { LighterToastContainer } from "../components/LighterToast/LighterToast";
+import { emitToast } from "../components/LighterToast/toastBus";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterExplorerPage.module.scss";
 
@@ -61,6 +63,21 @@ const MINERS: MinerRow[] = [
   { rank: 6, name: "Obsidian-01", address: "Rocky::18cd...4e8a", mined: "6,120 ROCKY", blocks: 358, share: 32, status: "Offline" },
 ];
 
+function matchesQuery(q: string, ...fields: string[]): boolean {
+  if (!q.trim()) return true;
+  const needle = q.trim().toLowerCase();
+  return fields.some((f) => f.toLowerCase().includes(needle));
+}
+
+async function copyAndToast(text: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    emitToast(`${label} copied`, "success");
+  } catch {
+    emitToast("Unable to copy to clipboard", "error");
+  }
+}
+
 export default function LighterExplorerPage() {
   const [query, setQuery] = useState("");
 
@@ -68,6 +85,19 @@ export default function LighterExplorerPage() {
     document.body.classList.add("lighter-active");
     return () => document.body.classList.remove("lighter-active");
   }, []);
+
+  const filteredBlocks = useMemo(
+    () => BLOCKS.filter((b) => matchesQuery(query, b.height, b.proposer)),
+    [query]
+  );
+  const filteredTxns = useMemo(
+    () => TXNS.filter((t) => matchesQuery(query, t.hash, t.kind, t.pair)),
+    [query]
+  );
+  const filteredMiners = useMemo(
+    () => MINERS.filter((m) => matchesQuery(query, m.name, m.address)),
+    [query]
+  );
 
   return (
     <div className={`lighter-root ${styles.page}`}>
@@ -91,7 +121,7 @@ export default function LighterExplorerPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="button" className={styles.searchGo}>
+          <button type="button" className={styles.searchGo} onClick={() => emitToast(query.trim() ? `Searching for "${query.trim()}"...` : "Enter a query to search", query.trim() ? "info" : "error")}>
             Search
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -178,7 +208,7 @@ export default function LighterExplorerPage() {
                 </svg>
                 Latest Blocks
               </div>
-              <button type="button" className={styles.tableLink}>
+              <button type="button" className={styles.tableLink} onClick={() => emitToast("Full block explorer coming soon", "info")}>
                 View all
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -186,7 +216,12 @@ export default function LighterExplorerPage() {
               </button>
             </div>
             <div className={styles.tableBody}>
-              {BLOCKS.map((b) => (
+              {filteredBlocks.length === 0 ? (
+                <div style={{ padding: "24px 20px", color: "var(--ltr-text-muted)", fontSize: 12, textAlign: "center" }}>
+                  No blocks match "{query}"
+                </div>
+              ) : null}
+              {filteredBlocks.map((b) => (
                 <div key={b.height} className={styles.rowBlock}>
                   <div className={styles.rowIcon}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -196,7 +231,7 @@ export default function LighterExplorerPage() {
                     </svg>
                   </div>
                   <div>
-                    <span className={styles.blockNumber}>{b.height}</span>
+                    <span className={styles.blockNumber} onClick={() => copyAndToast(b.height, "Block height")}>{b.height}</span>
                     <div className={styles.rowMetaInline}>
                       <span>{b.ago}</span>
                       <span>Proposer {b.proposer}</span>
@@ -226,7 +261,7 @@ export default function LighterExplorerPage() {
                 </svg>
                 Latest Transactions
               </div>
-              <button type="button" className={styles.tableLink}>
+              <button type="button" className={styles.tableLink} onClick={() => emitToast("Full transaction explorer coming soon", "info")}>
                 View all
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
@@ -234,7 +269,12 @@ export default function LighterExplorerPage() {
               </button>
             </div>
             <div className={styles.tableBody}>
-              {TXNS.map((t) => (
+              {filteredTxns.length === 0 ? (
+                <div style={{ padding: "24px 20px", color: "var(--ltr-text-muted)", fontSize: 12, textAlign: "center" }}>
+                  No transactions match "{query}"
+                </div>
+              ) : null}
+              {filteredTxns.map((t) => (
                 <div key={t.hash} className={styles.rowTxn}>
                   <div className={`${styles.rowIcon} ${styles.rowIconTx}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -245,7 +285,7 @@ export default function LighterExplorerPage() {
                     </svg>
                   </div>
                   <div>
-                    <span className={styles.rowHash}>{t.hash}</span>
+                    <span className={styles.rowHash} onClick={() => copyAndToast(t.hash, "Tx hash")}>{t.hash}</span>
                     <div className={styles.rowMetaInline}>
                       <span>{t.kind}</span>
                       <span>{t.pair}</span>
@@ -271,7 +311,7 @@ export default function LighterExplorerPage() {
               </svg>
               Top Miners (24H)
             </div>
-            <button type="button" className={styles.tableLink}>
+            <button type="button" className={styles.tableLink} onClick={() => emitToast("Full miner leaderboard coming soon", "info")}>
               Full leaderboard
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
@@ -288,7 +328,12 @@ export default function LighterExplorerPage() {
               <div>NETWORK SHARE</div>
               <div style={{ textAlign: "right" }}>STATUS</div>
             </div>
-            {MINERS.map((m) => (
+            {filteredMiners.length === 0 ? (
+              <div style={{ padding: "24px 20px", color: "var(--ltr-text-muted)", fontSize: 12, textAlign: "center" }}>
+                No miners match "{query}"
+              </div>
+            ) : null}
+            {filteredMiners.map((m) => (
               <div key={m.rank} className={styles.minersRow}>
                 <div>
                   <span
@@ -303,7 +348,13 @@ export default function LighterExplorerPage() {
                   <span className={styles.minerAvatar} />
                   <div>
                     <div className={styles.minerName}>{m.name}</div>
-                    <div className={styles.minerAddr}>{m.address}</div>
+                    <div
+                      className={styles.minerAddr}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => copyAndToast(m.address, "Address")}
+                    >
+                      {m.address}
+                    </div>
                   </div>
                 </div>
                 <div className={`${styles.rowAmountUp}`} style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{m.mined}</div>
@@ -322,6 +373,8 @@ export default function LighterExplorerPage() {
           </div>
         </div>
       </div>
+
+      <LighterToastContainer />
     </div>
   );
 }
