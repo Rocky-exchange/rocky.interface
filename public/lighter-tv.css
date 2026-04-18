@@ -1,0 +1,20 @@
+/* Lighter chart styles - injected into TradingView iframe */
+@import url("/tradingview-chart.css");
+
+/* TV main legend (BTC · 5 · Primit) — bold + white,只针对文字元素 */
+[class*="legendMainSourceWrapper"] [class*="title-l31"],
+[class*="sourcesWrapper"] [class*="title-l31"] {
+  font-weight: 600 !important;
+  color: #F3F3F3 !important;
+}
+
+/* OHLC 字母 (O H L C) — bold + white */
+[class*="valuesWrapper"] [class*="valueTitle"] {
+  font-weight: 600 !important;
+  color: #F3F3F3 !important;
+}
+
+/* OHLC 数值 + Volume 数值 — 仅加粗 (颜色由 TV 自管,涨绿/跌红) */
+[class*="valuesWrapper"] [class*="valueValue"] {
+  font-weight: 600 !important;
+}

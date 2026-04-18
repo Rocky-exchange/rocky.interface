@@ -1,0 +1,111 @@
+.wrapper {
+  position: relative;
+  z-index: 20;
+}
+
+.root {
+  display: flex; align-items: center;
+  gap: 16px;
+  padding: 0 8px;
+  height: 38px;
+  background: var(--ltr-bg-root);
+}
+.symbol {
+  height: 32px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0 8px;
+  font-size: 12px; font-weight: 400;
+  color: #f3f3f3;
+  background: #121218; border: 0; border-radius: 4px; cursor: pointer;
+}
+.symbol:hover,
+.symbol:focus,
+.symbol:focus-visible {
+  color: #f3f3f3 !important;
+}
+
+.symbol:hover .symName,
+.symbol:focus .symName,
+.symbol:focus-visible .symName {
+  color: #f3f3f3;
+}
+.btcIcon { width: 20px; height: 20px; flex-shrink: 0; }
+.symName { font-weight: 400; color: #f3f3f3; }
+.lev {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 20px; padding: 0 5px;
+  background: #2b2b30;
+  border-radius: 4px;
+  color: #b4b4b6;
+  font-size: 12px; font-weight: 400;
+  line-height: 16px;
+}
+.caret {
+  width: 12px;
+  height: 12px;
+  margin-left: 2px;
+  color: #b4b4b6;
+  opacity: 0.85;
+  transition: transform 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+  transform-origin: center;
+}
+.symbol:hover .caret,
+.symbol:focus .caret,
+.symbol:focus-visible .caret {
+  color: #b4b4b6 !important;
+}
+.symbol:global(.SelectorBase-button-open) .caret,
+.symbol :global(.SelectorBase-chevron-open).caret {
+  transform: rotate(180deg);
+}
+
+.stats { display: flex; align-items: center; gap: 16px; }
+.stat {
+  display: flex; flex-direction: column; gap: 0;
+  min-width: 56px; white-space: nowrap;
+}
+.label {
+  color: #b4b4b6;
+  font-size: 12px; font-weight: 400;
+  line-height: 16px;
+}
+.labelLink {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: #717173;
+  cursor: help;
+}
+.value {
+  font-size: 12px; font-weight: 400;
+  line-height: 16px;
+  color: #f3f3f3;
+  font-variant-numeric: tabular-nums;
+}
+
+.fundingGroup {
+  position: relative;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.corner {
+  position: absolute;
+  width: 4px; height: 4px;
+  pointer-events: none;
+}
+
+.cornerTL { top: 1px; left: 1px; border-top: 1px solid rgba(255, 255, 255, 0.15); border-left: 1px solid rgba(255, 255, 255, 0.15); }
+.cornerTR { top: 1px; right: 1px; border-top: 1px solid rgba(255, 255, 255, 0.15); border-right: 1px solid rgba(255, 255, 255, 0.15); }
+.cornerBL { bottom: 1px; left: 1px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); border-left: 1px solid rgba(255, 255, 255, 0.15); }
+.cornerBR { bottom: 1px; right: 1px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); border-right: 1px solid rgba(255, 255, 255, 0.15); }
+
+.marketSelectorPanel {
+  width: min(1368px, calc(100vw - 24px));
+  max-height: 680px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}

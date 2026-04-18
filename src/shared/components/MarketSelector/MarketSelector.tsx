@@ -1,0 +1,340 @@
+import { Trans, t } from "@lingui/macro";
+import cx from "classnames";
+import { ReactNode, useCallback, useMemo, useState } from "react";
+
+import { useTokensFavorites } from "context/TokensFavoritesContext/TokensFavoritesContextProvider";
+import { MarketInfo, getMarketIndexName } from "domain/synthetics/markets";
+import { TokenData, TokensData, convertToUsd } from "domain/synthetics/tokens";
+import { MissedCoinsPlace } from "domain/synthetics/userFeedback";
+import { useMissedCoinsSearch } from "domain/synthetics/userFeedback/useMissedCoinsSearch";
+import { stripBlacklistedWords } from "domain/tokens/utils";
+import { formatTokenAmount, formatUsd } from "lib/numbers";
+import { getByKey } from "lib/objects";
+import { searchBy } from "lib/searchBy";
+import { getCategoryTokenAddresses } from "sdk/configs/tokens";
+
+import Button from "components/Button/Button";
+import FavoriteStar from "components/FavoriteStar/FavoriteStar";
+import { FavoriteTabs } from "components/FavoriteTabs/FavoriteTabs";
+import { SlideModal } from "components/Modal/SlideModal";
+import SearchInput from "components/SearchInput/SearchInput";
+import { ButtonRowScrollFadeContainer } from "components/TableScrollFade/TableScrollFade";
+import TokenIcon from "components/TokenIcon/TokenIcon";
+
+import ChevronDownIcon from "img/ic_chevron_down.svg?react";
+
+import TooltipWithPortal from "../Tooltip/TooltipWithPortal";
+
+import "./MarketSelector.scss";
+
+type Props = {
+  chainId: number;
+  label?: string;
+  className?: string;
+  selectedIndexName?: string;
+  markets: MarketInfo[];
+  marketTokensData?: TokensData;
+  showBalances?: boolean;
+  selectedMarketLabel?: ReactNode | string;
+  isSideMenu?: boolean;
+  missedCoinsPlace?: MissedCoinsPlace;
+  footerContent?: ReactNode;
+  getMarketState?: (market: MarketInfo) => MarketState | undefined;
+  onSelectMarket: (indexName: string, market: MarketInfo) => void;
+  // X10000 mode: use symbol-based favorites instead of address-based
+  isX10000Mode?: boolean;
+};
+
+type MarketState = {
+  disabled?: boolean;
+  message?: string;
+};
+
+type MarketOption = {
+  indexName: string;
+  marketInfo: MarketInfo;
+  balance: bigint;
+  balanceUsd: bigint;
+  state?: MarketState;
+};
+
+export function MarketSelector({
+  chainId,
+  selectedIndexName,
+  className,
+  selectedMarketLabel,
+  label,
+  markets,
+  isSideMenu,
+  marketTokensData,
+  showBalances,
+  footerContent,
+  missedCoinsPlace,
+  onSelectMarket,
+  getMarketState,
+  isX10000Mode,
+}: Props) {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  // Use different favorites key for x10000 mode to sync with X10000MarketsDropdown
+  const favoritesKey = isX10000Mode ? "x10000-market-selector" : "market-selector";
+  const { tab, favoriteTokens, toggleFavoriteToken } = useTokensFavorites(favoritesKey);
+
+  const marketsOptions: MarketOption[] = useMemo(() => {
+    const optionsByIndexName: { [indexName: string]: MarketOption } = {};
+
+    markets
+      .filter((market) => !market.isDisabled)
+      .forEach((marketInfo) => {
+        const indexName = getMarketIndexName(marketInfo);
+        const marketToken = getByKey(marketTokensData, marketInfo.marketTokenAddress);
+
+        const gmBalance = marketToken?.balance;
+        const gmBalanceUsd = convertToUsd(marketToken?.balance, marketToken?.decimals, marketToken?.prices.minPrice);
+        const state = getMarketState?.(marketInfo);
+
+        const option = optionsByIndexName[indexName];
+
+        if (option) {
+          option.balance = option.balance + (gmBalance ?? 0n);
+          option.balanceUsd = option.balanceUsd + (gmBalanceUsd ?? 0n);
+        }
+
+        optionsByIndexName[indexName] = optionsByIndexName[indexName] || {
+          indexName,
+          marketInfo,
+          balance: gmBalance ?? 0n,
+          balanceUsd: gmBalanceUsd ?? 0n,
+          state,
+        };
+      });
+
+    return Object.values(optionsByIndexName);
+  }, [getMarketState, marketTokensData, markets]);
+
+  const marketInfo = marketsOptions.find((option) => option.indexName === selectedIndexName)?.marketInfo;
+
+  const filteredOptions = useMemo(() => {
+    const textMatched = searchKeyword.trim()
+      ? searchBy(
+          marketsOptions,
+          [
+            "indexName",
+            (item) => (item.marketInfo.isSpotOnly ? "" : stripBlacklistedWords(item.marketInfo.indexToken.name)),
+          ],
+          searchKeyword
+        )
+      : marketsOptions;
+
+    if (tab === "all") {
+      return textMatched;
+    }
+
+    if (tab === "favorites") {
+      return textMatched?.filter((item) => {
+        // In x10000 mode, favorites are stored as BTCUSDT format (matching X10000MarketsDropdown)
+        if (isX10000Mode) {
+          const symbol = `${item.marketInfo.indexToken.symbol}USDT`;
+          return favoriteTokens?.includes(symbol);
+        }
+        return favoriteTokens?.includes(item.marketInfo.indexToken.address);
+      });
+    }
+
+    const categoryTokenAddresses = getCategoryTokenAddresses(chainId, tab);
+    const tabMatched = textMatched?.filter((item) =>
+      categoryTokenAddresses.includes(item.marketInfo.indexToken.address)
+    );
+
+    return tabMatched;
+  }, [chainId, favoriteTokens, isX10000Mode, marketsOptions, searchKeyword, tab]);
+
+  useMissedCoinsSearch({
+    searchText: searchKeyword,
+    isEmpty: !filteredOptions.length && tab === "all",
+    isLoaded: marketsOptions.length > 0,
+    place: missedCoinsPlace,
+    skip: !missedCoinsPlace,
+  });
+
+  function onSelectOption(option: MarketOption) {
+    onSelectMarket(option.indexName, option.marketInfo);
+    setIsModalVisible(false);
+  }
+
+  const _handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filteredOptions.length > 0) {
+        onSelectOption(filteredOptions[0]);
+      }
+    }
+  };
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsModalVisible(true);
+  }, []);
+
+  return (
+    <div className={cx("TokenSelector", "MarketSelector", { "side-menu": isSideMenu }, className)}>
+      <SlideModal
+        qa="market-selector-modal"
+        className="TokenSelector-modal"
+        isVisible={isModalVisible}
+        setIsVisible={setIsModalVisible}
+        label={label}
+        footerContent={footerContent}
+        contentPadding={false}
+        headerContent={
+          <div className="pb-16">
+            <SearchInput
+              className="mb-16"
+              value={searchKeyword}
+              setValue={setSearchKeyword}
+              placeholder={t`Search Market`}
+              onKeyDown={_handleKeyDown}
+            />
+            <ButtonRowScrollFadeContainer>
+              <FavoriteTabs favoritesKey={favoritesKey} />
+            </ButtonRowScrollFadeContainer>
+          </div>
+        }
+      >
+        <div className="flex flex-col">
+          {filteredOptions.map((option, marketIndex) => {
+            // In x10000 mode, use BTCUSDT format to match X10000MarketsDropdown's market.symbol
+            const favoriteId = isX10000Mode
+              ? `${option.marketInfo.indexToken.symbol}USDT`
+              : option.marketInfo.indexToken.address;
+            return (
+              <MarketListItem
+                key={option.marketInfo.marketTokenAddress}
+                {...option}
+                showBalances={showBalances}
+                marketToken={getByKey(marketTokensData, option.marketInfo.marketTokenAddress)}
+                isFavorite={favoriteTokens?.includes(favoriteId)}
+                isInFirstHalf={marketIndex < filteredOptions.length / 2}
+                onSelectOption={onSelectOption}
+                onFavoriteClick={() => toggleFavoriteToken(favoriteId)}
+              />
+            );
+          })}
+        </div>
+        {filteredOptions.length === 0 && (
+          <div className="px-20 text-14 text-typography-secondary">
+            <Trans>No markets matched</Trans>
+          </div>
+        )}
+      </SlideModal>
+      <div
+        className={cx(
+          "group/hoverable group flex cursor-pointer items-center gap-4 whitespace-nowrap tracking-wide hover:text-blue-300"
+        )}
+        onClick={handleClick}
+        data-qa="market-selector"
+      >
+        {selectedMarketLabel ? selectedMarketLabel : marketInfo ? getMarketIndexName(marketInfo) : "..."}
+        <ChevronDownIcon className="w-16 text-typography-secondary group-hover:text-blue-300" />
+      </div>
+    </div>
+  );
+}
+
+function MarketListItem(props: {
+  marketInfo: MarketInfo;
+  marketToken?: TokenData;
+  balance: bigint;
+  balanceUsd: bigint;
+  indexName: string;
+  state?: MarketState;
+  isFavorite: boolean;
+  isInFirstHalf: boolean;
+  showBalances?: boolean;
+  onFavoriteClick: () => void;
+  onSelectOption: (option: MarketOption) => void;
+}) {
+  const {
+    marketInfo,
+    balance,
+    balanceUsd,
+    indexName,
+    state = {},
+    marketToken,
+    isFavorite,
+    isInFirstHalf,
+    showBalances,
+    onFavoriteClick,
+    onSelectOption,
+  } = props;
+  const tokenSymbol = marketInfo.isSpotOnly ? "swap" : marketInfo.indexToken.symbol;
+
+  const handleFavoriteClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      onFavoriteClick();
+    },
+    [onFavoriteClick]
+  );
+
+  const handleClick = useCallback(() => {
+    if (state.disabled) {
+      return;
+    }
+
+    onSelectOption({
+      marketInfo,
+      indexName,
+      balance,
+      balanceUsd,
+      state,
+    });
+  }, [balance, balanceUsd, indexName, marketInfo, onSelectOption, state]);
+
+  return (
+    <div
+      className={cx(
+        "text-body-medium flex w-full cursor-pointer items-center justify-between p-8 px-20 hover:bg-fill-surfaceHover",
+        { disabled: state.disabled }
+      )}
+      onClick={handleClick}
+      data-qa={`market-selector-${indexName}`}
+    >
+      {state.disabled && state.message && (
+        <TooltipWithPortal
+          className="TokenSelector-tooltip"
+          handle={<div className="TokenSelector-tooltip-backing" />}
+          position={isInFirstHalf ? "bottom" : "top"}
+          variant="none"
+          closeOnDoubleClick
+          fitHandleWidth
+          renderContent={() => state.message}
+        />
+      )}
+      <div className="Token-info">
+        <TokenIcon symbol={tokenSymbol} displaySize={24} className="token-logo" />
+        <div className="Token-symbol">
+          <div className="Token-text">{indexName}</div>
+        </div>
+      </div>
+      <div className="Token-balance">
+        {showBalances && balance !== undefined && (
+          <div className="Token-text">
+            {balance > 0
+              ? formatTokenAmount(balance, marketToken?.decimals, "", {
+                  useCommas: true,
+                })
+              : "-"}
+          </div>
+        )}
+        <span className="text-accent">
+          {(showBalances && balanceUsd !== undefined && balanceUsd > 0 && <div>{formatUsd(balanceUsd)}</div>) || null}
+        </span>
+      </div>
+      <Button variant="ghost" onClick={handleFavoriteClick}>
+        <FavoriteStar isFavorite={isFavorite} />
+      </Button>
+    </div>
+  );
+}

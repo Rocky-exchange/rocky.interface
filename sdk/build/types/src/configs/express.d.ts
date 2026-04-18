@@ -1,0 +1,17 @@
+import { Token } from "../types/tokens";
+export declare const SUBACCOUNT_MESSAGE = "Generate a GMX 1CT (One-Click Trading) session. Only sign this message on a trusted website.";
+export declare const SUBACCOUNT_DOCS_URL = "https://docs.gmx.io/docs/trading/v2/#one-click-trading";
+export declare const DEFAULT_SUBACCOUNT_EXPIRY_DURATION: number;
+export declare const DEFAULT_SUBACCOUNT_MAX_ALLOWED_COUNT = 90;
+export declare const DEFAULT_PERMIT_DEADLINE_DURATION: number;
+export declare const DEFAULT_EXPRESS_ORDER_DEADLINE_DURATION: number;
+export declare const MIN_GELATO_USD_BALANCE_FOR_SPONSORED_CALL: bigint;
+export declare const MIN_RELAYER_FEE_USD: bigint;
+export declare const EXPRESS_EXTRA_EXECUTION_FEE_BUFFER_BPS = 1000;
+export declare const EXPRESS_DEFAULT_MIN_RESIDUAL_USD_NUMBER = 20;
+export declare const EXPRESS_DEFAULT_MIN_RESIDUAL_USD: bigint;
+export declare const EXPRESS_DEFAULT_MAX_RESIDUAL_USD: bigint;
+export declare const EXPRESS_RESIDUAL_AMOUNT_MULTIPLIER = 20n;
+export declare function getGasPaymentTokens(chainId: number): string[];
+export declare function getDefaultGasPaymentToken(chainId: number): string;
+export declare function getRelayerFeeToken(chainId: number): Token;

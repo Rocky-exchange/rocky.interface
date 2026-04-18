@@ -1,0 +1,168 @@
+.MarketsDropdown-popover {
+  width: min(800px, calc(100vw - 24px));
+  max-height: 680px;
+  overflow: hidden;
+  border: 1px solid #24242b;
+  border-radius: 16px;
+  background: #121319;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.48);
+}
+
+.MarketsDropdown-header,
+.MarketsDropdown-mobileHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #262932;
+  background: #14161d;
+}
+
+.MarketsDropdown-searchInput {
+  height: 40px !important;
+
+  input {
+    border: 1px solid #2c313d !important;
+    border-radius: 10px !important;
+    background: #171922 !important;
+    color: #f3f3f3 !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s ease;
+  }
+
+  input::placeholder {
+    color: #8f94a3 !important;
+  }
+
+  input:focus {
+    border-color: #3a4150 !important;
+    background: #171922 !important;
+  }
+}
+
+.MarketsDropdown-tabsScroll {
+  width: 100%;
+}
+
+.MarketsDropdown-tabsScroll .Button {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #aeb3c2;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.MarketsDropdown-tabsScroll .Button[data-selected="true"] {
+  background: #2a2d36 !important;
+  color: #f3f3f3 !important;
+}
+
+.MarketsDropdown-tableWrap {
+  background: #121319;
+}
+
+.MarketsDropdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: auto;
+  color: #f3f3f3;
+}
+
+.MarketsDropdown-tableHeadCell {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 12px 12px;
+  border-bottom: 1px solid #262932;
+  background: #121319;
+  color: #9095a3;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.MarketsDropdown-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.MarketsDropdown-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.MarketsDropdown-row td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.MarketsDropdown-starCell {
+  width: 36px;
+  padding: 13px 8px 13px 16px;
+  color: #7b8191;
+  text-align: center;
+}
+
+.MarketsDropdown-marketCell {
+  padding: 13px 12px 13px 4px;
+  font-size: 13px;
+}
+
+.MarketsDropdown-marketCell-mobile {
+  padding-right: 8px;
+}
+
+.MarketsDropdown-marketInner {
+  display: flex;
+}
+
+.MarketsDropdown-marketMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.MarketsDropdown-marketSymbol {
+  font-weight: 500;
+  line-height: 1;
+}
+
+.MarketsDropdown-marketLeverage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: #2b2e37;
+  color: #c0c4d0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.MarketsDropdown-tableCell {
+  padding: 13px 12px;
+  color: #e8eaf0;
+  font-size: 13px;
+  line-height: 18px;
+  vertical-align: middle;
+}
+
+.MarketsDropdown-tableCell-mobile {
+  vertical-align: top;
+}
+
+.positive {
+  color: #59d98e !important;
+}
+
+.negative {
+  color: #f06a6a !important;
+}

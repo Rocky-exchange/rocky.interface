@@ -1,0 +1,36 @@
+import { Chain } from "viem/chains";
+import type { GasLimitsConfig } from "../types/fees";
+import { AVALANCHE, AVALANCHE_FUJI, ARBITRUM, BOTANIX, ETH_MAINNET, ARBITRUM_SEPOLIA, SOURCE_OPTIMISM_SEPOLIA, SOURCE_SEPOLIA, SOURCE_BASE_MAINNET, SOURCE_BSC_MAINNET } from "./chainIds";
+export { AVALANCHE, AVALANCHE_FUJI, ARBITRUM, BOTANIX, ETH_MAINNET, ARBITRUM_SEPOLIA, SOURCE_OPTIMISM_SEPOLIA, SOURCE_SEPOLIA, SOURCE_BASE_MAINNET, SOURCE_BSC_MAINNET, };
+export declare const CONTRACTS_CHAIN_IDS: ContractsChainId[];
+export declare const CONTRACTS_CHAIN_IDS_DEV: ContractsChainId[];
+export type ContractsChainId = typeof ARBITRUM | typeof AVALANCHE | typeof AVALANCHE_FUJI | typeof BOTANIX | typeof ARBITRUM_SEPOLIA;
+export type ContractsChainIdProduction = Exclude<ContractsChainId, typeof AVALANCHE_FUJI | typeof ARBITRUM_SEPOLIA>;
+export type SettlementChainId = typeof ARBITRUM_SEPOLIA | typeof ARBITRUM | typeof AVALANCHE;
+export type SourceChainId = typeof SOURCE_OPTIMISM_SEPOLIA | typeof SOURCE_SEPOLIA | typeof SOURCE_BASE_MAINNET | typeof SOURCE_BSC_MAINNET;
+export type AnyChainId = ContractsChainId | SettlementChainId | SourceChainId;
+export type ChainName = "Arbitrum" | "Avalanche" | "Avalanche Fuji" | "Arbitrum Sepolia" | "Optimism Sepolia" | "Sepolia" | "Botanix" | "Base" | "BNB";
+export declare const CHAIN_NAMES_MAP: Record<AnyChainId, ChainName>;
+export declare const CHAIN_SLUGS_MAP: Record<ContractsChainId, string>;
+export declare const HIGH_EXECUTION_FEES_MAP: Record<ContractsChainId, number>;
+export declare const MAX_FEE_PER_GAS_MAP: Record<number, bigint>;
+export declare const GAS_PRICE_PREMIUM_MAP: Record<number, bigint>;
+export declare const MAX_PRIORITY_FEE_PER_GAS_MAP: Record<ContractsChainId, bigint | undefined>;
+export declare const EXCESSIVE_EXECUTION_FEES_MAP: Partial<Record<ContractsChainId, number>>;
+export declare const MIN_EXECUTION_FEE_USD: Partial<Record<ContractsChainId, bigint | undefined>>;
+export declare const GAS_PRICE_BUFFER_MAP: Record<number, bigint>;
+export declare const botanix: Chain;
+export declare function getChainName(chainId: number): ChainName;
+export declare const getViemChain: (chainId: number) => Chain;
+export declare function getHighExecutionFee(chainId: number): any;
+export declare function getExcessiveExecutionFee(chainId: number): any;
+export declare function isContractsChain(chainId: number, dev?: boolean): chainId is ContractsChainId;
+export declare function isTestnetChain(chainId: number): boolean;
+export declare const EXECUTION_FEE_CONFIG_V2: {
+    [chainId in ContractsChainId]: {
+        shouldUseMaxPriorityFeePerGas: boolean;
+        defaultBufferBps?: number;
+    };
+};
+type StaticGasLimitsConfig = Pick<GasLimitsConfig, "createOrderGasLimit" | "updateOrderGasLimit" | "cancelOrderGasLimit" | "tokenPermitGasLimit" | "gmxAccountCollateralGasLimit">;
+export declare const GAS_LIMITS_STATIC_CONFIG: Record<ContractsChainId, StaticGasLimitsConfig>;

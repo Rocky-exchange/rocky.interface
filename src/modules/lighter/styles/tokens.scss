@@ -1,0 +1,44 @@
+// src/modules/lighter/styles/tokens.scss
+// Tokens extracted from app.lighter.xyz computed styles (2026-04-13)
+:root {
+  --ltr-bg-root: #06060C;
+  --ltr-bg-panel: #121218;
+  --ltr-bg-panel-2: #0E0E14;
+  --ltr-bg-hover: #15151B;
+  --ltr-border: #2B2B30;
+  --ltr-border-strong: #515155;
+  --ltr-overlay-faint: rgba(255, 255, 255, 0.02);
+  --ltr-overlay-soft: rgba(255, 255, 255, 0.06);
+  --ltr-text-primary: #F3F3F3;
+  --ltr-text-secondary: #B4B4B6;
+  --ltr-text-muted: #6E6E72;
+  --ltr-up: #1BD289;
+  --ltr-down: #FF384F;
+  --ltr-up-bg: rgba(27, 210, 137, 0.10);
+  --ltr-down-bg: rgba(255, 56, 79, 0.10);
+  --ltr-warn-bg: #3A1212;
+
+  --ltr-font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --ltr-row-h: 18px;
+  --ltr-row-h-header: 20px;
+  --ltr-font-body: 12px;
+  --ltr-font-header: 12px;
+  --ltr-font-title: 12px;
+  --ltr-font-weight: 400;
+  --ltr-line-height: 16px;
+
+  --ltr-topnav-h: 56px;
+  --ltr-symbolbar-h: 38px;
+  --ltr-bottom-h: 220px;
+  --ltr-radius: 2px;
+  --ltr-cell-pad-x: 8px;
+}
+
+[data-ltr-scope] {
+  font-family: var(--ltr-font-family);
+  font-size: var(--ltr-font-body);
+  font-weight: var(--ltr-font-weight);
+  line-height: var(--ltr-line-height);
+  color: var(--ltr-text-primary);
+  background: var(--ltr-bg-root);
+}

@@ -1,0 +1,25 @@
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  padding: 4px 4px 8px;
+  display: grid;
+  grid-template-rows: var(--ltr-topnav-h) auto 1fr;
+  height: 100vh;
+}
+.topnav { border-bottom: 1px solid var(--ltr-border); }
+.banner {
+  background: #5a1820;
+  color: #f3f3f3;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ltr-border);
+  a { color: #f3f3f3; text-decoration: underline; }
+}
+.content {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 4px;
+}

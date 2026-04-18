@@ -1,0 +1,68 @@
+.Claims-row {
+  display: flex;
+  flex-direction: row;
+  padding: 0.1rem 1.5rem;
+  align-items: center;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.Claims-card {
+  background: var(--color-slate-800);
+  font-size: var(--font-size-body-medium);
+  margin-bottom: 0.8rem;
+  padding-bottom: 1rem;
+  border-radius: 0.4rem;
+}
+
+.Claims-title {
+  border-bottom: 1px solid var(--color-slate-700);
+  padding: 1rem 1.5rem;
+  font-size: 1.5rem;
+}
+
+.Claims-col {
+  justify-content: center;
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0;
+}
+
+.Claims-col + .Claims-col {
+  margin-left: 3rem;
+}
+
+.Claims-col .muted {
+  margin-bottom: 0.2rem;
+}
+
+.Claims-col-title {
+  white-space: nowrap;
+  margin-bottom: 1.8rem;
+  width: 7rem;
+}
+
+.Claims-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.Claims-rows-horizontal.Claims-rows {
+  display: flex;
+  flex-direction: row;
+}
+
+.Claims-hr {
+  margin: 0.4rem 1.4rem 0;
+  border-bottom: 1px solid var(--color-slate-700);
+}
+
+.Claims-hr-horizontal {
+  margin: 0.8rem 0 0;
+  border-left: 1px solid var(--color-slate-700);
+}
+
+.Claims-loading {
+  padding: 1em;
+}

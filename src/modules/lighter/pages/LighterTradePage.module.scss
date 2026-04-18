@@ -1,0 +1,138 @@
+// src/modules/lighter/pages/LighterTradePage.module.scss
+// 布局完全以 Lighter 为准(参见 react-grid-layout 1823×1012 网格)
+
+.page {
+  --ltr-side-col: 321px;
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-width: 0;
+  height: 100vh;
+  min-height: 0;
+  background: #000;
+  padding: 4px;
+  display: grid;
+  grid-template-rows: var(--ltr-topnav-h) minmax(0, 1fr) var(--ltr-bottom-h);
+  row-gap: 4px;
+  overflow: hidden;
+}
+
+.topnav { border-bottom: 1px solid var(--ltr-border); }
+
+.banner {
+  background: #5a1820;
+  color: #f3f3f3;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ltr-border);
+  a { color: #f3f3f3; text-decoration: underline; }
+}
+
+// 顶行:Chart(1165) | OrderBook(321) | Form(321),共 608 高
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col);
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 4px;
+  min-height: 0;
+  > div { min-width: 0; min-height: 0; overflow: hidden; }
+}
+
+.mainLarge {
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col) var(--ltr-side-col);
+}
+
+.orderbook,
+.orderform {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 4px;
+  background: #000;
+}
+
+.orderbook > *,
+.orderform > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.orderbookLarge {
+  grid-column: 2 / 4;
+}
+
+// Chart 列内部:SymbolBar(32) + gap + Chart(572) = 608
+.chartCol {
+  display: grid;
+  grid-template-rows: 32px 25px minmax(0, 1fr);
+  row-gap: 4px;
+  background: #000;
+  min-width: 0;
+  min-height: 0;
+}
+.chartCol > .chart { min-height: 0; overflow: hidden; }
+
+.favoritesBar {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 25px;
+  background: #17181f;
+  border-top: 1px solid #20222a;
+}
+
+.favoriteButton {
+  width: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #8f93a2;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.favoriteButton:hover {
+  color: #c8ccd6;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+// 底行:Tabs(1490 = 1165+4+321) | Accounts(321),共 392 高
+.bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col);
+  grid-template-rows: var(--ltr-bottom-h);
+  column-gap: 4px;
+  min-height: 0;
+  > div { min-width: 0; min-height: 0; overflow: hidden; }
+}
+
+.tabs {
+  position: relative;
+  z-index: 30;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible !important;
+}
+
+.accounts {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bottomLarge {
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col) var(--ltr-side-col);
+}
+
+.tabsLarge {
+  grid-column: 1 / 4;
+}
+
+.accountsLarge {
+  grid-column: 4 / 5;
+}

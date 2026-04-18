@@ -1,0 +1,64 @@
+.GmSwapBox {
+  border-radius: 0.4rem;
+  padding: 1.5rem;
+  padding-top: 0.1rem;
+}
+
+.GmSwapBox-asset-options-tabs {
+  margin: 1.5rem 0;
+}
+
+.GmSwapBox-info-section {
+  margin-bottom: 1.1rem;
+}
+
+.GmSwapBox-market-dropdown {
+  margin-top: 1.5rem;
+  margin-left: -0.5rem;
+
+  .Dropdown-current {
+    font-size: 1.5rem;
+  }
+
+  .menu-items {
+    top: 3.3rem;
+  }
+}
+
+.GmSwapBox-warning {
+  margin-bottom: 1.05rem !important;
+}
+
+.warning-tooltip {
+  direction: ltr;
+
+  .Tooltip-handle {
+    color: var(--color-yellow-300);
+    text-decoration-color: var(--color-yellow-300);
+  }
+
+  .Tooltip-popup {
+    color: var(--color-typography-primary);
+  }
+}
+
+.gm-toast {
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .GmSwapBox-content {
+    flex-wrap: wrap;
+  }
+
+  .GmSwapBox-content .GlpSwap-stats-card {
+    margin: 0;
+    margin-bottom: 3.1rem;
+    max-width: 100%;
+  }
+
+  .GmSwapBox-content .GlpSwap-box {
+    margin: 0;
+    max-width: 100%;
+  }
+}

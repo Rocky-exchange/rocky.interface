@@ -1,0 +1,17 @@
+.CollateralSelector {
+  &-mobile {
+    &-column-pool {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    &-info {
+      margin: unset;
+      margin-top: 1rem;
+      display: grid;
+
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}

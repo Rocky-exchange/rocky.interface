@@ -1,0 +1,96 @@
+.TokenSelector-modal .Modal-content {
+  width: 42rem;
+  position: absolute;
+  max-height: 100vh;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.TokenSelector-modal .Modal-header-wrapper {
+  padding: 20px;
+  padding-bottom: 0px;
+}
+
+.TokenSelector-token-name {
+  margin-right: 1.5rem;
+}
+
+.Token-info {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+.Token-info .Token-symbol {
+  margin-left: 0.8rem;
+  display: flex;
+  flex-direction: column;
+}
+.Token-balance {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+.Token-info .token-logo {
+  display: block !important;
+  width: 4rem;
+  height: 4rem;
+  margin-right: 2px;
+  margin-left: 0 !important;
+}
+
+.TokenSelector-tooltip.Tooltip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+}
+
+.TokenSelector-tooltip-backing {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+.TokenSelector.right .Modal {
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+.text-accent {
+  color: var(--dark-blue-accent);
+  font-size: 1.2rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.TokenSelector.right .Modal-content {
+  position: absolute;
+  width: 35.65rem;
+  top: 0;
+  bottom: 0;
+  border: none;
+  padding: 0;
+}
+
+@media (max-width: 1024px) {
+  .TokenSelector-modal .Modal-content {
+    max-height: 80vh;
+    min-height: 80vh;
+    top: auto;
+    bottom: auto;
+    right: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .Token-info .token-logo {
+    width: 3rem;
+    height: 3rem;
+    margin-right: 0.8rem;
+  }
+}

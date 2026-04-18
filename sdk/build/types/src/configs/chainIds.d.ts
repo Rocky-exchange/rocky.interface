@@ -1,0 +1,10 @@
+export declare const ETH_MAINNET = 1;
+export declare const AVALANCHE = 43114;
+export declare const ARBITRUM = 42161;
+export declare const BOTANIX = 3637;
+export declare const SOURCE_BASE_MAINNET = 8453;
+export declare const SOURCE_BSC_MAINNET = 56;
+export declare const AVALANCHE_FUJI = 43113;
+export declare const ARBITRUM_SEPOLIA = 421614;
+export declare const SOURCE_OPTIMISM_SEPOLIA = 11155420;
+export declare const SOURCE_SEPOLIA = 11155111;
