@@ -20,7 +20,7 @@ const LANGUAGE_OPTIONS = [
   { key: "zh", label: "繁體中文" },
 ] as const;
 
-export function TopNav() {
+export function TopNav({ rightExtra }: { rightExtra?: React.ReactNode } = {}) {
   const { i18n } = useLingui();
   const { active, account } = useWallet();
   const { openConnectModal, connectModalOpen } = useConnectModal();
@@ -101,11 +101,24 @@ export function TopNav() {
         <img src={logoIcon} alt="Rocky" className={styles.logoImage} />
       </div>
       <div className={styles.nav}>
+        <NavLink to="/portfolio" className={styles.link} activeClassName={styles.active}>
+          Portfolio
+        </NavLink>
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           Trade
         </NavLink>
+        <NavLink to="/mining" className={styles.link} activeClassName={styles.active}>
+          Mining
+        </NavLink>
+        <NavLink to="/vip" className={styles.link} activeClassName={styles.active}>
+          VIP
+        </NavLink>
+        <NavLink to="/explorer" className={styles.link} activeClassName={styles.active}>
+          Explorer
+        </NavLink>
       </div>
       <div className={styles.right}>
+        {rightExtra}
         {/* <button className={styles.block}>
           <span className={styles.blockLabel}>Block</span>
           <span className={styles.blockNum}>214241984</span>

@@ -1,15 +1,15 @@
 import { ColorTree } from "lib/generateColorConfig";
 
 export const colors: ColorTree = {
-  // XBlade Gold Theme - Matching landing page #00FFB2
+  // Rocky Gold Theme - Matching design gold/amber
   gold: {
-    100: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    300: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    500: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    600: { light: "#00664E", dark: "#00664E" }, // Darker gold for hover
-    700: { light: "#003B2E", dark: "#003B2E" }, // Darkest gold for active
+    100: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    300: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    500: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    600: { light: "#D6A20A", dark: "#D6A20A" }, // Darker gold for hover
+    700: { light: "#BD8F09", dark: "#BD8F09" }, // Darkest gold for active
   },
-  // XBlade accent colors
+  // Rocky accent colors
   "light-blue": {
     100: { light: "#1A1A1A", dark: "#1A1A1A" }, // Dark background accent
     300: { light: "#2A2A2A", dark: "#2A2A2A" }, // Elevated surface
@@ -18,16 +18,16 @@ export const colors: ColorTree = {
     700: { light: "#404040", dark: "#404040" }, // Lighter border
   },
   blue: {
-    100: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    300: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    400: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    500: { light: "#00FFB2", dark: "#00FFB2" }, // Primary gold
-    600: { light: "#00664E", dark: "#00664E" }, // Darker gold for hover
-    700: { light: "#003B2E", dark: "#003B2E" }, // Darkest gold for active
+    100: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    300: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    400: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    500: { light: "#F0B90B", dark: "#F0B90B" }, // Primary gold
+    600: { light: "#D6A20A", dark: "#D6A20A" }, // Darker gold for hover
+    700: { light: "#BD8F09", dark: "#BD8F09" }, // Darkest gold for active
   },
   "cold-blue": {
-    500: { light: "#00664E", dark: "#00664E" }, // Darker gold
-    700: { light: "#003B2E", dark: "#003B2E" }, // Darkest gold
+    500: { light: "#D6A20A", dark: "#D6A20A" }, // Darker gold
+    700: { light: "#BD8F09", dark: "#BD8F09" }, // Darkest gold
     900: { light: "#1A1500", dark: "#1A1500" }, // Very dark gold tint
   },
   slate: {
