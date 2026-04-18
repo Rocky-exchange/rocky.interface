@@ -76,7 +76,7 @@
 .totalPanel {
   position: relative;
   overflow: hidden;
-  min-height: 260px;
+  min-height: 280px;
   padding-right: 24px;
 }
 
@@ -129,10 +129,10 @@
 .totalRock {
   position: absolute;
   top: 50%;
-  right: 30px;
-  transform: translateY(-46%);
-  width: 150px;
-  height: 150px;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 240px;
+  height: 240px;
   object-fit: contain;
   pointer-events: none;
   opacity: 0.95;

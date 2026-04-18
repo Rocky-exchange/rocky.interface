@@ -7,19 +7,18 @@
   background: var(--ltr-bg-root);
 }
 .logo {
-  width: 86px;
-  height: 19px;
-  flex: 0 0 108px;
+  flex: 0 0 auto;
+  height: 34px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 6px;
+  justify-content: flex-start;
+  padding: 0 8px;
 }
 
 .logoImage {
   display: block;
-  width: 84%;
-  height: 84%;
+  height: 100%;
+  width: auto;
   object-fit: contain;
 }
 .nav {

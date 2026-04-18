@@ -3,7 +3,6 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } fro
 
 import "../styles/global.scss";
 import { TopNav } from "../components/TopNav/TopNav";
-import coinImg from "@/shared/img/home/coin.png";
 import styles from "./LighterPortfolioPage.module.scss";
 
 const PNL_SERIES = [
@@ -98,7 +97,7 @@ export default function LighterPortfolioPage() {
               <span className={styles.badgeGhost}>+125 ROCKY</span>
             </div>
 
-            <img src={coinImg} alt="Rocky" className={styles.totalRock} />
+            <img src="/stone.png" alt="Rocky" className={styles.totalRock} />
 
             <div className={styles.totalActions}>
               <button type="button" className={styles.btnPrimary}>

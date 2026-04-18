@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import "../styles/global.scss";
 import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
 import { TopNav } from "../components/TopNav/TopNav";
-import coinImg from "@/shared/img/home/coin.png";
 import styles from "./LighterVipPage.module.scss";
 
 type TierStatus =
@@ -110,8 +109,7 @@ export default function LighterVipPage() {
       <div className={styles.content}>
         <div className={`${styles.panel} ${styles.statusPanel}`}>
           <div className={styles.rockWrap}>
-            <img src={coinImg} alt="" className={styles.rockImg} />
-            <span className={styles.rockLabel}>VIP 2</span>
+            <img src="/vip2.png" alt="VIP 2" className={styles.rockImg} />
             <span className={styles.offBadge}>
               <span className={styles.offBadgePercent}>20%</span>&nbsp;OFF FEES
             </span>

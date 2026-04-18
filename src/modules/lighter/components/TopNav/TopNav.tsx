@@ -8,7 +8,6 @@ import { NavLink } from "react-router-dom";
 import { useZtdxAuth } from "@/modules/cex/lib/api";
 import { useGmxAccountModalOpen } from "@/modules/dex/context/GmxAccountContext/hooks";
 import { useSettings } from "@/modules/dex/context/SettingsContext/SettingsContextProvider";
-import logoIcon from "@/shared/img/home/logo-icon.png";
 import { dynamicActivate } from "@/shared/lib/i18n";
 import { sendUserAnalyticsConnectWalletClickEvent } from "@/shared/lib/userAnalytics/utils";
 import useWallet from "@/shared/lib/wallets/useWallet";
@@ -98,7 +97,7 @@ export function TopNav({ rightExtra }: { rightExtra?: React.ReactNode } = {}) {
   return (
     <nav className={styles.root}>
       <div className={styles.logo}>
-        <img src={logoIcon} alt="Rocky" className={styles.logoImage} />
+        <img src="/logo.svg" alt="Rocky" className={styles.logoImage} />
       </div>
       <div className={styles.nav}>
         <NavLink to="/portfolio" className={styles.link} activeClassName={styles.active}>
