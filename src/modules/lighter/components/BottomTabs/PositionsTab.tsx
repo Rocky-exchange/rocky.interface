@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
+import { useClosePositionHandler } from "@/modules/cex/lib/api/useClosePositionHandler";
 import type { BottomTabFilterMode } from "./BottomTabs";
 import styles from "./PositionsTab.module.scss";
 import { TpSlPositionModal } from "./TpSlPositionModal";
@@ -151,6 +152,23 @@ function toRow(position: LighterPosition): PositionRow {
 export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
   const positions = usePositionsAdapter();
   const [editingTpSlPositionKey, setEditingTpSlPositionKey] = useState<string | undefined>();
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const { closePositionViaApi, isReady } = useClosePositionHandler();
+
+  const handleClose = useCallback(
+    async (positionId: string) => {
+      if (!positionId || closingId) return;
+      setClosingId(positionId);
+      try {
+        await closePositionViaApi(positionId);
+      } catch {
+        // helperToast already surfaced the error from useClosePositionHandler
+      } finally {
+        setClosingId(null);
+      }
+    },
+    [closePositionViaApi, closingId]
+  );
 
   const filteredPositions = useMemo(() => {
     return positions.filter((position) => {
@@ -201,6 +219,8 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
         <tbody>
           {rows.map((row, index) => {
             const rowKey = `${row.market}-${index}`;
+            const positionId = filteredPositions[index]?.positionId ?? "";
+            const isClosingThis = closingId === positionId;
             const pnlTone =
               row.unrealizedPnlValue == null ? styles.placeholder : row.unrealizedPnlValue >= 0 ? styles.up : styles.down;
             return (
@@ -247,7 +267,14 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                   </span>
                 </td>
                 <td className={styles.closeActionCell}>
-                  <button type="button" className={styles.closeActionButton} aria-label={`Close ${row.market} position`}>
+                  <button
+                    type="button"
+                    className={styles.closeActionButton}
+                    aria-label={`Close ${row.market} position`}
+                    onClick={() => handleClose(positionId)}
+                    disabled={!isReady || !positionId || isClosingThis}
+                    style={isClosingThis ? { opacity: 0.5, cursor: "default" } : undefined}
+                  >
                     <ClosePositionIcon />
                   </button>
                 </td>
