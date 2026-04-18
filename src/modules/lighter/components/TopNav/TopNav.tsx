@@ -100,7 +100,12 @@ export function TopNav({ rightExtra }: { rightExtra?: React.ReactNode } = {}) {
         <img src="/logo.svg" alt="Rocky" className={styles.logoImage} />
       </div>
       <div className={styles.nav}>
-        <NavLink to="/portfolio" className={styles.link} activeClassName={styles.active}>
+        <NavLink
+          to="/portfolio"
+          className={styles.link}
+          activeClassName={styles.active}
+          isActive={(_match, location) => location.pathname === "/" || location.pathname.startsWith("/portfolio")}
+        >
           Portfolio
         </NavLink>
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 
+import { emitMiningBadge } from "../MiningBadge/MiningBadge";
 import { emitToast } from "../LighterToast/toastBus";
 import styles from "./ClaimRewardsFlow.module.scss";
 
@@ -42,7 +43,10 @@ export function ClaimRewardsFlow({ open, onClose, initialStep = "claim" }: Props
   // Auto-advance processing -> success
   useEffect(() => {
     if (!open || step !== "processing") return;
-    const t = setTimeout(() => setStep("success"), 2800);
+    const t = setTimeout(() => {
+      setStep("success");
+      emitMiningBadge(1047);
+    }, 2800);
     return () => clearTimeout(t);
   }, [open, step]);
 

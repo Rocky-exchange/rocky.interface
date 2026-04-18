@@ -4,8 +4,10 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } fro
 
 import "../styles/global.scss";
 import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
+import { formatCount, useCountUp } from "../components/CountUp/CountUp";
 import { LighterToastContainer } from "../components/LighterToast/LighterToast";
 import { emitToast } from "../components/LighterToast/toastBus";
+import { MiningBadgeContainer } from "../components/MiningBadge/MiningBadge";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterPortfolioPage.module.scss";
 
@@ -70,6 +72,13 @@ export default function LighterPortfolioPage() {
   const [claimOpen, setClaimOpen] = useState(false);
   const historyData = buildHistory(range);
 
+  const totalMined = useCountUp(1247.5);
+  const gainPercent = useCountUp(12.5);
+  const gainDelta = useCountUp(125);
+  const pnl = useCountUp(837.2);
+  const volume = useCountUp(15210.21);
+  const todayMining = useCountUp(125);
+
   useEffect(() => {
     document.body.classList.add("lighter-active");
     return () => document.body.classList.remove("lighter-active");
@@ -95,12 +104,12 @@ export default function LighterPortfolioPage() {
             </div>
 
             <div className={styles.totalValueRow}>
-              <span className={styles.totalValue}>1,247.5</span>
+              <span className={styles.totalValue}>{formatCount(totalMined, 1)}</span>
               <span className={styles.totalSuffix}>ROCKY</span>
             </div>
             <div className={styles.totalBadges}>
-              <span className={styles.badgeOrange}>↑ +12.5%</span>
-              <span className={styles.badgeGhost}>+125 ROCKY</span>
+              <span className={styles.badgeOrange}>↑ +{formatCount(gainPercent, 1)}%</span>
+              <span className={styles.badgeGhost}>+{formatCount(gainDelta, 0)} ROCKY</span>
             </div>
 
             <video
@@ -139,7 +148,7 @@ export default function LighterPortfolioPage() {
               </div>
             </div>
             <div>
-              <div className={styles.pnlValue}>$837.2</div>
+              <div className={styles.pnlValue}>${formatCount(pnl, 1)}</div>
               <div className={styles.pnlSub}>Today's PnL</div>
             </div>
             <div className={styles.pnlChart}>
@@ -175,7 +184,7 @@ export default function LighterPortfolioPage() {
                 Today's Trading Volume
               </div>
             </div>
-            <div className={styles.statValue}>$15,210.21</div>
+            <div className={styles.statValue}>${formatCount(volume, 2)}</div>
             <div className={styles.statSub}>
               <span>24 transactions</span>
               <span className={styles.statSubDivider}>|</span>
@@ -193,7 +202,7 @@ export default function LighterPortfolioPage() {
               </div>
             </div>
             <div className={styles.statValueRow}>
-              <span className={styles.statValue}>+125</span>
+              <span className={styles.statValue}>+{formatCount(todayMining, 0)}</span>
               <span className={styles.statSuffix}>ROCKY</span>
             </div>
             <div className={styles.statSub}>
@@ -322,6 +331,7 @@ export default function LighterPortfolioPage() {
 
       <ClaimRewardsFlow open={claimOpen} onClose={() => setClaimOpen(false)} />
       <LighterToastContainer />
+      <MiningBadgeContainer />
     </div>
   );
 }

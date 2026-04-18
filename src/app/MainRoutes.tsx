@@ -19,11 +19,7 @@ export function MainRoutes(_props: { openSettings: () => void }) {
   return (
     <Switch>
       <Route exact path="/">
-        <X10000StateProvider>
-          <SyntheticsStateContextProvider skipLocalReferralCode={false} pageType="x10000trade">
-            <LighterTradePage />
-          </SyntheticsStateContextProvider>
-        </X10000StateProvider>
+        <LighterPortfolioPage />
       </Route>
       <Route exact path="/trade/:tradeType?">
         <X10000StateProvider>

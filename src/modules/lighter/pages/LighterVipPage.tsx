@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 
 import "../styles/global.scss";
 import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
+import { CountUp } from "../components/CountUp/CountUp";
 import { LighterToastContainer } from "../components/LighterToast/LighterToast";
 import { emitToast } from "../components/LighterToast/toastBus";
+import { MiningBadgeContainer } from "../components/MiningBadge/MiningBadge";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterVipPage.module.scss";
 
@@ -97,10 +99,15 @@ const TIERS: Tier[] = [
 
 export default function LighterVipPage() {
   const [claimOpen, setClaimOpen] = useState(false);
+  const [progressPct, setProgressPct] = useState(0);
 
   useEffect(() => {
     document.body.classList.add("lighter-active");
-    return () => document.body.classList.remove("lighter-active");
+    const t = window.setTimeout(() => setProgressPct(72), 140);
+    return () => {
+      document.body.classList.remove("lighter-active");
+      window.clearTimeout(t);
+    };
   }, []);
 
   return (
@@ -123,7 +130,9 @@ export default function LighterVipPage() {
                   <span className={styles.currentChip}>VIP 2</span>
                   <span className={styles.currentLabel}>Current Grade</span>
                 </div>
-                <div className={styles.currentHold}>Already hold 5,320 ROCKY</div>
+                <div className={styles.currentHold}>
+                  Already hold <CountUp value={5320} /> ROCKY
+                </div>
               </div>
               <div className={styles.statusTopRight}>
                 <div className={styles.nextLabel}>VIP 3</div>
@@ -132,7 +141,7 @@ export default function LighterVipPage() {
             </div>
 
             <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ ["--p" as any]: "72%" }} />
+              <div className={styles.progressFill} style={{ ["--p" as any]: `${progressPct}%` }} />
             </div>
 
             <div className={styles.progressMeta}>
@@ -238,7 +247,7 @@ export default function LighterVipPage() {
             <div>
               <div className={styles.compareSubLabel}>Fee Rate</div>
               <div className={styles.compareFeeRow}>
-                <span className={`${styles.compareFeeValue} ${styles.compareFeeValueOrange}`}>$25</span>
+                <CountUp value={25} prefix="$" className={`${styles.compareFeeValue} ${styles.compareFeeValueOrange}`} />
                 <span className={styles.compareFeeDesc}>Fees paid for a $100K notional trade</span>
               </div>
             </div>
@@ -267,7 +276,7 @@ export default function LighterVipPage() {
             <div>
               <div className={styles.compareSubLabel}>Fee Rate</div>
               <div className={styles.compareFeeRow}>
-                <span className={styles.compareFeeValue}>$18</span>
+                <CountUp value={18} prefix="$" className={styles.compareFeeValue} />
                 <span className={styles.compareFeeDesc}>For the same $100K trade, you only pay</span>
               </div>
             </div>
@@ -285,7 +294,7 @@ export default function LighterVipPage() {
             <div>
               <div className={styles.compareSubLabel}>Estimated Based On Current Trading Frequency</div>
               <div className={styles.compareFeeRow}>
-                <span className={styles.saveValue}>$870</span>
+                <CountUp value={870} prefix="$" className={styles.saveValue} />
                 <span className={styles.saveUnit}>/Year</span>
               </div>
             </div>
@@ -322,6 +331,7 @@ export default function LighterVipPage() {
 
       <ClaimRewardsFlow open={claimOpen} onClose={() => setClaimOpen(false)} />
       <LighterToastContainer />
+      <MiningBadgeContainer />
     </div>
   );
 }
@@ -362,7 +372,7 @@ function StatusPill({ status }: { status: TierStatus }) {
 function HoldingBadge() {
   return (
     <div className={styles.holdingBadge}>
-      ROCKY Holding: <span className={styles.holdingValue}>5,320</span>
+      ROCKY Holding: <CountUp value={5320} className={styles.holdingValue} />
     </div>
   );
 }

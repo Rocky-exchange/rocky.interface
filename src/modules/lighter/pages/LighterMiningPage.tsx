@@ -1,17 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import "../styles/global.scss";
 import { ClaimRewardsFlow } from "../components/ClaimRewardsFlow/ClaimRewardsFlow";
+import { CountUp } from "../components/CountUp/CountUp";
 import { LighterToastContainer } from "../components/LighterToast/LighterToast";
 import { emitToast } from "../components/LighterToast/toastBus";
+import { MiningBadgeContainer } from "../components/MiningBadge/MiningBadge";
 import { TopNav } from "../components/TopNav/TopNav";
 import styles from "./LighterMiningPage.module.scss";
 
 type StatCard = {
   label: string;
-  value: string;
+  value: number;
+  decimals?: number;
+  prefix?: string;
   suffix?: string;
   unit?: string;
   badge?: string;
@@ -21,33 +25,35 @@ type StatCard = {
 const STATS: StatCard[] = [
   {
     label: "Today's Total Mining Output",
-    value: "2,847,320",
+    value: 2847320,
     suffix: "ROCKY",
     badge: "↑ +18.4% vs. yesterday",
   },
   {
     label: "My Ranking",
-    value: "#347",
+    value: 347,
+    prefix: "#",
     unit: "/ 12,313",
     badge: "↑ 12 places",
   },
   {
     label: "My Proportion",
-    value: "0.032",
+    value: 0.032,
+    decimals: 3,
     suffix: "%",
     note: "Daily Contributions 1,247 ROCKY",
   },
   {
     label: "Currently Online Miners",
-    value: "3,432",
+    value: 3432,
     note: "Active in the last 5 minutes",
   },
 ];
 
 const TRACKER_STEPS = [
-  { label: "PENDING", value: "45" },
-  { label: "MINTED", value: "120" },
-  { label: "CLAIMED", value: "1080" },
+  { label: "PENDING", value: 45 },
+  { label: "MINTED", value: 120 },
+  { label: "CLAIMED", value: 1080 },
 ];
 
 const TRACKER_TABS = [
@@ -71,20 +77,57 @@ const INCOME = [
 
 const TAKER_MAKER = { taker: 55, maker: 45 };
 
-const FEED = [
-  { user: "party::abc.. xyz", meta: "BTC · Taker · 1s ago", amount: "+25 ROCKY", self: false },
-  { user: "You", meta: "BTC · Taker · 2s ago", amount: "+20 ROCKY", self: true },
-  { user: "party: :def...uvw", meta: "RTH · Taker · 2s ago", amount: "+12 ROCKY", self: false },
-  { user: "guest::hij.. lmn", meta: "ETH · Maker · 3s ago", amount: "+18 ROCKY", self: false },
-  { user: "visitor::opq.. rst", meta: "LTC · Taker · 4s ago", amount: "+22 ROCKY", self: false },
-  { user: "user::uvw.. xyz", meta: "DOGE · Maker · 5s ago", amount: "+15 ROCKY", self: false },
-  { user: "member::abc.. def", meta: "XRP · Taker · 6s ago", amount: "+30 ROCKY", self: false },
+type FeedItem = { id: string; user: string; meta: string; amount: string; self: boolean };
+
+const INITIAL_FEED: FeedItem[] = [
+  { id: "f0", user: "party::abc.. xyz", meta: "BTC · Taker · 1s ago", amount: "+25 ROCKY", self: false },
+  { id: "f1", user: "You", meta: "BTC · Taker · 2s ago", amount: "+20 ROCKY", self: true },
+  { id: "f2", user: "party::def.. uvw", meta: "ETH · Taker · 2s ago", amount: "+12 ROCKY", self: false },
+  { id: "f3", user: "guest::hij.. lmn", meta: "ETH · Maker · 3s ago", amount: "+18 ROCKY", self: false },
+  { id: "f4", user: "visitor::opq.. rst", meta: "LTC · Taker · 4s ago", amount: "+22 ROCKY", self: false },
+  { id: "f5", user: "user::uvw.. xyz", meta: "DOGE · Maker · 5s ago", amount: "+15 ROCKY", self: false },
+  { id: "f6", user: "member::abc.. def", meta: "XRP · Taker · 6s ago", amount: "+30 ROCKY", self: false },
 ];
+
+const RANDOM_SYMBOLS = ["BTC", "ETH", "SOL", "LTC", "XRP", "DOGE", "AVAX", "ARB", "OP", "LINK"];
+const RANDOM_SIDES = ["Taker", "Maker"] as const;
+const RANDOM_PREFIXES = ["party", "guest", "user", "visitor", "trader", "miner", "whale", "shark"];
+
+function randomHex(len = 3): string {
+  let s = "";
+  const chars = "0123456789abcdef";
+  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function generateFeedItem(): FeedItem {
+  const prefix = RANDOM_PREFIXES[Math.floor(Math.random() * RANDOM_PREFIXES.length)];
+  const symbol = RANDOM_SYMBOLS[Math.floor(Math.random() * RANDOM_SYMBOLS.length)];
+  const side = RANDOM_SIDES[Math.floor(Math.random() * RANDOM_SIDES.length)];
+  const amount = 8 + Math.floor(Math.random() * 38);
+  return {
+    id: `f-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    user: `${prefix}::${randomHex()}.. ${randomHex()}`,
+    meta: `${symbol} · ${side} · just now`,
+    amount: `+${amount} ROCKY`,
+    self: false,
+  };
+}
 
 export default function LighterMiningPage() {
   const history = useHistory();
   const [activeTab, setActiveTab] = useState<(typeof TRACKER_TABS)[number]["key"]>("pending");
   const [claimOpen, setClaimOpen] = useState(false);
+  const [feed, setFeed] = useState<FeedItem[]>(INITIAL_FEED);
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setFeed((prev) => [generateFeedItem(), ...prev].slice(0, 9));
+    }, 2600);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     document.body.classList.add("lighter-active");
@@ -107,7 +150,12 @@ export default function LighterMiningPage() {
             <div key={s.label} className={styles.card}>
               <div className={styles.statLabel}>{s.label}</div>
               <div className={styles.statValueRow}>
-                <span className={styles.statValue}>{s.value}</span>
+                <CountUp
+                  value={s.value}
+                  decimals={s.decimals ?? 0}
+                  prefix={s.prefix ?? ""}
+                  className={styles.statValue}
+                />
                 {s.suffix ? <span className={styles.statSuffix}>{s.suffix}</span> : null}
                 {s.unit ? <span className={styles.statUnit}>{s.unit}</span> : null}
               </div>
@@ -128,14 +176,16 @@ export default function LighterMiningPage() {
                 </svg>
                 My Rewards Tracker
               </div>
-              <div className={styles.panelAside}>1,047.5 ROCKY</div>
+              <div className={styles.panelAside}>
+                <CountUp value={1047.5} decimals={1} /> ROCKY
+              </div>
             </div>
 
             <div className={styles.tracker}>
               {TRACKER_STEPS.map((step) => (
                 <div key={step.label} className={styles.trackerChip}>
                   <span className={styles.trackerLabel}>{step.label}</span>
-                  <span className={styles.trackerValue}>{step.value}</span>
+                  <CountUp value={step.value} className={styles.trackerValue} />
                 </div>
               ))}
             </div>
@@ -207,7 +257,9 @@ export default function LighterMiningPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className={styles.donutCenter}>
-                <div className={styles.donutCenterValue}>1,247.5</div>
+                <div className={styles.donutCenterValue}>
+                  <CountUp value={1247.5} decimals={1} />
+                </div>
                 <div className={styles.donutCenterLabel}>ROCKY Total</div>
               </div>
             </div>
@@ -258,8 +310,8 @@ export default function LighterMiningPage() {
               WebSocket pushes cross-platform anonymous mining events, updated every 1 second
             </div>
             <div className={styles.feedList}>
-              {FEED.map((f, i) => (
-                <div key={i} className={styles.feedRow}>
+              {feed.map((f) => (
+                <div key={f.id} className={`${styles.feedRow} ${styles.feedRowEnter}`}>
                   <div>
                     <div className={`${styles.feedUser} ${f.self ? styles.feedUserSelf : ""}`}>{f.user}</div>
                     <div className={styles.feedMeta}>{f.meta}</div>
@@ -308,6 +360,7 @@ export default function LighterMiningPage() {
 
       <ClaimRewardsFlow open={claimOpen} onClose={() => setClaimOpen(false)} />
       <LighterToastContainer />
+      <MiningBadgeContainer />
     </div>
   );
 }

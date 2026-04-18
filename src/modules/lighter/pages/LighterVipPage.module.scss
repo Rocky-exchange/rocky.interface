@@ -136,6 +136,7 @@
 }
 
 .currentChip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
@@ -146,6 +147,30 @@
   line-height: 16px;
   font-weight: 800;
   letter-spacing: 0.04em;
+  overflow: hidden;
+  box-shadow: 0 0 0 rgba(247, 164, 59, 0.55);
+  animation: chipPulse 2400ms ease-in-out infinite;
+}
+
+.currentChip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: chipShine 3200ms ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes chipPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(247, 164, 59, 0.2); }
+  50% { box-shadow: 0 0 18px rgba(247, 164, 59, 0.7); }
+}
+
+@keyframes chipShine {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
 }
 
 .currentLabel {
@@ -194,9 +219,11 @@
 .progressFill {
   position: absolute;
   inset: 0;
-  width: var(--p, 70%);
+  width: var(--p, 0%);
   border-radius: 4px;
   background: linear-gradient(90deg, #f7a43b 0%, #ffc97a 50%, #8cd8ae 100%);
+  transition: width 1400ms cubic-bezier(0.2, 0.8, 0.25, 1);
+  box-shadow: 0 0 24px rgba(247, 164, 59, 0.35);
 }
 
 .progressMeta {
