@@ -130,8 +130,7 @@ export function AppRoutes() {
 
   const isLanding = location.pathname === "/" || location.pathname === "/v2";
   const isLighterTrade = location.pathname.startsWith("/trade");
-  const shouldShowBotAssistant =
-    location.pathname.startsWith("/accounts") || location.pathname.startsWith("/trade");
+  const shouldShowBotAssistant = location.pathname.startsWith("/accounts");
 
   return (
     <>
