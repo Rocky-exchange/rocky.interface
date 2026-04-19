@@ -182,13 +182,18 @@ function periodToMs(period: string): number {
 
 export function fakeCandles(params: GetCandlesParams): CandlesResponse {
   const step = periodToMs(params.period);
-  const limit = params.limit ?? 200;
+  const limit = Math.min(Math.max(params.limit ?? 500, 1), 2000);
   const now = Date.now();
   const end = params.end ?? now;
-  const start = params.start ?? end - step * limit;
+  // Always produce at most `limit` candles, from latest backward.
+  const startFloor = end - step * (limit - 1);
+  const startRequested = params.start != null ? params.start : startFloor;
+  const effectiveStart = Math.max(startRequested, startFloor);
+  const firstBucket = Math.floor(effectiveStart / step) * step;
+  const lastBucket = Math.floor(end / step) * step;
 
   const candles: Candle[] = [];
-  for (let t = Math.floor(start / step) * step; t <= end; t += step) {
+  for (let t = firstBucket; t <= lastBucket && candles.length < limit; t += step) {
     const openPx = priceAt(t);
     const closePx = priceAt(t + step - 1);
     const highPx = Math.max(openPx, closePx) * (1 + 0.003 * Math.abs(Math.sin(t / 71)));
