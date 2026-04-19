@@ -160,6 +160,20 @@ export function useZtdxOrderSubmit(): UseZtdxOrderSubmitResult {
     globalMutate([`x10000-ztdx-balances`, chainId, address], undefined, { revalidate: true });
   }, [globalMutate, address, chainId]);
 
+  // Positions are persisted asynchronously by the matching engine after a trade
+  // is matched (see hyper_strcution backend: services/matching/orchestrator.rs).
+  // There's typically a 50-200ms gap between createOrder returning 200 and the
+  // `positions` row being written. We invalidate the SWR cache immediately AND
+  // re-invalidate after short delays so the Positions tab shows the new row
+  // without waiting for the 2s polling tick.
+  const refreshPositions = useCallback(() => {
+    if (!address || !chainId) return;
+    const key = [`ztdx-positions`, chainId, address];
+    globalMutate(key, undefined, { revalidate: true });
+    window.setTimeout(() => globalMutate(key, undefined, { revalidate: true }), 600);
+    window.setTimeout(() => globalMutate(key, undefined, { revalidate: true }), 1800);
+  }, [globalMutate, address, chainId]);
+
   const submitOrder = useCallback(
     async (params: ZtdxOrderParams): Promise<CreateOrderResponse> => {
       console.log(" submitOrder called", {
@@ -402,11 +416,24 @@ export function useZtdxOrderSubmit(): UseZtdxOrderSubmitResult {
         // Pass address to ensure correct token is used
         const response = await createOrder(chainId, request, address);
         // New API returns: { order_id, status, filled_amount, remaining_amount, average_price, created_at }
-        helperToast.success(`Order submitted: ${response.order_id}`);
+        const filled = Number(response.filled_amount) || 0;
+        const shortId = response.order_id ? String(response.order_id).slice(0, 10) : "";
+        if (filled > 0) {
+          helperToast.success(
+            `Order filled: ${filled.toLocaleString(undefined, { maximumFractionDigits: 6 })} @ ${response.average_price ?? "market"} (${shortId}...)`
+          );
+        } else {
+          helperToast.info(
+            `Order placed but not yet filled — status: ${response.status} (${shortId}...)`
+          );
+        }
 
-        // Refresh orders list after successful order creation
+        // Refresh orders/balances/positions after successful order creation.
+        // Positions are written asynchronously; refreshPositions re-invalidates
+        // several times to cover the race window.
         refreshOrders();
         refreshBalances();
+        refreshPositions();
 
         return response;
       } catch (error: any) {
@@ -415,7 +442,7 @@ export function useZtdxOrderSubmit(): UseZtdxOrderSubmitResult {
         throw error;
       }
     },
-    [chainId, address, refreshOrders, refreshBalances, signTypedDataAsync]
+    [chainId, address, refreshOrders, refreshBalances, refreshPositions, signTypedDataAsync]
   );
 
   const cancelOrderById = useCallback(
@@ -600,9 +627,10 @@ export function useZtdxOrderSubmit(): UseZtdxOrderSubmitResult {
         const response = await closePosition(chainId, positionId, request);
         helperToast.success(t`Position close order submitted`);
 
-        // Refresh orders list after successful position close order
+        // Refresh orders/balances/positions after successful close
         refreshOrders();
         refreshBalances();
+        refreshPositions();
 
         return response;
       } catch (error: any) {
@@ -611,7 +639,7 @@ export function useZtdxOrderSubmit(): UseZtdxOrderSubmitResult {
         throw error;
       }
     },
-    [chainId, address, refreshOrders, refreshBalances]
+    [chainId, address, refreshOrders, refreshBalances, refreshPositions]
   );
 
   return {
