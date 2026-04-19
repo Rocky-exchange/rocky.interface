@@ -148,6 +148,12 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
           side={side}
         />
 
+        {isConnected && (
+          <button onClick={submit} disabled={submitting} className={`ltr-form__submit ltr-form__submit--${side}`}>
+            {side === "buy" ? "Buy / Long" : "Sell / Short"}
+          </button>
+        )}
+
         <Checkbox
           checked={reduceOnly}
           onChange={(checked) => {
@@ -234,11 +240,6 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
         />
       </div>
 
-      {isConnected && (
-        <button onClick={submit} disabled={submitting} className={`ltr-form__submit ltr-form__submit--${side}`}>
-          {side === "buy" ? "Buy / Long" : "Sell / Short"}
-        </button>
-      )}
     </div>
   );
 }

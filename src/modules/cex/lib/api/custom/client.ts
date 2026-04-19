@@ -8,23 +8,6 @@
 // 使用统一的后端 URL 配置
 import { getX10000BackendUrl } from "config/backend";
 
-// Demo-only fake pair (CCUSDT) — intercepts market data + user actions for a single pair
-import {
-  cancelFakeOrder,
-  closeFakePosition,
-  fakeCandles,
-  fakeOrderbook,
-  fakeTicker,
-  fakeTrades,
-  injectFakeBalance,
-  injectFakeMarket,
-  injectFakeOrders,
-  injectFakePositions,
-  isCcId,
-  isCcSymbol,
-  recordFakeOrder,
-} from "./ccusdtFake";
-
 import type {
   ApiError,
   NonceResponse,
@@ -546,8 +529,7 @@ function convertSymbolToApiFormat(symbol: string): string {
 
 export async function getMarkets(chainId: number, limit?: number): Promise<MarketsResponse> {
   const queryParams = limit ? `?limit=${limit}` : "";
-  const resp = await apiFetch<MarketsResponse>(chainId, `/external/markets${queryParams}`);
-  return injectFakeMarket(resp);
+  return apiFetch<MarketsResponse>(chainId, `/external/markets${queryParams}`);
 }
 
 export async function getMarketDetails(chainId: number, symbol: string): Promise<MarketDetailsResponse> {
@@ -556,7 +538,6 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
 }
 
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
-  if (isCcSymbol(symbol)) return fakeOrderbook();
   const apiSymbol = convertSymbolToApiFormat(symbol);
   return apiFetch<Orderbook>(chainId, `/external/markets/${apiSymbol}/orderbook`);
 }
@@ -567,13 +548,11 @@ export interface TradesResponse {
 }
 
 export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
-  if (isCcSymbol(symbol)) return fakeTrades();
   const apiSymbol = convertSymbolToApiFormat(symbol);
   return apiFetch<TradesResponse>(chainId, `/external/markets/${apiSymbol}/trades`);
 }
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
-  if (isCcSymbol(symbol)) return fakeTicker();
   const apiSymbol = convertSymbolToApiFormat(symbol);
   return apiFetch<Ticker>(chainId, `/external/markets/${apiSymbol}/ticker`);
 }
@@ -632,13 +611,11 @@ export interface UnifiedAccountResponse {
 }
 
 export async function getPositions(chainId: number, address?: string | null): Promise<PositionsResponse> {
-  const resp = await apiFetch<PositionsResponse>(chainId, "/account/positions", { requireAuth: true, address });
-  return injectFakePositions(resp);
+  return apiFetch<PositionsResponse>(chainId, "/account/positions", { requireAuth: true, address });
 }
 
 export async function getOrders(chainId: number, address?: string | null): Promise<OrdersResponse> {
-  const resp = await apiFetch<OrdersResponse>(chainId, "/account/orders", { requireAuth: true, address });
-  return injectFakeOrders(resp);
+  return apiFetch<OrdersResponse>(chainId, "/account/orders", { requireAuth: true, address });
 }
 
 export async function getTriggerOrders(chainId: number, address?: string | null): Promise<TriggerOrdersResponse> {
@@ -646,8 +623,7 @@ export async function getTriggerOrders(chainId: number, address?: string | null)
 }
 
 export async function getBalances(chainId: number, address?: string | null): Promise<BalancesResponse> {
-  const resp = await apiFetch<BalancesResponse>(chainId, "/account/balances", { requireAuth: true, address });
-  return injectFakeBalance(resp);
+  return apiFetch<BalancesResponse>(chainId, "/account/balances", { requireAuth: true, address });
 }
 
 export async function getUnifiedAccount(chainId: number, address?: string | null): Promise<UnifiedAccountResponse> {
@@ -746,16 +722,6 @@ export async function createOrder(
   request: CreateOrderRequest,
   address?: string | null
 ): Promise<CreateOrderResponse> {
-  if (isCcSymbol(request.symbol)) {
-    return recordFakeOrder({
-      symbol: request.symbol,
-      side: request.side,
-      order_type: request.order_type,
-      amount: request.amount,
-      price: request.price,
-      leverage: request.leverage,
-    });
-  }
   return apiFetch<CreateOrderResponse>(chainId, "/orders", {
     method: "POST",
     body: JSON.stringify(request),
@@ -797,7 +763,6 @@ export async function cancelOrder(
   orderId: string,
   request: CancelOrderRequest
 ): Promise<CancelOrderResponse> {
-  if (isCcId(orderId)) return cancelFakeOrder(orderId) as CancelOrderResponse;
   return apiFetch<CancelOrderResponse>(chainId, `/orders/${orderId}`, {
     method: "DELETE",
     body: JSON.stringify(request),
@@ -850,7 +815,6 @@ export async function closePosition(
   positionId: string,
   request?: ClosePositionRequest
 ): Promise<CreateOrderResponse> {
-  if (isCcId(positionId)) return closeFakePosition(positionId);
   return apiFetch<CreateOrderResponse>(chainId, `/positions/${positionId}/close`, {
     method: "POST",
     body: JSON.stringify(request || {}),
@@ -978,7 +942,6 @@ export interface GetCandlesParams {
 }
 
 export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
-  if (isCcSymbol(symbol)) return fakeCandles(params);
   const apiSymbol = convertSymbolToApiFormat(symbol);
   const queryParams = new URLSearchParams();
   queryParams.set("period", params.period);

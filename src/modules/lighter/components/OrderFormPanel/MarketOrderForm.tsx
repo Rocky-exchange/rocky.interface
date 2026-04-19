@@ -128,6 +128,12 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
           side={side}
         />
 
+        {isConnected && (
+          <button onClick={submit} disabled={submitting} className={`ltr-form__submit ltr-form__submit--${side}`}>
+            {side === "buy" ? "Buy / Long" : "Sell / Short"}
+          </button>
+        )}
+
         <Checkbox
           checked={reduceOnly}
           onChange={(checked) => {
@@ -211,11 +217,6 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
         />
       </div>
 
-      {isConnected && (
-        <button onClick={submit} disabled={submitting} className={`ltr-form__submit ltr-form__submit--${side}`}>
-          {side === "buy" ? "Buy / Long" : "Sell / Short"}
-        </button>
-      )}
     </div>
   );
 }

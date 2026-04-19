@@ -1,15 +1,5 @@
 import { getServerBaseUrl } from "config/backend";
 
-// Demo-only CCUSDT fake pair
-import {
-  fakeCandles,
-  fakeMarket,
-  fakeOrderbook,
-  fakeTicker,
-  fakeTrades,
-  isCcSymbol,
-} from "./custom/ccusdtFake";
-
 import type {
   ApiError,
   NonceResponse,
@@ -171,9 +161,7 @@ export interface MarketDetailsResponse {
 
 export async function getMarkets(chainId: number, limit?: number): Promise<MarketsResponse> {
   const queryParams = limit ? `?limit=${limit}` : "";
-  const resp = await apiFetch<MarketsResponse>(chainId, `/external/markets${queryParams}`);
-  if (resp.markets.some((m) => m.symbol === "CCUSDT")) return resp;
-  return { markets: [fakeMarket(), ...resp.markets], total: resp.total + 1 };
+  return apiFetch<MarketsResponse>(chainId, `/external/markets${queryParams}`);
 }
 
 export async function getMarketDetails(chainId: number, symbol: string): Promise<MarketDetailsResponse> {
@@ -182,7 +170,6 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
 }
 
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
-  if (isCcSymbol(symbol)) return fakeOrderbook();
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
   return apiFetch<Orderbook>(chainId, `/external/markets/${apiSymbol}/orderbook`);
@@ -194,7 +181,6 @@ export interface TradesResponse {
 }
 
 export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
-  if (isCcSymbol(symbol)) return fakeTrades();
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
   return apiFetch<TradesResponse>(chainId, `/external/markets/${apiSymbol}/trades`);
@@ -215,7 +201,6 @@ function convertSymbolToApiFormat(symbol: string): string {
 }
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
-  if (isCcSymbol(symbol)) return fakeTicker();
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
   return apiFetch<Ticker>(chainId, `/external/markets/${apiSymbol}/ticker`);
@@ -478,7 +463,6 @@ export interface GetCandlesParams {
  * GET /api/v1/markets/{symbol}/candles
  */
 export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
-  if (isCcSymbol(symbol)) return fakeCandles(params);
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
   const queryParams = new URLSearchParams();

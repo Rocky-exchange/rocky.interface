@@ -23,7 +23,6 @@ import { helperToast } from "lib/helperToast";
 import { getX10000ZtdxVaultAddress } from "config/custom/contracts";
 import { useApiOrders } from "./useApiOrders";
 
-import { isCcSymbol, recordFakeOrder } from "./ccusdtFake";
 import {
   createOrder,
   cancelOrder,
@@ -176,29 +175,6 @@ export function useZtdxOrderSubmit(): UseZtdxOrderSubmitResult {
       if (!address) {
         helperToast.error(t`Please connect your wallet first`);
         throw new Error("Wallet address required");
-      }
-
-      // Demo-only CCUSDT pair: skip wallet signing + backend auth flow entirely
-      // and record the order locally. No real trade is submitted.
-      if (isCcSymbol(params.symbol)) {
-        const sizeStr = (Number(params.sizeDeltaUsd) / 10 ** params.indexTokenDecimals).toFixed(8);
-        const orderType = params.apiOrderTypeOverride ?? mapOrderType(params.orderType, params.isIncrease, params.triggerPrice);
-        const priceStr =
-          params.triggerPrice !== undefined && params.triggerPrice > 0n
-            ? (Number(params.triggerPrice) / 1e30).toFixed(6)
-            : undefined;
-        const response = recordFakeOrder({
-          symbol: "CCUSDT",
-          side: mapSide(params.isLong, params.isIncrease),
-          order_type: orderType,
-          amount: sizeStr,
-          price: priceStr,
-          leverage: Math.max(1, Math.round(params.leverage ?? 1)),
-        });
-        helperToast.success(`CC demo order filled: ${response.order_id.slice(0, 10)}...`);
-        refreshOrders();
-        refreshBalances();
-        return response;
       }
 
       // Show friendly message if not authenticated yet

@@ -236,6 +236,16 @@ export function AdvancedOrderForm({
 
         <PercentSlider value={pct} onChange={onPctChange} side={side} />
 
+        {isConnected && (
+          <button
+            onClick={submit}
+            disabled={submitting || !canSubmit}
+            className={`ltr-form__submit ltr-form__submit--${side}`}
+          >
+            {canSubmit ? submitLabelMap[type] : `Enter ${triggerLabel}`}
+          </button>
+        )}
+
         <Checkbox checked={reduceOnly} onChange={setReduceOnly} label="Reduce Only" />
 
       </div>
@@ -249,16 +259,6 @@ export function AdvancedOrderForm({
           value={`Taker: ${formatPct(p?.taker_fee_rate) || "0%"} | Maker: ${formatPct(p?.maker_fee_rate) || "0%"}`}
         />
       </div>
-
-      {isConnected && (
-        <button
-          onClick={submit}
-          disabled={submitting || !canSubmit}
-          className={`ltr-form__submit ltr-form__submit--${side}`}
-        >
-          {canSubmit ? submitLabelMap[type] : `Enter ${triggerLabel}`}
-        </button>
-      )}
     </div>
   );
 }
