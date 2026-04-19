@@ -156,11 +156,12 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
   const { closePositionViaApi, isReady } = useClosePositionHandler();
 
   const handleClose = useCallback(
-    async (positionId: string) => {
+    async (positionId: string, sizeUsd: number) => {
       if (!positionId || closingId) return;
+      if (!Number.isFinite(sizeUsd) || sizeUsd <= 0) return;
       setClosingId(positionId);
       try {
-        await closePositionViaApi(positionId);
+        await closePositionViaApi(positionId, { size: sizeUsd.toString() });
       } catch {
         // helperToast already surfaced the error from useClosePositionHandler
       } finally {
@@ -219,7 +220,9 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
         <tbody>
           {rows.map((row, index) => {
             const rowKey = `${row.market}-${index}`;
-            const positionId = filteredPositions[index]?.positionId ?? "";
+            const pos = filteredPositions[index];
+            const positionId = pos?.positionId ?? "";
+            const positionSizeUsd = pos?.size ?? 0;
             const isClosingThis = closingId === positionId;
             const pnlTone =
               row.unrealizedPnlValue == null ? styles.placeholder : row.unrealizedPnlValue >= 0 ? styles.up : styles.down;
@@ -271,8 +274,8 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                     type="button"
                     className={styles.closeActionButton}
                     aria-label={`Close ${row.market} position`}
-                    onClick={() => handleClose(positionId)}
-                    disabled={!isReady || !positionId || isClosingThis}
+                    onClick={() => handleClose(positionId, positionSizeUsd)}
+                    disabled={!isReady || !positionId || positionSizeUsd <= 0 || isClosingThis}
                     style={isClosingThis ? { opacity: 0.5, cursor: "default" } : undefined}
                   >
                     <ClosePositionIcon />
