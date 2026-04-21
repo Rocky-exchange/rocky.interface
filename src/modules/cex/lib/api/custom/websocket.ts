@@ -155,30 +155,28 @@ export class WebSocketService {
   }
 
   private getWsUrl(): string {
-    // In development, use relative path /ws/external which will be proxied by Vite
+    // In development, use relative path /ws which will be proxied by Vite
     if (import.meta.env.DEV) {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      return `${protocol}//${host}/ws/external`;
+      return `${protocol}//${host}/ws`;
     }
-    
+
     // In production, use configured URL based on chainId (根据链 ID 自动切换)
     const baseWsUrl = getX10000WsUrl(this.chainId);
     if (baseWsUrl) {
-      // Ensure the URL ends with /ws/external
-      if (baseWsUrl.endsWith("/ws/external")) {
+      // Ensure the URL ends with /ws
+      if (baseWsUrl.endsWith("/ws")) {
         return baseWsUrl;
-      } else if (baseWsUrl.endsWith("/ws")) {
-        return baseWsUrl.replace("/ws", "/ws/external");
       } else {
-        return `${baseWsUrl}/ws/external`;
+        return `${baseWsUrl}/ws`;
       }
     }
-    
+
     // Default fallback
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    return `${protocol}//${host}/ws/external`;
+    return `${protocol}//${host}/ws`;
   }
 
   connect(): void {

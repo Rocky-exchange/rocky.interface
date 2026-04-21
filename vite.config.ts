@@ -48,13 +48,6 @@ export default defineConfig(({ mode }) => {
           secure: false,
           ws: true,
         },
-        "/ws/external": {
-          // 支持通过环境变量切换：VITE_PROXY_WS_URL
-          target: env.VITE_PROXY_WS_URL || "wss://api.renance.xyz",
-          changeOrigin: true,
-          secure: false,
-          ws: true,
-        },
       },
     },
     plugins: [

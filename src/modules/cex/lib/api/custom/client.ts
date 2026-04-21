@@ -529,7 +529,7 @@ function convertSymbolToApiFormat(symbol: string): string {
 
 export async function getMarkets(chainId: number, limit?: number): Promise<MarketsResponse> {
   const queryParams = limit ? `?limit=${limit}` : "";
-  return apiFetch<MarketsResponse>(chainId, `/external/markets${queryParams}`);
+  return apiFetch<MarketsResponse>(chainId, `/markets${queryParams}`);
 }
 
 export async function getMarketDetails(chainId: number, symbol: string): Promise<MarketDetailsResponse> {
@@ -539,7 +539,7 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
 
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Orderbook>(chainId, `/external/markets/${apiSymbol}/orderbook`);
+  return apiFetch<Orderbook>(chainId, `/markets/${apiSymbol}/orderbook`);
 }
 
 export interface TradesResponse {
@@ -549,12 +549,12 @@ export interface TradesResponse {
 
 export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<TradesResponse>(chainId, `/external/markets/${apiSymbol}/trades`);
+  return apiFetch<TradesResponse>(chainId, `/markets/${apiSymbol}/trades`);
 }
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Ticker>(chainId, `/external/markets/${apiSymbol}/ticker`);
+  return apiFetch<Ticker>(chainId, `/markets/${apiSymbol}/ticker`);
 }
 
 export async function getPrice(chainId: number, symbol: string): Promise<PriceResponse> {
@@ -950,7 +950,7 @@ export async function getCandles(chainId: number, symbol: string, params: GetCan
   if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
   if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
 
-  return apiFetch<CandlesResponse>(chainId, `/external/markets/${apiSymbol}/candles?${queryParams.toString()}`);
+  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
 }
 
 export async function getLatestCandle(

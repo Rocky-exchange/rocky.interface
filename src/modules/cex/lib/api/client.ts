@@ -161,7 +161,7 @@ export interface MarketDetailsResponse {
 
 export async function getMarkets(chainId: number, limit?: number): Promise<MarketsResponse> {
   const queryParams = limit ? `?limit=${limit}` : "";
-  return apiFetch<MarketsResponse>(chainId, `/external/markets${queryParams}`);
+  return apiFetch<MarketsResponse>(chainId, `/markets${queryParams}`);
 }
 
 export async function getMarketDetails(chainId: number, symbol: string): Promise<MarketDetailsResponse> {
@@ -172,7 +172,7 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Orderbook>(chainId, `/external/markets/${apiSymbol}/orderbook`);
+  return apiFetch<Orderbook>(chainId, `/markets/${apiSymbol}/orderbook`);
 }
 
 export interface TradesResponse {
@@ -183,7 +183,7 @@ export interface TradesResponse {
 export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<TradesResponse>(chainId, `/external/markets/${apiSymbol}/trades`);
+  return apiFetch<TradesResponse>(chainId, `/markets/${apiSymbol}/trades`);
 }
 
 // Helper to convert symbol format (e.g., "BTC-USD" -> "BTCUSDT")
@@ -203,31 +203,11 @@ function convertSymbolToApiFormat(symbol: string): string {
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
   // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Ticker>(chainId, `/external/markets/${apiSymbol}/ticker`);
+  return apiFetch<Ticker>(chainId, `/markets/${apiSymbol}/ticker`);
 }
 
 export async function getPrice(chainId: number, symbol: string): Promise<PriceResponse> {
-  // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  // price endpoint relies on ticker or specific price endpoint, backend has /external/markets/:symbol/ticker
-  // but no specific /external/markets/:symbol/price.
-  // However, the standard /markets/:symbol/price exists.
-  // The user asked to "change frontend data interface... changed to external interface".
-  // If external doesn't have price, I might need to derive it or keep using standard if allowed,
-  // but better to check if I can use ticker instead or if I should assume /external/markets/:symbol/price exists?
-  // Checking backend routes again: `.route("/external/markets/:symbol/price", ...)` is NOT present.
-  // It has ticker, orderbook, trades, candles.
-  // `getTicker` returns Ticker which has `last_price`.
-  // `PriceResponse` has `mark_price`, `index_price`, `last_price`, `bid_price`, `ask_price`, `funding_rate`.
-  // `get_ticker` from hyperliquid (backend implementation) might have some of this.
-  // But strictly speaking, if /external/price is missing, I should probably use /external/ticker for price info if possible,
-  // or maybe the user implies I should rely on what IS available.
-  // Let's leave getPrice as is for now or use standard endpoint if external is missing?
-  // Actually, standard endpoint `get_price` uses `handlers::market::get_price`.
-  // The user said "change frontend data interface... to external interface".
-  // I will assume for now only the ones I saw in `external.rs` should be changed.
-  // External interface in backend: markets, ticker, orderbook, trades, candles.
-  // So I will only change those.
   return apiFetch<PriceResponse>(chainId, `/markets/${apiSymbol}/price`);
 }
 
@@ -471,7 +451,7 @@ export async function getCandles(chainId: number, symbol: string, params: GetCan
   if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
   if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
 
-  return apiFetch<CandlesResponse>(chainId, `/external/markets/${apiSymbol}/candles?${queryParams.toString()}`);
+  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
 }
 
 /**
