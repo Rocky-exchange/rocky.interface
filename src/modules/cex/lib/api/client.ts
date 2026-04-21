@@ -1,5 +1,7 @@
 import { getServerBaseUrl } from "config/backend";
 
+import { fetchBinanceCandles } from "./binance";
+
 import type {
   ApiError,
   NonceResponse,
@@ -439,19 +441,17 @@ export interface GetCandlesParams {
 }
 
 /**
- * Get historical candles for a symbol
- * GET /api/v1/markets/{symbol}/candles
+ * Get historical candles for a symbol from Binance Futures.
+ * GET https://fapi.binance.com/fapi/v1/klines
  */
-export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
-  // Convert symbol to API format (BTCUSDT)
+export async function getCandles(
+  _chainId: number,
+  symbol: string,
+  params: GetCandlesParams
+): Promise<CandlesResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const queryParams = new URLSearchParams();
-  queryParams.set("period", params.period);
-  if (params.limit !== undefined) queryParams.set("limit", params.limit.toString());
-  if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
-  if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
-
-  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
+  const response = await fetchBinanceCandles(apiSymbol, params);
+  return response as CandlesResponse;
 }
 
 /**

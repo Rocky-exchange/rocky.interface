@@ -6,6 +6,7 @@
  */
 
 import { getStoredToken } from "./client";
+import { getBinanceKlineStream, type BinanceWsKlineUpdate } from "../binance";
 
 // WebSocket message types (re-export from main websocket for type compatibility)
 export interface WsMessage {
@@ -413,21 +414,14 @@ export class WebSocketService {
   }
 
   subscribeKline(symbol: string, period: string): void {
-    // Normalize symbol to API format (ETH-USD -> ETHUSDT)
+    // K-line streams are sourced from Binance Futures WS (wss://fstream.binance.com).
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    const channel = `kline:${apiSymbol}:${period}`;
-    this.subscriptions.add(channel);
-    // Subscribe to K-line channel
-    this.sendSubscribe(channel);
+    getBinanceKlineStream().subscribe(apiSymbol, period);
   }
 
   unsubscribeKline(symbol: string, period: string): void {
-    // Normalize symbol to API format (ETH-USD -> ETHUSDT)
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    const channel = `kline:${apiSymbol}:${period}`;
-    this.subscriptions.delete(channel);
-    // Unsubscribe from K-line channel
-    this.sendUnsubscribe(channel);
+    getBinanceKlineStream().unsubscribe(apiSymbol, period);
   }
 
   authenticate(address?: string | null): void {
@@ -567,32 +561,9 @@ export class WebSocketService {
   }
 
   onKlineUpdate(handler: (channel: string, data: WsKlineUpdate) => void): () => void {
-    const klineHandler = (msg: WsMessage) => {
-      if (msg.data && msg.channel) {
-        if (msg.type === "klinesnapshot" && Array.isArray(msg.data)) {
-          const candles = (msg.data as WsKlineUpdate[]).slice().sort((a, b) => {
-            const timeA = a.time < 1e10 ? a.time : a.time / 1000;
-            const timeB = b.time < 1e10 ? b.time : b.time / 1000;
-            return timeA - timeB;
-          });
-
-
-          candles.forEach((candle) => {
-            handler(msg.channel!, candle);
-          });
-        } else if (msg.type === "kline" && !Array.isArray(msg.data)) {
-          handler(msg.channel, msg.data as WsKlineUpdate);
-        }
-      }
-    };
-
-    const unsubscribeKline = this.onMessage("kline", klineHandler);
-    const unsubscribeSnapshot = this.onMessage("klinesnapshot", klineHandler);
-
-    return () => {
-      unsubscribeKline();
-      unsubscribeSnapshot();
-    };
+    return getBinanceKlineStream().onKline((channel: string, data: BinanceWsKlineUpdate) => {
+      handler(channel, data as WsKlineUpdate);
+    });
   }
 
   onPositionUpdate(handler: (data: WsPositionUpdate) => void): () => void {

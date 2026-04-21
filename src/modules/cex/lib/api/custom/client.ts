@@ -8,6 +8,8 @@
 // 使用统一的后端 URL 配置
 import { getX10000BackendUrl } from "config/backend";
 
+import { fetchBinanceCandles } from "../binance";
+
 import type {
   ApiError,
   NonceResponse,
@@ -941,16 +943,10 @@ export interface GetCandlesParams {
   end?: number;
 }
 
-export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
+export async function getCandles(_chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const queryParams = new URLSearchParams();
-  queryParams.set("period", params.period);
-  if (params.limit !== undefined) queryParams.set("limit", params.limit.toString());
-  // Convert milliseconds to seconds for backend API
-  if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
-  if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
-
-  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
+  const response = await fetchBinanceCandles(apiSymbol, params);
+  return response as CandlesResponse;
 }
 
 export async function getLatestCandle(
