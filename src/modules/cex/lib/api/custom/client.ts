@@ -8,7 +8,7 @@
 // 使用统一的后端 URL 配置
 import { getX10000BackendUrl } from "config/backend";
 
-import { fetchBinanceCandles } from "../binance";
+import { fetchBinanceCandles, fetchBinanceOrderbook, fetchBinanceTrades } from "../binance";
 
 import type {
   ApiError,
@@ -539,9 +539,10 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
   return apiFetch<MarketDetailsResponse>(chainId, `/markets/${apiSymbol}/details`);
 }
 
-export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
+export async function getOrderbook(_chainId: number, symbol: string): Promise<Orderbook> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Orderbook>(chainId, `/markets/${apiSymbol}/orderbook`);
+  const response = await fetchBinanceOrderbook(apiSymbol);
+  return response as Orderbook;
 }
 
 export interface TradesResponse {
@@ -549,9 +550,10 @@ export interface TradesResponse {
   trades: Trade[];
 }
 
-export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
+export async function getTrades(_chainId: number, symbol: string): Promise<TradesResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<TradesResponse>(chainId, `/markets/${apiSymbol}/trades`);
+  const response = await fetchBinanceTrades(apiSymbol);
+  return response as TradesResponse;
 }
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {

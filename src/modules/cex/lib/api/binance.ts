@@ -1,8 +1,11 @@
 /**
- * Binance Futures data source for K-line candles (REST) and kline streams (WebSocket).
+ * Binance Futures data source for market data:
+ *   - K-line candles (REST + WS kline streams)
+ *   - Orderbook / depth (REST + WS partial-depth streams)
+ *   - Recent trades (REST + WS aggregate trade streams)
  *
- * REST:  https://fapi.binance.com/fapi/v1/klines
- * WS:    wss://fstream.binance.com/ws/<symbol>@kline_<interval>
+ * REST base: https://fapi.binance.com
+ * WS base:   wss://fstream.binance.com/ws
  */
 
 export interface BinanceCandle {
@@ -35,24 +38,83 @@ export interface BinanceWsKlineUpdate {
   is_final?: boolean;
 }
 
+export interface BinanceOrderbookResponse {
+  symbol: string;
+  bids: [string, string][];
+  asks: [string, string][];
+  timestamp: number;
+}
+
+export interface BinanceWsOrderbookUpdate {
+  symbol: string;
+  bids: Array<{ price: string; size: string }>;
+  asks: Array<{ price: string; size: string }>;
+  timestamp: number;
+}
+
+export interface BinanceTrade {
+  id: string;
+  symbol: string;
+  price: string;
+  amount: string;
+  side: "buy" | "sell";
+  timestamp: number;
+}
+
+export interface BinanceTradesResponse {
+  symbol: string;
+  trades: BinanceTrade[];
+}
+
+export interface BinanceWsTradeUpdate {
+  symbol: string;
+  id: string;
+  price: string;
+  amount: string;
+  size: string;
+  side: "buy" | "sell";
+  timestamp: number;
+}
+
 const BINANCE_REST_BASE = "https://fapi.binance.com";
 const BINANCE_WS_BASE = "wss://fstream.binance.com/ws";
-const BINANCE_MAX_LIMIT = 1500;
+const BINANCE_KLINE_MAX_LIMIT = 1500;
+const BINANCE_DEPTH_ALLOWED_LIMITS = [5, 10, 20, 50, 100, 500, 1000] as const;
+const BINANCE_TRADES_MAX_LIMIT = 1000;
+const DEPTH_STREAM_LEVELS = 20;
+const DEPTH_STREAM_INTERVAL = "100ms";
 
 type RawBinanceKline = [
-  number, // openTime ms
-  string, // open
-  string, // high
-  string, // low
-  string, // close
-  string, // base volume
-  number, // closeTime ms
-  string, // quote volume
-  number, // number of trades
-  string, // taker buy base
-  string, // taker buy quote
-  string, // ignore
+  number,
+  string,
+  string,
+  string,
+  string,
+  string,
+  number,
+  string,
+  number,
+  string,
+  string,
+  string,
 ];
+
+interface RawBinanceDepth {
+  lastUpdateId: number;
+  E?: number;
+  T?: number;
+  bids: [string, string][];
+  asks: [string, string][];
+}
+
+interface RawBinanceTrade {
+  id: number;
+  price: string;
+  qty: string;
+  quoteQty?: string;
+  time: number;
+  isBuyerMaker: boolean;
+}
 
 export async function fetchBinanceCandles(
   apiSymbol: string,
@@ -63,7 +125,7 @@ export async function fetchBinanceCandles(
   search.set("symbol", symbol);
   search.set("interval", params.period);
   if (params.limit !== undefined) {
-    search.set("limit", Math.min(Math.max(1, params.limit), BINANCE_MAX_LIMIT).toString());
+    search.set("limit", Math.min(Math.max(1, params.limit), BINANCE_KLINE_MAX_LIMIT).toString());
   }
   if (params.start !== undefined) search.set("startTime", Math.floor(params.start).toString());
   if (params.end !== undefined) search.set("endTime", Math.floor(params.end).toString());
@@ -90,9 +152,69 @@ export async function fetchBinanceCandles(
   return { symbol, period: params.period, candles };
 }
 
-type KlineHandler = (channel: string, data: BinanceWsKlineUpdate) => void;
+function clampDepthLimit(limit: number): number {
+  for (const allowed of BINANCE_DEPTH_ALLOWED_LIMITS) {
+    if (limit <= allowed) return allowed;
+  }
+  return BINANCE_DEPTH_ALLOWED_LIMITS[BINANCE_DEPTH_ALLOWED_LIMITS.length - 1];
+}
 
-export class BinanceKlineStream {
+export async function fetchBinanceOrderbook(
+  apiSymbol: string,
+  limit = 100
+): Promise<BinanceOrderbookResponse> {
+  const symbol = apiSymbol.toUpperCase();
+  const search = new URLSearchParams({ symbol, limit: String(clampDepthLimit(limit)) });
+  const url = `${BINANCE_REST_BASE}/fapi/v1/depth?${search.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Binance depth ${res.status} for ${symbol}`);
+  }
+  const raw = (await res.json()) as RawBinanceDepth;
+  const timestamp = raw.E ?? raw.T ?? Date.now();
+  return {
+    symbol,
+    bids: (raw.bids ?? []).map(([p, q]) => [p, q] as [string, string]),
+    asks: (raw.asks ?? []).map(([p, q]) => [p, q] as [string, string]),
+    timestamp,
+  };
+}
+
+export async function fetchBinanceTrades(
+  apiSymbol: string,
+  limit = 50
+): Promise<BinanceTradesResponse> {
+  const symbol = apiSymbol.toUpperCase();
+  const effectiveLimit = Math.min(Math.max(1, limit), BINANCE_TRADES_MAX_LIMIT);
+  const search = new URLSearchParams({ symbol, limit: String(effectiveLimit) });
+  const url = `${BINANCE_REST_BASE}/fapi/v1/trades?${search.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Binance trades ${res.status} for ${symbol}`);
+  }
+  const raw = (await res.json()) as RawBinanceTrade[];
+  const trades: BinanceTrade[] = raw
+    .map((t) => ({
+      id: String(t.id),
+      symbol,
+      price: t.price,
+      amount: t.qty,
+      side: t.isBuyerMaker ? ("sell" as const) : ("buy" as const),
+      timestamp: t.time,
+    }))
+    .sort((a, b) => b.timestamp - a.timestamp);
+  return { symbol, trades };
+}
+
+type KlineHandler = (channel: string, data: BinanceWsKlineUpdate) => void;
+type OrderbookHandler = (data: BinanceWsOrderbookUpdate) => void;
+type TradeHandler = (data: BinanceWsTradeUpdate) => void;
+
+/**
+ * Shared Binance Futures WebSocket connection that multiplexes kline, depth,
+ * and aggregate trade streams.
+ */
+export class BinanceMarketStream {
   private ws: WebSocket | null = null;
   private isConnecting = false;
   private reconnectAttempts = 0;
@@ -101,10 +223,73 @@ export class BinanceKlineStream {
   private reconnectTimer: number | null = null;
   private msgId = 1;
   private subscriptions: Set<string> = new Set();
-  private handlers: Set<KlineHandler> = new Set();
 
-  subscribe(apiSymbol: string, period: string): void {
-    const stream = this.streamName(apiSymbol, period);
+  private klineHandlers: Set<KlineHandler> = new Set();
+  private orderbookHandlers: Set<OrderbookHandler> = new Set();
+  private tradeHandlers: Set<TradeHandler> = new Set();
+
+  subscribeKline(apiSymbol: string, period: string): void {
+    this.addSubscription(this.klineStreamName(apiSymbol, period));
+  }
+
+  unsubscribeKline(apiSymbol: string, period: string): void {
+    this.removeSubscription(this.klineStreamName(apiSymbol, period));
+  }
+
+  onKline(handler: KlineHandler): () => void {
+    this.klineHandlers.add(handler);
+    return () => {
+      this.klineHandlers.delete(handler);
+    };
+  }
+
+  subscribeOrderbook(apiSymbol: string): void {
+    this.addSubscription(this.depthStreamName(apiSymbol));
+  }
+
+  unsubscribeOrderbook(apiSymbol: string): void {
+    this.removeSubscription(this.depthStreamName(apiSymbol));
+  }
+
+  onOrderbook(handler: OrderbookHandler): () => void {
+    this.orderbookHandlers.add(handler);
+    return () => {
+      this.orderbookHandlers.delete(handler);
+    };
+  }
+
+  subscribeTrades(apiSymbol: string): void {
+    this.addSubscription(this.aggTradeStreamName(apiSymbol));
+  }
+
+  unsubscribeTrades(apiSymbol: string): void {
+    this.removeSubscription(this.aggTradeStreamName(apiSymbol));
+  }
+
+  onTrade(handler: TradeHandler): () => void {
+    this.tradeHandlers.add(handler);
+    return () => {
+      this.tradeHandlers.delete(handler);
+    };
+  }
+
+  isConnected(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  private klineStreamName(apiSymbol: string, period: string): string {
+    return `${apiSymbol.toLowerCase()}@kline_${period}`;
+  }
+
+  private depthStreamName(apiSymbol: string): string {
+    return `${apiSymbol.toLowerCase()}@depth${DEPTH_STREAM_LEVELS}@${DEPTH_STREAM_INTERVAL}`;
+  }
+
+  private aggTradeStreamName(apiSymbol: string): string {
+    return `${apiSymbol.toLowerCase()}@aggTrade`;
+  }
+
+  private addSubscription(stream: string): void {
     if (this.subscriptions.has(stream)) {
       this.ensureConnected();
       return;
@@ -116,8 +301,7 @@ export class BinanceKlineStream {
     }
   }
 
-  unsubscribe(apiSymbol: string, period: string): void {
-    const stream = this.streamName(apiSymbol, period);
+  private removeSubscription(stream: string): void {
     if (!this.subscriptions.has(stream)) return;
     this.subscriptions.delete(stream);
     if (this.ws?.readyState === WebSocket.OPEN) {
@@ -126,21 +310,6 @@ export class BinanceKlineStream {
     if (this.subscriptions.size === 0) {
       this.closeSocket();
     }
-  }
-
-  onKline(handler: KlineHandler): () => void {
-    this.handlers.add(handler);
-    return () => {
-      this.handlers.delete(handler);
-    };
-  }
-
-  isConnected(): boolean {
-    return this.ws?.readyState === WebSocket.OPEN;
-  }
-
-  private streamName(apiSymbol: string, period: string): string {
-    return `${apiSymbol.toLowerCase()}@kline_${period}`;
   }
 
   private ensureConnected(): void {
@@ -184,7 +353,7 @@ export class BinanceKlineStream {
       };
     } catch (err) {
       this.isConnecting = false;
-      console.error("[BinanceKlineStream] connect error:", err);
+      console.error("[BinanceMarketStream] connect error:", err);
       if (this.subscriptions.size > 0) this.scheduleReconnect();
     }
   }
@@ -228,9 +397,25 @@ export class BinanceKlineStream {
 
   private handleMessage(msg: unknown): void {
     if (!msg || typeof msg !== "object") return;
-    const m = msg as { e?: string; s?: string; k?: Record<string, unknown> };
-    if (m.e !== "kline" || !m.k) return;
-    const k = m.k;
+    const m = msg as Record<string, unknown>;
+    switch (m.e) {
+      case "kline":
+        this.emitKline(m);
+        return;
+      case "depthUpdate":
+        this.emitOrderbook(m);
+        return;
+      case "aggTrade":
+        this.emitAggTrade(m);
+        return;
+      default:
+        return;
+    }
+  }
+
+  private emitKline(m: Record<string, unknown>): void {
+    const k = m.k as Record<string, unknown> | undefined;
+    if (!k) return;
     const apiSymbol = String(m.s ?? "").toUpperCase();
     const period = String(k.i ?? "");
     if (!apiSymbol || !period) return;
@@ -247,20 +432,70 @@ export class BinanceKlineStream {
       trade_count: typeof k.n === "number" ? (k.n as number) : undefined,
       is_final: Boolean(k.x),
     };
-
-    this.handlers.forEach((h) => {
+    this.klineHandlers.forEach((h) => {
       try {
         h(channel, data);
       } catch (err) {
-        console.error("[BinanceKlineStream] handler error:", err);
+        console.error("[BinanceMarketStream] kline handler error:", err);
+      }
+    });
+  }
+
+  private emitOrderbook(m: Record<string, unknown>): void {
+    const apiSymbol = String(m.s ?? "").toUpperCase();
+    if (!apiSymbol) return;
+    const rawBids = (m.b as [string, string][] | undefined) ?? [];
+    const rawAsks = (m.a as [string, string][] | undefined) ?? [];
+    const timestamp = typeof m.E === "number" ? (m.E as number) : typeof m.T === "number" ? (m.T as number) : Date.now();
+    const data: BinanceWsOrderbookUpdate = {
+      symbol: apiSymbol,
+      bids: rawBids.map(([price, size]) => ({ price, size })),
+      asks: rawAsks.map(([price, size]) => ({ price, size })),
+      timestamp,
+    };
+    this.orderbookHandlers.forEach((h) => {
+      try {
+        h(data);
+      } catch (err) {
+        console.error("[BinanceMarketStream] orderbook handler error:", err);
+      }
+    });
+  }
+
+  private emitAggTrade(m: Record<string, unknown>): void {
+    const apiSymbol = String(m.s ?? "").toUpperCase();
+    if (!apiSymbol) return;
+    const price = String(m.p ?? "");
+    const qty = String(m.q ?? "");
+    const timestamp = typeof m.T === "number" ? (m.T as number) : Date.now();
+    const id = String(m.a ?? `${apiSymbol}-${timestamp}-${price}-${qty}`);
+    const isBuyerMaker = Boolean(m.m);
+    const data: BinanceWsTradeUpdate = {
+      symbol: apiSymbol,
+      id,
+      price,
+      amount: qty,
+      size: qty,
+      side: isBuyerMaker ? "sell" : "buy",
+      timestamp,
+    };
+    this.tradeHandlers.forEach((h) => {
+      try {
+        h(data);
+      } catch (err) {
+        console.error("[BinanceMarketStream] trade handler error:", err);
       }
     });
   }
 }
 
-let sharedStream: BinanceKlineStream | null = null;
+let sharedStream: BinanceMarketStream | null = null;
 
-export function getBinanceKlineStream(): BinanceKlineStream {
-  if (!sharedStream) sharedStream = new BinanceKlineStream();
+export function getBinanceMarketStream(): BinanceMarketStream {
+  if (!sharedStream) sharedStream = new BinanceMarketStream();
   return sharedStream;
 }
+
+// Backward-compat alias for the prior kline-only export.
+export const getBinanceKlineStream = getBinanceMarketStream;
+export type BinanceKlineStream = BinanceMarketStream;
