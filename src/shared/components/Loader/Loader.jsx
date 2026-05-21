@@ -1,14 +1,5 @@
-import "./Loader.css";
+import SpinningLoader from "./SpinningLoader";
 
 export default function Loader() {
-  return (
-    // <div className="bouncing-loader">
-    //   <div></div>
-    //   <div></div>
-    //   <div></div>
-    // </div>
-    <div className="loader">
-    <span></span>
-</div>
-  );
+  return <SpinningLoader size="3rem" />;
 }
