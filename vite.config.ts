@@ -37,13 +37,13 @@ export default defineConfig(({ mode }) => {
       proxy: {
         "/api": {
           // 支持通过环境变量切换：VITE_PROXY_API_URL
-          target: env.VITE_PROXY_API_URL || "https://api.primit.io",
+          target: env.VITE_PROXY_API_URL || "https://api.primit.xyz",
           changeOrigin: true,
           secure: false,
         },
         "/ws": {
           // 支持通过环境变量切换：VITE_PROXY_WS_URL
-          target: env.VITE_PROXY_WS_URL || "wss://api.primit.io",
+          target: env.VITE_PROXY_WS_URL || "wss://api.primit.xyz",
           changeOrigin: true,
           secure: false,
           ws: true,

@@ -275,5 +275,5 @@ export class RockyWebSocketClient {
 
 // Default WebSocket client instance
 export const wsClient = new RockyWebSocketClient({
-  url: import.meta.env.VITE_WS_URL || 'wss://api.primit.io/v1',
+  url: import.meta.env.VITE_WS_URL || 'wss://api.primit.xyz/v1',
 });
