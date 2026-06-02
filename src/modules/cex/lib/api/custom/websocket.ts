@@ -567,27 +567,27 @@ export class WebSocketService {
   }
 
   onKlineUpdate(handler: (channel: string, data: WsKlineUpdate) => void): () => void {
+    // 后端 serde(tag="type", rename_all="snake_case") 把 KlineSnapshot 序列化为 "kline_snapshot",
+    // 且 data 是单个 KlineData(不是数组)。早期实现监听 "klinesnapshot" + Array.isArray,两处都对不上,
+    // 订阅后首个快照被静默丢掉,TVChart 只剩 REST 历史 → 看起来不动。
     const klineHandler = (msg: WsMessage) => {
-      if (msg.data && msg.channel) {
-        if (msg.type === "klinesnapshot" && Array.isArray(msg.data)) {
+      if (!msg.channel || !msg.data) return;
+      if (msg.type === "kline_snapshot" || msg.type === "kline") {
+        if (Array.isArray(msg.data)) {
           const candles = (msg.data as WsKlineUpdate[]).slice().sort((a, b) => {
             const timeA = a.time < 1e10 ? a.time : a.time / 1000;
             const timeB = b.time < 1e10 ? b.time : b.time / 1000;
             return timeA - timeB;
           });
-
-
-          candles.forEach((candle) => {
-            handler(msg.channel!, candle);
-          });
-        } else if (msg.type === "kline" && !Array.isArray(msg.data)) {
+          candles.forEach((candle) => handler(msg.channel!, candle));
+        } else {
           handler(msg.channel, msg.data as WsKlineUpdate);
         }
       }
     };
 
     const unsubscribeKline = this.onMessage("kline", klineHandler);
-    const unsubscribeSnapshot = this.onMessage("klinesnapshot", klineHandler);
+    const unsubscribeSnapshot = this.onMessage("kline_snapshot", klineHandler);
 
     return () => {
       unsubscribeKline();
