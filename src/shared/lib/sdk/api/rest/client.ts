@@ -88,6 +88,6 @@ export class RockyApiClient {
 
 // Default API client instance
 export const apiClient = new RockyApiClient({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'https://api.rocky.io/v1',
-  wsUrl: import.meta.env.VITE_WS_URL || 'wss://ws.rocky.io/v1',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'https://api.primit.io/v1',
+  wsUrl: import.meta.env.VITE_WS_URL || 'wss://api.primit.io/v1',
 });
