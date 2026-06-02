@@ -1,7 +1,5 @@
 import { getServerBaseUrl } from "config/backend";
 
-import { fetchBinanceCandles, fetchBinanceOrderbook, fetchBinanceTrades } from "./binance";
-
 import type {
   ApiError,
   NonceResponse,
@@ -171,10 +169,10 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
   return apiFetch<MarketDetailsResponse>(chainId, `/markets/${apiSymbol}/details`);
 }
 
-export async function getOrderbook(_chainId: number, symbol: string): Promise<Orderbook> {
+export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
+  // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const response = await fetchBinanceOrderbook(apiSymbol);
-  return response as Orderbook;
+  return apiFetch<Orderbook>(chainId, `/markets/${apiSymbol}/orderbook`);
 }
 
 export interface TradesResponse {
@@ -182,10 +180,10 @@ export interface TradesResponse {
   trades: Trade[];
 }
 
-export async function getTrades(_chainId: number, symbol: string): Promise<TradesResponse> {
+export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
+  // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const response = await fetchBinanceTrades(apiSymbol);
-  return response as TradesResponse;
+  return apiFetch<TradesResponse>(chainId, `/markets/${apiSymbol}/trades`);
 }
 
 // Helper to convert symbol format (e.g., "BTC-USD" -> "BTCUSDT")
@@ -441,17 +439,19 @@ export interface GetCandlesParams {
 }
 
 /**
- * Get historical candles for a symbol from Binance Futures.
- * GET https://fapi.binance.com/fapi/v1/klines
+ * Get historical candles for a symbol
+ * GET /api/v1/markets/{symbol}/candles
  */
-export async function getCandles(
-  _chainId: number,
-  symbol: string,
-  params: GetCandlesParams
-): Promise<CandlesResponse> {
+export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
+  // Convert symbol to API format (BTCUSDT)
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const response = await fetchBinanceCandles(apiSymbol, params);
-  return response as CandlesResponse;
+  const queryParams = new URLSearchParams();
+  queryParams.set("period", params.period);
+  if (params.limit !== undefined) queryParams.set("limit", params.limit.toString());
+  if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
+  if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
+
+  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
 }
 
 /**

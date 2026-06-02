@@ -8,8 +8,6 @@
 // 使用统一的后端 URL 配置
 import { getX10000BackendUrl } from "config/backend";
 
-import { fetchBinanceCandles, fetchBinanceOrderbook, fetchBinanceTrades } from "../binance";
-
 import type {
   ApiError,
   NonceResponse,
@@ -539,10 +537,9 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
   return apiFetch<MarketDetailsResponse>(chainId, `/markets/${apiSymbol}/details`);
 }
 
-export async function getOrderbook(_chainId: number, symbol: string): Promise<Orderbook> {
+export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const response = await fetchBinanceOrderbook(apiSymbol);
-  return response as Orderbook;
+  return apiFetch<Orderbook>(chainId, `/markets/${apiSymbol}/orderbook`);
 }
 
 export interface TradesResponse {
@@ -550,10 +547,9 @@ export interface TradesResponse {
   trades: Trade[];
 }
 
-export async function getTrades(_chainId: number, symbol: string): Promise<TradesResponse> {
+export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const response = await fetchBinanceTrades(apiSymbol);
-  return response as TradesResponse;
+  return apiFetch<TradesResponse>(chainId, `/markets/${apiSymbol}/trades`);
 }
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
@@ -945,10 +941,16 @@ export interface GetCandlesParams {
   end?: number;
 }
 
-export async function getCandles(_chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
+export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  const response = await fetchBinanceCandles(apiSymbol, params);
-  return response as CandlesResponse;
+  const queryParams = new URLSearchParams();
+  queryParams.set("period", params.period);
+  if (params.limit !== undefined) queryParams.set("limit", params.limit.toString());
+  // Convert milliseconds to seconds for backend API
+  if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
+  if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
+
+  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
 }
 
 export async function getLatestCandle(

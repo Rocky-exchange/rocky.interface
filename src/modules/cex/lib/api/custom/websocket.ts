@@ -6,12 +6,6 @@
  */
 
 import { getStoredToken } from "./client";
-import {
-  getBinanceMarketStream,
-  type BinanceWsKlineUpdate,
-  type BinanceWsOrderbookUpdate,
-  type BinanceWsTradeUpdate,
-} from "../binance";
 
 // WebSocket message types (re-export from main websocket for type compatibility)
 export interface WsMessage {
@@ -363,15 +357,17 @@ export class WebSocketService {
   }
 
   subscribeOrderbook(symbol: string): void {
-    // Orderbook streams are sourced from Binance Futures WS (partial book depth).
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    getBinanceMarketStream().subscribeOrderbook(apiSymbol);
+    const channel = `orderbook:${apiSymbol}`;
+    this.subscriptions.add(channel);
+    this.sendSubscribe(channel);
   }
 
   subscribeTrades(symbol: string): void {
-    // Trade streams are sourced from Binance Futures WS (aggTrade).
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    getBinanceMarketStream().subscribeTrades(apiSymbol);
+    const channel = `trades:${apiSymbol}`;
+    this.subscriptions.add(channel);
+    this.sendSubscribe(channel);
   }
 
   subscribeTicker(symbol: string): void {
@@ -397,12 +393,16 @@ export class WebSocketService {
 
   unsubscribeOrderbook(symbol: string): void {
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    getBinanceMarketStream().unsubscribeOrderbook(apiSymbol);
+    const channel = `orderbook:${apiSymbol}`;
+    this.subscriptions.delete(channel);
+    this.sendUnsubscribe(channel);
   }
 
   unsubscribeTrades(symbol: string): void {
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    getBinanceMarketStream().unsubscribeTrades(apiSymbol);
+    const channel = `trades:${apiSymbol}`;
+    this.subscriptions.delete(channel);
+    this.sendUnsubscribe(channel);
   }
 
   unsubscribeTicker(symbol: string): void {
@@ -413,14 +413,21 @@ export class WebSocketService {
   }
 
   subscribeKline(symbol: string, period: string): void {
-    // K-line streams are sourced from Binance Futures WS (wss://fstream.binance.com).
+    // Normalize symbol to API format (ETH-USD -> ETHUSDT)
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    getBinanceMarketStream().subscribeKline(apiSymbol, period);
+    const channel = `kline:${apiSymbol}:${period}`;
+    this.subscriptions.add(channel);
+    // Subscribe to K-line channel
+    this.sendSubscribe(channel);
   }
 
   unsubscribeKline(symbol: string, period: string): void {
+    // Normalize symbol to API format (ETH-USD -> ETHUSDT)
     const apiSymbol = normalizeMarketSymbolToApiFormat(symbol);
-    getBinanceMarketStream().unsubscribeKline(apiSymbol, period);
+    const channel = `kline:${apiSymbol}:${period}`;
+    this.subscriptions.delete(channel);
+    // Unsubscribe from K-line channel
+    this.sendUnsubscribe(channel);
   }
 
   authenticate(address?: string | null): void {
@@ -505,14 +512,47 @@ export class WebSocketService {
   }
 
   onOrderbookUpdate(handler: (data: WsOrderbookUpdate) => void): () => void {
-    return getBinanceMarketStream().onOrderbook((data: BinanceWsOrderbookUpdate) => {
-      handler(data as WsOrderbookUpdate);
+    return this.onMessage("orderbook", (msg) => {
+      // Orderbook data can be either in msg.data or directly in msg
+      const orderbookData = (msg.data || msg) as WsOrderbookUpdate;
+
+      if (orderbookData && orderbookData.symbol) {
+        // Convert [string, string][] format to Array<{ price: string; size: string }> if needed
+        const normalizedData: WsOrderbookUpdate = {
+          symbol: orderbookData.symbol,
+          timestamp: orderbookData.timestamp,
+          bids: Array.isArray(orderbookData.bids) && orderbookData.bids.length > 0
+            ? Array.isArray(orderbookData.bids[0])
+              ? (orderbookData.bids as [string, string][]).map(([price, size]) => ({ price, size }))
+              : orderbookData.bids
+            : [],
+          asks: Array.isArray(orderbookData.asks) && orderbookData.asks.length > 0
+            ? Array.isArray(orderbookData.asks[0])
+              ? (orderbookData.asks as [string, string][]).map(([price, size]) => ({ price, size }))
+              : orderbookData.asks
+            : [],
+        };
+
+        handler(normalizedData);
+      }
     });
   }
 
   onTradeUpdate(handler: (data: WsTradeUpdate) => void): () => void {
-    return getBinanceMarketStream().onTrade((data: BinanceWsTradeUpdate) => {
-      handler(data as WsTradeUpdate);
+    return this.onMessage("trade", (msg) => {
+      // Trade data can be either in msg.data or directly in msg (some backends do not wrap payload)
+      const tradeData = (msg.data || msg) as WsTradeUpdate;
+      if (tradeData && tradeData.symbol) {
+        // Generate id if missing
+        if (!tradeData.id) {
+          tradeData.id = `${tradeData.symbol}:${tradeData.timestamp}:${tradeData.price}:${tradeData.amount}:${tradeData.side}`;
+        }
+        // Map "amount" to "size" for backward compatibility
+        if (tradeData.amount && !tradeData.size) {
+          tradeData.size = tradeData.amount;
+        }
+        handler(tradeData);
+      }
     });
   }
 
@@ -527,9 +567,32 @@ export class WebSocketService {
   }
 
   onKlineUpdate(handler: (channel: string, data: WsKlineUpdate) => void): () => void {
-    return getBinanceMarketStream().onKline((channel: string, data: BinanceWsKlineUpdate) => {
-      handler(channel, data as WsKlineUpdate);
-    });
+    const klineHandler = (msg: WsMessage) => {
+      if (msg.data && msg.channel) {
+        if (msg.type === "klinesnapshot" && Array.isArray(msg.data)) {
+          const candles = (msg.data as WsKlineUpdate[]).slice().sort((a, b) => {
+            const timeA = a.time < 1e10 ? a.time : a.time / 1000;
+            const timeB = b.time < 1e10 ? b.time : b.time / 1000;
+            return timeA - timeB;
+          });
+
+
+          candles.forEach((candle) => {
+            handler(msg.channel!, candle);
+          });
+        } else if (msg.type === "kline" && !Array.isArray(msg.data)) {
+          handler(msg.channel, msg.data as WsKlineUpdate);
+        }
+      }
+    };
+
+    const unsubscribeKline = this.onMessage("kline", klineHandler);
+    const unsubscribeSnapshot = this.onMessage("klinesnapshot", klineHandler);
+
+    return () => {
+      unsubscribeKline();
+      unsubscribeSnapshot();
+    };
   }
 
   onPositionUpdate(handler: (data: WsPositionUpdate) => void): () => void {
