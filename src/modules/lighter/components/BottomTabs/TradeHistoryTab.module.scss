@@ -132,3 +132,13 @@
 .colFee { width: 64px; }
 .colRole { width: 56px; }
 .colType { width: 56px; }
+
+@media (max-width: 768px) {
+  .root {
+    overflow: auto;
+  }
+
+  .table {
+    min-width: 720px;
+  }
+}

@@ -438,3 +438,25 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+@media (max-width: 768px) {
+  .root {
+    overflow: auto;
+  }
+
+  .table {
+    min-width: 860px;
+  }
+
+  .modifyOrderModalContent {
+    width: min(440px, calc(100vw - 24px));
+
+    :global(.Modal-title-bar) {
+      width: 100%;
+    }
+  }
+
+  .modifyOrderBody {
+    width: 100%;
+  }
+}

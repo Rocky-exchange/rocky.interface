@@ -68,23 +68,8 @@ export default function LighterTradePage() {
 
 function MiningRateIndicator() {
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        height: 32,
-        padding: "0 10px",
-        borderRadius: 4,
-        border: "1px solid rgba(247, 164, 59, 0.3)",
-        background: "rgba(247, 164, 59, 0.08)",
-        color: "#f7a43b",
-        fontSize: 12,
-        fontWeight: 600,
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      <span style={{ fontSize: 13 }}>⚡</span>
+    <div className={styles.miningRate}>
+      <span className={styles.miningRateIcon}>⚡</span>
       Mining rate <strong>2.5 ROCKY/USDT</strong>
     </div>
   );

@@ -109,3 +109,63 @@
   box-shadow: none;
   overflow: visible;
 }
+
+@media (max-width: 1024px) {
+  .wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .root {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: var(--ltr-symbolbar-h);
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .root::-webkit-scrollbar {
+    display: none;
+  }
+
+  .symbol {
+    flex: 0 0 auto;
+  }
+
+  .stats {
+    flex: 1 0 auto;
+    gap: 12px;
+    min-width: max-content;
+  }
+
+  .fundingGroup {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding: 3px 6px;
+    gap: 8px;
+  }
+
+  .stats {
+    gap: 10px;
+  }
+
+  .stat {
+    min-width: 72px;
+  }
+
+  .fundingGroup {
+    padding: 0 8px;
+    gap: 10px;
+  }
+
+  .marketSelectorPanel {
+    width: calc(100vw - 12px);
+  }
+}

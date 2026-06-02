@@ -292,4 +292,13 @@ body.lighter-active {
     height: auto !important;
     overflow: visible !important;
   }
+
+  @media (max-width: 1024px) {
+    .App,
+    .App > div,
+    .lighter-root {
+      width: 100dvw !important;
+      max-width: 100dvw !important;
+    }
+  }
 }
