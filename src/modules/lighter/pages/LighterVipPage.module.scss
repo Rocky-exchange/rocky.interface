@@ -602,3 +602,223 @@
     filter: brightness(1.05);
   }
 }
+
+@media (max-width: 1024px) {
+  .page {
+    width: 100dvw;
+    max-width: 100dvw;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .topnav {
+    height: auto;
+    min-height: var(--ltr-topnav-h);
+    flex-basis: auto;
+    position: relative;
+    z-index: 200;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 14px 24px;
+    gap: 14px;
+    overflow-x: hidden;
+  }
+
+  .panel,
+  .compareCard {
+    min-width: 0;
+    border-radius: 8px;
+  }
+
+  .statusPanel {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .rockWrap {
+    width: 150px;
+    height: 150px;
+  }
+
+  .tiersHeader {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .legend {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 12px;
+  }
+
+  .tiersTable {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tiersTable::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tiersHead,
+  .tierRow {
+    min-width: 920px;
+  }
+
+  .compareRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .compareArrow {
+    transform: rotate(90deg);
+    min-height: 36px;
+  }
+
+  .ctaRow {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .topnav {
+    border-bottom: 0;
+  }
+
+  .holdingBadge {
+    display: none;
+  }
+
+  .content {
+    padding: 12px 8px 20px;
+    gap: 10px;
+  }
+
+  .panel,
+  .compareCard {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .statusPanel {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 16px 14px;
+    background: radial-gradient(circle at 50% 18%, rgba(247, 164, 59, 0.1), rgba(15, 15, 21, 0.92) 58%);
+  }
+
+  .rockWrap {
+    width: 132px;
+    height: 132px;
+  }
+
+  .statusMain {
+    width: 100%;
+  }
+
+  .statusTop {
+    gap: 12px;
+  }
+
+  .statusTitleRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .currentLabel {
+    font-size: 13px;
+  }
+
+  .nextLabel {
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .progressMeta {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .progressMetaCenter,
+  .progressMetaEnd {
+    text-align: left;
+  }
+
+  .infoCallout {
+    padding: 10px;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .tiersHeader {
+    flex-direction: column;
+  }
+
+  .legend {
+    justify-content: flex-start;
+    font-size: 10px;
+  }
+
+  .tiersHead,
+  .tierRow {
+    min-width: 840px;
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 10px;
+  }
+
+  .tierRow {
+    font-size: 12px;
+  }
+
+  .compareTitleRow {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .compareTitleEm {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  .compareFeeRow {
+    flex-wrap: wrap;
+  }
+
+  .compareFeeValue {
+    font-size: 30px;
+    line-height: 36px;
+  }
+
+  .saveValue {
+    font-size: 34px;
+    line-height: 40px;
+  }
+
+  .ctaRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ctaLeft {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btnOutline,
+  .btnPrimaryLg {
+    width: 100%;
+    justify-content: center;
+    padding: 0 14px;
+  }
+}

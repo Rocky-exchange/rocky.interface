@@ -18,7 +18,31 @@
   overflow: hidden;
 }
 
-.topnav { border-bottom: 1px solid var(--ltr-border); }
+.topnav {
+  position: relative;
+  z-index: 200;
+  border-bottom: 1px solid var(--ltr-border);
+}
+
+.miningRate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(247, 164, 59, 0.3);
+  background: rgba(247, 164, 59, 0.08);
+  color: #f7a43b;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.miningRateIcon {
+  font-size: 13px;
+}
 
 .banner {
   background: #5a1820;
@@ -135,4 +159,121 @@
 
 .accountsLarge {
   grid-column: 4 / 5;
+}
+
+@media (max-width: 1180px) {
+  .page {
+    --ltr-side-col: minmax(280px, 320px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .page {
+    height: auto;
+    min-height: 100dvh;
+    grid-template-rows: auto;
+    overflow: visible;
+    padding: 4px;
+  }
+
+  .main,
+  .mainLarge {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .main > div {
+    overflow: visible;
+  }
+
+  .chartCol {
+    grid-template-rows: auto 25px minmax(320px, 48vh);
+  }
+
+  .chartCol > .chart {
+    min-height: 320px;
+  }
+
+  .orderbook,
+  .orderbookLarge {
+    min-height: 360px;
+    max-height: 520px;
+  }
+
+  .orderform {
+    min-height: auto;
+  }
+
+  .bottom,
+  .bottomLarge {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tabs,
+  .tabsLarge {
+    min-height: 260px;
+    overflow: hidden !important;
+  }
+
+  .accounts,
+  .accountsLarge {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 2px;
+    row-gap: 2px;
+  }
+
+  .topnav {
+    width: calc(100dvw - 4px);
+    max-width: calc(100dvw - 4px);
+    border-bottom: 0;
+  }
+
+  .miningRate {
+    display: none;
+  }
+
+  .chartCol {
+    width: calc(100dvw - 4px);
+    max-width: calc(100dvw - 4px);
+    grid-template-rows: auto 25px minmax(280px, 58vh);
+    row-gap: 2px;
+  }
+
+  .main,
+  .mainLarge,
+  .bottom,
+  .bottomLarge,
+  .orderbook,
+  .orderbookLarge,
+  .orderform,
+  .tabs,
+  .tabsLarge,
+  .accounts,
+  .accountsLarge {
+    width: calc(100dvw - 4px);
+    max-width: calc(100dvw - 4px);
+  }
+
+  .chartCol > .chart {
+    min-height: 280px;
+  }
+
+  .orderbook,
+  .orderbookLarge {
+    min-height: 340px;
+    max-height: none;
+  }
+
+  .tabs,
+  .tabsLarge {
+    min-height: 300px;
+  }
 }

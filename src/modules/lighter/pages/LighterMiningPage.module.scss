@@ -634,3 +634,231 @@
   color: #3dd68c !important;
   background: rgba(61, 214, 140, 0.12) !important;
 }
+
+@media (max-width: 1024px) {
+  .page {
+    width: 100dvw;
+    max-width: 100dvw;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .topnav {
+    height: auto;
+    min-height: var(--ltr-topnav-h);
+    flex-basis: auto;
+    position: relative;
+    z-index: 200;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 14px 24px;
+    gap: 14px;
+    overflow-x: hidden;
+  }
+
+  .statsRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .mainRow,
+  .actionRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card,
+  .panel,
+  .actionCard {
+    min-width: 0;
+    border-radius: 8px;
+  }
+
+  .panelHeader,
+  .statValueRow,
+  .tabsRow,
+  .rewardRow,
+  .feedRow,
+  .actionCard {
+    min-width: 0;
+  }
+
+  .tracker {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tracker::-webkit-scrollbar {
+    display: none;
+  }
+
+  .trackerChip {
+    min-width: 120px;
+  }
+
+  .tabsRow {
+    gap: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabsRow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab,
+  .tabViewAll {
+    flex: 0 0 auto;
+  }
+
+  .tabSpacer {
+    min-width: 1px;
+  }
+
+  .donutWrap {
+    height: 200px;
+  }
+
+  .feedList {
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  .actionCard {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .topnav {
+    border-bottom: 0;
+  }
+
+  .rtMining {
+    display: none;
+  }
+
+  .content {
+    padding: 12px 8px 20px;
+    gap: 10px;
+  }
+
+  .header {
+    padding: 4px 2px 8px;
+  }
+
+  .title {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .statsRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .card,
+  .panel,
+  .actionCard {
+    padding: 14px;
+  }
+
+  .statValue {
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .panelHeader {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panelAside {
+    flex: 0 0 auto;
+  }
+
+  .trackerChip {
+    min-width: 108px;
+    padding: 10px 14px;
+  }
+
+  .trackerChip:nth-child(2),
+  .trackerChip:nth-child(3) {
+    padding-left: 24px;
+  }
+
+  .trackerValue {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .rewardRow,
+  .feedRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .rewardSymbol,
+  .rewardAmount,
+  .feedUser,
+  .feedAmount {
+    font-size: 12px;
+  }
+
+  .rewardMeta,
+  .rewardStatus,
+  .feedMeta,
+  .feedHint,
+  .feedFooter {
+    font-size: 10px;
+  }
+
+  .donutWrap {
+    height: 190px;
+  }
+
+  .legendGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .ratioSeg {
+    padding: 0 8px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .ratioNote {
+    font-size: 10px;
+    line-height: 15px;
+  }
+
+  .actionCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .claimBtn,
+  .stakeBtn {
+    width: 100%;
+    justify-content: center;
+    padding: 0 12px;
+  }
+
+  .actionDesc {
+    line-height: 18px;
+  }
+}

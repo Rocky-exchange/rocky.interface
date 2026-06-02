@@ -265,3 +265,64 @@
 .tradeTime { text-align: left; }
 .tradeSize { text-align: center; font-variant-numeric: tabular-nums; }
 .tradePrice { text-align: right; color: var(--ltr-text-primary); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1024px) {
+  .root {
+    min-height: 340px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab,
+  .tabActive {
+    flex: 0 0 auto;
+  }
+
+  .largeLayout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .sectionHeader,
+  .subbar {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .subbar {
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .subbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .subRight,
+  .modeBtns {
+    flex: 0 0 auto;
+  }
+
+  .header,
+  .row,
+  .spreadRow,
+  .tradesHeader {
+    grid-template-columns: minmax(86px, 1fr) minmax(72px, 1fr) minmax(72px, 1fr);
+  }
+
+  .price,
+  .size,
+  .total {
+    padding: 0 8px;
+  }
+}

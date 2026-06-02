@@ -136,3 +136,13 @@
 .colAverage { width: 72px; }
 .colReduceOnly { width: 76px; }
 .colStatus { width: 62px; }
+
+@media (max-width: 768px) {
+  .root {
+    overflow: auto;
+  }
+
+  .table {
+    min-width: 760px;
+  }
+}

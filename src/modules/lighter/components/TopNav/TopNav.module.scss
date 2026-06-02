@@ -176,3 +176,81 @@
 .langItemActive {
   color: #F3F3F3;
 }
+
+@media (max-width: 1024px) {
+  .root {
+    height: auto;
+    min-height: var(--ltr-topnav-h);
+    flex-wrap: wrap;
+    align-content: center;
+    padding: 4px 6px;
+    row-gap: 6px;
+  }
+
+  .logo {
+    height: 32px;
+    padding: 0 6px;
+  }
+
+  .nav {
+    order: 3;
+    flex: 1 0 100%;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .link {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 4px;
+    background: #121218;
+    font-size: 12px;
+  }
+
+  .active {
+    background: #22232b;
+  }
+
+  .right {
+    margin-left: auto;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding: 4px 2px;
+  }
+
+  .right {
+    gap: 2px;
+  }
+
+  .block {
+    display: none;
+  }
+
+  .langBtn {
+    width: 38px;
+    padding: 0;
+  }
+
+  .iconBtn {
+    min-width: 32px;
+    padding: 0 6px;
+  }
+
+  .connect {
+    padding: 0 10px;
+  }
+
+  .signBtn {
+    min-width: 36px;
+  }
+}

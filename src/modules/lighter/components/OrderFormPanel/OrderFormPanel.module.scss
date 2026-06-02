@@ -516,3 +516,56 @@
   font-weight: 500;
   cursor: pointer;
 }
+
+@media (max-width: 1024px) {
+  .root {
+    min-height: auto;
+  }
+
+  .body {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding-bottom: 4px;
+  }
+
+  .topTabs,
+  .modes,
+  .sides {
+    height: 36px;
+  }
+
+  .topTab,
+  .topTabActive,
+  .mode,
+  .modeActive {
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .sideBtn {
+    height: 32px;
+  }
+
+  .sideIndicator {
+    height: 32px;
+  }
+
+  .advancedMenu {
+    max-width: calc(100vw - 16px);
+  }
+
+  .leverageOverlay,
+  .marginModal {
+    padding: 12px;
+  }
+
+  .leverageModal,
+  .marginModal {
+    width: min(440px, calc(100vw - 24px));
+  }
+}

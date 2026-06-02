@@ -226,3 +226,35 @@
 .colFunding { width: 58px; }
 .colTpSl { width: 70px; }
 .colCloseAll { width: 64px; }
+
+@media (max-width: 768px) {
+  .root {
+    overflow: auto;
+  }
+
+  .table {
+    min-width: 960px;
+  }
+}
+
+@media (max-width: 480px) {
+  .table thead th,
+  .table tbody td {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .table thead th:first-child,
+  .table tbody td:first-child {
+    padding-left: 8px;
+  }
+
+  .table thead th:last-child,
+  .table tbody td:last-child {
+    padding-right: 8px;
+  }
+
+  .closeActionButton {
+    transform: none;
+  }
+}

@@ -349,3 +349,60 @@
   border-bottom: 1px solid var(--ltr-border);
 }
 .td { padding: 8px 12px; height: var(--ltr-row-h); font-size: 12px; }
+
+@media (max-width: 768px) {
+  .root {
+    min-height: 0;
+  }
+
+  .tabs {
+    height: auto;
+    min-height: 32px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab,
+  .tabActive {
+    flex: 0 0 auto;
+    min-width: 96px;
+  }
+
+  .filters {
+    flex: 0 0 auto;
+    gap: 8px;
+    padding: 0 8px;
+    position: sticky;
+    right: 0;
+    background: #121218;
+  }
+
+  .body {
+    overflow: auto;
+  }
+
+  .table {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tab,
+  .tabActive {
+    min-width: 86px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .filters {
+    gap: 6px;
+  }
+
+  .filterItem:not(.filterItemIconOnly) {
+    display: none;
+  }
+}

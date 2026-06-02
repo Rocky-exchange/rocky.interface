@@ -130,3 +130,58 @@
   position: absolute; inset: 0;
   width: 100%; height: 100%;
 }
+
+@media (max-width: 768px) {
+  .root {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .topTabs {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 32px;
+    align-items: stretch;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .topTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabsLeft,
+  .modes {
+    flex: 0 0 auto;
+  }
+
+  .tab,
+  .tabActive {
+    min-width: 72px;
+    padding: 8px 10px;
+  }
+
+  .toolbar {
+    width: 100%;
+    max-width: 100%;
+    min-height: 32px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tfs,
+  .toolsRight {
+    flex: 0 0 auto;
+  }
+
+  .chart {
+    min-height: 240px;
+  }
+}

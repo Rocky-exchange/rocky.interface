@@ -482,3 +482,223 @@
     color: var(--ltr-text-primary);
   }
 }
+
+@media (max-width: 1024px) {
+  .page {
+    width: 100dvw;
+    max-width: 100dvw;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .topnav {
+    height: auto;
+    min-height: var(--ltr-topnav-h);
+    flex-basis: auto;
+    position: relative;
+    z-index: 200;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+    padding: 14px;
+    gap: 12px;
+    overflow-x: hidden;
+  }
+
+  .summaryRow,
+  .statsRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .panel {
+    min-width: 0;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .totalPanel {
+    min-height: 260px;
+    padding-right: 16px;
+  }
+
+  .totalRock {
+    right: 12px;
+    width: 190px;
+    height: 190px;
+    opacity: 0.72;
+  }
+
+  .totalValueRow,
+  .totalBadges,
+  .totalActions,
+  .statValueRow,
+  .statSub,
+  .vipHeader,
+  .panelHeader {
+    min-width: 0;
+  }
+
+  .historyPanel {
+    min-height: 280px;
+  }
+
+  .historyChart {
+    height: 240px;
+  }
+
+  .activityTable {
+    gap: 0;
+  }
+
+  .activityRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title amount"
+      "sub status"
+      "time status";
+    gap: 6px 10px;
+    padding: 12px 0;
+  }
+
+  .activityRow .activityCol:first-child {
+    grid-area: title;
+  }
+
+  .activityRow .activityCol:nth-child(2) {
+    grid-area: sub;
+  }
+
+  .activityTime {
+    grid-area: time;
+  }
+
+  .activityRight {
+    grid-area: amount;
+    align-self: start;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .topnav {
+    border-bottom: 0;
+  }
+
+  .rtMining {
+    display: none;
+  }
+
+  .content {
+    padding: 10px 8px 18px;
+    gap: 10px;
+  }
+
+  .panel {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .panelHeader {
+    align-items: flex-start;
+  }
+
+  .totalPanel {
+    min-height: 300px;
+  }
+
+  .totalValue {
+    font-size: 32px;
+    line-height: 38px;
+  }
+
+  .totalSuffix,
+  .statSuffix {
+    font-size: 12px;
+  }
+
+  .totalBadges,
+  .totalActions,
+  .statSub {
+    flex-wrap: wrap;
+  }
+
+  .totalRock {
+    top: auto;
+    right: 8px;
+    bottom: 52px;
+    transform: none;
+    width: 150px;
+    height: 150px;
+    opacity: 0.62;
+  }
+
+  .btnPrimary,
+  .btnOutline {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  .pnlValue,
+  .statValue {
+    font-size: 26px;
+    line-height: 32px;
+  }
+
+  .pnlChart {
+    height: 110px;
+  }
+
+  .vipHeader {
+    gap: 10px;
+  }
+
+  .vipMeta {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 4px 8px;
+  }
+
+  .vipMetaCenter {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  .historyChart {
+    height: 220px;
+    margin-left: -8px;
+    width: calc(100% + 8px);
+  }
+
+  .tabGroup {
+    flex-shrink: 0;
+  }
+
+  .tabItem {
+    padding: 4px 9px;
+  }
+
+  .activityTitle,
+  .activityAmount {
+    font-size: 12px;
+  }
+
+  .activitySub,
+  .activityTime {
+    font-size: 11px;
+  }
+
+  .statusBadge {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}
