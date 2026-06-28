@@ -51,15 +51,29 @@ independently. Duplicates proven logic, more code, more risk. No upside here.
   balances, margin, CLOB are exactly the demo's.
 - "No new backend" → zero server code; reuse `mtc-exchange` + rocky-backend.
 
-## Architecture
+## Architecture (refined after surveying the UI)
+
+The live data layer is the **X10000 mode** client (`src/modules/cex/lib/api/*`), which calls
+the primit `/api/v1/*` contract and consumes specific response shapes (`Balance`, `Position`,
+`Order`, `Ticker`, `Orderbook`, `Candle`) throughout the UI. Rather than rewrite that sprawling
+client + every consumer, we host the contract adaptation **server-side as additive `/api/v1/*`
++ `/auth/*` compatibility routes inside the demo's Next.js app**. These reuse the demo's perp
+BFF (HMAC, operator token, rocky-backend) and reshape responses into the exact primit shapes
+the UI already expects. Frontend changes then shrink to the unavoidable: login swap, session
+token wiring, same-origin base URL, and chart polling.
 
 ```
 Browser (original Vite UI @ app.rocky.exchange)
   │  static assets  ── nginx (13.231.118.218) /var/www/rocky
-  │  /api/*         ── nginx reverse-proxy ─▶ demo Next.js  127.0.0.1:8080  (BFF)
-  │                                              └─ HMAC-signs ─▶ rocky-backend 127.0.0.1:18080
+  │  /api/v1/*, /auth/*  ── nginx ─▶ demo Next.js :8080  (NEW additive compat routes)
+  │                                     └─ reshape ─▶ existing /api/perp BFF ─▶ rocky-backend :18080
+  │  /api/wallet/*       ── nginx ─▶ demo Next.js :8080  (existing wallet login)
   └─ wallet SDKs (Loop / Console) run client-side for login only
 ```
+
+This is still "reuse the demo BFF" (approved approach A); the adaptation just lives in the demo
+app as **additive** routes (no change to demo's own pages/behavior), maximally honoring
+"don't touch the original UI."
 
 - **Same-origin** is the key enabler: app.rocky.exchange serves the SPA AND proxies
   `/api/*` to the demo's Next.js. The SPA's `fetch("/api/perp/...")` and the session cookie
@@ -90,10 +104,12 @@ Browser (original Vite UI @ app.rocky.exchange)
    party/username + real balance (via `/api/wallet/rocky/balance` and/or
    `/api/perp/account/{asset}`).
 
-4. **Data/trade SDK rewrite** (`src/shared/lib/sdk/api/rest/{orders,account,market}.ts`,
-   plus `src/modules/cex/lib/api/*`): map the original UI's call sites and response shapes
-   to the demo BFF (table below). Keep the original components' expected return shapes by
-   adapting inside the SDK, so component code changes stay minimal.
+4. **Contract adaptation as compat routes (demo Next.js, additive):** add
+   `src/app/api/v1/...` (and `/auth/*`) route handlers in `mtc-exchange` that map the primit
+   contract the UI already calls to the existing perp BFF, reshaping responses into the primit
+   shapes (table below). The live UI client (`src/modules/cex/lib/api/*`) then needs **no
+   shape rewrite** — only same-origin base URL + the Canton session token as its bearer +
+   symbol mapping (BTC-USD/BTCUSDT → BTC-PERP) applied in the compat routes.
 
 5. **Market-data streaming (decided: polling)**: the original UI's TradingView datafeed
    expects streaming (`kline_snapshot`/`kline` over WS). The demo BFF exposes REST
