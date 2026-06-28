@@ -26,7 +26,13 @@ In scope (full trading parity with the demo, on the original UI shell):
 Out of scope:
 - Any on-chain / web3 / EVM trading paths, bridges, chain switching (GMX-fork leftovers).
 - The deprecated SIWE `/auth/*` and `primit /v1/*` contracts.
-- Changes to the demo (`mtc-exchange`) or to rocky-backend. We **reuse** them as-is.
+- Functional changes to the demo (`mtc-exchange`) or rocky-backend. We **reuse** them as-is.
+  - **One exception (config only):** because app.rocky.exchange proxies the *same* `:8080`
+    demo instance, the wallet-preapproval redirect must be host-derived. This means
+    **unsetting the hardcoded `AUTH0_WALLET_REDIRECT_URI`** in the mtc-exchange mainnet env
+    and its `deploy-mainnet.sh` upsert, so origin comes from `x-forwarded-host`. This is
+    backward-compatible for demo.rocky.exchange (still derives its own callback) and touches
+    no demo UI/logic.
 
 ## Approach (chosen: A — reuse the demo's BFF)
 
@@ -89,10 +95,13 @@ Browser (original Vite UI @ app.rocky.exchange)
    to the demo BFF (table below). Keep the original components' expected return shapes by
    adapting inside the SDK, so component code changes stay minimal.
 
-5. **Market-data streaming**: the original UI's TradingView datafeed expects streaming
-   (`kline_snapshot`/`kline` over WS). The demo BFF exposes REST candles/ticker. Resolve in
-   planning: either (a) drive the datafeed by polling `/api/perp/markets/{symbol}/candles`
-   + ticker, or (b) reuse a demo WS/SSE if one exists. **Open item.**
+5. **Market-data streaming (decided: polling)**: the original UI's TradingView datafeed
+   expects streaming (`kline_snapshot`/`kline` over WS). The demo BFF exposes REST
+   candles/ticker, so we drive the datafeed by **polling** `/api/perp/markets/{symbol}/candles`
+   for the current bar (interval-appropriate cadence, e.g. ~2–5s) plus ticker for last price.
+   All WS clients (`src/shared/lib/sdk/api/websocket/client.ts`,
+   `src/modules/dex/lib/sdk/api/websocket/client.ts`) are removed or stubbed; nothing connects
+   to `wss://api.primit.xyz`.
 
 6. **Symbol mapping**: original UI uses `BTCUSDT`-style; demo uses `BTC-PERP`. Add a single
    mapping util used by the SDK layer.
@@ -129,13 +138,12 @@ Browser (original Vite UI @ app.rocky.exchange)
 
 ## Risks & dependencies
 
-- **Auth0 callback whitelist (external, blocking for login):** the demo's wallet preapproval
-  uses Auth0 with redirect hardcoded to `demo.rocky.exchange`. For login to complete on
-  `app.rocky.exchange`, add `https://app.rocky.exchange/api/wallet/preapproval/callback` to
-  the Auth0 app's Allowed Callback URLs (client `4UQdTwvEetobvugcypZX5mV3YgnSxjal`) and let
-  origin derive from `x-forwarded-host`. **Needs Auth0 dashboard access.** If unavailable,
-  fall back to keeping the OAuth leg on the demo origin (documented in plan).
-- **Streaming chart** (open item 5) — must be settled in the plan before touching the chart.
+- **Auth0 callback whitelist (decided):** the user will add
+  `https://app.rocky.exchange/api/wallet/preapproval/callback` to the Auth0 app's Allowed
+  Callback URLs (client `4UQdTwvEetobvugcypZX5mV3YgnSxjal`). On the server, the wallet
+  preapproval origin must derive from the request (`x-forwarded-host`) rather than the
+  hardcoded `AUTH0_WALLET_REDIRECT_URI=demo.rocky.exchange`, so the app-domain callback is
+  used when login starts on app.rocky.exchange. nginx already forwards `X-Forwarded-*`.
 - **Response-shape drift**: most effort/risk is in mapping demo shapes back to what the
   original components consume; mitigate by adapting inside the SDK and adding contract tests.
 - **Funding**: real trading needs the account to hold USDC; deposits are gated behind HMAC
