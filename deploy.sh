@@ -13,8 +13,8 @@ set -e
 #   4. Verify deployment
 # ============================================
 
-SERVER="ubuntu@54.150.245.195"
-SSH_KEY="$HOME/.ssh/id_rsa_nick"
+SERVER="ubuntu@13.231.118.218"
+SSH_KEY="$HOME/.ssh/rocky-canton-sandbox.pem"
 DEPLOY_DIR="/var/www/rocky"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
