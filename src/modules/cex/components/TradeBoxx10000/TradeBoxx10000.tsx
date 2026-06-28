@@ -1,5 +1,4 @@
 import { t, Trans } from "@lingui/macro";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import cx from "classnames";
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef } from "react";
 import { useKey, useLatest, usePrevious } from "react-use";
@@ -85,6 +84,8 @@ import { sendTradeBoxInteractionStartedEvent } from "lib/userAnalytics";
 import { useWalletIconUrls } from "lib/wallets/getWalletIconUrls";
 import { useIsNonEoaAccountOnAnyChain } from "lib/wallets/useAccountType";
 import useWallet from "lib/wallets/useWallet";
+
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { EXPRESS_DEFAULT_MIN_RESIDUAL_USD_NUMBER } from "sdk/configs/express";
 import { getToken, getTokenBySymbol, getTokenBySymbolSafe, isUsdBasedStableToken, NATIVE_TOKEN_ADDRESS } from "sdk/configs/tokens";
 import { TradeMode } from "sdk/types/trade";
@@ -381,7 +382,6 @@ export function TradeBoxx10000({ isMobile }: { isMobile: boolean }) {
     return markets;
   }, [x10000Markets, apiIndexTokens, chainId, tokensData]);
   const { account, active } = useWallet();
-  const { openConnectModal } = useConnectModal();
 
   const walletIconUrls = useWalletIconUrls();
 
@@ -1378,7 +1378,7 @@ export function TradeBoxx10000({ isMobile }: { isMobile: boolean }) {
             ) : (
               <MultichainTokenSelector
                 isConnected={active}
-                openConnectModal={openConnectModal}
+                openConnectModal={openCantonConnect}
                 walletIconUrls={walletIconUrls}
                 chainId={chainId}
                 srcChainId={srcChainId}

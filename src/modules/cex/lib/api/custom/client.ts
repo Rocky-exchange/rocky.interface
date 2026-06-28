@@ -101,6 +101,9 @@ function setLastAddress(address: string | null): void {
 export function getStoredToken(address?: string | null, chainId?: number | null): string | null {
   if (typeof window === "undefined") return null;
 
+  const cantonSession = localStorage.getItem("rocky_exchange_session");
+  if (cantonSession) return cantonSession;
+
   // If address is not provided, try to get from last used address
   let targetAddress = address;
   if (!targetAddress) {
