@@ -180,6 +180,13 @@ export class WebSocketService {
   }
 
   connect(): void {
+    const configuredWsUrl = this.getWsUrl();
+    if (!configuredWsUrl || (!configuredWsUrl.startsWith("ws://") && !configuredWsUrl.startsWith("wss://"))) {
+      // No WebSocket endpoint configured — REST polling mode. Do not attempt to connect.
+      this.isConnecting = false;
+      return;
+    }
+
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
       return;
     }

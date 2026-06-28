@@ -135,6 +135,7 @@ interface Subscription {
   callback: SubscribeBarsCallback;
   lastBar: Bar | null;
   unsubscribeWs: (() => void) | null;
+  pollTimer: ReturnType<typeof setInterval> | null;
 }
 
 export class X10000KlineDataFeed extends EventTarget implements IBasicDataFeed {
@@ -417,26 +418,44 @@ export class X10000KlineDataFeed extends EventTarget implements IBasicDataFeed {
       callback: onTick,
       lastBar: null,
       unsubscribeWs: null,
+      pollTimer: null,
     };
 
     this.subscriptions.set(listenerGuid, subscription);
 
-    // Subscribe to WebSocket if connected
-    const ws = getX10000WebSocketService(this.chainId);
-    if (ws.isConnected()) {
-      ws.subscribeKline(backendSymbol, period);
-    }
+    // Live updates via REST polling (no WebSocket backend).
+    const poll = async () => {
+      try {
+        const response = await getCandles(this.chainId, backendSymbol, { period, limit: 2 });
+        const candles = response.candles;
+        if (!candles || candles.length === 0) return;
+        const latest = candles[candles.length - 1];
+        const bar = formatTimeInBarToMs(candleToBar(latest, this.volumeMetric));
+        subscription.callback({
+          time: bar.time,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close,
+          volume: bar.volume ?? 0,
+        });
+      } catch {
+        // ignore transient poll errors
+      }
+    };
+    subscription.pollTimer = setInterval(poll, 3000);
+    void poll();
   }
 
   unsubscribeBars(listenerGuid: string): void {
     const subscription = this.subscriptions.get(listenerGuid);
     if (!subscription) return;
 
-    // Unsubscribe from WebSocket
-    const ws = getX10000WebSocketService(this.chainId);
-    ws.unsubscribeKline(subscription.backendSymbol, subscription.period);
-
-    // Clean up WebSocket handler
+    // Stop REST polling
+    if (subscription.pollTimer) {
+      clearInterval(subscription.pollTimer);
+      subscription.pollTimer = null;
+    }
     if (subscription.unsubscribeWs) {
       subscription.unsubscribeWs();
     }
