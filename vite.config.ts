@@ -35,18 +35,16 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       proxy: {
+        // Dev: proxy data + wallet/auth routes to the demo Next.js app (same backend).
         "/api": {
-          // 支持通过环境变量切换：VITE_PROXY_API_URL
-          target: env.VITE_PROXY_API_URL || "https://api.primit.xyz",
+          target: env.VITE_PROXY_API_URL || "https://demo.rocky.exchange",
           changeOrigin: true,
-          secure: false,
+          secure: true,
         },
-        "/ws": {
-          // 支持通过环境变量切换：VITE_PROXY_WS_URL
-          target: env.VITE_PROXY_WS_URL || "wss://api.primit.xyz",
+        "/auth": {
+          target: env.VITE_PROXY_API_URL || "https://demo.rocky.exchange",
           changeOrigin: true,
-          secure: false,
-          ws: true,
+          secure: true,
         },
       },
     },
