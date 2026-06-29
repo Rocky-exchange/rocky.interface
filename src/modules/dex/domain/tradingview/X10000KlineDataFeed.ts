@@ -38,8 +38,8 @@ const RESOLUTION_TO_PERIOD: Record<string, KlinePeriod> = {
   "60": "1h",
   "240": "4h",
   "1D": "1d",
-  "1W": "1d", // Fallback to daily for weekly (backend doesn't support weekly)
-  "1M": "1d", // Fallback to daily for monthly (backend doesn't support monthly)
+  "1W": "1w", // weekly: compat layer aggregates from 1d
+  "1M": "1M", // monthly: compat layer aggregates from 1d
 };
 
 // Resolution to seconds for time calculations

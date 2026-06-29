@@ -68,7 +68,16 @@ export function ChartPanel() {
   const [tf, setTf] = useState("5m");
   const tabs: TopTab[] = ["Price", "Funding", "Details"];
   const modes: ChartMode[] = ["TradingView", "Original", "Depth"];
-  const tfs = ["5m", "15m", "1h", "4h"];
+  // label is shown; value is the chart period ("1m" label = monthly "1M")
+  const tfs: { label: string; value: string }[] = [
+    { label: "5m", value: "5m" },
+    { label: "15m", value: "15m" },
+    { label: "1h", value: "1h" },
+    { label: "4h", value: "4h" },
+    { label: "1d", value: "1d" },
+    { label: "1w", value: "1w" },
+    { label: "1m", value: "1M" },
+  ];
 
   return (
     <div className={styles.root}>
@@ -125,18 +134,14 @@ export function ChartPanel() {
           <div className={styles.toolbar}>
             <div className={styles.tfs}>
               {tfs.map((t) => (
-                <button key={t} onClick={() => setTf(t)} className={tf === t ? styles.tfActive : styles.tf}>
-                  {t}
+                <button
+                  key={t.value}
+                  onClick={() => setTf(t.value)}
+                  className={tf === t.value ? styles.tfActive : styles.tf}
+                >
+                  {t.label}
                 </button>
               ))}
-              <button className={styles.moreBtn}>
-                More
-                <span className={styles.moreCaret}>
-                  <svg width="8" height="8" viewBox="0 0 256 256" fill="currentColor">
-                    <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
-                  </svg>
-                </span>
-              </button>
               <span className={styles.sep} />
               <button className={styles.iconBtn} aria-label="add indicator">
                 <svg
