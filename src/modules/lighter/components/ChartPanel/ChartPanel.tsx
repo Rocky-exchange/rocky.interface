@@ -219,6 +219,7 @@ export function ChartPanel() {
             >
               {mode === "TradingView" ? (
                 <TVChart
+                  forcedPeriod={tf}
                   extraDisabledFeatures={LIGHTER_TV_DISABLED}
                   removeEnabledFeatures={TV_ENABLED_FEATURES_TO_REMOVE}
                   extraOverrides={LIGHTER_TV_OVERRIDES}
