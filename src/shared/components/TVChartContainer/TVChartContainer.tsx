@@ -480,11 +480,21 @@ export default function TVChartContainer({
       auto_save_delay: 1,
       save_load_adapter: new SaveLoadAdapter(tvCharts, setTvCharts, tradePageVersion),
     };
-    tvWidgetRef.current = new window.TradingView.widget(widgetOptions);
-
     let didTriggerOnChartReady = { current: false };
+    let forceInitTimeout: ReturnType<typeof setTimeout> | undefined;
+    let readyPollTimer: ReturnType<typeof setInterval> | undefined;
+    let cancelled = false;
 
-    tvWidgetRef.current!.onChartReady(function () {
+    const initChart = () => {
+      // charting_library.standalone.js is loaded `async` in index.html, so
+      // window.TradingView can still be undefined when this effect first runs.
+      // initChart() is only called once it's available (see waiter below), but
+      // guard here too in case the effect was cleaned up while waiting.
+      if (cancelled || !chartContainerRef.current || !window.TradingView?.widget) return;
+
+      tvWidgetRef.current = new window.TradingView.widget(widgetOptions);
+
+      tvWidgetRef.current!.onChartReady(function () {
       didTriggerOnChartReady.current = true;
       setChartReady(true);
 
@@ -629,7 +639,7 @@ export default function TVChartContainer({
     for these cases we wait some fixed amount of time and force TV into initialization
     */
 
-    const forceInitTimeout = setTimeout(() => {
+    forceInitTimeout = setTimeout(() => {
       if (didTriggerOnChartReady.current || !chartContainerRef.current) {
         return;
       }
@@ -652,9 +662,29 @@ export default function TVChartContainer({
         iframeWindow.dispatchEvent(new Event("innerWindowLoad"));
       }
     }, 800);
+    };
+
+    // Build the widget as soon as the async-loaded charting_library has defined
+    // window.TradingView. Without this wait the effect could call
+    // `new window.TradingView.widget(...)` on an undefined global, throwing
+    // "Cannot read properties of undefined (reading 'widget')" — which the
+    // Sentry ErrorBoundary swallows, leaving the chart panel blank (no K-line).
+    if (window.TradingView?.widget) {
+      initChart();
+    } else {
+      readyPollTimer = setInterval(() => {
+        if (window.TradingView?.widget) {
+          clearInterval(readyPollTimer);
+          readyPollTimer = undefined;
+          initChart();
+        }
+      }, 50);
+    }
 
     return () => {
-      clearTimeout(forceInitTimeout);
+      cancelled = true;
+      if (readyPollTimer) clearInterval(readyPollTimer);
+      if (forceInitTimeout) clearTimeout(forceInitTimeout);
       onCrosshairMove?.(null);
       if (tvWidgetRef.current) {
         tvWidgetRef.current.remove();
