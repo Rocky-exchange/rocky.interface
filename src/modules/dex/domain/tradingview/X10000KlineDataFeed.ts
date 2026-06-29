@@ -104,7 +104,7 @@ function getVolumeValue(
 
 function candleToBar(candle: Candle, volumeMetric: VolumeMetric): Bar {
   return {
-    time: candle.time, // Keep as seconds, will be converted to ms later
+    time: candle.time / 1000, // API gives ms; downstream formatTimeInBarToMs re-multiplies to ms
     open: parseFloat(candle.open),
     high: parseFloat(candle.high),
     low: parseFloat(candle.low),
@@ -118,7 +118,7 @@ function candleToBar(candle: Candle, volumeMetric: VolumeMetric): Bar {
  */
 function wsKlineToBar(kline: WsKlineUpdate, volumeMetric: VolumeMetric): Bar {
   return {
-    time: kline.time,
+    time: kline.time / 1000, // API gives ms; downstream formatTimeInBarToMs re-multiplies to ms
     open: parseFloat(kline.open),
     high: parseFloat(kline.high),
     low: parseFloat(kline.low),
