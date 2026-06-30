@@ -1,43 +1,20 @@
-import { BaseContract, Contract, Wallet } from "ethers";
-
 /**
- * @deprecated use estimateGasLimit instead
+ * @deprecated EVM gas estimation is disabled in the Canton runtime.
  */
 export async function getGasLimit(
-  contract: Contract | BaseContract,
-  method,
-  params: any[] = [],
-  value?: bigint | number,
-  from?: string
+  _contract: unknown,
+  _method: string,
+  _params: unknown[] = [],
+  _value?: bigint | number,
+  _from?: string
 ) {
-  const defaultValue = 0n;
-
-  if (!value) {
-    value = defaultValue;
-  }
-
-  let gasLimit = 0n;
-  try {
-    gasLimit = await contract[method].estimateGas(...params, { value, from });
-  } catch (error) {
-    // this call should throw another error instead of the `error`
-    await contract[method].staticCall(...params, { value, from });
-
-    // if not we throw estimateGas error
-    throw error;
-  }
-
-  if (gasLimit < 22000) {
-    gasLimit = 22_000n;
-  }
-
-  return (gasLimit * 11n) / 10n; // add a 10% buffer
+  throw new Error("EVM gas estimation is disabled in the Canton runtime");
 }
 
 /**
- * @deprecated
+ * @deprecated Kept for legacy tests and inactive EVM callers.
  */
-export function getBestNonce(providers: Wallet[]): Promise<number> {
+export function getBestNonce(providers: { getNonce: (blockTag: "pending") => Promise<number> }[]): Promise<number> {
   const MAX_NONCE_NEEDED = 3;
   const MAX_WAIT = 5000;
   const ONE_MORE_WAIT = 1000;

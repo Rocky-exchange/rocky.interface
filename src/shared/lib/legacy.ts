@@ -1,9 +1,7 @@
 import { t } from "@lingui/macro";
-import { ethers } from "ethers";
 import mapKeys from "lodash/mapKeys";
-import { useEnsName } from "wagmi";
 
-import { CHAIN_ID, ETH_MAINNET, getExplorerUrl } from "config/chains";
+import { CHAIN_ID, getExplorerUrl } from "config/chains";
 import { getContract } from "config/contracts";
 import { isLocal } from "config/env";
 import { BASIS_POINTS_DIVISOR, BASIS_POINTS_DIVISOR_BIGINT, USD_DECIMALS } from "config/factors";
@@ -24,10 +22,28 @@ import {
 
 export { adjustForDecimals } from "./numbers";
 
-const { ZeroAddress } = ethers;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 // use a random placeholder account instead of the zero address as the zero address might have tokens
-export const PLACEHOLDER_ACCOUNT = ethers.Wallet.createRandom().address;
+export const PLACEHOLDER_ACCOUNT = "0x000000000000000000000000000000000000dEaD";
+
+function stableHexHash(input: string): `0x${string}` {
+  let hash = 0xcbf29ce484222325n;
+  const prime = 0x100000001b3n;
+  const mask = (1n << 64n) - 1n;
+  const words: string[] = [];
+
+  for (let word = 0; word < 4; word++) {
+    for (let i = 0; i < input.length; i++) {
+      hash ^= BigInt(input.charCodeAt(i) + word);
+      hash = (hash * prime) & mask;
+    }
+    words.push(hash.toString(16).padStart(16, "0"));
+  }
+
+  return `0x${words.join("")}`;
+}
 
 export const MIN_PROFIT_TIME = 0;
 
@@ -40,7 +56,6 @@ export const DEPOSIT_FEE = 30n;
 export const DUST_BNB = "2000000000000000";
 export const DUST_USD = expandDecimals(1, USD_DECIMALS);
 export const GLP_DECIMALS = 18;
-export const GMX_DECIMALS = 18;
 export const GM_DECIMALS = 18;
 export const DEFAULT_MAX_USDG_AMOUNT = expandDecimals(200 * 1000 * 1000, 18);
 
@@ -729,16 +744,13 @@ export function getPositionKey(
   isLong: boolean,
   nativeTokenAddress?: string
 ) {
-  const tokenAddress0 = collateralTokenAddress === ZeroAddress ? nativeTokenAddress : collateralTokenAddress;
-  const tokenAddress1 = indexTokenAddress === ZeroAddress ? nativeTokenAddress : indexTokenAddress;
+  const tokenAddress0 = collateralTokenAddress === ZERO_ADDRESS ? nativeTokenAddress : collateralTokenAddress;
+  const tokenAddress1 = indexTokenAddress === ZERO_ADDRESS ? nativeTokenAddress : indexTokenAddress;
   return account + ":" + tokenAddress0 + ":" + tokenAddress1 + ":" + isLong;
 }
 
 export function getPositionContractKey(account, collateralToken, indexToken, isLong) {
-  return ethers.solidityPackedKeccak256(
-    ["address", "address", "address", "bool"],
-    [account, collateralToken, indexToken, isLong]
-  );
+  return stableHexHash(`${account}:${collateralToken}:${indexToken}:${isLong}`);
 }
 
 export function getSwapFeeBasisPoints(isStable) {
@@ -763,13 +775,8 @@ export function shortenAddress(address, length, padStart = 1) {
 }
 
 export function useENS(address) {
-  const { data } = useEnsName({
-    address,
-    chainId: ETH_MAINNET,
-  });
-  const ensName = data || undefined;
-
-  return { ensName };
+  void address;
+  return { ensName: undefined };
 }
 
 // Removed: order parsing helpers (unused)
@@ -814,471 +821,16 @@ export function getTotalVolumeSum(volumes) {
   return volume;
 }
 
-export function getBalanceAndSupplyData(balances: bigint[] | undefined): {
-  balanceData: Partial<Record<"gmx" | "esGmx" | "glp" | "stakedGmxTracker", bigint>>;
-  supplyData: Partial<Record<"gmx" | "esGmx" | "glp" | "stakedGmxTracker", bigint>>;
-} {
-  if (!balances || balances.length === 0) {
-    return { balanceData: {}, supplyData: {} };
-  }
-
-  const keys = ["gmx", "esGmx", "glp", "stakedGmxTracker"];
-  const balanceData = {};
-  const supplyData = {};
-  const propsLength = 2;
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    balanceData[key] = balances[i * propsLength];
-    supplyData[key] = balances[i * propsLength + 1];
-  }
-
-  return { balanceData, supplyData };
-}
-
-export function getDepositBalanceData(
-  depositBalances: bigint[] | undefined
-):
-  | Record<
-      | "gmxInStakedGmx"
-      | "esGmxInStakedGmx"
-      | "stakedGmxInBonusGmx"
-      | "bonusGmxInFeeGmx"
-      | "bnGmxInFeeGmx"
-      | "glpInStakedGlp",
-      bigint
-    >
-  | undefined {
-  if (!depositBalances || depositBalances.length === 0) {
-    return;
-  }
-
-  const keys = [
-    "gmxInStakedGmx",
-    "esGmxInStakedGmx",
-    "stakedGmxInBonusGmx",
-    "bonusGmxInFeeGmx",
-    "bnGmxInFeeGmx",
-    "glpInStakedGlp",
-  ];
-  const data = {};
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    data[key] = depositBalances[i];
-  }
-
-  return data as any;
-}
-
-type RawVestingData = {
-  gmxVester: {
-    pairAmount: bigint;
-    vestedAmount: bigint;
-    escrowedBalance: bigint;
-    claimedAmounts: bigint;
-    claimable: bigint;
-    maxVestableAmount: bigint;
-    averageStakedAmount: bigint;
-  };
-  gmxVesterPairAmount: bigint;
-  gmxVesterVestedAmount: bigint;
-  gmxVesterEscrowedBalance: bigint;
-  gmxVesterClaimSum: bigint;
-  gmxVesterClaimable: bigint;
-  gmxVesterMaxVestableAmount: bigint;
-  gmxVesterAverageStakedAmount: bigint;
-  glpVester: {
-    pairAmount: bigint;
-    vestedAmount: bigint;
-    escrowedBalance: bigint;
-    claimedAmounts: bigint;
-    claimable: bigint;
-    maxVestableAmount: bigint;
-    averageStakedAmount: bigint;
-  };
-  glpVesterPairAmount: bigint;
-  glpVesterVestedAmount: bigint;
-  glpVesterEscrowedBalance: bigint;
-  glpVesterClaimSum: bigint;
-  glpVesterClaimable: bigint;
-  glpVesterMaxVestableAmount: bigint;
-  glpVesterAverageStakedAmount: bigint;
-  affiliateVester: {
-    pairAmount: bigint;
-    vestedAmount: bigint;
-    escrowedBalance: bigint;
-    claimedAmounts: bigint;
-    claimable: bigint;
-    maxVestableAmount: bigint;
-    averageStakedAmount: bigint;
-  };
-  affiliateVesterPairAmount: bigint;
-  affiliateVesterVestedAmount: bigint;
-  affiliateVesterEscrowedBalance: bigint;
-  affiliateVesterClaimSum: bigint;
-  affiliateVesterClaimable: bigint;
-  affiliateVesterMaxVestableAmount: bigint;
-  affiliateVesterAverageStakedAmount: bigint;
-};
-
-export function getVestingData(vestingInfo): RawVestingData | undefined {
-  if (!vestingInfo || vestingInfo.length === 0) {
-    return undefined;
-  }
-  const propsLength = 7;
-  const data: Partial<RawVestingData> = {};
-
-  const keys = ["gmxVester", "glpVester", "affiliateVester"] as const;
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i] as (typeof keys)[number];
-    data[key] = {
-      pairAmount: vestingInfo[i * propsLength],
-      vestedAmount: vestingInfo[i * propsLength + 1],
-      escrowedBalance: vestingInfo[i * propsLength + 2],
-      claimedAmounts: vestingInfo[i * propsLength + 3],
-      claimable: vestingInfo[i * propsLength + 4],
-      maxVestableAmount: vestingInfo[i * propsLength + 5],
-      averageStakedAmount: vestingInfo[i * propsLength + 6],
-    };
-
-    data[key + "PairAmount"] = data[key]!.pairAmount;
-    data[key + "VestedAmount"] = data[key]!.vestedAmount;
-    data[key + "EscrowedBalance"] = data[key]!.escrowedBalance;
-    data[key + "ClaimSum"] = data[key]!.claimedAmounts + data[key]!.claimable;
-    data[key + "Claimable"] = data[key]!.claimable;
-    data[key + "MaxVestableAmount"] = data[key]!.maxVestableAmount;
-    data[key + "AverageStakedAmount"] = data[key]!.averageStakedAmount;
-  }
-
-  return data as RawVestingData;
-}
-
-export function getStakingData(stakingInfo: bigint[] | undefined):
-  | undefined
-  | Record<
-      | "stakedGmxTracker"
-      | "bonusGmxTracker"
-      | "feeGmxTracker"
-      | "stakedGlpTracker"
-      | "feeGlpTracker"
-      | "extendedGmxTracker",
-      {
-        claimable: bigint;
-        tokensPerInterval: bigint;
-        averageStakedAmounts: bigint;
-        cumulativeRewards: bigint;
-        totalSupply: bigint;
-      }
-    > {
-  if (!stakingInfo || stakingInfo.length === 0) {
-    return;
-  }
-
-  const keys = [
-    "stakedGmxTracker",
-    "bonusGmxTracker",
-    "feeGmxTracker",
-    "stakedGlpTracker",
-    "feeGlpTracker",
-    "extendedGmxTracker",
-  ];
-  const data = {};
-  const propsLength = 5;
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    data[key] = {
-      claimable: stakingInfo[i * propsLength],
-      tokensPerInterval: stakingInfo[i * propsLength + 1],
-      averageStakedAmounts: stakingInfo[i * propsLength + 2],
-      cumulativeRewards: stakingInfo[i * propsLength + 3],
-      totalSupply: stakingInfo[i * propsLength + 4],
-    };
-  }
-
-  return data as any;
-}
-
-export type StakingProcessedData = Partial<{
-  gmxBalance: bigint;
-  gmxBalanceUsd: bigint;
-  gmxSupply: bigint;
-  gmxSupplyUsd: bigint;
-  stakedGmxSupply: bigint;
-  stakedGmxSupplyUsd: bigint;
-  gmxInStakedGmx: bigint;
-  gmxInStakedGmxUsd: bigint;
-  esGmxBalance: bigint;
-  esGmxBalanceUsd: bigint;
-  stakedGmxTrackerSupply: bigint;
-  stakedGmxTrackerSupplyUsd: bigint;
-  stakedEsGmxSupply: bigint;
-  stakedEsGmxSupplyUsd: bigint;
-  esGmxInStakedGmx: bigint;
-  esGmxInStakedGmxUsd: bigint;
-  bonusGmxInFeeGmx: bigint;
-  feeGmxSupply: bigint;
-  feeGmxSupplyUsd: bigint;
-  stakedGmxTrackerRewards: bigint;
-  stakedGmxTrackerRewardsUsd: bigint;
-  extendedGmxTrackerRewards: bigint;
-  extendedGmxTrackerRewardsUsd: bigint;
-  feeGmxTrackerRewards: bigint;
-  feeGmxTrackerRewardsUsd: bigint;
-  stakedGmxTrackerAnnualRewardsUsd: bigint;
-  extendedGmxTrackerAnnualRewardsUsd: bigint;
-  feeGmxTrackerAnnualRewardsUsd: bigint;
-  gmxAprTotal: bigint;
-  totalStakingRewardsUsd: bigint;
-  glpSupply: bigint;
-  glpPrice: bigint;
-  glpSupplyUsd: bigint;
-  glpBalance: bigint;
-  glpBalanceUsd: bigint;
-  stakedGlpTrackerRewards: bigint;
-  stakedGlpTrackerRewardsUsd: bigint;
-  feeGlpTrackerRewards: bigint;
-  feeGlpTrackerRewardsUsd: bigint;
-  stakedGlpTrackerAnnualRewardsUsd: bigint;
-  glpAprForEsGmx: bigint;
-  feeGlpTrackerAnnualRewardsUsd: bigint;
-  glpAprForNativeToken: bigint;
-  gmxAprForGmx: bigint;
-  glpAprTotal: bigint;
-  totalGlpRewardsUsd: bigint;
-  totalEsGmxRewards: bigint;
-  totalEsGmxRewardsUsd: bigint;
-  totalGmxRewards: bigint;
-  totalGmxRewardsUsd: bigint;
-  gmxVesterRewards: bigint;
-  glpVesterRewards: bigint;
-  totalVesterRewards: bigint;
-  totalVesterRewardsUsd: bigint;
-  totalNativeTokenRewards: bigint;
-  totalNativeTokenRewardsUsd: bigint;
-  totalRewardsUsd: bigint;
-  cumulativeTotalRewardsUsd: bigint;
-  cumulativeEsGmxRewards: bigint;
-  cumulativeEsGmxRewardsUsd: bigint;
-  cumulativeGmxRewards: bigint;
-  cumulativeGmxRewardsUsd: bigint;
-  cumulativeNativeTokenRewards: bigint;
-  cumulativeNativeTokenRewardsUsd: bigint;
-}> & {
-  gmxAprForEsGmx: bigint;
-  gmxAprForNativeToken: bigint;
-};
-
-export function getStakingProcessedData(
-  balanceData: Partial<Record<"glp" | "gmx" | "esGmx" | "stakedGmxTracker", bigint>> | undefined,
-  supplyData: Partial<Record<"gmx" | "esGmx" | "glp" | "stakedGmxTracker", bigint>> | undefined,
-  depositBalanceData:
-    | Record<
-        | "gmxInStakedGmx"
-        | "esGmxInStakedGmx"
-        | "stakedGmxInBonusGmx"
-        | "bonusGmxInFeeGmx"
-        | "bnGmxInFeeGmx"
-        | "glpInStakedGlp",
-        bigint
-      >
-    | undefined,
-  stakingData:
-    | Record<
-        | "stakedGmxTracker"
-        | "bonusGmxTracker"
-        | "feeGmxTracker"
-        | "stakedGlpTracker"
-        | "feeGlpTracker"
-        | "extendedGmxTracker",
-        {
-          claimable: bigint;
-          tokensPerInterval: bigint;
-          averageStakedAmounts: bigint;
-          cumulativeRewards: bigint;
-          totalSupply: bigint;
-        }
-      >
-    | undefined,
-  vestingData: RawVestingData | undefined,
-  aum: bigint | undefined,
-  nativeTokenPrice: bigint | undefined,
-  stakedGmxSupply: bigint | undefined,
-  gmxPrice: bigint | undefined,
-  gmxSupply: string | undefined
-): StakingProcessedData | undefined {
-  if (
-    !balanceData ||
-    !supplyData ||
-    !depositBalanceData ||
-    !stakingData ||
-    !vestingData ||
-    aum === undefined ||
-    nativeTokenPrice === undefined ||
-    stakedGmxSupply === undefined ||
-    gmxPrice === undefined ||
-    !gmxSupply
-  ) {
-    return undefined;
-  }
-  const data: any = {};
-
-  data.gmxBalance = balanceData.gmx;
-  data.gmxBalanceUsd = mulDiv(balanceData.gmx, gmxPrice, expandDecimals(1, 18));
-
-  data.gmxSupply = bigNumberify(gmxSupply);
-
-  data.gmxSupplyUsd = mulDiv(data.gmxSupply, gmxPrice, expandDecimals(1, 18));
-  data.stakedGmxSupply = stakedGmxSupply;
-  data.stakedGmxSupplyUsd = mulDiv(stakedGmxSupply, gmxPrice, expandDecimals(1, 18));
-  data.gmxInStakedGmx = depositBalanceData.gmxInStakedGmx;
-  data.gmxInStakedGmxUsd = mulDiv(depositBalanceData.gmxInStakedGmx, gmxPrice, expandDecimals(1, 18));
-
-  data.esGmxBalance = balanceData.esGmx;
-  data.esGmxBalanceUsd = mulDiv(balanceData.esGmx, gmxPrice, expandDecimals(1, 18));
-
-  data.stakedGmxTrackerSupply = supplyData.stakedGmxTracker;
-  data.stakedGmxTrackerSupplyUsd = mulDiv(supplyData.stakedGmxTracker, gmxPrice, expandDecimals(1, 18));
-  data.stakedEsGmxSupply = data.stakedGmxTrackerSupply - data.stakedGmxSupply;
-  data.stakedEsGmxSupplyUsd = mulDiv(data.stakedEsGmxSupply, gmxPrice, expandDecimals(1, 18));
-
-  data.esGmxInStakedGmx = depositBalanceData.esGmxInStakedGmx;
-  data.esGmxInStakedGmxUsd = mulDiv(depositBalanceData.esGmxInStakedGmx, gmxPrice, expandDecimals(1, 18));
-
-  data.bonusGmxInFeeGmx = depositBalanceData.bonusGmxInFeeGmx;
-  data.feeGmxSupply = stakingData.feeGmxTracker.totalSupply;
-  data.feeGmxSupplyUsd = mulDiv(data.feeGmxSupply, gmxPrice, expandDecimals(1, 18));
-
-  data.stakedGmxTrackerRewards = stakingData.stakedGmxTracker.claimable;
-  data.stakedGmxTrackerRewardsUsd = mulDiv(stakingData.stakedGmxTracker.claimable, gmxPrice, expandDecimals(1, 18));
-
-  data.feeGmxTrackerRewards = stakingData.feeGmxTracker.claimable;
-  data.feeGmxTrackerRewardsUsd = mulDiv(stakingData.feeGmxTracker.claimable, nativeTokenPrice, expandDecimals(1, 18));
-
-  data.extendedGmxTrackerRewards = stakingData.extendedGmxTracker.claimable;
-  data.extendedGmxTrackerSupply = stakingData.extendedGmxTracker.totalSupply;
-  data.extendedGmxTrackerSupplyUsd = mulDiv(data.extendedGmxTrackerSupply, gmxPrice, expandDecimals(1, 18));
-  data.extendedGmxTrackerRewardsUsd = mulDiv(stakingData.extendedGmxTracker.claimable, gmxPrice, expandDecimals(1, 18));
-  data.extendedGmxTrackerAnnualRewardsUsd =
-    (stakingData.extendedGmxTracker.tokensPerInterval * SECONDS_PER_YEAR * gmxPrice) / expandDecimals(1, 18);
-
-  data.stakedGmxTrackerAnnualRewardsUsd =
-    (stakingData.stakedGmxTracker.tokensPerInterval * SECONDS_PER_YEAR * gmxPrice) / expandDecimals(1, 18);
-  data.gmxAprForEsGmx =
-    data.stakedGmxTrackerSupplyUsd && data.stakedGmxTrackerSupplyUsd > 0
-      ? mulDiv(data.stakedGmxTrackerAnnualRewardsUsd, BASIS_POINTS_DIVISOR_BIGINT, data.stakedGmxTrackerSupplyUsd)
-      : 0n;
-  data.feeGmxTrackerAnnualRewardsUsd =
-    (stakingData.feeGmxTracker.tokensPerInterval * SECONDS_PER_YEAR * nativeTokenPrice) / expandDecimals(1, 18);
-
-  data.gmxAprForNativeToken =
-    data.feeGmxSupplyUsd && data.feeGmxSupplyUsd > 0
-      ? mulDiv(data.feeGmxTrackerAnnualRewardsUsd, BASIS_POINTS_DIVISOR_BIGINT, data.feeGmxSupplyUsd)
-      : 0n;
-
-  data.gmxAprForGmx =
-    data.feeGmxSupplyUsd && data.feeGmxSupplyUsd > 0
-      ? mulDiv(data.extendedGmxTrackerAnnualRewardsUsd, BASIS_POINTS_DIVISOR_BIGINT, data.feeGmxSupplyUsd)
-      : 0n;
-
-  data.gmxAprTotal = data.gmxAprForNativeToken + data.gmxAprForGmx;
-
-  data.totalStakingRewardsUsd =
-    data.stakedGmxTrackerRewardsUsd + data.feeGmxTrackerRewardsUsd + data.extendedGmxTrackerRewardsUsd;
-
-  data.glpSupply = supplyData.glp;
-  data.glpPrice =
-    data.glpSupply && data.glpSupply > 0 ? mulDiv(aum, expandDecimals(1, GLP_DECIMALS), data.glpSupply) : 0n;
-
-  data.glpSupplyUsd = mulDiv(supplyData.glp, data.glpPrice, expandDecimals(1, 18));
-
-  data.glpBalance = depositBalanceData.glpInStakedGlp;
-  data.glpBalanceUsd = mulDiv(depositBalanceData.glpInStakedGlp, data.glpPrice, expandDecimals(1, GLP_DECIMALS));
-
-  data.stakedGlpTrackerRewards = stakingData.stakedGlpTracker.claimable;
-  data.stakedGlpTrackerRewardsUsd = mulDiv(stakingData.stakedGlpTracker.claimable, gmxPrice, expandDecimals(1, 18));
-
-  data.feeGlpTrackerRewards = stakingData.feeGlpTracker.claimable;
-  data.feeGlpTrackerRewardsUsd = mulDiv(stakingData.feeGlpTracker.claimable, nativeTokenPrice, expandDecimals(1, 18));
-
-  data.stakedGlpTrackerAnnualRewardsUsd = mulDiv(
-    stakingData.stakedGlpTracker.tokensPerInterval * SECONDS_PER_YEAR,
-    gmxPrice,
-    expandDecimals(1, 18)
-  );
-  data.glpAprForEsGmx =
-    data.glpSupplyUsd && data.glpSupplyUsd > 0
-      ? mulDiv(data.stakedGlpTrackerAnnualRewardsUsd, BASIS_POINTS_DIVISOR_BIGINT, data.glpSupplyUsd)
-      : 0n;
-  data.feeGlpTrackerAnnualRewardsUsd = mulDiv(
-    stakingData.feeGlpTracker.tokensPerInterval * SECONDS_PER_YEAR,
-    nativeTokenPrice,
-    expandDecimals(1, 18)
-  );
-  data.glpAprForNativeToken =
-    data.glpSupplyUsd && data.glpSupplyUsd > 0
-      ? mulDiv(data.feeGlpTrackerAnnualRewardsUsd, BASIS_POINTS_DIVISOR_BIGINT, data.glpSupplyUsd)
-      : 0n;
-  data.glpAprTotal = data.glpAprForNativeToken + data.glpAprForEsGmx;
-
-  data.totalGlpRewardsUsd = data.stakedGlpTrackerRewardsUsd + data.feeGlpTrackerRewardsUsd;
-
-  data.totalEsGmxRewards = data.stakedGmxTrackerRewards + data.stakedGlpTrackerRewards;
-  data.totalEsGmxRewardsUsd = data.stakedGmxTrackerRewardsUsd + data.stakedGlpTrackerRewardsUsd;
-
-  data.gmxVesterRewards = vestingData.gmxVester.claimable;
-  data.glpVesterRewards = vestingData.glpVester.claimable;
-  data.totalVesterRewards = data.gmxVesterRewards + data.glpVesterRewards;
-  data.totalVesterRewardsUsd = mulDiv(data.totalVesterRewards, gmxPrice, expandDecimals(1, 18));
-
-  data.totalGmxRewards = data.totalVesterRewards + data.extendedGmxTrackerRewards;
-  data.totalGmxRewardsUsd = data.totalVesterRewardsUsd + data.extendedGmxTrackerRewardsUsd;
-
-  data.totalNativeTokenRewards = data.feeGmxTrackerRewards + data.feeGlpTrackerRewards;
-  data.totalNativeTokenRewardsUsd = data.feeGmxTrackerRewardsUsd + data.feeGlpTrackerRewardsUsd;
-
-  const cumulativeEsGmxRewards =
-    stakingData.stakedGmxTracker.cumulativeRewards + stakingData.stakedGlpTracker.cumulativeRewards;
-  const cumulativeEsGmxRewardsUsd = mulDiv(cumulativeEsGmxRewards, gmxPrice, expandDecimals(1, 18)) ?? 0n;
-
-  const cumulativeGmxRewards =
-    stakingData.extendedGmxTracker.cumulativeRewards + vestingData.gmxVesterClaimSum + vestingData.glpVesterClaimSum;
-  const cumulativeGmxRewardsUsd = mulDiv(cumulativeGmxRewards, gmxPrice, expandDecimals(1, 18)) ?? 0n;
-
-  const cumulativeNativeTokenRewards =
-    stakingData.feeGmxTracker.cumulativeRewards + stakingData.feeGlpTracker.cumulativeRewards;
-  const cumulativeNativeTokenRewardsUsd =
-    mulDiv(cumulativeNativeTokenRewards, nativeTokenPrice, expandDecimals(1, 18)) ?? 0n;
-
-  data.cumulativeEsGmxRewards = cumulativeEsGmxRewards;
-  data.cumulativeEsGmxRewardsUsd = cumulativeEsGmxRewardsUsd;
-  data.cumulativeGmxRewards = cumulativeGmxRewards;
-  data.cumulativeGmxRewardsUsd = cumulativeGmxRewardsUsd;
-  data.cumulativeNativeTokenRewards = cumulativeNativeTokenRewards;
-  data.cumulativeNativeTokenRewardsUsd = cumulativeNativeTokenRewardsUsd;
-
-  data.cumulativeTotalRewardsUsd =
-    cumulativeEsGmxRewardsUsd + cumulativeGmxRewardsUsd + cumulativeNativeTokenRewardsUsd;
-
-  data.totalRewardsUsd = data.totalEsGmxRewardsUsd + data.totalNativeTokenRewardsUsd + data.totalGmxRewardsUsd;
-
-  data.avgGMXAprTotal = data.gmxAprTotal ? data.gmxAprTotal + (data.avgBoostAprForNativeToken ?? 0n) : undefined;
-
-  return data;
-}
-
 export function getPageTitle(data) {
-  const title = "Decentralized Perpetual Exchange | rocky";
+  const title = "Primit | Prime Execution, Primitive Design";
   return `${data} | ${title}`;
 }
 
 export function isHashZero(value) {
-  return value === ethers.ZeroHash;
+  return value === ZERO_HASH;
 }
 export function isAddressZero(value) {
-  return value === ethers.ZeroAddress;
+  return value === ZERO_ADDRESS;
 }
 
 export function getHomeUrl() {
@@ -1286,7 +838,7 @@ export function getHomeUrl() {
     return "http://localhost:3010";
   }
 
-  return "https://gmx.io";
+  return "https://primit.io";
 }
 
 export function getAppBaseUrl() {
@@ -1299,10 +851,10 @@ export function getAppBaseUrl() {
 
 export function getRootShareApiUrl() {
   if (isLocal()) {
-    return "https://gmxs.vercel.app";
+    return "https://app.primit.io";
   }
 
-  return "https://share.gmx.io";
+  return "https://app.primit.io";
 }
 
 export function getTradePageUrl() {
@@ -1315,7 +867,13 @@ export function getTradePageUrl() {
 
 // Resolves all images in the folder that match the pattern and store them as `fileName -> path` pairs
 const imageStaticMap = mapKeys(
-  import.meta.glob("img/**/*.*", {
+  import.meta.glob([
+    "img/**/*.*",
+    "!img/**/*wallet*",
+    "!img/**/*Wallet*",
+    "!img/**/*metamask*",
+    "!img/**/*coinbase*",
+  ], {
     query: "?url",
     import: "default",
     eager: true,

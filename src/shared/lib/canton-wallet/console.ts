@@ -107,7 +107,9 @@ export async function connectConsoleWallet(): Promise<ConnectedWallet> {
 export const consoleWalletAdapter: WalletProviderAdapter = {
   provider: "console",
   connect: connectConsoleWallet,
-  async disconnect() {},
+  async disconnect() {
+    return undefined;
+  },
   async getPartyId() {
     return null;
   },

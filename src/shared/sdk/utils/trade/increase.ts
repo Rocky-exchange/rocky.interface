@@ -1,4 +1,4 @@
-import { maxUint256 } from "viem";
+import { maxUint256 } from "sdk/utils/evmCompat";
 
 import { BASIS_POINTS_DIVISOR_BIGINT, DEFAULT_ACCEPTABLE_PRICE_IMPACT_BUFFER } from "sdk/configs/factors";
 import { MarketInfo, MarketsInfoData } from "sdk/types/markets";

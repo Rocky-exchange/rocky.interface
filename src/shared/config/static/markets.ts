@@ -106,7 +106,7 @@ const MARKETS_UI_CONFIGS: Record<ContractsChainId, Record<string, MarketUiConfig
     "0x450bb6774Dd8a756274E0ab4107953259d2ac541": {
       enabled: true,
     },
-    // GMX/USD [GMX-USDC]
+    // Primit/USD market
     "0x55391D178Ce46e7AC8eaAEa50A72D1A5a8A622Da": {
       enabled: true,
     },
@@ -226,7 +226,7 @@ const MARKETS_UI_CONFIGS: Record<ContractsChainId, Record<string, MarketUiConfig
     "0x71B7fF592a974e2B501D8A7a11f5c42DcD365244": {
       enabled: true,
     },
-    // GMX [GMX]
+    // Primit
     "0xbD48149673724f9cAeE647bb4e9D9dDaF896Efeb": {
       enabled: true,
     },
@@ -660,7 +660,7 @@ const MARKETS_UI_CONFIGS: Record<ContractsChainId, Record<string, MarketUiConfig
     "0xAde9D177B9E060D2064ee9F798125e6539fDaA1c": {
       enabled: true,
     },
-    // ZTDX/USD [ZTDX-USDC]
+    // Stable token/USD market
     "0x756be641d97c796bd13856c76830f274fb0ac857": {
       enabled: true,
     },

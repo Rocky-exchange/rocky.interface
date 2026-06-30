@@ -1,184 +1,53 @@
-import { ethers, JsonRpcProvider, Network, Signer, WebSocketProvider } from "ethers";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import {
-  AnyChainId,
-  ARBITRUM,
-  ARBITRUM_SEPOLIA,
-  AVALANCHE,
-  AVALANCHE_FUJI,
-  BOTANIX,
-  FALLBACK_PROVIDERS,
-  getAlchemyArbitrumSepoliaWsUrl,
-  getAlchemyArbitrumWsUrl,
-  getAlchemyBaseMainnetWsUrl,
-  getAlchemyBotanixWsUrl,
-  getAlchemyBscMainnetWsUrl,
-  getAlchemyOptimismSepoliaWsUrl,
-  getAlchemySepoliaWsUrl,
-  getExpressRpcUrl,
-  getFallbackRpcUrl,
-  SOURCE_BASE_MAINNET,
-  SOURCE_BSC_MAINNET,
-  SOURCE_OPTIMISM_SEPOLIA,
-  SOURCE_SEPOLIA,
-} from "config/chains";
-import { isDevelopment } from "config/env";
-import { getIsLargeAccount } from "domain/stats/isLargeAccount";
-import { getCurrentRpcUrls, useCurrentRpcUrls } from "lib/rpc/bestRpcTracker";
+import type { AnyChainId } from "config/chains";
+import { getFallbackRpcUrl } from "config/chains";
+import { getCurrentRpcUrls } from "lib/rpc/bestRpcTracker";
 
-export function getProvider(signer: undefined, chainId: number): ethers.JsonRpcProvider;
-export function getProvider(signer: Signer, chainId: number): Signer;
-export function getProvider(signer: Signer | undefined, chainId: number): ethers.JsonRpcProvider | Signer;
-export function getProvider(signer: Signer | undefined, chainId: number): ethers.JsonRpcProvider | Signer {
-  let url;
+type DisabledProvider = any;
 
+function createDisabledProvider(chainId: number | undefined, url?: string): DisabledProvider {
+  const error = () => Promise.reject(new Error("EVM JSON-RPC providers are disabled in the Canton runtime"));
+
+  return {
+    chainId,
+    url,
+    provider: undefined,
+    call: error,
+    getFeeData: error,
+    getNetwork: error,
+    getBlockNumber: error,
+    destroy: () => undefined,
+  };
+}
+
+export function getProvider<TSigner>(signer: TSigner | undefined, chainId: number): any {
   if (signer) {
     return signer;
   }
 
-  url = getCurrentRpcUrls(chainId).primary;
-
-  const network = Network.from(chainId);
-
-  return new ethers.JsonRpcProvider(url, chainId, { staticNetwork: network });
+  return createDisabledProvider(chainId, getCurrentRpcUrls(chainId).primary);
 }
 
-export function getWsProvider(chainId: AnyChainId): WebSocketProvider | JsonRpcProvider {
-  const network = Network.from(chainId);
-
-  if (chainId === ARBITRUM) {
-    return new ethers.WebSocketProvider(
-      getAlchemyArbitrumWsUrl(getIsLargeAccount() ? "largeAccount" : "fallback"),
-      network,
-      { staticNetwork: network }
-    );
-  }
-
-  if (chainId === AVALANCHE) {
-    const provider = new ethers.WebSocketProvider("wss://api.avax.network/ext/bc/C/ws", network, {
-      staticNetwork: network,
-    });
-    return provider;
-  }
-
-  if (chainId === AVALANCHE_FUJI) {
-    const provider = new ethers.JsonRpcProvider(getCurrentRpcUrls(AVALANCHE_FUJI).primary, network, {
-      staticNetwork: network,
-    });
-    provider.pollingInterval = 2000;
-    return provider;
-  }
-
-  if (chainId === ARBITRUM_SEPOLIA) {
-    const provider = new ethers.WebSocketProvider(getAlchemyArbitrumSepoliaWsUrl("fallback"), network, {
-      staticNetwork: network,
-    });
-    return provider;
-  }
-
-  if (chainId === SOURCE_SEPOLIA) {
-    const provider = new ethers.WebSocketProvider(getAlchemySepoliaWsUrl("fallback"), network, {
-      staticNetwork: network,
-    });
-    return provider;
-  }
-
-  if (chainId === SOURCE_OPTIMISM_SEPOLIA) {
-    const provider = new ethers.WebSocketProvider(getAlchemyOptimismSepoliaWsUrl("fallback"), network, {
-      staticNetwork: network,
-    });
-    return provider;
-  }
-
-  if (chainId === BOTANIX) {
-    return new ethers.WebSocketProvider(
-      getAlchemyBotanixWsUrl(getIsLargeAccount() ? "largeAccount" : "fallback"),
-      network,
-      { staticNetwork: network }
-    );
-  }
-
-  if (chainId === SOURCE_BASE_MAINNET) {
-    return new ethers.WebSocketProvider(
-      getAlchemyBaseMainnetWsUrl(getIsLargeAccount() ? "largeAccount" : "fallback"),
-      network,
-      {
-        staticNetwork: network,
-      }
-    );
-  }
-
-  if (chainId === SOURCE_BSC_MAINNET) {
-    return new ethers.WebSocketProvider(
-      getAlchemyBscMainnetWsUrl(getIsLargeAccount() ? "largeAccount" : "fallback"),
-      network,
-      { staticNetwork: network }
-    );
-  }
-
-  const castedChainId: never = chainId;
-
-  throw new Error(`Unsupported websocket provider for chain id: ${castedChainId}`);
+export function getWsProvider(chainId: AnyChainId) {
+  return createDisabledProvider(chainId, getCurrentRpcUrls(chainId).primary);
 }
 
 export function getFallbackProvider(chainId: number) {
-  if (!FALLBACK_PROVIDERS[chainId]) {
-    return;
-  }
-
-  const providerUrl = getFallbackRpcUrl(chainId, getIsLargeAccount());
-
-  return new ethers.JsonRpcProvider(providerUrl, chainId, {
-    staticNetwork: Network.from(chainId),
-  });
+  return createDisabledProvider(chainId, getFallbackRpcUrl(chainId));
 }
 
-export function getExpressProvider(chainId: number): JsonRpcProvider | undefined {
-  const providerUrl: string | undefined = getExpressRpcUrl(chainId);
-
-  if (!providerUrl) {
-    return;
-  }
-
-  return new ethers.JsonRpcProvider(providerUrl, chainId, {
-    staticNetwork: Network.from(chainId),
-  });
-}
-
-export function useJsonRpcProvider(chainId: number | undefined, { isExpress = false }: { isExpress?: boolean } = {}) {
-  const [provider, setProvider] = useState<JsonRpcProvider>();
-
-  const { primary } = useCurrentRpcUrls(chainId);
-  const rpcUrl = useMemo(
-    () => (isExpress && chainId ? getExpressRpcUrl(chainId) : primary),
-    [chainId, isExpress, primary]
+export function useJsonRpcProvider(chainId: number | undefined) {
+  const provider: any = useMemo(
+    () => (chainId ? createDisabledProvider(chainId, getCurrentRpcUrls(chainId).primary) : undefined),
+    [chainId]
   );
-
-  useEffect(() => {
-    if (!chainId) {
-      return;
-    }
-
-    async function initializeProvider() {
-      if (!rpcUrl) return;
-
-      const provider = new ethers.JsonRpcProvider(rpcUrl, chainId);
-
-      provider._start();
-      await provider._waitUntilReady();
-
-      setProvider(provider);
-    }
-
-    initializeProvider();
-  }, [chainId, rpcUrl]);
 
   return { provider };
 }
 
-export function isWebsocketProvider(provider: any): provider is WebSocketProvider {
-  return Boolean(provider?.websocket);
+export function isWebsocketProvider(_provider: any): _provider is { websocket: WebSocket } {
+  return false;
 }
 
 export enum WSReadyState {
@@ -188,30 +57,10 @@ export enum WSReadyState {
   CLOSED = 3,
 }
 
-const readyStateByEnum = {
-  [WSReadyState.CONNECTING]: "connecting",
-  [WSReadyState.OPEN]: "open",
-  [WSReadyState.CLOSING]: "closing",
-  [WSReadyState.CLOSED]: "closed",
-};
-
-export function isProviderInClosedState(wsProvider: WebSocketProvider) {
-  return [WSReadyState.CLOSED, WSReadyState.CLOSING].includes(wsProvider.websocket.readyState);
+export function isProviderInClosedState(_wsProvider: { websocket: WebSocket }) {
+  return true;
 }
 
-export function closeWsConnection(wsProvider: WebSocketProvider) {
-  if (isDevelopment()) {
-    // eslint-disable-next-line no-console
-    console.log(
-      "closing ws connection, state =",
-      readyStateByEnum[wsProvider.websocket.readyState] ?? wsProvider.websocket.readyState
-    );
-  }
-
-  if (isProviderInClosedState(wsProvider)) {
-    return;
-  }
-
-  wsProvider.removeAllListeners();
-  wsProvider.websocket.close();
+export function closeWsConnection(_wsProvider: { websocket: WebSocket }) {
+  return undefined;
 }

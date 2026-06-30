@@ -1,10 +1,10 @@
 import concat from "lodash/concat";
-import { Abi, encodeFunctionData, zeroAddress, zeroHash } from "viem";
+import { Abi, encodeFunctionData, zeroAddress, zeroHash } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 import { getContract } from "sdk/configs/contracts";
 import { convertTokenAddress, NATIVE_TOKEN_ADDRESS } from "sdk/configs/tokens";
-import type { GmxSdk } from "index";
+import type { TradingSdk } from "sdk";
 import { DecreasePositionSwapType, OrderTxnType, OrderType } from "sdk/types/orders";
 import { TokenData, TokenPrices, TokensData } from "sdk/types/tokens";
 import { isMarketOrderType } from "sdk/utils/orders";
@@ -82,7 +82,7 @@ export async function createIncreaseOrderTxn({
   cancelOrderParams,
   updateOrderParams,
 }: {
-  sdk: GmxSdk;
+  sdk: TradingSdk;
   createIncreaseOrderParams: IncreaseOrderParams;
   createDecreaseOrderParams?: SecondaryDecreaseOrderParams[];
   cancelOrderParams?: SecondaryCancelOrderParams[];

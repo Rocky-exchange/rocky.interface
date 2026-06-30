@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
 import { useChainId } from "lib/chains";
-import { useZtdxFundingHistory, useZtdxFundingRate } from "modules/cex/lib/api/hooks";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { usePrimitFundingHistory, usePrimitFundingRate } from "modules/lighter/api/hooks";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 import type {
   FundingHistoryPoint,
@@ -62,9 +62,12 @@ function formatCountdown(nextMs: number | null): string {
   if (!nextMs) return "-";
   const diffMs = Math.max(0, nextMs - Date.now());
   const totalSec = Math.floor(diffMs / 1000);
-  const m = Math.floor(totalSec / 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  // funding 周期最长 8 小时 → 倒计时不会跨日;<1h 时省略小时段。
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
 type TimedPoint = FundingHistoryPoint & { _ts: number };
@@ -78,11 +81,11 @@ function aggregateRate(points: TimedPoint[], windowMs: number, nowMs: number): n
 
 export function useFundingAdapter(range: FundingRange): FundingViewModel {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
-  const symbol = selectedSymbol?.toLowerCase() ?? undefined;
+  const { selectedSymbol } = useTradeState();
+  const symbol = selectedSymbol ?? undefined;
 
-  const { data: currentRate } = useZtdxFundingRate(chainId, symbol);
-  const { data: history } = useZtdxFundingHistory(chainId, symbol, {
+  const { data: currentRate } = usePrimitFundingRate(chainId, symbol);
+  const { data: history } = usePrimitFundingHistory(chainId, symbol, {
     period: RANGE_TO_PERIOD[range],
     limit: RANGE_TO_LIMIT[range],
   });

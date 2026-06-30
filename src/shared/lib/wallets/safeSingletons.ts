@@ -1,4 +1,4 @@
-import { Hex } from "viem";
+type Hex = `0x${string}`;
 
 /**
  * Known Safe smart account singleton addresses

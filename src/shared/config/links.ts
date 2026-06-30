@@ -1,7 +1,28 @@
 import { ARBITRUM, AVALANCHE } from "config/chains";
 import { TOKENS_BY_SYMBOL_MAP } from "sdk/configs/tokens";
 
-export const PRODUCTION_HOST = "https://rocky.xyz";
+/** 生产环境营销站根（分享链接、SEO canonical、OG 等） */
+export const PRODUCTION_HOST = "https://primit.io";
+
+/** 交易 SPA 生产部署源站（PrimitBrandLink / cross-origin nav 用） */
+const rawPrimitAppOrigin = import.meta.env.VITE_PRIMIT_APP_ORIGIN as string | undefined;
+export const PRODUCTION_APP_ORIGIN = (rawPrimitAppOrigin?.trim() || "https://app.primit.io").replace(/\/$/, "");
+
+/**
+ * 顶栏品牌 Logo 目标：在「交易应用」源站（与 `PRODUCTION_APP_ORIGIN` 同 origin）时回到营销站根；
+ * 其余情况（营销站、本地）保持站内 `/`。
+ */
+export function getPrimitBrandLinkHref(): "/" | string {
+  if (typeof window === "undefined") return "/";
+  try {
+    if (window.location.origin === PRODUCTION_APP_ORIGIN) {
+      return `${PRODUCTION_HOST.replace(/\/$/, "")}/`;
+    }
+  } catch (_error) {
+    // ignore
+  }
+  return "/";
+}
 
 const oneInchTokensMap = {
   [ARBITRUM]: {
@@ -33,31 +54,29 @@ export function get1InchSwapUrlFromAddresses(chainId: number, fromAddress?: stri
 
 export function getLeaderboardLink(chainId) {
   if (chainId === ARBITRUM) {
-    return "https://www.gmx.house/arbitrum/leaderboard";
+    return `${PRODUCTION_APP_ORIGIN}/leaderboard`;
   }
   if (chainId === AVALANCHE) {
-    return "https://www.gmx.house/avalanche/leaderboard";
+    return `${PRODUCTION_APP_ORIGIN}/leaderboard`;
   }
-  return "https://www.gmx.house";
+  return `${PRODUCTION_APP_ORIGIN}/leaderboard`;
 }
 
 export const DOCS_LINKS = {
-  // GMX_DOCS_LINK_COMMENTED: "https://docs.gmx.io/docs/tokenomics/rewards/#multiplier-points"
+  // DOCS_LINK_COMMENTED: "#"
   multiplierPoints: "#",
-  // GMX_DOCS_LINK_COMMENTED: "https://docs.gmx.io/docs/trading/v2/#funding-fees"
+  // DOCS_LINK_COMMENTED: "#"
   fundingFees: "#",
-  // GMX_DOCS_LINK_COMMENTED: "https://docs.gmx.io/docs/trading/v2/#adaptive-funding"
+  // DOCS_LINK_COMMENTED: "#"
   adaptiveFunding: "#",
-  // GMX_DOCS_LINK_COMMENTED: "https://docs.gmx.io/docs/trading/v2/#borrowing-fees"
+  // DOCS_LINK_COMMENTED: "#"
   borrowingFees: "#",
-  // GMX_DOCS_LINK_COMMENTED: "https://docs.gmx.io/docs/trading/v2#price-impact-and-price-impact-rebates"
+  // DOCS_LINK_COMMENTED: "#"
   priceImpact: "#",
 };
 
-export const ARBITRUM_INCENTIVES_V2_URL =
-  "https://gmxio.notion.site/GMX-STIP-Bridge-Incentives-6967a56615b644eabc10f9a1a81b83ab";
-export const AVALANCHE_INCENTIVES_V2_URL =
-  "https://gmxio.notion.site/GMX-Summer-Boost-provide-liquidity-and-trade-perpetuals-to-grab-your-share-of-AVAX-rewards-13638f2e28934460a242f72def4f7d36";
+export const ARBITRUM_INCENTIVES_V2_URL = `${PRODUCTION_APP_ORIGIN}/points`;
+export const AVALANCHE_INCENTIVES_V2_URL = `${PRODUCTION_APP_ORIGIN}/points`;
 
 export function getIncentivesV2Url(chainId: number): string {
   if (chainId === ARBITRUM) {

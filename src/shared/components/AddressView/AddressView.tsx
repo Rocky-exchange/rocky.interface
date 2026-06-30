@@ -1,15 +1,15 @@
 import { Trans } from "@lingui/macro";
 import cx from "classnames";
 import { useMemo } from "react";
-import Jazzicon, { jsNumberForAddress } from "react-jazzicon";
 import { Link } from "react-router-dom";
-import type { Address } from "viem";
 
 import { shortenAddress } from "lib/legacy";
 import useWallet from "lib/wallets/useWallet";
 import { buildAccountDashboardUrl } from "shared/utils/buildAccountDashboardUrl";
 
 import "./AddressView.scss";
+
+type Address = `0x${string}`;
 
 const lengths = { S: 9, M: 13, L: 13, XL: 13 };
 
@@ -23,6 +23,32 @@ type AddressViewProps = {
   noLink?: boolean;
   big?: boolean;
 };
+
+function AddressAvatar({ address, size }: { address: string; size: number }) {
+  const label = address.replace(/^0x/, "").slice(0, 2).toUpperCase() || "--";
+
+  return (
+    <span
+      aria-hidden="true"
+      className="AddressView-ens-avatar"
+      style={{
+        alignItems: "center",
+        background: "linear-gradient(135deg, #1f8f7a, #2858a8)",
+        backgroundImage: undefined,
+        color: "#fff",
+        display: "inline-flex",
+        fontSize: `${Math.max(10, Math.round(size * 0.38))}px`,
+        fontWeight: 700,
+        height: `${size}px`,
+        justifyContent: "center",
+        lineHeight: 1,
+        width: `${size}px`,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 export default function AddressView({
   address,
@@ -74,7 +100,7 @@ export default function AddressView({
         {avatarUrl ? (
           <span className="AddressView-ens-avatar" style={style} />
         ) : (
-          <Jazzicon diameter={size} seed={jsNumberForAddress(address)} />
+          <AddressAvatar address={address} size={size} />
         )}
         <span className={cx("AddressView-trader-id", textClassName)}>{trader}</span>
       </div>
@@ -86,7 +112,7 @@ export default function AddressView({
       {avatarUrl ? (
         <span className="AddressView-ens-avatar" style={style} />
       ) : (
-        <Jazzicon diameter={size} seed={jsNumberForAddress(address)} />
+        <AddressAvatar address={address} size={size} />
       )}
       <span className={cx("AddressView-trader-id", textClassName)}>{trader}</span>
     </Link>

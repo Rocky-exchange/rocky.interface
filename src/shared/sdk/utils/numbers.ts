@@ -1,4 +1,4 @@
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits, parseUnits } from "sdk/utils/evmCompat";
 
 import { bigMath } from "./bigmath";
 

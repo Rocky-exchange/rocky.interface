@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 
-import { useZtdxOrderSubmit } from "modules/cex/lib/api/custom/useZtdxOrderSubmit";
-import type { OrderType as ApiOrderType, PositionModeSide, TimeInForce, WorkingType } from "modules/cex/lib/api/types";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { usePrimitOrderSubmit } from "modules/lighter/api/custom/usePrimitOrderSubmit";
+import type { OrderType as ApiOrderType, PositionModeSide, TimeInForce, WorkingType } from "modules/lighter/api/types";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 export type OrderSide = "buy" | "sell";
 export type OrderType = ApiOrderType;
@@ -40,8 +40,8 @@ export type PlaceOrderParams = {
   newClientOrderId?: string;
 };
 
-// Synthetics OrderType enum 的数字编码(复用 dex 侧定义)
-// 对应 orderType 解析规则见 useZtdxOrderSubmit:
+// Synthetics OrderType enum 的数字编码(沿用当前 lighter 交易态定义)
+// 对应 orderType 解析规则见 usePrimitOrderSubmit:
 //   MarketIncrease / MarketDecrease => "market"
 //   LimitIncrease / LimitDecrease  => "limit"
 // 这里只使用 Market/Limit 两类
@@ -68,8 +68,8 @@ function toDecimalString(value: number, fractionDigits = 6): string | undefined 
 }
 
 export function usePlaceOrderAdapter() {
-  const { submitOrder, isReady } = useZtdxOrderSubmit();
-  const { selectedSymbol } = useX10000State();
+  const { submitOrder, isReady } = usePrimitOrderSubmit();
+  const { selectedSymbol } = useTradeState();
 
   const placeOrder = useCallback(
     async (p: PlaceOrderParams) => {

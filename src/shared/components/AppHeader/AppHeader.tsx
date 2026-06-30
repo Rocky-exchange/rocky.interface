@@ -1,4 +1,4 @@
-import { useSettings } from "context/SettingsContext/SettingsContextProvider";
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 
 import { MobileSideNav } from "components/SideNav/MobileSideNav";
 

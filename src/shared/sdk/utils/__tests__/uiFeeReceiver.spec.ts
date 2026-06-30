@@ -1,4 +1,4 @@
-import { isAddress } from "viem";
+import { isAddress } from "sdk/utils/evmCompat";
 import { describe, it, expect } from "vitest";
 
 import { createTwapUiFeeReceiver, decodeTwapUiFeeReceiver, setUiFeeReceiverIsExpress } from "sdk/utils/twap/uiFeeReceiver";

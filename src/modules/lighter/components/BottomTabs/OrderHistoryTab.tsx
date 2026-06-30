@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useMemo } from "react";
 
 import type { BottomTabFilterMode, OpenOrdersMarketFilter } from "./BottomTabs";
@@ -27,7 +29,9 @@ function formatNumber(value: number | null | undefined, maximumFractionDigits = 
 
 function formatPrice(value: number | null | undefined, maximumFractionDigits = 6) {
   if (value == null || !Number.isFinite(value) || value <= 0) return "--";
-  return Number(value).toFixed(Math.min(maximumFractionDigits, 6));
+  // toFixed 保留末尾 0(例 74293.050000),统一去尾零并剪掉空 "."
+  const fixed = Number(value).toFixed(Math.min(maximumFractionDigits, 6));
+  return fixed.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 }
 
 function formatDate(timestamp: number) {
@@ -43,27 +47,61 @@ function formatDate(timestamp: number) {
   return `${month}/${day}/${year} ${hour}:${minute}:${second}`;
 }
 
-function toRow(order: LighterOrderHistoryRow): Row {
+/**
+ * Order History 里这几个短词(Yes/No/Filled/Cancelled/Rejected/Expired)
+ * 之前走 Lingui 的 t`...` 宏时会跟项目内其他同文本条目合并到同一 catalog 条目,
+ * 结果英文 locale 下被 zh 翻译覆盖。这里直接按 locale 选静态映射,绕过 catalog,
+ * 保证 en 显英文、zh 显中文,两边都稳。后续要加新语言就在这里加一列。
+ */
+type Locale = "en" | "zh" | string;
+// 项目 zh 包是繁体(已存在条目均为繁體),这里跟随繁体用字,保持整体风格一致。
+const ORDER_HISTORY_LABELS = {
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
+  filled: { en: "Filled", zh: "已成交" },
+  cancelled: { en: "Cancelled", zh: "已取消" },
+  rejected: { en: "Rejected", zh: "已拒絕" },
+  expired: { en: "Expired", zh: "已過期" },
+  market: { en: "Market", zh: "市價" },
+  limit: { en: "Limit", zh: "限價" },
+} as const;
+
+function pickLabel(key: keyof typeof ORDER_HISTORY_LABELS, locale: Locale): string {
+  const entry = ORDER_HISTORY_LABELS[key];
+  if (locale.startsWith("zh")) return entry.zh;
+  return entry.en;
+}
+
+function toOrderTypeLabel(type: string, locale: Locale): string {
+  const key = type.trim().toLowerCase();
+  if (key === "market") return pickLabel("market", locale);
+  if (key === "limit") return pickLabel("limit", locale);
+  return type || "--";
+}
+
+function toRow(order: LighterOrderHistoryRow, i18n: ReturnType<typeof useLingui>["i18n"]): Row {
+  const reduceOnlyLabel =
+    order.reduceOnly == null ? "--" : order.reduceOnly ? pickLabel("yes", i18n.locale) : pickLabel("no", i18n.locale);
+
+  const statusLabel =
+    order.status === "filled" ||
+    order.status === "cancelled" ||
+    order.status === "rejected" ||
+    order.status === "expired"
+      ? pickLabel(order.status, i18n.locale)
+      : "--";
+
   return {
     market: order.market,
     side: order.side,
     date: formatDate(order.date),
-    type: order.type,
+    type: toOrderTypeLabel(order.type, i18n.locale),
     amount: formatNumber(order.amount, 4),
     filled: formatNumber(order.filled, 4),
     price: formatPrice(order.price),
     average: formatPrice(order.average),
-    reduceOnly: order.reduceOnly == null ? "--" : order.reduceOnly ? "Yes" : "No",
-    status:
-      order.status === "filled"
-        ? "Filled"
-        : order.status === "cancelled"
-          ? "Cancelled"
-          : order.status === "rejected"
-            ? "Rejected"
-            : order.status === "expired"
-              ? "Expired"
-              : "--",
+    reduceOnly: reduceOnlyLabel,
+    status: statusLabel,
   };
 }
 
@@ -74,6 +112,7 @@ export function OrderHistoryTab({
   mode?: BottomTabFilterMode;
   marketFilter?: OpenOrdersMarketFilter;
 }) {
+  const { i18n } = useLingui();
   const orders = useOrderHistoryAdapter();
   const rows = useMemo(() => {
     const filteredOrders = orders.filter((order) => {
@@ -82,8 +121,8 @@ export function OrderHistoryTab({
       if (mode === "asks") return order.side === "short";
       return order.side === "long";
     });
-    return filteredOrders.map(toRow);
-  }, [marketFilter, mode, orders]);
+    return filteredOrders.map((order) => toRow(order, i18n));
+  }, [i18n, marketFilter, mode, orders]);
 
   return (
     <div className={styles.root}>
@@ -102,21 +141,41 @@ export function OrderHistoryTab({
         </colgroup>
         <thead>
           <tr>
-            <th>Market</th>
-            <th>Side</th>
+            <th>
+              <Trans>Market</Trans>
+            </th>
+            <th>
+              <Trans>Side</Trans>
+            </th>
             <th>
               <span className={styles.sortHeader}>
-                <span>Date</span>
+                <span>
+                  <Trans>Date</Trans>
+                </span>
                 <span className={styles.sortCaret}>⌄</span>
               </span>
             </th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Filled</th>
-            <th>Price</th>
-            <th>Average</th>
-            <th>Reduce Only</th>
-            <th>Status</th>
+            <th>
+              <Trans>Type</Trans>
+            </th>
+            <th>
+              <Trans>Amount</Trans>
+            </th>
+            <th>
+              <Trans>Filled</Trans>
+            </th>
+            <th>
+              <Trans>Price</Trans>
+            </th>
+            <th>
+              <Trans>Average</Trans>
+            </th>
+            <th>
+              <Trans>Reduce Only</Trans>
+            </th>
+            <th>
+              <Trans>Status</Trans>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -137,10 +196,8 @@ export function OrderHistoryTab({
                     </span>
                   </span>
                 </td>
-                <td
-                  className={row.side === "long" ? styles.sideLong : styles.sideShort}
-                >
-                  {row.side === "long" ? "Long" : "Short"}
+                <td className={row.side === "long" ? styles.sideLong : styles.sideShort}>
+                  {row.side === "long" ? <Trans>Long</Trans> : <Trans>Short</Trans>}
                 </td>
                 <td className={`${styles.mono} ${row.date === "--" ? styles.placeholder : ""}`}>{row.date}</td>
                 <td className={row.type === "--" ? styles.placeholder : ""}>{row.type}</td>

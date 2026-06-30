@@ -1,4 +1,4 @@
-import { isAddress } from "viem";
+import { isAddress } from "sdk/utils/evmCompat";
 
 const VERSION = "01";
 const PREFIX = "0xff0000";

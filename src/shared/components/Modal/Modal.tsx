@@ -1,6 +1,14 @@
 import cx from "classnames";
 import { AnimatePresence, Variants, motion } from "framer-motion";
-import React, { PropsWithChildren, ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import React, {
+  PropsWithChildren,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+} from "react";
 import { RemoveScroll } from "react-remove-scroll";
 
 import CloseIcon from "img/ic_close.svg?react";
@@ -24,6 +32,8 @@ const HIDDEN_STYLES: React.CSSProperties = {
 
 const TRANSITION = { duration: 0.2 };
 
+export type ModalPrimitSize = "small" | "middle" | "big";
+
 export type ModalProps = PropsWithChildren<{
   className?: string;
   isVisible?: boolean;
@@ -41,8 +51,23 @@ export type ModalProps = PropsWithChildren<{
   contentClassName?: string;
   disableOverflowHandling?: boolean;
   withMobileBottomPosition?: boolean;
+  /**
+   * - **`primit`（默认）**：第 11 章 Popup_PC — 炭底直角、85% 遮罩；业务无需再手写 `variant`。
+   * - **`default`**：历史圆角 + 浅灰遮罩；仅旧版式或特殊布局时使用。
+   */
+  variant?: "default" | "primit";
+  /** `variant="primit"` 且存在 `label` 时用于 `aria-labelledby`；省略则内部 `useId` */
+  primitDialogTitleId?: string;
+  /** `variant="primit"` 时稿面 Small / Middle / Big；默认 **small**（高度随内容，不锁 400px） */
+  primitSize?: ModalPrimitSize;
+  /** `variant="primit"` 时在正文外包一层 `.primit-popup__body`，可叠稿面占位等 class */
+  primitBodyClassName?: string;
 }>;
 
+/**
+ * @deprecated 请改为从 `shared/ui` 引入：`import { Modal } from "shared/ui"`.
+ * 当前文件保留为兼容层，避免历史引用立即中断。
+ */
 export default function Modal({
   className,
   isVisible,
@@ -58,12 +83,17 @@ export default function Modal({
   contentClassName,
   disableOverflowHandling = false,
   withMobileBottomPosition = false,
+  variant = "primit",
+  primitDialogTitleId,
+  primitSize = "small",
+  primitBodyClassName = "",
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement | null>(null);
+  const generatedPrimitTitleId = useId();
 
   useEffect(() => {
     function close(e: KeyboardEvent) {
-      if (e.keyCode === 27 && setIsVisible) {
+      if (e.key === "Escape" && setIsVisible) {
         setIsVisible(false);
       }
     }
@@ -87,10 +117,40 @@ export default function Modal({
         }
       }
     },
-    [isVisible]
+    [isVisible],
   );
 
-  const modalStyle = useMemo(() => ({ zIndex }), [zIndex]);
+  const isPrimit = variant === "primit";
+  const showPrimitTitle = Boolean(label);
+  const effectiveContentPadding = isPrimit ? false : contentPadding;
+  const primitTitleId =
+    isPrimit && showPrimitTitle ? (primitDialogTitleId ?? generatedPrimitTitleId) : undefined;
+
+  const mergedContentClassName = useMemo(() => {
+    if (!isPrimit) return contentClassName;
+    return cx(
+      "primit-popup-panel",
+      primitSize === "small" && "primit-popup-panel--small",
+      primitSize === "middle" && "primit-popup-panel--middle",
+      primitSize === "big" && "primit-popup-panel--big",
+      contentClassName,
+    );
+  }, [isPrimit, primitSize, contentClassName]);
+
+  const showPrimitBody =
+    isPrimit &&
+    (children != null || (typeof primitBodyClassName === "string" && primitBodyClassName.trim() !== ""));
+
+  const bodyChildren = showPrimitBody ? (
+    <div className={cx("primit-popup__body", primitBodyClassName)}>{children}</div>
+  ) : (
+    children
+  );
+
+  const modalStyle = useMemo(
+    () => ({ zIndex: zIndex ?? (isPrimit ? 1200 : undefined) }),
+    [zIndex, isPrimit],
+  );
 
   const stopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -101,7 +161,12 @@ export default function Modal({
       {isVisible && (
         <RemoveScroll>
           <motion.div
-            className={cx("Modal", className, { "max-md:!items-end": withMobileBottomPosition })}
+            className={cx(
+              "Modal",
+              className,
+              isPrimit && "Modal--primit-popup",
+              { "max-md:!items-end": withMobileBottomPosition },
+            )}
             ref={modalRef}
             style={modalStyle}
             initial="hidden"
@@ -120,41 +185,73 @@ export default function Modal({
               className={cx(
                 "Modal-content flex flex-col",
                 {
-                  "gap-16": contentPadding,
+                  "gap-16": effectiveContentPadding,
                   "max-md:w-full max-md:!rounded-t-0": withMobileBottomPosition,
                 },
-                contentClassName
+                mergedContentClassName,
               )}
               onClick={stopPropagation}
               data-qa={qa}
+              role={isPrimit ? "dialog" : undefined}
+              aria-modal={isPrimit ? true : undefined}
+              aria-labelledby={primitTitleId}
             >
-              <div className="Modal-header-wrapper flex flex-col gap-8 px-adaptive pt-adaptive">
-                <div className="Modal-title-bar h-28">
-                  <div className="Modal-title font-medium text-typography-primary">{label}</div>
-                  <div className="Modal-close-button" onClick={() => setIsVisible(false)}>
-                    <CloseIcon className="Modal-close-icon size-20" />
-                  </div>
+              <div
+                className={cx(
+                  "Modal-header-wrapper flex flex-col gap-8",
+                  isPrimit ? "Modal-header-wrapper--primit" : "px-adaptive pt-adaptive",
+                )}
+              >
+                <div
+                  className={cx(
+                    "Modal-title-bar h-28",
+                    isPrimit && !showPrimitTitle && "Modal-title-bar--primit-close-only",
+                  )}
+                >
+                  {showPrimitTitle ? (
+                    <div
+                      id={primitTitleId}
+                      className={cx(
+                        "Modal-title font-medium text-typography-primary",
+                        isPrimit && "primit-popup__title-in-modal",
+                      )}
+                    >
+                      {label}
+                    </div>
+                  ) : !isPrimit ? (
+                    <div className="Modal-title font-medium text-typography-primary">{label}</div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="Modal-close-button"
+                    aria-label="Close"
+                    onClick={() => setIsVisible(false)}
+                  >
+                    <CloseIcon
+                      className={cx("Modal-close-icon", isPrimit ? "Modal-close-icon--primit" : "size-20")}
+                    />
+                  </button>
                 </div>
                 {headerContent}
               </div>
               {disableOverflowHandling ? (
-                children
+                bodyChildren
               ) : (
                 <div className="overflow-auto">
                   <div
                     className={cx("Modal-body", {
-                      "px-adaptive": contentPadding,
-                      "pb-adaptive": contentPadding && !footerContent,
+                      "px-adaptive": effectiveContentPadding,
+                      "pb-adaptive": effectiveContentPadding && !footerContent,
                     })}
                   >
-                    {children}
+                    {bodyChildren}
                   </div>
                 </div>
               )}
               {footerContent && (
-                <>
-                  <div className="px-adaptive pb-adaptive">{footerContent}</div>
-                </>
+                <div className={cx("px-adaptive pb-adaptive", isPrimit && "Modal-footer--primit")}>
+                  {isPrimit ? <div className="primit-popup__footer">{footerContent}</div> : footerContent}
+                </div>
               )}
             </div>
           </motion.div>

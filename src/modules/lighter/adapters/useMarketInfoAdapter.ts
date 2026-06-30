@@ -1,12 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { selectChartHeaderInfo } from "context/SyntheticsStateContext/selectors/chartSelectors";
-import { useSelector } from "context/SyntheticsStateContext/utils";
-import { useApiTicker, useZtdxFundingRate, useZtdxMarkets } from "modules/cex/lib/api/hooks";
+import { useApiTicker, usePrimitFundingRate, usePrimitMarkets } from "modules/lighter/api/hooks";
 import { useChainId } from "lib/chains";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
-
-const USD_DECIMALS = 30;
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 export type LighterMarketInfo = {
   symbol: string;
@@ -18,19 +14,13 @@ export type LighterMarketInfo = {
   openInterestUsd: number | null;
   funding1hPct: number | null;
   nextFundingTs: number | null;
+  /**
+   * 最近一次 markPrice 数值变化的本地时间戳(ms)。
+   * 消费方用它判定行情新鲜度 —— WS 断连超过阈值时应回退到后端 est_price,避免 USD↔token 换算失真。
+   * null 表示尚未拿到过有效 markPrice。
+   */
+  markPriceReceivedAt: number | null;
 };
-
-function bigIntToNumber(v: bigint | undefined | null, decimals: number): number | null {
-  if (v === undefined || v === null) return null;
-  try {
-    const divisor = 10n ** BigInt(decimals);
-    const whole = Number(v / divisor);
-    const frac = Number(v % divisor) / Number(divisor);
-    return whole + frac;
-  } catch (_error) {
-    return null;
-  }
-}
 
 function safeNumber(s: string | number | undefined | null): number | null {
   if (s == null) return null;
@@ -43,47 +33,60 @@ function normalizeTimestamp(ts: number | null): number | null {
   return ts < 1e12 ? ts * 1000 : ts;
 }
 
+function normalizeApiMarketSymbol(symbol: string | null | undefined): string | null {
+  if (!symbol) return null;
+  const upper = symbol.toUpperCase().trim();
+
+  if (upper.includes("-USD") || upper.includes("/USD")) {
+    const base = upper.split(/-|\//)[0] ?? "";
+    if (base.endsWith("USDT")) return base;
+    if (base.endsWith("USD")) return base.replace(/USD$/, "USDT");
+    return `${base}USDT`;
+  }
+
+  const cleaned = upper.replace(/[/-]/g, "");
+  if (cleaned.endsWith("USDT")) return cleaned;
+  if (cleaned.endsWith("USD")) return cleaned.replace(/USD$/, "USDT");
+  return `${cleaned}USDT`;
+}
+
 export function useMarketInfoAdapter(): LighterMarketInfo {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
-  // 从 selectedSymbol (如 "BTC-USD") 提取 base symbol (如 "BTC") 用于 UI
+  const { selectedSymbol } = useTradeState();
   const symbol = selectedSymbol?.split("-")[0] ?? "BTC";
-  const chartToken: any = null;
-  const headerInfo = useSelector(selectChartHeaderInfo);
   const { ticker } = useApiTicker(chainId, selectedSymbol ?? undefined);
-  const { data: marketsData } = useZtdxMarkets(chainId);
-  // 使用 funding-rates/{symbol} 的 funding_rate_per_hour 作为统一费率源
-  // 确保 SymbolBar "1hr Funding" 与 FundingPanel "Real-Time Funding Rate" 展示一致
-  const { data: fundingRateData } = useZtdxFundingRate(chainId, selectedSymbol ?? undefined);
+  const { data: marketsData } = usePrimitMarkets(chainId);
+  const { data: fundingRateData } = usePrimitFundingRate(chainId, selectedSymbol ?? undefined);
 
   const marketLeverage = useMemo(() => {
     if (!selectedSymbol || !marketsData?.markets?.length) return null;
 
-    const normalizedSymbol = `${selectedSymbol.split("-")[0]}USDT`.toUpperCase();
+    const normalizedSymbol = normalizeApiMarketSymbol(selectedSymbol);
+    if (!normalizedSymbol) return null;
     const market = marketsData.markets.find((item) => item.symbol.toUpperCase() === normalizedSymbol);
 
     return market?.leverage ?? null;
   }, [marketsData, selectedSymbol]);
 
+  const effectiveMarkPrice = safeNumber(ticker?.mark_price) ?? safeNumber(ticker?.last_price);
+  const effectiveIndexPrice = safeNumber(ticker?.index_price) ?? safeNumber(ticker?.last_price);
+
+  // 追踪 markPrice 最近一次"有效数值变化"的本地时间戳(ms)。
+  // 只要数值本身变了就打戳 —— 引用变化但数值未变(SWR 回填、refetch 同值)不计入,避免虚假新鲜。
+  const lastMarkPriceValueRef = useRef<number | null>(null);
+  const [markPriceReceivedAt, setMarkPriceReceivedAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (effectiveMarkPrice == null || !Number.isFinite(effectiveMarkPrice)) return;
+    if (lastMarkPriceValueRef.current === effectiveMarkPrice) return;
+    lastMarkPriceValueRef.current = effectiveMarkPrice;
+    setMarkPriceReceivedAt(Date.now());
+  }, [effectiveMarkPrice]);
+
   return useMemo(() => {
-    const priceDecimals = chartToken?.decimals != null ? 30 - chartToken.decimals : 30;
-    const markPrice = bigIntToNumber(chartToken?.prices?.maxPrice, priceDecimals);
-    const indexPrice = bigIntToNumber(chartToken?.prices?.minPrice, priceDecimals);
-
-    const openInterestUsd =
-      headerInfo?.openInterestLong != null && headerInfo?.openInterestShort != null
-        ? bigIntToNumber(headerInfo.openInterestLong + headerInfo.openInterestShort, USD_DECIMALS)
-        : safeNumber(ticker?.open_interest);
-
-    // funding-rates/{symbol}.funding_rate_per_hour 优先,ticker/header 作为兜底
+    const openInterestUsd = safeNumber(ticker?.open_interest);
     const perHour = safeNumber(fundingRateData?.funding_rate_per_hour);
-    const fundingRateLongBig = headerInfo?.fundingRateLong;
-    const fundingFromHeader = fundingRateLongBig != null ? (Number(fundingRateLongBig) / 1e30) * 100 : null;
-    const funding1hPct =
-      perHour != null
-        ? perHour * 100
-        : fundingFromHeader ??
-          (safeNumber(ticker?.funding_rate) != null ? safeNumber(ticker?.funding_rate)! * 100 : null);
+    const tickerFundingRate = safeNumber(ticker?.funding_rate);
+    const funding1hPct = perHour != null ? perHour * 100 : tickerFundingRate != null ? tickerFundingRate * 100 : null;
 
     const change24hPct = safeNumber(ticker?.price_change_percent_24h);
     const volume24hUsd = safeNumber(ticker?.volume_24h);
@@ -92,13 +95,22 @@ export function useMarketInfoAdapter(): LighterMarketInfo {
     return {
       symbol: symbol ?? "BTC",
       leverage: marketLeverage ?? 10,
-      markPrice: markPrice ?? safeNumber(ticker?.last_price),
-      indexPrice: indexPrice ?? safeNumber(ticker?.last_price),
+      markPrice: effectiveMarkPrice,
+      indexPrice: effectiveIndexPrice,
       change24hPct,
       volume24hUsd,
       openInterestUsd,
       funding1hPct,
       nextFundingTs,
+      markPriceReceivedAt,
     };
-  }, [chartToken, headerInfo, symbol, ticker, fundingRateData, marketLeverage]);
+  }, [
+    symbol,
+    ticker,
+    fundingRateData,
+    marketLeverage,
+    effectiveMarkPrice,
+    effectiveIndexPrice,
+    markPriceReceivedAt,
+  ]);
 }

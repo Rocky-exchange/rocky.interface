@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/macro";
 
-import { useSettings } from "context/SettingsContext/SettingsContextProvider";
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 
 import { AbFlagSettings } from "components/AbFlagsSettings/AbFlagsSettings";
 import { DebugSwapsSettings } from "components/DebugSwapsSettings/DebugSwapsSettings";

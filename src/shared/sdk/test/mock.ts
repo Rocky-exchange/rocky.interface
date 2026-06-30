@@ -1,4 +1,4 @@
-import { zeroAddress } from "viem";
+import { zeroAddress } from "sdk/utils/evmCompat";
 
 import { USD_DECIMALS } from "sdk/configs/factors";
 import { MarketInfo, MarketsData, MarketsInfoData } from "sdk/types/markets";

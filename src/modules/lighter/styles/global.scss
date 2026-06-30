@@ -54,21 +54,27 @@
     font-weight: 500;
   }
   .ltr-form__row-link {
-    color: #6ca7ff; // blue-2
+    color: var(--ltr-accent-cyan);
     cursor: pointer;
-    &:hover { color: #a3c8ff; }
+    &:hover {
+      color: color-mix(in srgb, var(--ltr-accent-cyan) 72%, #ffffff);
+    }
   }
   .ltr-form__field {
     display: flex; align-items: center; gap: 4px;
     height: 32px; min-height: 32px; padding: 0 8px;
-    border: 1px solid var(--ltr-border);
+    /** 主题色 input 边框 · 20% alpha（与 3013 trade 输入框一致） */
+    border: 1px solid color-mix(in srgb, var(--primit-primary-1, #87d7ea) 20%, transparent);
     background: #1f1f24;
     border-radius: 4px;
     color: var(--ltr-text-primary);
     font-size: 12px;
     line-height: 16px;
     transition: background 150ms, border-color 150ms;
-    &:hover { border-color: #3a3a42; background: #26262c; }
+    &:hover {
+      border-color: color-mix(in srgb, var(--primit-primary-1, #87d7ea) 40%, transparent);
+      background: #26262c;
+    }
   }
   .ltr-form__label {
     white-space: nowrap;
@@ -104,8 +110,29 @@
     svg { opacity: 0.85; }
   }
   .ltr-form__trailing--link {
-    color: #6ca7ff;
-    &:hover { color: #a3c8ff; }
+    color: var(--ltr-accent-cyan);
+    &:hover {
+      color: color-mix(in srgb, var(--ltr-accent-cyan) 72%, #ffffff);
+    }
+  }
+  .ltr-form__trailing--plain {
+    color: var(--ltr-text-secondary);
+    cursor: default;
+  }
+  .ltr-form__note {
+    padding: 6px 8px;
+    margin: 4px 0 0;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .ltr-form__note--warn {
+    background: rgba(235, 180, 45, 0.10);
+    color: #eab645;
+  }
+  .ltr-form__note--error {
+    background: rgba(255, 92, 103, 0.12);
+    color: #ff6975;
   }
   .ltr-form__coin-wrap {
     position: relative;
@@ -267,8 +294,13 @@
     &:hover { filter: brightness(1.1); }
     &:disabled { opacity: 0.5; cursor: default; }
   }
-  .ltr-form__submit--buy { background: var(--ltr-up); }
-  .ltr-form__submit--sell { background: var(--ltr-down); }
+  /** 与 OrderForm 侧栏指示条、PercentSlider 同源 token；Primit 下随 tokens.scss 映射到涨跌色 */
+  .ltr-form__submit--buy {
+    background: linear-gradient(180deg, var(--ltr-trade-buy-bright) 0%, var(--ltr-trade-buy-mid) 100%);
+  }
+  .ltr-form__submit--sell {
+    background: linear-gradient(180deg, var(--ltr-trade-sell-bright) 0%, var(--ltr-trade-sell-gradient-end) 100%);
+  }
 }
 
 body.lighter-active {
@@ -291,14 +323,5 @@ body.lighter-active {
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
-  }
-
-  @media (max-width: 1024px) {
-    .App,
-    .App > div,
-    .lighter-root {
-      width: 100dvw !important;
-      max-width: 100dvw !important;
-    }
   }
 }

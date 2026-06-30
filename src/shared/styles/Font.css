@@ -79,7 +79,104 @@
     url("../fonts/tthoves/tthoves-pro-medium.ttf") format("truetype");
 }
 
-/* Rocky landing page fonts */
+/* Primit 历史字重：Alternox / Messina / Chakra / Outfit 文件仍在此注册；全局栈见 PrimitTypography.css（Messina Sans） */
+@font-face {
+  font-family: "Alternox";
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url("../fonts/Alternox/alternox-extralight.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Alternox";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("../fonts/Alternox/alternox-light.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Alternox";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/Alternox/alternox-regular.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Alternox";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/Alternox/alternox-semibold.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Alternox";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/Alternox/alternox-bold.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Alternox";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("../fonts/Alternox/alternox-extrabold.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Messina Sans";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("../fonts/messina%20sans/messinasans-light.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Messina Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/messina%20sans/MS-Regular.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Messina Sans";
+  font-style: normal;
+  font-weight: 450;
+  font-display: swap;
+  src: url("../fonts/messina%20sans/messinasans-book_0.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Messina Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/messina%20sans/MessinaSans-SemiBold.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Messina Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/messina%20sans/messinasans-bold_0.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "Messina Sans";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("../fonts/messina%20sans/messinasans-black.otf") format("opentype");
+}
+
+/* Primit landing page fonts */
 @font-face {
   font-family: "Outfit";
   font-style: normal;

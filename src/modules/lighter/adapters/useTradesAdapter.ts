@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useChainId } from "lib/chains";
-import { useApiTrades, useTradesUpdates } from "modules/cex/lib/api";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { useApiTrades, useTradesUpdates } from "modules/lighter/api";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 export type TradeSide = "buy" | "sell";
 export type Trade = {
@@ -34,7 +34,7 @@ function normalizeTimestamp(ts: number | string): number {
 
 export function useTradesAdapter(): Trade[] {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
+  const { selectedSymbol } = useTradeState();
   const { trades } = useApiTrades(chainId, selectedSymbol ?? undefined, {
     refreshInterval: 0,
     revalidateOnFocus: false,

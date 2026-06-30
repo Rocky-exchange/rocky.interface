@@ -1,0 +1,111 @@
+// src/modules/lighter/mobile/shared/MobileTopNav.module.scss
+@use "src/shared/styles/breakpoints" as bp;
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 12px;
+  background: var(--ltr-bg-root, #06060C);
+  border-bottom: 1px solid var(--ltr-border, #2B2B30);
+}
+
+.logo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ltr-text-primary, #F3F3F3);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+
+  svg,
+  img {
+    height: 22px;
+    width: auto;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+// Connected-but-unsigned prompt. Compact pill so it coexists with the three
+// 44px icon buttons at 375px. Mirrors the web TopNav red-dot language.
+// Kept narrow so the action cluster stays clear of the wordmark.
+.authPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px;
+  margin-right: 0;
+  border: 1px solid var(--ltr-border, #2B2B30);
+  border-radius: 999px;
+  background: rgba(255, 92, 103, 0.08);
+  color: var(--ltr-text-primary, #F3F3F3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  &:active {
+    background: rgba(255, 92, 103, 0.16);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.authStatusDot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 999px;
+  background: #FF5C67;
+  animation: authPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes authPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .authStatusDot {
+    animation: none;
+  }
+}
+
+.iconButton {
+  // Narrower footprint trims the airy inner padding around the 20px glyph;
+  // full 44px height keeps a comfortable vertical tap target.
+  width: 30px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ltr-text-primary, #F3F3F3);
+  border: none;
+  border-radius: 8px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}

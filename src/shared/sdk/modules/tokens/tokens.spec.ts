@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { arbitrumSdk, arbitrumSdkConfig } from "sdk/utils/testUtil";
+import { disabledSdk, disabledSdkConfig } from "sdk/utils/testUtil";
 
-import { GmxSdk } from "../..";
+import { TradingSdk } from "../..";
 
 describe("Tokens", () => {
   it("should be able to fetch tokens", async () => {
-    const response = await arbitrumSdk.oracle.getTokens();
+    const response = await disabledSdk.oracle.getTokens();
     expect(response).toBeDefined();
   });
 
   it("should respect passed config", async () => {
     const ARB = "0x912CE59144191C1204E64559FE8253a0e49E6548";
-    const sdk = new GmxSdk({
-      ...arbitrumSdkConfig,
+    const sdk = new TradingSdk({
+      ...disabledSdkConfig,
       tokens: {
         [ARB]: {
           symbol: "testARB",
@@ -28,7 +28,7 @@ describe("Tokens", () => {
   });
 
   it("should be able to get tokens data", async () => {
-    const response = await arbitrumSdk.tokens.getTokensData();
+    const response = await disabledSdk.tokens.getTokensData();
     expect(response).toBeDefined();
   });
 });

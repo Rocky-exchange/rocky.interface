@@ -1,4 +1,4 @@
-import { ClientConfig, MulticallBatchOptions } from "viem";
+import { ClientConfig, MulticallBatchOptions } from "sdk/utils/evmCompat";
 
 import {
   AnyChainId,

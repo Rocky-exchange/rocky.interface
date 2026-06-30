@@ -6,7 +6,7 @@
   font-weight: 500;
   border: none;
   user-select: none;
-  font-family: "Chakra Petch";
+  font-family: "Messina Sans";
 
   &.center {
     justify-content: center;
@@ -57,9 +57,6 @@
 
   &.primary-action {
     color: var(--primary-btn-bg);
-    font-size: 16px;
-    border-radius: 10px;
-    min-height: 40px;
     font-weight: 600; // Slightly bolder for better readability
     border: 2px solid transparent;
     border-radius: 12px;
@@ -75,6 +72,10 @@
         rgba(0, 255, 178, 0.8) 100%
       ) border-box;
     transition: all 0.3s ease;
+
+    // 默认 medium 尺寸
+    font-size: 16px;
+    min-height: 40px;
 
     &:not([disabled], .disabled):hover {
       /* Hover 时填充绿色渐变并加强外发光，模拟设计稿下图效果 */
@@ -94,18 +95,18 @@
 
     }
 
-    // Short (sell) 状态 - 红色样式
+    // Short (sell) 状态 - 红色样式（与预测市场 NO 配色一致）
     &.short {
-      color: #ff5252;
+      color: #f6465d;
       background:
         linear-gradient(#000, #000) padding-box,
         linear-gradient(
          90deg,
-          rgba(255, 82, 82, 0.8) 0%,
-          rgba(255, 82, 82, 0.0) 10%,
+          rgba(246, 70, 93, 0.8) 0%,
+          rgba(246, 70, 93, 0.0) 10%,
           rgba(0, 0, 0, 1) 50%,
-          rgba(255, 82, 82, 0.0) 90%,
-          rgba(255, 82, 82, 0.8) 100%
+          rgba(246, 70, 93, 0.0) 90%,
+          rgba(246, 70, 93, 0.8) 100%
         ) border-box;
 
       &:not([disabled], .disabled):hover {
@@ -230,7 +231,7 @@
     border-radius: 0 !important;
     border: none !important;
     box-shadow: none !important;
-    font-family: "Chakra Petch", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Messina Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 13px !important;
     letter-spacing: 0.16em !important;
     padding: 0 16px 6px !important;

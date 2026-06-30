@@ -1,0 +1,27 @@
+.bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--ltr-bg-panel, #121218);
+  border-top: 1px solid var(--ltr-border, #2B2B30);
+  flex-shrink: 0;
+}
+
+.button {
+  flex: 1;
+  height: 48px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.buy {
+  background: var(--ltr-up, #00FFB2);
+  color: #000;
+}
+
+.sell {
+  background: var(--ltr-down, #FF4D4F);
+  color: #fff;
+}

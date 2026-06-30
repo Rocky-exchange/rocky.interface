@@ -1,8 +1,3 @@
-import { Image } from "@davatar/react";
-import { useEnsAvatar } from "wagmi";
-
-import { ETH_MAINNET } from "config/chains";
-
 export type Props = {
   size: number;
   address: string;
@@ -10,10 +5,27 @@ export type Props = {
 };
 
 export function Avatar({ size, address, ensName }: Props) {
-  const { data: ensAvatar } = useEnsAvatar({
-    name: ensName,
-    chainId: ETH_MAINNET,
-  });
+  void ensName;
+  const label = address.replace(/^0x/, "").slice(0, 2).toUpperCase() || "--";
 
-  return <Image size={size} address={address} uri={ensAvatar} />;
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        alignItems: "center",
+        background: "linear-gradient(135deg, #1f8f7a, #2858a8)",
+        borderRadius: "50%",
+        color: "#fff",
+        display: "inline-flex",
+        fontSize: `${Math.max(10, Math.round(size * 0.38))}px`,
+        fontWeight: 700,
+        height: `${size}px`,
+        justifyContent: "center",
+        lineHeight: 1,
+        width: `${size}px`,
+      }}
+    >
+      {label}
+    </span>
+  );
 }

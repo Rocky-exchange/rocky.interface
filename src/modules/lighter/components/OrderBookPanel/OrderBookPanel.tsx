@@ -1,17 +1,16 @@
+import { Trans } from "@lingui/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useApiOrderbook, useApiTrades } from "modules/cex/lib/api/hooks";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { useApiOrderbook, useApiTrades } from "modules/lighter/api/hooks";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 import { useChainId } from "lib/chains";
-import { useTradesUpdates } from "modules/cex/lib/api";
+import { useTradesUpdates } from "modules/lighter/api";
 
 import { computeOrderBookGroupOptions } from "../../adapters/orderBookAggregation";
 import { useOrderBookAdapter, OrderBookLevel } from "../../adapters/useOrderBookAdapter";
-import {
-  filterTrades,
-  TRADE_SIZE_FILTERS,
-  type TradeSizeFilter,
-} from "./tradeFilters";
+import type { Trade } from "../../adapters/useTradesAdapter";
+import { emitLimitPrice } from "../../state/limitPriceBus";
+import { filterTrades, TRADE_SIZE_FILTERS, type TradeSizeFilter } from "./tradeFilters";
 import styles from "./OrderBookPanel.module.scss";
 
 type Tab = "OrderBook" | "Trades";
@@ -20,7 +19,7 @@ type Unit = "BTC" | "USD";
 type GroupKey = string;
 export type OrderBookLayout = "Tab" | "Stacked" | "Large";
 
-const UNIT_OPTIONS: Unit[] = ["BTC", "USD"];
+const UNIT_OPTIONS: Unit[] = ["USD", "BTC"];
 const LAYOUT_OPTIONS: OrderBookLayout[] = ["Tab", "Stacked", "Large"];
 
 function DropdownMenu<T extends string>({
@@ -57,26 +56,48 @@ function Row({
   level,
   side,
   maxTotal,
-  maxSize,
   unit,
 }: {
   level: OrderBookLevel;
   side: "ask" | "bid";
   maxTotal: number;
-  maxSize: number;
   unit: Unit;
 }) {
   const isEmpty = level.price <= 0 || level.size <= 0;
   const displaySize = unit === "USD" ? level.quoteSize : level.size;
   const displayTotal = unit === "USD" ? level.quoteTotal : level.total;
 
-  // 外层(淡色):累计 total / 放大的 max(留白,避免 100% 填充)
-  // 内层(深色):单档 size / 单档 maxSize
-  const totalPct = !isEmpty && maxTotal > 0 ? Math.min(100, (displayTotal / (maxTotal * 1.6)) * 100) : 0;
-  const sizePct = !isEmpty && maxSize > 0 ? (displaySize / maxSize) * 100 : 0;
+  // 两层深度条共用一个分母(maxTotal * 1.6),保证内层单档条永远被外层累计条包住,
+  // 不会出现单档 size 接近全书最大时,深色内条盖过浅色外条看起来像闪烁撮合的假象。
+  // cumulative total >= single size 恒成立,所以 sizePct <= totalPct。
+  const denom = maxTotal * 1.6;
+  const totalPct = !isEmpty && denom > 0 ? Math.min(100, (displayTotal / denom) * 100) : 0;
+  const sizePct = !isEmpty && denom > 0 ? Math.min(100, (displaySize / denom) * 100) : 0;
   const priceCls = side === "ask" ? "ltr-down" : "ltr-up";
+  // 点击行把价格广播给限價下单表单(空行不响应)。用 div+role 而非 button,
+  // 不改现有 grid 布局;不 preventDefault,不影响其他点击穿透(目前只有深度条)。
+  const handleClick = isEmpty
+    ? undefined
+    : () => {
+        emitLimitPrice(level.price);
+      };
   return (
-    <div className={`${styles.row} ${isEmpty ? styles.rowEmpty : ""}`}>
+    <div
+      className={`${styles.row} ${isEmpty ? styles.rowEmpty : styles.rowClickable}`}
+      onClick={handleClick}
+      role={isEmpty ? undefined : "button"}
+      tabIndex={isEmpty ? undefined : 0}
+      onKeyDown={
+        isEmpty
+          ? undefined
+          : (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                emitLimitPrice(level.price);
+              }
+            }
+      }
+    >
       <div className={side === "ask" ? styles.depthTotalAsk : styles.depthTotalBid} style={{ width: `${totalPct}%` }} />
       <div className={side === "ask" ? styles.depthSizeAsk : styles.depthSizeBid} style={{ width: `${sizePct}%` }} />
       <div className={`${styles.price} ${priceCls} ltr-mono`}>{isEmpty ? "" : level.price.toLocaleString()}</div>
@@ -145,11 +166,11 @@ export function OrderBookPanel({
   onLayoutChange: (layout: OrderBookLayout) => void;
 }) {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
+  const { selectedSymbol } = useTradeState();
   const [tab, setTab] = useState<Tab>("OrderBook");
   const [orderBookMode, setOrderBookMode] = useState<Mode>("all");
   const [tradesMode, setTradesMode] = useState<Mode>("all");
-  const [unit, setUnit] = useState<Unit>("BTC");
+  const [unit, setUnit] = useState<Unit>("USD");
   const [group, setGroup] = useState<GroupKey>("1");
   const [tradeSizeFilter, setTradeSizeFilter] = useState<TradeSizeFilter>("All");
   const [openMenu, setOpenMenu] = useState<"unit" | "group" | "layout" | "tradeSize" | null>(null);
@@ -228,14 +249,14 @@ export function OrderBookPanel({
     });
   }, [lastTrade, selectedSymbol]);
 
-  const tradeRows = useMemo(
+  const tradeRows = useMemo<Trade[]>(
     () =>
       lastTrades
         .map((trade) => ({
           time: formatTradeTime(trade.timestamp),
           size: Number(trade.amount) || 0,
           price: Number(trade.price) || 0,
-          side: trade.side === "buy" ? "buy" : "sell",
+          side: trade.side === "buy" ? "buy" as const : "sell" as const,
           timestamp: typeof trade.timestamp === "number" ? trade.timestamp : Date.parse(trade.timestamp),
         }))
         .filter((trade) => trade.size > 0 && trade.price > 0)
@@ -258,15 +279,12 @@ export function OrderBookPanel({
         });
   const maxAskTotal = Math.max(0, ...ob.asks.map((l) => (unit === "USD" ? l.quoteTotal : l.total)));
   const maxBidTotal = Math.max(0, ...ob.bids.map((l) => (unit === "USD" ? l.quoteTotal : l.total)));
-  const maxAskSize = Math.max(0, ...ob.asks.map((l) => (unit === "USD" ? l.quoteSize : l.size)));
-  const maxBidSize = Math.max(0, ...ob.bids.map((l) => (unit === "USD" ? l.quoteSize : l.size)));
   // 从容器高度动态计算可容纳的行数,使 asks/bids 铺满面板(不滚动)
   // 布局消耗:tabs 32 + subbar 32 + header 28 + spread(all only) 28,每行 20px
   const ROW_H = 20;
   const OVERHEAD_SINGLE = 32 + 32 + 28;
   const OVERHEAD_ALL = OVERHEAD_SINGLE + 28; // 加 spread 行
-  const effectivePanelHeight =
-    layout === "Stacked" ? Math.max(220, Math.floor((panelHeight - 4) / 2)) : panelHeight;
+  const effectivePanelHeight = layout === "Stacked" ? Math.max(220, Math.floor((panelHeight - 4) / 2)) : panelHeight;
 
   const totalRows =
     orderBookMode === "all"
@@ -449,30 +467,36 @@ export function OrderBookPanel({
   const renderOrderBookBody = () => (
     <>
       <div className={styles.header}>
-        <div>Price</div>
         <div>
-          Size <span className={styles.unitBadge}>{unit}</span>
+          <Trans>Price</Trans>
         </div>
-        <div>Total</div>
+        <div>
+          <Trans>Size</Trans> <span className={styles.unitBadge}>{unit}</span>
+        </div>
+        <div>
+          <Trans>Total</Trans>
+        </div>
       </div>
       {orderBookMode !== "bids" && (
         <div className={styles.asks}>
           {askRows.map((l, i) => (
-            <Row key={`a${i}`} level={l} side="ask" maxTotal={maxAskTotal} maxSize={maxAskSize} unit={unit} />
+            <Row key={`a${i}`} level={l} side="ask" maxTotal={maxAskTotal} unit={unit} />
           ))}
         </div>
       )}
       {orderBookMode === "all" && (
         <div className={styles.spreadRow}>
           <span className="ltr-mono">{formatSpreadValue(ob.spread)}</span>
-          <span className={styles.spreadLabel}>Spread</span>
+          <span className={styles.spreadLabel}>
+            <Trans>Spread</Trans>
+          </span>
           <span className="ltr-mono">{ob.spreadPct.toFixed(3)}%</span>
         </div>
       )}
       {orderBookMode !== "asks" && (
         <div className={styles.bids}>
           {bidRows.map((l, i) => (
-            <Row key={`b${i}`} level={l} side="bid" maxTotal={maxBidTotal} maxSize={maxBidSize} unit={unit} />
+            <Row key={`b${i}`} level={l} side="bid" maxTotal={maxBidTotal} unit={unit} />
           ))}
         </div>
       )}
@@ -482,11 +506,15 @@ export function OrderBookPanel({
   const renderTradesBody = () => (
     <>
       <div className={styles.tradesHeader}>
-        <div>Time</div>
         <div>
-          Size <span className={styles.unitBadge}>{unit}</span>
+          <Trans>Time</Trans>
         </div>
-        <div>Price</div>
+        <div>
+          <Trans>Size</Trans> <span className={styles.unitBadge}>{unit}</span>
+        </div>
+        <div>
+          <Trans>Price</Trans>
+        </div>
       </div>
       <div className={styles.tradesList}>
         {filteredTrades.map((t, i) => (
@@ -502,21 +530,23 @@ export function OrderBookPanel({
     </>
   );
 
-  const renderSection = (
-    kind: "OrderBook" | "Trades",
-    withLayoutButton: boolean,
-    className?: string
-  ) => (
+  const renderSection = (kind: "OrderBook" | "Trades", withLayoutButton: boolean, className?: string) => (
     <section className={`${styles.section} ${className ?? ""}`.trim()}>
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitlePlain}>{kind === "OrderBook" ? "Order Book" : "Trades"}</div>
-        <div className={styles.sectionHeaderActions}>{withLayoutButton ? renderLayoutButton() : <div className={styles.sectionHeaderSpacer} />}</div>
+        <div className={styles.sectionTitlePlain}>
+          {kind === "OrderBook" ? <Trans>Order Book</Trans> : <Trans>Trades</Trans>}
+        </div>
+        <div className={styles.sectionHeaderActions}>
+          {withLayoutButton ? renderLayoutButton() : <div className={styles.sectionHeaderSpacer} />}
+        </div>
       </div>
       <div className={styles.subbar}>
         {kind === "OrderBook"
           ? renderModeButtons(orderBookMode, setOrderBookMode)
           : renderModeButtons(tradesMode, setTradesMode)}
-        <div className={styles.subRight}>{kind === "OrderBook" ? renderOrderBookControls() : renderTradesControls()}</div>
+        <div className={styles.subRight}>
+          {kind === "OrderBook" ? renderOrderBookControls() : renderTradesControls()}
+        </div>
       </div>
       {kind === "OrderBook" ? renderOrderBookBody() : renderTradesBody()}
     </section>
@@ -528,20 +558,31 @@ export function OrderBookPanel({
         <>
           <div className={styles.tabs}>
             <button onClick={() => setTab("OrderBook")} className={tab === "OrderBook" ? styles.tabActive : styles.tab}>
-              Order Book
+              <Trans>Order Book</Trans>
             </button>
             <button onClick={() => setTab("Trades")} className={tab === "Trades" ? styles.tabActive : styles.tab}>
-              Trades
+              <Trans>Trades</Trans>
             </button>
             {renderLayoutButton()}
           </div>
-        <div className={styles.subbar}>
-          {tab === "Trades"
-            ? renderModeButtons(tradesMode, setTradesMode)
-            : renderModeButtons(orderBookMode, setOrderBookMode)}
-          <div className={styles.subRight}>{tab === "OrderBook" ? renderOrderBookControls() : renderTradesControls()}</div>
-        </div>
-          {tab === "OrderBook" ? renderOrderBookBody() : renderTradesBody()}
+          <div className={styles.subbar}>
+            {tab === "Trades"
+              ? renderModeButtons(tradesMode, setTradesMode)
+              : renderModeButtons(orderBookMode, setOrderBookMode)}
+            <div className={styles.subRight}>
+              {tab === "OrderBook" ? renderOrderBookControls() : renderTradesControls()}
+            </div>
+          </div>
+          <div className={styles.tabMain}>
+            {tab === "OrderBook" ? (
+              <>
+                {renderOrderBookBody()}
+                <div className={styles.tabMainSpacer} aria-hidden />
+              </>
+            ) : (
+              renderTradesBody()
+            )}
+          </div>
         </>
       ) : layout === "Stacked" ? (
         <div className={styles.stackedLayout}>

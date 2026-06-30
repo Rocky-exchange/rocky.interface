@@ -340,14 +340,6 @@ export type TradeFees = {
   externalSwapFee?: ExternalSwapFeeItem;
 };
 
-export type GmSwapFees = {
-  totalFees?: FeeItem;
-  swapFee?: FeeItem;
-  swapPriceImpact?: FeeItem;
-  uiFee?: FeeItem;
-  shiftFee?: FeeItem;
-};
-
 export type TradeSearchParams = {
   from?: string;
   to?: string;

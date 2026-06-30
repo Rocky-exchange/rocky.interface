@@ -1,0 +1,78 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.priceRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.priceLabel {
+  font-size: 13px;
+  color: var(--ltr-text-secondary, #B4B4B6);
+}
+
+.priceInput {
+  width: 100%;
+  height: 48px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 0;
+  outline: none;
+  border-radius: 8px;
+  color: var(--ltr-text-primary, #F3F3F3);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.placeButton {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 8px;
+
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+.buyButton {
+  background: var(--ltr-up, #00FFB2);
+  color: #000;
+}
+
+.sellButton {
+  background: var(--ltr-down, #FF4D4F);
+  color: #fff;
+}
+
+.previewRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  border-top: 1px solid var(--ltr-border, #2B2B30);
+}
+
+.previewLabel {
+  color: var(--ltr-text-secondary, #B4B4B6);
+}
+
+.previewValue {
+  color: var(--ltr-text-primary, #F3F3F3);
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--ltr-down, #FF4D4F);
+  padding: 4px 0;
+}

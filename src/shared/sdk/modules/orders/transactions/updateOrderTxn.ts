@@ -1,11 +1,11 @@
-import { Abi, Address, encodeFunctionData } from "viem";
+import { Abi, Address, encodeFunctionData } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 import { getContract } from "sdk/configs/contracts";
 import { Token } from "sdk/types/tokens";
 import { convertToContractPrice } from "sdk/utils/tokens";
 
-import type { GmxSdk } from "../../../index";
+import type { TradingSdk } from "../../../index";
 
 export type UpdateOrderParams = {
   orderKey: string;
@@ -19,7 +19,7 @@ export type UpdateOrderParams = {
   autoCancel: boolean;
 };
 
-export function updateOrderTxn(sdk: GmxSdk, p: UpdateOrderParams): Promise<Address> {
+export function updateOrderTxn(sdk: TradingSdk, p: UpdateOrderParams): Promise<Address> {
   const {
     orderKey,
     sizeDeltaUsd,
@@ -61,7 +61,7 @@ export function createUpdateEncodedPayload({
   autoCancel,
   minOutputAmount,
 }: {
-  sdk: GmxSdk;
+  sdk: TradingSdk;
   orderKey: string;
   sizeDeltaUsd: bigint;
   executionFee?: bigint;

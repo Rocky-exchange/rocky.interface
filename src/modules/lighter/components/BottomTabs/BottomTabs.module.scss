@@ -1,7 +1,7 @@
 .root {
   display: flex; flex-direction: column; height: 100%;
   background: var(--ltr-bg-panel);
-  border-top: 1px solid var(--ltr-border);
+  border-top: 1px solid var(--ltr-border, #2b2b30);
 }
 
 .tabs {
@@ -35,7 +35,7 @@
   left: 0; right: 0; bottom: 1px; margin: 0 auto;
   width: 60%; max-width: 64px;
   height: 2px; border-radius: 999px;
-  background: #5e85ff; // blue-7
+  background: var(--primit-primary-1, #87d7ea);
   transform: scaleX(0); opacity: 0;
   transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
 }
@@ -346,63 +346,7 @@
   text-align: left; color: #b4b4b6;
   font-size: 12px; font-weight: 400;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--ltr-border);
+  /** 主题色 1px · 50% alpha */
+  border-bottom: 1px solid color-mix(in srgb, var(--primit-primary-1, #87d7ea) 50%, transparent);
 }
 .td { padding: 8px 12px; height: var(--ltr-row-h); font-size: 12px; }
-
-@media (max-width: 768px) {
-  .root {
-    min-height: 0;
-  }
-
-  .tabs {
-    height: auto;
-    min-height: 32px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab,
-  .tabActive {
-    flex: 0 0 auto;
-    min-width: 96px;
-  }
-
-  .filters {
-    flex: 0 0 auto;
-    gap: 8px;
-    padding: 0 8px;
-    position: sticky;
-    right: 0;
-    background: #121218;
-  }
-
-  .body {
-    overflow: auto;
-  }
-
-  .table {
-    min-width: 720px;
-  }
-}
-
-@media (max-width: 480px) {
-  .tab,
-  .tabActive {
-    min-width: 86px;
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-
-  .filters {
-    gap: 6px;
-  }
-
-  .filterItem:not(.filterItemIconOnly) {
-    display: none;
-  }
-}

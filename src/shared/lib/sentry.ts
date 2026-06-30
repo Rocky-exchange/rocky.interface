@@ -20,11 +20,29 @@ export function initSentry() {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
 
+    // Never attach PII (IP, user-agent headers, cookies, request bodies) to
+    // any event. We're a wallet-bearing trading UI; the default is too loose.
+    sendDefaultPii: false,
+
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.replayIntegration({
-        maskAllText: false,
-        blockAllMedia: false,
+        // Privacy posture for a trading UI:
+        // - maskAllText/maskAllInputs: every text node and form field is masked
+        //   before it ever leaves the browser. Previously both were off, which
+        //   meant order amounts, addresses, API keys typed into the UI, and
+        //   any in-page wallet prompts were captured verbatim in replays.
+        // - blockAllMedia: images, videos, canvases (inc. TradingView charts
+        //   that can render user positions) are blocked rather than captured.
+        // - networkDetailAllowUrls: empty — request/response bodies never
+        //   attached. Leave this list empty; opt in per-endpoint if we ever
+        //   need payloads for debugging, and never for endpoints that echo
+        //   auth tokens or order details.
+        maskAllText: true,
+        maskAllInputs: true,
+        blockAllMedia: true,
+        networkDetailAllowUrls: [],
+        networkCaptureBodies: false,
       }),
     ],
 
@@ -45,7 +63,7 @@ export function initSentry() {
             lowerMessage.includes("user rejected") ||
             lowerMessage.includes("user denied") ||
             lowerMessage.includes("user cancelled") ||
-            code === 4001 || // MetaMask user rejection code
+            code === 4001 || // wallet user rejection code
             code === "ACTION_REJECTED"
           ) {
             return null;

@@ -1,4 +1,4 @@
-import { withRetry } from "viem";
+import { withRetry } from "sdk/utils/evmCompat";
 
 import {
   EXECUTION_FEE_CONFIG_V2,
@@ -142,7 +142,7 @@ export class Utils extends Module {
           updateOrderGasLimit: staticGasLimits.updateOrderGasLimit,
           cancelOrderGasLimit: staticGasLimits.cancelOrderGasLimit,
           tokenPermitGasLimit: staticGasLimits.tokenPermitGasLimit,
-          gmxAccountCollateralGasLimit: staticGasLimits.gmxAccountCollateralGasLimit,
+          tradingAccountCollateralGasLimit: staticGasLimits.tradingAccountCollateralGasLimit,
           gelatoRelayFeeMultiplierFactor: getBigInt("gelatoRelayFeeMultiplierFactor"),
         } satisfies GasLimitsConfig;
       });
@@ -275,7 +275,7 @@ export class Utils extends Module {
 
   private _uiFeeFactor = 0n;
   async getUiFeeFactor() {
-    if (this._uiFeeFactor) {
+    if (this._uiFeeFactor !== 0n) {
       return this._uiFeeFactor;
     }
 

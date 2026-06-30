@@ -26,7 +26,7 @@ import PoolsIcon from "img/database.svg?react";
 import PortfolioIcon from "img/ic_portfolio.svg?react";
 import ReferralsIcon from "img/referrals.svg?react";
 import ApiKeyIcon from "img/ic_lock.svg?react";
-import X10000Icon from "img/ic_10000x.svg?react";
+import TradeIcon from "img/ic_10000x.svg?react";
 
 import { LanguageNavItem } from "./LanguageNavItem";
 
@@ -40,7 +40,7 @@ function SideNav({ className }: { className?: string }) {
   return (
     <nav
       className={cx(
-        "flex h-full shrink-0 flex-col bg-slate-950 rounded-tr-[20px] rounded-br-[20px] rocky-sidenav",
+        "flex h-full shrink-0 flex-col bg-slate-950 rounded-tr-[20px] rounded-br-[20px] primit-sidenav",
         className,
         {
           "w-[210px] max-xl:w-[184px]": !isCollapsed,
@@ -48,7 +48,7 @@ function SideNav({ className }: { className?: string }) {
         }
       )}
     >
-      <div className="rocky-sidenav-right-line" />
+      <div className="primit-sidenav-right-line" />
       <div className="flex w-full justify-start">
         <LogoSection isCollapsed={isCollapsed} />
       </div>
@@ -74,7 +74,7 @@ function SideNav({ className }: { className?: string }) {
 }
 
 export const DocsNavItem = ({ isCollapsed }: { isCollapsed: boolean | undefined }) => (
-  <NavItem icon={<DocsIcon />} label={t`Docs`} isCollapsed={isCollapsed} to="https://docs.rocky.io" external />
+  <NavItem icon={<DocsIcon />} label={t`Docs`} isCollapsed={isCollapsed} to="https://docs.primit.io" external />
 );
 
 export function LogoSection({ isCollapsed }: { isCollapsed: boolean | undefined }) {
@@ -88,7 +88,7 @@ export function LogoSection({ isCollapsed }: { isCollapsed: boolean | undefined 
       <div className="flex h-20 items-center justify-start shrink-0">
         <img
           src={isCollapsed ? logoCompact : logoFull}
-          alt="Rocky Logo"
+          alt="Primit Logo"
           className={cx(
             "logo-glow object-contain",
             isCollapsed ? "h-20" : "h-20"
@@ -191,8 +191,6 @@ export function MenuSection({
     // { icon: <CandlestickIcon className="size-24" />, label: t`Trade`, key: "trade", to: "/trade" },
     { icon: <KxIcon className="size-24" />, label: t`Trade`, key: "trade", to: "/trade" },
     { icon: <EarnIcon className="size-24" />, label: t`Earn`, key: "earn", to: "/earn", badge: <HotIcon /> },
-    // { icon: <PoolsIcon className="size-24" />, label: t`Pools`, key: "pools", to: "/pools" },
-    // { icon: <PieChartIcon className="size-24" />, label: t`Stats`, key: "stats", to: "/stats" },
     { icon: <ReferralsIcon className="size-24" />, label: t`Referrals`, key: "referrals", to: "/referrals" },
     { icon: <LeaderboardIcon className="size-24" />, label: t`Leaderboard`, key: "leaderboard", to: "/leaderboard" },
     { icon: <PortfolioIcon className="size-24" />, label: t`Portfolio`, key: "portfolio", to: portfolioUrl },

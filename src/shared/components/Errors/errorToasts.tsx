@@ -1,11 +1,10 @@
 import { t, Trans } from "@lingui/macro";
-import { Signer } from "ethers";
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 import { getChainName } from "config/chains";
 import { TOAST_AUTO_CLOSE_TIME } from "config/ui";
-import { useSettings } from "context/SettingsContext/SettingsContextProvider";
 import {
   getExecutionFeeBufferBps,
   getGasPremium,
@@ -21,6 +20,10 @@ import { CustomErrorName, extractTxnError, TxError, TxErrorType } from "sdk/util
 import Button from "components/Button/Button";
 import ExternalLink from "components/ExternalLink/ExternalLink";
 import { ToastifyDebug } from "components/ToastifyDebug/ToastifyDebug";
+
+type SignerLike = {
+  getAddress: () => Promise<string>;
+};
 
 export type AdditionalErrorParams = {
   additionalContent?: ReactNode;
@@ -132,7 +135,7 @@ export function getTxnErrorToast(
           There is not enough {nativeToken.symbol} in your account on {getChainName(chainId)} to send this transaction.
           <br />
           <br />
-          <Link className="underline" to="/buy_gmx#bridge">
+          <Link className="underline" to="/trade">
             Buy or Transfer {nativeToken.symbol} to {getChainName(chainId)}
           </Link>
         </Trans>
@@ -220,7 +223,7 @@ export function getErrorMessage(
           There is not enough {nativeToken.symbol} in your account on {getChainName(chainId)} to send this transaction.
           <br />
           <br />
-          <Link className="underline" to="/buy_gmx#bridge">
+          <Link className="underline" to="/trade">
             Buy or Transfer {nativeToken.symbol} to {getChainName(chainId)}
           </Link>
         </Trans>
@@ -250,7 +253,7 @@ export function getErrorMessage(
             <ExternalLink href="https://chainlist.org">chainlist.org</ExternalLink>.
             <br />
             <br />
-            {/* GMX_DOCS_LINK_COMMENTED: https://docs.gmx.io/docs/trading/v1#rpc-urls */}
+            {/* DOCS_LINK_COMMENTED: */}
             <span className="text-blue-300">Read more</span>.
           </Trans>
           <br />
@@ -414,7 +417,7 @@ export function getInvalidPermitSignatureToastContent() {
 /**
  * @deprecated
  */
-export async function validateSignerAddress(signer: Signer, receiverAddress: string, skipToast?: boolean) {
+export async function validateSignerAddress(signer: SignerLike, receiverAddress: string, skipToast?: boolean) {
   const signerAddress = await signer.getAddress();
 
   if (signerAddress !== receiverAddress) {

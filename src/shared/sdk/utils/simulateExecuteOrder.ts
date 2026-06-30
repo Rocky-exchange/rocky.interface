@@ -1,4 +1,4 @@
-import { Abi, Address, decodeErrorResult, encodeFunctionData, withRetry } from "viem";
+import { Abi, Address, decodeErrorResult, encodeFunctionData, withRetry } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 import { getContract } from "sdk/configs/contracts";
@@ -6,7 +6,7 @@ import { convertTokenAddress } from "sdk/configs/tokens";
 import { SwapPricingType } from "sdk/types/orders";
 import { TokenPrices, TokensData } from "sdk/types/tokens";
 
-import type { GmxSdk } from "..";
+import type { TradingSdk } from "..";
 import { extractTxnError } from "./errors";
 import { convertToContractPrice, getTokenData } from "./tokens";
 
@@ -35,7 +35,7 @@ type SimulateExecuteParams = {
  *
  * @deprecated use simulateExecution instead
  */
-export async function simulateExecuteOrder(sdk: GmxSdk, p: SimulateExecuteParams) {
+export async function simulateExecuteOrder(sdk: TradingSdk, p: SimulateExecuteParams) {
   const chainId = sdk.chainId;
   const client = sdk.publicClient;
 

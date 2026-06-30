@@ -50,8 +50,8 @@ export type Position = {
    */
   shortTokenClaimableFundingAmountPerSize?: bigint;
   data: string;
-  originalPositionId?: string; // For x10000 mode: store original API position ID
-  originalLeverage?: bigint; // For x10000 mode: store backend leverage directly (in BASIS_POINTS)
+  originalPositionId?: string; // For API trading mode: store original API position ID
+  originalLeverage?: bigint; // For API trading mode: store backend leverage directly (in BASIS_POINTS)
 };
 
 export type PositionInfo = Position & {

@@ -1,0 +1,1 @@
+export { AvaxUsdteSwapBanner } from "./AvaxUsdteSwapBanner";

@@ -1,7 +1,4 @@
-import { decodeErrorResult } from "viem";
-
-import { SignedTokenPermit } from "domain/tokens";
-import { abis } from "sdk/abis";
+import type { SignedTokenPermit } from "domain/tokens";
 
 import { ErrorData, ErrorLike, extendError, parseError } from ".";
 
@@ -77,14 +74,7 @@ export function getIsPermitSignatureErrorOnSimulation(error: ErrorLike) {
     return false;
   }
 
-  const decodedExternalCallFailed = decodeErrorResult({
-    abi: abis.CustomErrors,
-    data: parsedError.contractErrorArgs[0],
-  });
-
-  const errorArg = decodedExternalCallFailed?.args?.[0];
-
-  return typeof errorArg === "string" && errorArg.includes("invalid signature");
+  return false;
 }
 
 export function getInvalidPermitSignatureError({

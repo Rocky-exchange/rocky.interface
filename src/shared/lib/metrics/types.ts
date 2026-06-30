@@ -484,8 +484,8 @@ export type MulticallRequestTiming = {
   };
 };
 
-export type GelatoPollingTiming = {
-  event: "express.pollGelatoTask.finalStatus";
+export type ExpressRelayPollingTiming = {
+  event: "express.relay.finalStatus";
   data: {
     status: string;
   };

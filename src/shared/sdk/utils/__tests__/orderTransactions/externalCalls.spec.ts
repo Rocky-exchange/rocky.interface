@@ -1,4 +1,4 @@
-import { encodeFunctionData, erc20Abi } from "viem";
+import { encodeFunctionData, erc20Abi } from "sdk/utils/evmCompat";
 import { describe, expect, it } from "vitest";
 
 import { ARBITRUM } from "sdk/configs/chains";

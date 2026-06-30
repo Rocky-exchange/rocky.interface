@@ -1,23 +1,23 @@
-import type { PublicClient, WalletClient } from "viem";
+import type { PublicClient, WalletClient } from "sdk/utils/evmCompat";
 
 import type { ContractsChainId } from "sdk/configs/chains";
 
 import type { MarketSdkConfig } from "./markets";
 import type { Token } from "./tokens";
 
-export interface GmxSdkConfig {
+export interface TradingSdkConfig {
   /** Chain ID */
   chainId: ContractsChainId;
   /** Account's address */
   account?: string;
-  /** GMX Oracle URL */
+  /** Oracle URL */
   oracleUrl: string;
   /** Blockhain RPC URL */
   rpcUrl: string;
-  /** GMX Subsquid URL */
+  /** Subsquid URL */
   subsquidUrl: string;
 
-  /** Custom viem's public and private client */
+  /** Disabled compatibility clients for the legacy SDK surface */
   publicClient?: PublicClient;
   walletClient?: WalletClient;
 

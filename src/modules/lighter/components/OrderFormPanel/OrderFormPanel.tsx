@@ -1,9 +1,11 @@
+import { Trans } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useEffect, useRef, useState } from "react";
 
-import useWallet from "@/shared/lib/wallets/useWallet";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
-import { useApiMarkets, useZtdxUserPositions } from "modules/cex/lib/api/hooks";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { useApiMarketDetails, usePrimitUserPositions } from "modules/lighter/api/hooks";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 import { AdvancedOrderForm } from "./AdvancedOrderForm";
 import { LimitOrderForm } from "./LimitOrderForm";
@@ -14,19 +16,21 @@ type BasicMode = "Market" | "Limit";
 type AdvancedMode = "Stop Market" | "Stop Limit" | "Take Profit Market" | "Take Profit Limit";
 type Mode = BasicMode | AdvancedMode;
 
-const ADVANCED_MODES: AdvancedMode[] = [
-  "Stop Market",
-  "Stop Limit",
-  "Take Profit Market",
-  "Take Profit Limit",
-];
+const ADVANCED_MODES: AdvancedMode[] = ["Stop Market", "Stop Limit", "Take Profit Market", "Take Profit Limit"];
 
-const ADVANCED_MODE_LABELS: Record<AdvancedMode, string> = {
-  "Stop Market": "S/L Market",
-  "Stop Limit": "S/L Limit",
-  "Take Profit Market": "T/P Market",
-  "Take Profit Limit": "T/P Limit",
+// 高级下拉标签同样走静态映射避开 Lingui catalog 短词冲突;zh 跟随项目繁体,
+// 对齐 Lighter 用全称(止損/止盈 + 市價/限價 + 單)而不是 S/L / T/P 缩写。
+const ADVANCED_MODE_LABELS: Record<AdvancedMode, { en: string; zh: string }> = {
+  "Stop Market": { en: "S/L Market", zh: "止損市價單" },
+  "Stop Limit": { en: "S/L Limit", zh: "止損限價單" },
+  "Take Profit Market": { en: "T/P Market", zh: "止盈市價單" },
+  "Take Profit Limit": { en: "T/P Limit", zh: "止盈限價單" },
 };
+
+function pickAdvancedLabel(mode: AdvancedMode, locale: string): string {
+  const entry = ADVANCED_MODE_LABELS[mode];
+  return locale.startsWith("zh") ? entry.zh : entry.en;
+}
 
 function normalizeMarketSymbol(symbol: string | null | undefined) {
   if (!symbol) return null;
@@ -36,27 +40,37 @@ function normalizeMarketSymbol(symbol: string | null | undefined) {
 }
 
 export function OrderFormPanel() {
-  const { active, account } = useWallet();
+  const { i18n } = useLingui();
+  const { connected } = useCantonSession();
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
-  const { markets } = useApiMarkets(chainId, { refreshInterval: 0, revalidateOnFocus: false, revalidateOnReconnect: false });
-  const { data: positionsData } = useZtdxUserPositions({ refreshInterval: 5000, revalidateOnFocus: false, revalidateOnReconnect: false });
+  const { selectedSymbol } = useTradeState();
+  const normalizedSymbol = normalizeMarketSymbol(selectedSymbol);
+  const { details: marketDetails } = useApiMarketDetails(chainId, normalizedSymbol ?? undefined, {
+    refreshInterval: 0,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
+  const { data: positionsData } = usePrimitUserPositions({
+    refreshInterval: 5000,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
   const [mode, setMode] = useState<Mode>("Market");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [leverageValue, setLeverageValue] = useState(10);
   const [pendingLeverageValue, setPendingLeverageValue] = useState(10);
+  const [pendingLeverageInput, setPendingLeverageInput] = useState("10");
   const [marginTab, setMarginTab] = useState<"Cross" | "Isolated">("Cross");
   const [pendingMarginTab, setPendingMarginTab] = useState<"Cross" | "Isolated">("Cross");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [leverageModalOpen, setLeverageModalOpen] = useState(false);
   const [marginModalOpen, setMarginModalOpen] = useState(false);
   const advancedRef = useRef<HTMLDivElement>(null);
-  const isConnected = Boolean(active && account);
-  const normalizedSymbol = normalizeMarketSymbol(selectedSymbol);
-  const currentMarket = markets?.markets.markets.find((market) => market.symbol === normalizedSymbol) ?? null;
-  const maxLeverage = Math.max(1, currentMarket?.leverage ?? 10);
+  const isConnected = connected;
+  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 10);
   const currentPositionLeverage =
-    positionsData?.positions?.find((position) => normalizeMarketSymbol(position.symbol) === normalizedSymbol)?.leverage ?? 0;
+    positionsData?.positions?.find((position) => normalizeMarketSymbol(position.symbol) === normalizedSymbol)
+      ?.leverage ?? 0;
   const marginMode = marginTab === "Cross" ? "cross" : "isolated";
 
   useEffect(() => {
@@ -71,7 +85,25 @@ export function OrderFormPanel() {
   useEffect(() => {
     setLeverageValue((prev) => Math.min(prev, maxLeverage));
     setPendingLeverageValue((prev) => Math.min(prev, maxLeverage));
-  }, [maxLeverage]);
+    setPendingLeverageInput((prev) => {
+      if (prev === "") return prev;
+      const next = Number(prev);
+      if (!Number.isFinite(next)) return String(Math.min(leverageValue, maxLeverage));
+      return String(Math.min(Math.max(1, next), maxLeverage));
+    });
+  }, [leverageValue, maxLeverage]);
+
+  const commitPendingLeverageInput = (): number => {
+    const next = Number(pendingLeverageInput.replace(/[^0-9]/g, ""));
+    if (!Number.isFinite(next) || next <= 0) {
+      setPendingLeverageInput(String(pendingLeverageValue));
+      return pendingLeverageValue;
+    }
+    const clamped = Math.max(1, Math.min(maxLeverage, next));
+    setPendingLeverageValue(clamped);
+    setPendingLeverageInput(String(clamped));
+    return clamped;
+  };
 
   const isAdvanced = ADVANCED_MODES.includes(mode as AdvancedMode);
 
@@ -84,6 +116,7 @@ export function OrderFormPanel() {
             className={styles.topTabActive}
             onClick={() => {
               setPendingLeverageValue(leverageValue);
+              setPendingLeverageInput(String(leverageValue));
               setLeverageModalOpen(true);
             }}
           >
@@ -97,16 +130,16 @@ export function OrderFormPanel() {
               setMarginModalOpen(true);
             }}
           >
-            {marginTab}
+            {marginTab === "Cross" ? <Trans>Cross</Trans> : <Trans>Isolated</Trans>}
           </button>
         </div>
       )}
       <div className={styles.modes}>
         <button onClick={() => setMode("Market")} className={mode === "Market" ? styles.modeActive : styles.mode}>
-          Market
+          <Trans>Market</Trans>
         </button>
         <button onClick={() => setMode("Limit")} className={mode === "Limit" ? styles.modeActive : styles.mode}>
-          Limit
+          <Trans>Limit</Trans>
         </button>
         <div ref={advancedRef} className={styles.advancedWrap}>
           <button
@@ -116,7 +149,7 @@ export function OrderFormPanel() {
             onClick={() => setAdvancedOpen((v) => !v)}
             className={isAdvanced ? styles.modeActive : styles.mode}
           >
-            <span>{isAdvanced ? ADVANCED_MODE_LABELS[mode as AdvancedMode] : "Advanced"}</span>
+            <span>{isAdvanced ? pickAdvancedLabel(mode as AdvancedMode, i18n.locale) : <Trans>Advanced</Trans>}</span>
             <span className={`${styles.caret} ${advancedOpen ? styles.caretOpen : ""}`}>
               <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor">
                 <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
@@ -136,7 +169,7 @@ export function OrderFormPanel() {
                     setAdvancedOpen(false);
                   }}
                 >
-                  {ADVANCED_MODE_LABELS[m]}
+                  {pickAdvancedLabel(m, i18n.locale)}
                 </button>
               ))}
             </div>
@@ -145,17 +178,11 @@ export function OrderFormPanel() {
       </div>
 
       <div className={styles.sides}>
-        <button
-          onClick={() => setSide("buy")}
-          className={styles.sideBtn}
-        >
-          Buy / Long
+        <button onClick={() => setSide("buy")} className={styles.sideBtn}>
+          <Trans>Buy / Long</Trans>
         </button>
-        <button
-          onClick={() => setSide("sell")}
-          className={styles.sideBtn}
-        >
-          Sell / Short
+        <button onClick={() => setSide("sell")} className={styles.sideBtn}>
+          <Trans>Sell / Short</Trans>
         </button>
         <div className={`${styles.sideIndicator} ${side === "buy" ? styles.indicatorBuy : styles.indicatorSell}`} />
       </div>
@@ -182,7 +209,9 @@ export function OrderFormPanel() {
         <div className={styles.leverageOverlay} onClick={() => setLeverageModalOpen(false)}>
           <div className={styles.leverageModal} onClick={(event) => event.stopPropagation()}>
             <div className={styles.leverageHeader}>
-              <span>Adjust Max Leverage</span>
+              <span>
+                <Trans>Adjust Max Leverage</Trans>
+              </span>
               <button type="button" className={styles.leverageClose} onClick={() => setLeverageModalOpen(false)}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6 6 18" />
@@ -200,7 +229,11 @@ export function OrderFormPanel() {
                     max={maxLeverage}
                     step={1}
                     value={pendingLeverageValue}
-                    onChange={(event) => setPendingLeverageValue(Number(event.target.value))}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setPendingLeverageValue(next);
+                      setPendingLeverageInput(String(next));
+                    }}
                     style={
                       {
                         "--leverage-fill":
@@ -211,11 +244,16 @@ export function OrderFormPanel() {
                   <div className={styles.leverageValueBadge}>
                     <input
                       className={styles.leverageValueInput}
-                      value={pendingLeverageValue}
+                      value={pendingLeverageInput}
                       onChange={(event) => {
-                        const next = Number(event.target.value.replace(/[^0-9]/g, ""));
-                        if (!Number.isFinite(next)) return;
-                        setPendingLeverageValue(Math.max(1, Math.min(maxLeverage, next)));
+                        setPendingLeverageInput(event.target.value.replace(/[^0-9]/g, ""));
+                      }}
+                      onBlur={commitPendingLeverageInput}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          commitPendingLeverageInput();
+                          event.currentTarget.blur();
+                        }
                       }}
                       inputMode="numeric"
                       placeholder="0"
@@ -226,10 +264,16 @@ export function OrderFormPanel() {
               </div>
               <div className={styles.leverageCopySection}>
                 <div className={styles.leverageText}>
-                  Set the maximum leverage you are willing to use. Higher leverage increases the risk of liquidation.
+                  <Trans>
+                    Set the maximum leverage you are willing to use. Higher leverage increases the risk of liquidation.
+                  </Trans>
                 </div>
-                <div className={styles.leverageMeta}>Current Maximum Leverage: {maxLeverage}x</div>
-                <div className={styles.leverageMeta}>Current Position Leverage: {currentPositionLeverage}x</div>
+                <div className={styles.leverageMeta}>
+                  <Trans>Current Maximum Leverage: {maxLeverage}x</Trans>
+                </div>
+                <div className={styles.leverageMeta}>
+                  <Trans>Current Position Leverage: {currentPositionLeverage}x</Trans>
+                </div>
               </div>
             </div>
             <div className={styles.leverageFooter}>
@@ -237,11 +281,12 @@ export function OrderFormPanel() {
                 type="button"
                 className={styles.leverageConfirm}
                 onClick={() => {
-                  setLeverageValue(pendingLeverageValue);
+                  const nextLeverageValue = commitPendingLeverageInput();
+                  setLeverageValue(nextLeverageValue);
                   setLeverageModalOpen(false);
                 }}
               >
-                Confirm
+                <Trans>Confirm</Trans>
               </button>
             </div>
           </div>
@@ -252,7 +297,9 @@ export function OrderFormPanel() {
         <div className={styles.leverageOverlay} onClick={() => setMarginModalOpen(false)}>
           <div className={styles.marginModal} onClick={(event) => event.stopPropagation()}>
             <div className={styles.marginHeader}>
-              <span>Margin Mode</span>
+              <span>
+                <Trans>Margin Mode</Trans>
+              </span>
               <button type="button" className={styles.marginClose} onClick={() => setMarginModalOpen(false)}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6 6 18" />
@@ -262,34 +309,43 @@ export function OrderFormPanel() {
             </div>
             <div className={styles.marginBody}>
               <div className={styles.marginOptions}>
-              <button
-                type="button"
-                className={`${styles.marginOption} ${pendingMarginTab === "Cross" ? styles.marginOptionSelected : ""}`}
-                onClick={() => setPendingMarginTab("Cross")}
-              >
-                <span className={styles.marginCheck}>{pendingMarginTab === "Cross" ? "✓" : ""}</span>
-                <span className={styles.marginCopy}>
-                  <span className={styles.marginTitle}>Cross</span>
-                  <span className={styles.marginText}>
-                    All cross positions share the same cross margin as collateral. In the event of liquidation, your
-                    cross margin balance and any remaining open positions under assets in this mode may be forfeited.
+                <button
+                  type="button"
+                  className={`${styles.marginOption} ${pendingMarginTab === "Cross" ? styles.marginOptionSelected : ""}`}
+                  onClick={() => setPendingMarginTab("Cross")}
+                >
+                  <span className={styles.marginCheck}>{pendingMarginTab === "Cross" ? "✓" : ""}</span>
+                  <span className={styles.marginCopy}>
+                    <span className={styles.marginTitle}>
+                      <Trans>Cross</Trans>
+                    </span>
+                    <span className={styles.marginText}>
+                      <Trans>
+                        All cross positions share the same cross margin as collateral. In the event of liquidation, your
+                        cross margin balance and any remaining open positions under assets in this mode may be
+                        forfeited.
+                      </Trans>
+                    </span>
                   </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.marginOption} ${pendingMarginTab === "Isolated" ? styles.marginOptionSelected : ""}`}
-                onClick={() => setPendingMarginTab("Isolated")}
-              >
-                <span className={styles.marginCheck}>{pendingMarginTab === "Isolated" ? "✓" : ""}</span>
-                <span className={styles.marginCopy}>
-                  <span className={styles.marginTitle}>Isolated</span>
-                  <span className={styles.marginText}>
-                    Manage your risk on individual positions by restricting the amount of margin allocated to each. If
-                    the margin ratio of an isolated position reaches 100%, the position will be liquidated.
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.marginOption} ${pendingMarginTab === "Isolated" ? styles.marginOptionSelected : ""}`}
+                  onClick={() => setPendingMarginTab("Isolated")}
+                >
+                  <span className={styles.marginCheck}>{pendingMarginTab === "Isolated" ? "✓" : ""}</span>
+                  <span className={styles.marginCopy}>
+                    <span className={styles.marginTitle}>
+                      <Trans>Isolated</Trans>
+                    </span>
+                    <span className={styles.marginText}>
+                      <Trans>
+                        Manage your risk on individual positions by restricting the amount of margin allocated to each.
+                        If the margin ratio of an isolated position reaches 100%, the position will be liquidated.
+                      </Trans>
+                    </span>
                   </span>
-                </span>
-              </button>
+                </button>
               </div>
             </div>
             <div className={styles.marginFooter}>
@@ -301,7 +357,7 @@ export function OrderFormPanel() {
                   setMarginModalOpen(false);
                 }}
               >
-                Confirm
+                <Trans>Confirm</Trans>
               </button>
             </div>
           </div>

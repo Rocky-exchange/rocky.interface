@@ -1,6 +1,3 @@
-import { Provider } from "ethers";
-import { withRetry } from "viem";
-
 import {
   GAS_PRICE_BUFFER_MAP,
   GAS_PRICE_PREMIUM_MAP,
@@ -23,24 +20,24 @@ export type GasPriceData =
       maxPriorityFeePerGas: bigint;
     };
 
-export async function getGasPrice(provider: Provider, chainId: number): Promise<GasPriceData> {
+type ProviderLike = {
+  getFeeData?: () => Promise<{
+    gasPrice?: bigint | null;
+    maxFeePerGas?: bigint | null;
+    maxPriorityFeePerGas?: bigint | null;
+  }>;
+};
+
+export async function getGasPrice(provider: ProviderLike, chainId: number): Promise<GasPriceData> {
+  if (!provider.getFeeData) {
+    throw new Error("EVM gas price lookup is disabled in the Canton runtime");
+  }
+
   try {
     let maxFeePerGas = MAX_FEE_PER_GAS_MAP[chainId];
     const premium: bigint = GAS_PRICE_PREMIUM_MAP[chainId] ?? 0n;
 
-    const feeData = await withRetry(() => provider.getFeeData(), {
-      delay: 200,
-      retryCount: 2,
-      shouldRetry: ({ error }) => {
-        const isInvalidBlockError = error?.message?.includes("invalid value for value.hash");
-
-        if (isInvalidBlockError) {
-          emitMetricCounter<GetFeeDataBlockError>({ event: "error.getFeeData.value.hash" });
-        }
-
-        return isInvalidBlockError;
-      },
-    });
+    const feeData = await retryGetFeeData(provider);
 
     const gasPrice = feeData.gasPrice;
 
@@ -64,7 +61,7 @@ export async function getGasPrice(provider: Provider, chainId: number): Promise<
       }
     }
 
-    if (gasPrice === null) {
+    if (gasPrice === undefined || gasPrice === null) {
       throw new Error("Can't fetch gas price");
     }
 
@@ -79,4 +76,27 @@ export async function getGasPrice(provider: Provider, chainId: number): Promise<
       errorContext: "gasPrice",
     });
   }
+}
+
+async function retryGetFeeData(provider: ProviderLike) {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await provider.getFeeData!();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const isInvalidBlockError = lastError.message.includes("invalid value for value.hash");
+
+      if (isInvalidBlockError) {
+        emitMetricCounter<GetFeeDataBlockError>({ event: "error.getFeeData.value.hash" });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        continue;
+      }
+
+      throw lastError;
+    }
+  }
+
+  throw lastError ?? new Error("Can't fetch gas price");
 }

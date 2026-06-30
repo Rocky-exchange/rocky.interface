@@ -1,15 +1,13 @@
 import { useEffect } from "react";
-import { Redirect, Route, Switch, useLocation } from "react-router-dom";
+import { Route, Switch, useLocation } from "react-router-dom";
 
-import { SyntheticsStateContextProvider } from "context/SyntheticsStateContext/SyntheticsStateContextProvider";
-import { X10000StateProvider } from "@/modules/cex/store/X10000StateContext/X10000StateContext";
-import LighterExplorerPage from "@/modules/lighter/pages/LighterExplorerPage";
-import LighterMiningPage from "@/modules/lighter/pages/LighterMiningPage";
-import LighterPortfolioPage from "@/modules/lighter/pages/LighterPortfolioPage";
 import LighterTradePage from "@/modules/lighter/pages/LighterTradePage";
-import LighterVipPage from "@/modules/lighter/pages/LighterVipPage";
+import RockyInfoPage from "@/modules/lighter/pages/RockyInfoPage";
+import { LighterTradeRuntimeProviders } from "@/modules/lighter/providers/LighterTradeRuntimeProviders";
+import { TradeStateProvider } from "@/modules/lighter/store/TradeStateContext/TradeStateContext";
+import { RedirectWithQuery } from "@/shared/components/RedirectWithQuery/RedirectWithQuery";
 
-export function MainRoutes(_props: { openSettings: () => void }) {
+export function MainRoutes({ openSettings: _openSettings }: { openSettings: () => void }) {
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -19,29 +17,25 @@ export function MainRoutes(_props: { openSettings: () => void }) {
   return (
     <Switch>
       <Route exact path="/">
-        <LighterPortfolioPage />
+        <RedirectWithQuery to="/trade" />
       </Route>
+
       <Route exact path="/trade/:tradeType?">
-        <X10000StateProvider>
-          <SyntheticsStateContextProvider skipLocalReferralCode={false} pageType="x10000trade">
+        <LighterTradeRuntimeProviders>
+          <TradeStateProvider>
             <LighterTradePage />
-          </SyntheticsStateContextProvider>
-        </X10000StateProvider>
+          </TradeStateProvider>
+        </LighterTradeRuntimeProviders>
       </Route>
-      <Route exact path="/portfolio">
-        <LighterPortfolioPage />
+
+      <Route exact path={["/portfolio", "/mining", "/vip", "/explorer"]}>
+        <LighterTradeRuntimeProviders>
+          <RockyInfoPage />
+        </LighterTradeRuntimeProviders>
       </Route>
-      <Route exact path="/mining">
-        <LighterMiningPage />
-      </Route>
-      <Route exact path="/vip">
-        <LighterVipPage />
-      </Route>
-      <Route exact path="/explorer">
-        <LighterExplorerPage />
-      </Route>
-      <Route path="*">
-        <Redirect to="/" />
+
+      <Route>
+        <RedirectWithQuery to="/trade" />
       </Route>
     </Switch>
   );

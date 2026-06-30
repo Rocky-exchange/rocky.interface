@@ -1,15 +1,4 @@
-import { defineChain } from "viem";
-import {
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  avalancheFuji,
-  base,
-  Chain,
-  optimismSepolia,
-  sepolia,
-  bsc,
-} from "viem/chains";
+import { Chain, defineChain } from "sdk/utils/evmCompat";
 
 import type { GasLimitsConfig } from "sdk/types/fees";
 
@@ -38,8 +27,8 @@ export {
   SOURCE_BSC_MAINNET,
 };
 
-export const CONTRACTS_CHAIN_IDS: ContractsChainId[] = [ARBITRUM]; // 只保留 Arbitrum
-export const CONTRACTS_CHAIN_IDS_DEV: ContractsChainId[] = [ARBITRUM, ARBITRUM_SEPOLIA]; // 开发环境包含测试网
+export const CONTRACTS_CHAIN_IDS: ContractsChainId[] = [AVALANCHE];
+export const CONTRACTS_CHAIN_IDS_DEV: ContractsChainId[] = [AVALANCHE, AVALANCHE_FUJI];
 
 export type ContractsChainId =
   | typeof ARBITRUM
@@ -58,34 +47,27 @@ export type SourceChainId =
 export type AnyChainId = ContractsChainId | SettlementChainId | SourceChainId;
 
 export type ChainName =
-  | "Arbitrum"
-  | "Avalanche"
-  | "Avalanche Fuji"
-  | "Arbitrum Sepolia"
-  | "Optimism Sepolia"
-  | "Sepolia"
-  | "Botanix"
-  | "Base"
-  | "BNB";
+  | "Canton"
+  | "Disabled";
 
 export const CHAIN_NAMES_MAP: Record<AnyChainId, ChainName> = {
-  [ARBITRUM]: "Arbitrum",
-  [AVALANCHE]: "Avalanche",
-  [AVALANCHE_FUJI]: "Avalanche Fuji",
-  [BOTANIX]: "Botanix",
-  [ARBITRUM_SEPOLIA]: "Arbitrum Sepolia",
-  [SOURCE_OPTIMISM_SEPOLIA]: "Optimism Sepolia",
-  [SOURCE_SEPOLIA]: "Sepolia",
-  [SOURCE_BASE_MAINNET]: "Base",
-  [SOURCE_BSC_MAINNET]: "BNB",
+  [ARBITRUM]: "Disabled",
+  [AVALANCHE]: "Disabled",
+  [AVALANCHE_FUJI]: "Disabled",
+  [BOTANIX]: "Disabled",
+  [ARBITRUM_SEPOLIA]: "Disabled",
+  [SOURCE_OPTIMISM_SEPOLIA]: "Disabled",
+  [SOURCE_SEPOLIA]: "Disabled",
+  [SOURCE_BASE_MAINNET]: "Disabled",
+  [SOURCE_BSC_MAINNET]: "Disabled",
 };
 
 export const CHAIN_SLUGS_MAP: Record<ContractsChainId, string> = {
-  [ARBITRUM]: "arbitrum",
-  [AVALANCHE]: "avalanche",
-  [AVALANCHE_FUJI]: "fuji",
-  [ARBITRUM_SEPOLIA]: "arbitrum-sepolia",
-  [BOTANIX]: "botanix",
+  [ARBITRUM]: "disabled",
+  [AVALANCHE]: "disabled",
+  [AVALANCHE_FUJI]: "disabled",
+  [ARBITRUM_SEPOLIA]: "disabled",
+  [BOTANIX]: "disabled",
 };
 
 export const HIGH_EXECUTION_FEES_MAP: Record<ContractsChainId, number> = {
@@ -112,9 +94,7 @@ export const GAS_PRICE_PREMIUM_MAP: Record<number, bigint> = {
   [AVALANCHE]: 6000000000n, // 6 gwei
 };
 
-/*
-  that was a constant value in ethers v5, after ethers v6 migration we use it as a minimum for maxPriorityFeePerGas
-*/
+// Legacy minimum priority fee values retained for compatibility shapes.
 export const MAX_PRIORITY_FEE_PER_GAS_MAP: Record<ContractsChainId, bigint | undefined> = {
   [ARBITRUM]: 1500000000n,
   [AVALANCHE]: 1500000000n,
@@ -130,7 +110,7 @@ export const EXCESSIVE_EXECUTION_FEES_MAP: Partial<Record<ContractsChainId, numb
   [BOTANIX]: 10, // 10 USD
 };
 
-// avoid botanix gas spikes when chain is not actively used
+// Avoid stale gas spikes when the legacy chain is not actively used.
 // if set, execution fee value should not be less than this in USD equivalent
 export const MIN_EXECUTION_FEE_USD: Partial<Record<ContractsChainId, bigint | undefined>> = {
   [ARBITRUM]: undefined,
@@ -140,15 +120,11 @@ export const MIN_EXECUTION_FEE_USD: Partial<Record<ContractsChainId, bigint | un
 };
 
 // added to gasPrice
-// applied to *non* EIP-1559 transactions only
+// applied to legacy gas-price transactions only
 //
 // it is *not* applied to the execution fee calculation, and in theory it could cause issues
-// if gas price used in the execution fee calculation is lower
-// than the gas price used in the transaction (e.g. create order transaction)
+// if gas price used in the execution fee calculation is lower than the gas price used in the transaction
 // then the transaction will fail with InsufficientExecutionFee error.
-// it is not an issue on Arbitrum though because the passed gas price does not affect the paid gas price.
-// for example if current gas price is 0.1 gwei and UI passes 0.5 gwei the transaction
-// Arbitrum will still charge 0.1 gwei per gas
 //
 // it doesn't make much sense to set this buffer higher than the execution fee buffer
 // because if the paid gas price is higher than the gas price used in the execution fee calculation
@@ -160,47 +136,52 @@ export const GAS_PRICE_BUFFER_MAP: Record<number, bigint> = {
   [ARBITRUM]: 2000n, // 20%
 };
 
-export const botanix: Chain = defineChain({
+function defineDisabledChain(id: number): Chain {
+  return defineChain({
+    id,
+    name: "Canton Disabled",
+    nativeCurrency: {
+      name: "Canton",
+      symbol: "CC",
+      decimals: 18,
+    },
+    rpcUrls: {
+      default: {
+        http: [],
+      },
+    },
+  });
+}
+
+const disabledChainByChainId: Record<AnyChainId, Chain> = {
+  [AVALANCHE_FUJI]: defineDisabledChain(AVALANCHE_FUJI),
+  [ARBITRUM]: defineDisabledChain(ARBITRUM),
+  [AVALANCHE]: defineDisabledChain(AVALANCHE),
+  [ARBITRUM_SEPOLIA]: defineDisabledChain(ARBITRUM_SEPOLIA),
+  [BOTANIX]: defineDisabledChain(BOTANIX),
+  [SOURCE_OPTIMISM_SEPOLIA]: defineDisabledChain(SOURCE_OPTIMISM_SEPOLIA),
+  [SOURCE_SEPOLIA]: defineDisabledChain(SOURCE_SEPOLIA),
+  [SOURCE_BASE_MAINNET]: defineDisabledChain(SOURCE_BASE_MAINNET),
+  [SOURCE_BSC_MAINNET]: defineDisabledChain(SOURCE_BSC_MAINNET),
+};
+
+export const cantonDisabledChain: Chain = defineChain({
   id: BOTANIX,
-  name: "Botanix",
+  name: "Canton Disabled",
   nativeCurrency: {
-    name: "Bitcoin",
-    symbol: "BTC",
+    name: "Canton",
+    symbol: "CC",
     decimals: 18,
   },
   rpcUrls: {
     default: {
-      http: [
-        // this rpc returns incorrect gas price
-        // "https://rpc.botanixlabs.com",
-
-        "https://rpc.ankr.com/botanix_mainnet",
-      ],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "BotanixScan",
-      url: "https://botanixscan.io",
-    },
-  },
-  contracts: {
-    multicall3: {
-      address: "0x4BaA24f93a657f0c1b4A0Ffc72B91011E35cA46b",
+      http: [],
     },
   },
 });
 
 const VIEM_CHAIN_BY_CHAIN_ID: Record<AnyChainId, Chain> = {
-  [AVALANCHE_FUJI]: avalancheFuji,
-  [ARBITRUM]: arbitrum,
-  [AVALANCHE]: avalanche,
-  [ARBITRUM_SEPOLIA]: arbitrumSepolia,
-  [BOTANIX]: botanix,
-  [SOURCE_OPTIMISM_SEPOLIA]: optimismSepolia,
-  [SOURCE_SEPOLIA]: sepolia,
-  [SOURCE_BASE_MAINNET]: base,
-  [SOURCE_BSC_MAINNET]: bsc,
+  ...disabledChainByChainId,
 };
 
 export function getChainName(chainId: number): ChainName {
@@ -261,7 +242,7 @@ type StaticGasLimitsConfig = Pick<
   | "updateOrderGasLimit"
   | "cancelOrderGasLimit"
   | "tokenPermitGasLimit"
-  | "gmxAccountCollateralGasLimit"
+  | "tradingAccountCollateralGasLimit"
 >;
 
 export const GAS_LIMITS_STATIC_CONFIG: Record<ContractsChainId, StaticGasLimitsConfig> = {
@@ -270,34 +251,34 @@ export const GAS_LIMITS_STATIC_CONFIG: Record<ContractsChainId, StaticGasLimitsC
     updateOrderGasLimit: 800_000n,
     cancelOrderGasLimit: 700_000n,
     tokenPermitGasLimit: 90_000n,
-    gmxAccountCollateralGasLimit: 0n,
+    tradingAccountCollateralGasLimit: 0n,
   },
   [AVALANCHE]: {
     createOrderGasLimit: 1_000_000n,
     updateOrderGasLimit: 800_000n,
     cancelOrderGasLimit: 700_000n,
     tokenPermitGasLimit: 90_000n,
-    gmxAccountCollateralGasLimit: 0n,
+    tradingAccountCollateralGasLimit: 0n,
   },
   [AVALANCHE_FUJI]: {
     createOrderGasLimit: 1_000_000n,
     updateOrderGasLimit: 800_000n,
     cancelOrderGasLimit: 700_000n,
     tokenPermitGasLimit: 90_000n,
-    gmxAccountCollateralGasLimit: 0n,
+    tradingAccountCollateralGasLimit: 0n,
   },
   [ARBITRUM_SEPOLIA]: {
     createOrderGasLimit: 1_000_000n,
     updateOrderGasLimit: 800_000n,
     cancelOrderGasLimit: 1_500_000n,
     tokenPermitGasLimit: 90_000n,
-    gmxAccountCollateralGasLimit: 400_000n,
+    tradingAccountCollateralGasLimit: 400_000n,
   },
   [BOTANIX]: {
     createOrderGasLimit: 1_000_000n,
     updateOrderGasLimit: 800_000n,
     cancelOrderGasLimit: 700_000n,
     tokenPermitGasLimit: 90_000n,
-    gmxAccountCollateralGasLimit: 0n,
+    tradingAccountCollateralGasLimit: 0n,
   },
 };

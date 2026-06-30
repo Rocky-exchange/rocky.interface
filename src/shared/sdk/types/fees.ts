@@ -48,7 +48,7 @@ export type GasLimitsConfig = {
   updateOrderGasLimit: bigint;
   cancelOrderGasLimit: bigint;
   tokenPermitGasLimit: bigint;
-  gmxAccountCollateralGasLimit: bigint;
+  tradingAccountCollateralGasLimit: bigint;
 };
 
 export type L1ExpressOrderGasReference = {

@@ -1,11 +1,22 @@
-import type { Provider } from "ethers";
-
 import { extendError } from "lib/errors";
 
 const MIN_GAS_LIMIT = 22000n;
 
 export async function estimateGasLimit(
-  provider: Provider,
+  provider: {
+    estimateGas?: (txnParams: {
+      to: string;
+      data: string;
+      from: string;
+      value: bigint | number | undefined;
+    }) => Promise<bigint>;
+    call?: (txnParams: {
+      to: string;
+      data: string;
+      from: string;
+      value: bigint | number | undefined;
+    }) => Promise<unknown>;
+  },
   txnParams: {
     to: string;
     data: string;
@@ -13,6 +24,10 @@ export async function estimateGasLimit(
     value: bigint | number | undefined;
   }
 ): Promise<bigint> {
+  if (!provider.estimateGas || !provider.call) {
+    throw new Error("EVM gas estimation is disabled in the Canton runtime");
+  }
+
   try {
     const gasLimit = await provider.estimateGas(txnParams);
     return applyGasLimitBuffer(gasLimit);

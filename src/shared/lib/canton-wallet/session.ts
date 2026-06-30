@@ -37,7 +37,7 @@ export async function createExchangeSession(
       if (!connection.proof) throw err;
     }
   }
-  proof ||= connection.proof;
+  proof = proof || connection.proof;
   if (!proof?.trim()) throw new Error("Wallet did not provide a verification proof");
 
   const session = await postJson<VerifyResponse>("/api/wallet/verify", {

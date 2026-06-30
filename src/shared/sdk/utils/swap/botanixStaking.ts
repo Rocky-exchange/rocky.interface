@@ -1,4 +1,4 @@
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData } from "sdk/utils/evmCompat";
 
 import StBTCABI from "sdk/abis/StBTC";
 import { BOTANIX } from "sdk/configs/chains";

@@ -1,0 +1,314 @@
+.TradingMarketsList {
+  &-symbol {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &-leverage-badge {
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  &-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+
+    &--active {
+      background: rgba(0, 255, 136, 0.15);
+      color: #00ff88;
+    }
+
+    &--inactive {
+      background: rgba(255, 68, 68, 0.15);
+      color: #ff4444;
+    }
+
+    &--maintenance {
+      background: rgba(255, 170, 0, 0.15);
+      color: #ffaa00;
+    }
+  }
+}
+
+.TradingMarketsDropdown-panel {
+  width: min(760px, calc(100vw - 24px)) !important;
+  max-width: min(760px, calc(100vw - 24px)) !important;
+  max-height: min(720px, calc(100vh - 124px));
+  overflow: hidden;
+  border: 1px solid #2a2d38 !important;
+  border-radius: 16px !important;
+  background: #12131a !important;
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.42);
+}
+
+html[data-ui-theme="primit"] .SelectorBase-panel.TradingMarketsDropdown-panel {
+  width: min(760px, calc(100vw - 24px)) !important;
+  max-width: min(760px, calc(100vw - 24px)) !important;
+  border: 1px solid #2a2d38 !important;
+  border-radius: 16px !important;
+  background: #12131a !important;
+}
+
+.TradingMarketsDropdown-popover {
+  width: 100%;
+  max-height: min(720px, calc(100vh - 124px));
+  overflow: hidden;
+  color: #e9e9ef;
+  background: #12131a;
+  border-radius: inherit;
+  font-family: var(--primit-font-body, "Messina Sans", system-ui, sans-serif);
+}
+
+.TradingMarketsDropdown-header,
+.TradingMarketsDropdown-tableScroll {
+  background: #12131a !important;
+}
+
+.TradingMarketsDropdown-header {
+  padding: 28px 32px 0 !important;
+}
+
+.TradingMarketsDropdown-header > .flex {
+  gap: 24px;
+}
+
+.TradingMarketsDropdown-search {
+  height: 48px !important;
+  flex: 0 0 auto;
+}
+
+html[data-ui-theme="primit"]
+  .TradingMarketsDropdown-popover
+  .TradingMarketsDropdown-search.SearchInput-root:not([data-search-no-border="true"])
+  .SearchInput-field {
+  border: 1px solid #3d4354 !important;
+  border-radius: 12px !important;
+  background: #161821 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #e9e9ef !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+}
+
+html[data-ui-theme="primit"]
+  .TradingMarketsDropdown-popover
+  .TradingMarketsDropdown-search.SearchInput-root:not([data-search-no-border="true"])
+  .SearchInput-field:focus {
+  border-color: #535b70 !important;
+  background: #181a24 !important;
+  box-shadow: none !important;
+}
+
+html[data-ui-theme="primit"]
+  .TradingMarketsDropdown-popover
+  .TradingMarketsDropdown-search.SearchInput-root:not([data-search-no-border="true"])
+  .SearchInput-field::placeholder {
+  color: rgba(226, 231, 237, 0.55) !important;
+}
+
+.TradingMarketsDropdown-tabs {
+  background: transparent !important;
+}
+
+.TradingMarketsDropdown-popover [data-tabs-type="block"] {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.TradingMarketsDropdown-popover [data-tabs-type="block"] .tabs-row--block {
+  gap: 28px !important;
+  align-items: center;
+}
+
+.TradingMarketsDropdown-popover [data-tabs-type="block"] .tab-underline-indicator {
+  display: none !important;
+}
+
+html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="block"] button {
+  min-height: 40px;
+  padding: 0 18px !important;
+  border-radius: 10px !important;
+  color: rgba(226, 231, 237, 0.62) !important;
+  background: transparent !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 40px !important;
+  letter-spacing: 0 !important;
+}
+
+html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="block"] button.tab-active-green {
+  color: #f3f3f6 !important;
+  background: #191919 !important;
+}
+
+.TradingMarketsDropdown-dividerWrap {
+  margin: 0 -32px !important;
+  padding: 24px 0 0 !important;
+  background: #12131a !important;
+}
+
+.TradingMarketsDropdown-divider {
+  border-top-color: #2b2f3a !important;
+}
+
+.TradingMarketsDropdown-tableScroll {
+  max-height: min(452px, calc(100vh - 340px)) !important;
+}
+
+.TradingMarketsDropdown-table {
+  table-layout: fixed;
+  background: #12131a;
+}
+
+.TradingMarketsDropdown-colFavorite {
+  width: 56px;
+}
+
+.TradingMarketsDropdown-colMarket {
+  width: 30%;
+}
+
+.TradingMarketsDropdown-colLast {
+  width: 18%;
+}
+
+.TradingMarketsDropdown-colChange {
+  width: 15%;
+}
+
+.TradingMarketsDropdown-colVolume {
+  width: 16%;
+}
+
+.TradingMarketsDropdown-colLeverage {
+  width: 17%;
+}
+
+.TradingMarketsDropdown-th {
+  height: 68px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background: #12131a !important;
+  color: rgba(226, 231, 237, 0.62) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.1em !important;
+  border-bottom: 1px solid #242832;
+}
+
+.TradingMarketsDropdown-th:first-child {
+  padding-left: 28px !important;
+  text-transform: none;
+  font-size: 15px !important;
+  letter-spacing: 0.02em !important;
+}
+
+.TradingMarketsDropdown-row {
+  height: 84px;
+}
+
+.TradingMarketsDropdown-row:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.TradingMarketsDropdown-row td {
+  border-bottom: 1px solid #20232c;
+}
+
+.TradingMarketsDropdown-row:last-child td {
+  border-bottom: 0;
+}
+
+.TradingMarketsDropdown-cellY {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.TradingMarketsDropdown-cellX {
+  padding-right: 16px !important;
+}
+
+.TradingMarketsDropdown-rowLeverage {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  border-radius: 8px;
+  background: #303441;
+  padding: 0 10px;
+  color: rgba(226, 231, 237, 0.76);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.TradingMarketsDropdown-popover tbody td {
+  color: #f1f1f5;
+  font-size: 15px;
+}
+
+.TradingMarketsDropdown-popover tbody td:first-child {
+  padding-left: 28px !important;
+  padding-right: 18px !important;
+}
+
+.TradingMarketsDropdown-popover tbody td:nth-child(2) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .TradingMarketsDropdown-header {
+    padding: 12px 12px 0 !important;
+  }
+
+  .TradingMarketsDropdown-header > .flex {
+    gap: 12px;
+  }
+
+  .TradingMarketsDropdown-search {
+    height: 40px !important;
+  }
+
+  .TradingMarketsDropdown-dividerWrap {
+    margin: 0 -12px !important;
+    padding-top: 10px !important;
+  }
+
+  .TradingMarketsDropdown-table {
+    table-layout: fixed;
+  }
+
+  .TradingMarketsDropdown-th {
+    height: 40px;
+    font-size: 11px !important;
+  }
+
+  .TradingMarketsDropdown-row {
+    height: 58px;
+  }
+
+  .TradingMarketsDropdown-rowLeverage {
+    height: 20px;
+    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+}
+
+// Price change colors
+.positive {
+  color: #00ff88 !important;
+}
+
+.negative {
+  color: #ff4444 !important;
+}

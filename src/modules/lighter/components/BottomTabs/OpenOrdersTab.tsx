@@ -1,13 +1,12 @@
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useCallback, useMemo, useState } from "react";
-
-import { useCancelOrderHandler } from "@/modules/cex/lib/api";
-import { useOrdersInfoData } from "context/SyntheticsStateContext/hooks/globalsHooks";
-import { getByKey } from "lib/objects";
 
 import type { BottomTabFilterMode, OpenOrdersMarketFilter, OpenOrdersTypeFilter } from "./BottomTabs";
 import { ModifyOrderModal } from "./ModifyOrderModal";
 import styles from "./OpenOrdersTab.module.scss";
 import { useOpenOrdersAdapter, type LighterOpenOrder } from "../../adapters/useOpenOrdersAdapter";
+import { useCancelApiOrder } from "../../hooks/useCancelApiOrder";
 
 type OpenOrderRow = {
   market: string;
@@ -25,6 +24,24 @@ type OpenOrderRow = {
   tpSl: string;
 };
 
+const OPEN_ORDER_TYPE_LABELS: Record<
+  "S/L Market" | "S/L Limit" | "T/P Market" | "T/P Limit",
+  { en: string; zh: string }
+> = {
+  "S/L Market": { en: "S/L Market", zh: "止損市價單" },
+  "S/L Limit": { en: "S/L Limit", zh: "止損限價單" },
+  "T/P Market": { en: "T/P Market", zh: "止盈市價單" },
+  "T/P Limit": { en: "T/P Limit", zh: "止盈限價單" },
+};
+
+function pickOpenOrderTypeLabel(
+  type: keyof typeof OPEN_ORDER_TYPE_LABELS,
+  locale: string
+) {
+  const entry = OPEN_ORDER_TYPE_LABELS[type];
+  return locale.startsWith("zh") ? entry.zh : entry.en;
+}
+
 function formatNumber(value: number | null | undefined, maximumFractionDigits = 4) {
   if (value == null || !Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en-US", {
@@ -35,7 +52,32 @@ function formatNumber(value: number | null | undefined, maximumFractionDigits = 
 
 function formatPrice(value: number | null | undefined, maximumFractionDigits = 6) {
   if (value == null || !Number.isFinite(value) || value <= 0) return "-";
-  return Number(value).toFixed(Math.min(maximumFractionDigits, 6));
+  // toFixed 会保留末尾 0(如 "73000.000000") —— 截断 decimal 部分的末尾 0,并去掉空 "."
+  const fixed = Number(value).toFixed(Math.min(maximumFractionDigits, 6));
+  return fixed.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+}
+
+function formatTrigger(value: string | number | null | undefined, maximumFractionDigits = 6) {
+  if (value == null || value === "") return "-";
+  const n = typeof value === "number" ? value : Number(value);
+  return formatPrice(n, maximumFractionDigits);
+}
+
+function getTypeLabel(order: LighterOpenOrder, i18n: ReturnType<typeof useLingui>["i18n"]) {
+  switch (order.triggerType) {
+    case "StopLoss":
+      return pickOpenOrderTypeLabel("S/L Market", i18n.locale);
+    case "StopLimit":
+      return pickOpenOrderTypeLabel("S/L Limit", i18n.locale);
+    case "TakeProfit":
+      return pickOpenOrderTypeLabel("T/P Market", i18n.locale);
+    case "TakeProfitLimit":
+      return pickOpenOrderTypeLabel("T/P Limit", i18n.locale);
+    case "TrailingStop":
+      return pickOpenOrderTypeLabel("S/L Market", i18n.locale);
+    default:
+      return order.type === "limit" ? i18n._(t`Limit`) : i18n._(t`Market`);
+  }
 }
 
 function formatUsd(value: number | null | undefined) {
@@ -140,31 +182,34 @@ function LoadingSpinnerIcon() {
   );
 }
 
-function toRow(order: LighterOpenOrder): OpenOrderRow {
+function toRow(order: LighterOpenOrder, i18n: ReturnType<typeof useLingui>["i18n"]): OpenOrderRow {
   return {
     market: order.market,
     side: order.side,
     date: formatDate(order.createdAt),
-    type: order.type === "limit" ? "Limit" : "Market",
+    type: getTypeLabel(order, i18n),
     amount: formatNumber(order.amount, 4),
     filled: order.filled == null || order.filled === 0 ? "-" : formatNumber(order.filled, 4),
     price: formatPrice(order.price),
     markPrice: formatPrice(order.markPrice),
-    reduceOnly: order.reduceOnly == null ? "-" : order.reduceOnly ? "Yes" : "No",
+    reduceOnly: order.reduceOnly == null ? "-" : order.reduceOnly ? i18n._(t`Yes`) : i18n._(t`No`),
     margin: formatUsd(order.margin),
-    triggerConditions: order.triggerConditions ?? "-",
+    triggerConditions: formatTrigger(order.triggerConditions),
     expiresIn: order.expiresIn ?? "-",
-    tpSl: "- / -",
+    tpSl:
+      order.takeProfit != null || order.stopLoss != null
+        ? `${order.takeProfit != null ? formatPrice(order.takeProfit) : "-"} / ${order.stopLoss != null ? formatPrice(order.stopLoss) : "-"}`
+        : "- / -",
   };
 }
 
 function matchesTypeFilter(order: LighterOpenOrder, filter: OpenOrdersTypeFilter) {
   if (filter === "All") return true;
-  if (filter === "Limit") return order.type === "limit" && !order.triggerConditions;
-  if (filter === "S/L Market") return order.type === "market" && Boolean(order.triggerConditions) && order.side === "short";
-  if (filter === "S/L Limit") return order.type === "limit" && Boolean(order.triggerConditions) && order.side === "short";
-  if (filter === "T/P Market") return order.type === "market" && Boolean(order.triggerConditions) && order.side === "long";
-  if (filter === "T/P Limit") return order.type === "limit" && Boolean(order.triggerConditions) && order.side === "long";
+  if (filter === "Limit") return order.type === "limit" && order.triggerType == null;
+  if (filter === "S/L Market") return order.triggerType === "StopLoss" || order.triggerType === "TrailingStop";
+  if (filter === "S/L Limit") return order.triggerType === "StopLimit";
+  if (filter === "T/P Market") return order.triggerType === "TakeProfit";
+  if (filter === "T/P Limit") return order.triggerType === "TakeProfitLimit";
   return false;
 }
 
@@ -177,11 +222,11 @@ export function OpenOrdersTab({
   marketFilter?: OpenOrdersMarketFilter;
   typeFilter?: OpenOrdersTypeFilter;
 }) {
-  const [editingOrderKey, setEditingOrderKey] = useState<string>();
-  const [closingOrderKey, setClosingOrderKey] = useState<string>();
+  const { i18n } = useLingui();
+  const [editingOrderId, setEditingOrderId] = useState<string>();
+  const [closingOrderId, setClosingOrderId] = useState<string>();
   const orders = useOpenOrdersAdapter();
-  const ordersInfoData = useOrdersInfoData();
-  const { cancelSingleOrder } = useCancelOrderHandler();
+  const { cancel } = useCancelApiOrder();
   const filteredOrders = useMemo(() => {
     return orders
       .filter((order) => {
@@ -195,23 +240,18 @@ export function OpenOrdersTab({
 
   const handleCancelOrder = useCallback(
     async (order: LighterOpenOrder) => {
-      if (!order.orderKey || closingOrderKey) return;
-
-      const orderInfo = getByKey(ordersInfoData, order.orderKey);
-      if (!orderInfo) return;
+      if (closingOrderId) return;
 
       try {
-        await cancelSingleOrder(
-          orderInfo,
-          () => setClosingOrderKey(order.orderKey),
-          () => setClosingOrderKey(undefined)
-        );
+        setClosingOrderId(order.id);
+        await cancel({ id: order.id, trigger_type: order.triggerType });
       } catch (error) {
         void error;
-        setClosingOrderKey(undefined);
+      } finally {
+        setClosingOrderId(undefined);
       }
     },
-    [cancelSingleOrder, closingOrderKey, ordersInfoData]
+    [cancel, closingOrderId]
   );
 
   return (
@@ -219,33 +259,63 @@ export function OpenOrdersTab({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Market</th>
-            <th>Side</th>
+            <th>
+              <Trans>Market</Trans>
+            </th>
+            <th>
+              <Trans>Side</Trans>
+            </th>
             <th>
               <span className={styles.sortHeader}>
-                <span>Date</span>
+                <span>
+                  <Trans>Date</Trans>
+                </span>
                 <span className={styles.sortCaret}>⌄</span>
               </span>
             </th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Filled</th>
-            <th>Price</th>
-            <th>Mark Price</th>
-            <th>Reduce Only</th>
-            <th>Margin</th>
-            <th>Trigger Conditions</th>
-            <th>Expires in</th>
-            <th>TP / SL</th>
-            <th className={styles.cancelAllHeader}>Cancel All</th>
+            <th>
+              <Trans>Type</Trans>
+            </th>
+            <th>
+              <Trans>Amount</Trans>
+            </th>
+            <th>
+              <Trans>Filled</Trans>
+            </th>
+            <th>
+              <Trans>Price</Trans>
+            </th>
+            <th>
+              <Trans>Mark Price</Trans>
+            </th>
+            <th>
+              <Trans>Reduce Only</Trans>
+            </th>
+            <th>
+              <Trans>Margin</Trans>
+            </th>
+            <th>
+              <Trans>Trigger Conditions</Trans>
+            </th>
+            {/* Expires in 列暂时下线:后端未提供到期字段,先保留表头 JSX 供后续打开
+            <th>
+              <Trans>Expires in</Trans>
+            </th>
+            */}
+            <th>
+              <Trans>TP / SL</Trans>
+            </th>
+            <th className={styles.cancelAllHeader}>
+              <Trans>Cancel All</Trans>
+            </th>
           </tr>
         </thead>
         <tbody>
           {filteredOrders.map((order, index) => {
-            const row = toRow(order);
-            const isClosing = closingOrderKey === order.orderKey;
+            const row = toRow(order, i18n);
+            const isClosing = closingOrderId === order.id;
             return (
-              <tr key={order.orderKey ?? order.id ?? `${row.market}-${index}`}>
+              <tr key={order.id ?? `${row.market}-${index}`}>
                 <td>
                   <span
                     className={
@@ -260,10 +330,8 @@ export function OpenOrdersTab({
                     </span>
                   </span>
                 </td>
-                <td
-                  className={row.side === "long" ? styles.sideLong : styles.sideShort}
-                >
-                  {row.side === "long" ? "Long" : "Short"}
+                <td className={row.side === "long" ? styles.sideLong : styles.sideShort}>
+                  {row.side === "long" ? <Trans>Long</Trans> : <Trans>Short</Trans>}
                 </td>
                 <td className={`${styles.mono} ${row.date === "-" ? styles.placeholder : ""}`}>{row.date}</td>
                 <td className={row.type === "-" ? styles.placeholder : ""}>{row.type}</td>
@@ -274,24 +342,23 @@ export function OpenOrdersTab({
                 <td className={row.reduceOnly === "-" ? styles.placeholder : ""}>{row.reduceOnly}</td>
                 <td className={`${styles.mono} ${row.margin === "-" ? styles.placeholder : ""}`}>{row.margin}</td>
                 <td className={row.triggerConditions === "-" ? styles.placeholder : ""}>{row.triggerConditions}</td>
+                {/* Expires in 对应数据列下线,配合表头一起注释。
                 <td className={row.expiresIn === "-" ? styles.placeholder : ""}>{row.expiresIn}</td>
+                */}
                 <td className={row.tpSl === "-" ? styles.placeholder : ""}>{row.tpSl}</td>
                 <td className={styles.cancelActions}>
                   <button
                     type="button"
                     className={styles.editAction}
-                    disabled={!order.orderKey || isClosing}
-                    onClick={() => {
-                      if (!order.orderKey) return;
-                      setEditingOrderKey(order.orderKey);
-                    }}
+                    disabled={isClosing}
+                    onClick={() => setEditingOrderId(order.id)}
                   >
                     <EditOrderIcon />
                   </button>
                   <button
                     type="button"
                     className={styles.cancelAction}
-                    disabled={!order.orderKey || isClosing}
+                    disabled={isClosing}
                     onClick={() => void handleCancelOrder(order)}
                   >
                     {isClosing ? <LoadingSpinnerIcon /> : <CancelOrderIcon />}
@@ -302,7 +369,7 @@ export function OpenOrdersTab({
           })}
         </tbody>
       </table>
-      <ModifyOrderModal orderKey={editingOrderKey} onClose={() => setEditingOrderKey(undefined)} />
+      <ModifyOrderModal orderId={editingOrderId} onClose={() => setEditingOrderId(undefined)} />
     </div>
   );
 }

@@ -23,7 +23,6 @@ const TX_ERROR_PATTERNS: { [key in TxErrorType]: ErrorPattern[] } = {
     { msg: "Cancelled" },
     { msg: "Cancelled by user" },
     { msg: "user rejected action" },
-    { msg: "ethers-user-denied" },
     { msg: "Action cancelled by user" },
     { msg: "Signing aborted by user" },
   ],
@@ -92,9 +91,8 @@ export function extractTxnError(ex: TxError): [string, TxErrorType | null, any] 
     return [];
   }
 
-  // ethers v6 moved error to `.info` field 🤷‍♂️,
-  // we also fallback to `ex` cos we might catch errors from ethers v5
-  // from some outdated dependency like @davatar/react
+  // Some legacy wallet libraries moved error details to `.info`.
+  // Keep this fallback for old error objects that may still surface through compatibility data.
   ex = (ex as any)?.info ?? ex;
   let message = ex.error?.message || ex.data?.message || ex.message;
   let code = ex.error?.code || ex.code;

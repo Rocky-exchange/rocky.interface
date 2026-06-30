@@ -191,7 +191,7 @@ function SelectorBaseDesktop(props: Props & { qa?: string }) {
           <Popover.Button
             as="div"
             className={cx(
-              "SelectorBase-button group/selector-base group gap-5 tracking-wide gmx-hover:text-blue-300",
+              "SelectorBase-button group/selector-base group gap-5 tracking-wide app-hover:text-blue-300",
               popoverProps.open && "text-blue-300",
               popoverProps.open && "SelectorBase-button-open",
               props.handleClassName
@@ -202,7 +202,7 @@ function SelectorBaseDesktop(props: Props & { qa?: string }) {
             {props.label}
             <ChevronDownIcon
               className={cx(
-                "inline-block size-16 group-gmx-hover/selector-base:text-blue-300",
+                "inline-block size-16 group-app-hover/selector-base:text-blue-300",
                 popoverProps.open ? "text-blue-300" : "text-typography-secondary",
                 popoverProps.open && "SelectorBase-chevron-open",
                 props.chevronClassName

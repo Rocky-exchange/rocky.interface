@@ -1,4 +1,4 @@
-import { Abi, encodeFunctionData, zeroAddress, zeroHash } from "viem";
+import { Abi, encodeFunctionData, zeroAddress, zeroHash } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 import { getContract } from "sdk/configs/contracts";
@@ -11,7 +11,7 @@ import { convertToContractPrice } from "sdk/utils/tokens";
 import { applySlippageToMinOut, applySlippageToPrice } from "sdk/utils/trade";
 
 import type { PriceOverrides } from "./createIncreaseOrderTxn";
-import type { GmxSdk } from "../../../index";
+import type { TradingSdk } from "../../../index";
 
 export type DecreaseOrderParams = {
   account: string;
@@ -38,7 +38,7 @@ export type DecreaseOrderParams = {
   dataList?: string[];
 };
 
-export async function createDecreaseOrderTxn(sdk: GmxSdk, params: DecreaseOrderParams | DecreaseOrderParams[]) {
+export async function createDecreaseOrderTxn(sdk: TradingSdk, params: DecreaseOrderParams | DecreaseOrderParams[]) {
   const chainId = sdk.chainId;
   const ps = Array.isArray(params) ? params : [params];
   const orderVaultAddress = getContract(chainId, "OrderVault");
@@ -88,7 +88,7 @@ export function createDecreaseEncodedPayload({
   orderVaultAddress,
   ps,
 }: {
-  sdk: GmxSdk;
+  sdk: TradingSdk;
   orderVaultAddress: string;
   ps: DecreaseOrderParams[];
 }) {

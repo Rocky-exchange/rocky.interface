@@ -1,12 +1,11 @@
-import type { Order as ApiOrder } from "@/modules/cex/lib/api/types";
-import type { OrdersInfoData } from "@/modules/dex/domain/synthetics/orders/types";
+import type { Order as ApiOrder, TriggerType } from "@/modules/lighter/api/types";
 
 export type LighterOpenOrder = {
   id: string;
-  orderKey?: string;
   market: string;
   side: "long" | "short";
   type: "market" | "limit";
+  triggerType: TriggerType | null;
   amount: number;
   filled: number | null;
   price: number;
@@ -15,6 +14,8 @@ export type LighterOpenOrder = {
   margin: number | null;
   triggerConditions: string | null;
   expiresIn: string | null;
+  takeProfit: number | null;
+  stopLoss: number | null;
   status: string;
   createdAt: number;
 };
@@ -54,16 +55,7 @@ export function formatExpiry(at: number | string): string {
   return `${hours}h`;
 }
 
-export function findOrderKeyByOriginalOrderId(
-  ordersInfoData: OrdersInfoData | undefined,
-  originalOrderId: string | undefined
-): string | undefined {
-  if (!ordersInfoData || !originalOrderId) return undefined;
-
-  return Object.values(ordersInfoData).find((order) => order.originalOrderId === originalOrderId)?.key;
-}
-
-export function mapApiOrderToLighterOpenOrder(apiOrder: ApiOrder, orderKey?: string): LighterOpenOrder {
+export function mapApiOrderToLighterOpenOrder(apiOrder: ApiOrder): LighterOpenOrder {
   const orderType = (apiOrder.order_type || "").toLowerCase();
   const sideRaw = (apiOrder.side || "").toLowerCase();
   const side: "long" | "short" = sideRaw === "buy" || sideRaw === "long" ? "long" : "short";
@@ -72,10 +64,10 @@ export function mapApiOrderToLighterOpenOrder(apiOrder: ApiOrder, orderKey?: str
 
   return {
     id: String(apiOrder.id ?? apiOrder.client_order_id ?? `${apiOrder.symbol}-${apiOrder.created_at}`),
-    orderKey,
     market: symbolToMarket(apiOrder.symbol || ""),
     side,
     type: orderType === "market" ? "market" : "limit",
+    triggerType: apiOrder.trigger_type ?? null,
     amount,
     filled: filled || 0,
     price: safeNumber(apiOrder.price ?? apiOrder.trigger_price),
@@ -84,6 +76,8 @@ export function mapApiOrderToLighterOpenOrder(apiOrder: ApiOrder, orderKey?: str
     margin: null,
     triggerConditions: apiOrder.trigger_price ? `${apiOrder.trigger_price}` : null,
     expiresIn: null,
+    takeProfit: apiOrder.tp_price ? safeNumber(apiOrder.tp_price) : null,
+    stopLoss: apiOrder.sl_price ? safeNumber(apiOrder.sl_price) : null,
     status: apiOrder.status ?? "open",
     createdAt: normalizeTimestamp(apiOrder.created_at),
   };

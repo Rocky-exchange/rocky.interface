@@ -21,12 +21,6 @@ export function LeaderboardTopAccountsStructure() {
         <Skeleton inline />
       </TableTd>
       <TableTd>
-        <Skeleton inline />
-      </TableTd>
-      <TableTd>
-        <Skeleton width={100} inline />
-      </TableTd>
-      <TableTd>
         <Skeleton width={110} inline />
       </TableTd>
     </TableTr>

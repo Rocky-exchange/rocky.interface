@@ -1,5 +1,7 @@
 import cx from "classnames";
 
+import { BigTab } from "shared/ui/BigTab";
+
 import Button from "components/Button/Button";
 
 import { RegularOption } from "./types";
@@ -10,7 +12,7 @@ type Props<V extends string | number> = {
   onOptionClick: ((value: V) => void) | undefined;
   regularOptionClassname?: string;
   qa?: string;
-  type: "inline" | "block" | "inline-primary";
+  type: "inline" | "block" | "inline-primary" | "primit-big-tab";
   dataTabValue?: V;
 };
 
@@ -56,6 +58,23 @@ export default function RegularTab<V extends string | number>({
         {option.icon && <span className="mt-2 scale-75 opacity-70">{option.icon}</span>}
         {label}
       </Button>
+    );
+  }
+
+  if (type === "primit-big-tab") {
+    return (
+      <BigTab
+        key={option.value}
+        type="button"
+        selected={isActive}
+        className={cx("min-w-0 flex-1 shrink-0", optionClassName, regularOptionClassname)}
+        data-qa={qa ? `${qa}-tab-${option.value}` : undefined}
+        data-tab-value={String(dataTabValue ?? option.value)}
+        onClick={() => onOptionClick?.(option.value)}
+      >
+        {option.icon && <span className="mr-4 inline-flex opacity-70">{option.icon}</span>}
+        {label}
+      </BigTab>
     );
   }
 

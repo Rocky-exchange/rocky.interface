@@ -1,9 +1,4 @@
-const SELF_EXPLANATORY_HOSTNAMES = [
-  "arb1.arbitrum.io",
-  "api.avax.network",
-  "api.avax-test.network",
-  "sepolia-rollup.arbitrum.io",
-];
+const SELF_EXPLANATORY_HOSTNAMES = ["rpc.canton.example"];
 
 export function getProviderNameFromUrl(rpcUrl: string) {
   try {

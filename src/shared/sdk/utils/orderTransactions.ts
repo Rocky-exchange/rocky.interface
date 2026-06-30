@@ -1,5 +1,5 @@
 import uniq from "lodash/uniq";
-import { encodeFunctionData, zeroAddress, zeroHash } from "viem";
+import { encodeFunctionData, zeroAddress, zeroHash } from "sdk/utils/evmCompat";
 
 import ExchangeRouterAbi from "sdk/abis/ExchangeRouter";
 import { abis } from "sdk/abis/index";
@@ -542,7 +542,7 @@ export function getBatchTotalPayCollateralAmount(batchParams: BatchOrderTxnParam
     const payTokenAddress = co.tokenTransfersParams?.payTokenAddress;
     const payTokenAmount = co.tokenTransfersParams?.payTokenAmount;
 
-    if (payTokenAddress && payTokenAmount) {
+    if (payTokenAddress && payTokenAmount !== undefined && payTokenAmount !== null) {
       payAmounts[payTokenAddress] = (payAmounts[payTokenAddress] ?? 0n) + payTokenAmount;
     }
   }

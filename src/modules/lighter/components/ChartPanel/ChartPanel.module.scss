@@ -2,7 +2,7 @@
 .topTabs {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0; height: 32px;
-  border-bottom: 1px solid var(--ltr-border);
+  border-bottom: 1px solid rgb(43, 43, 48);
 }
 .tabsLeft { display: flex; align-items: center; height: 32px; }
 .tab, .tabActive {
@@ -17,10 +17,10 @@
 .tabActive { color: var(--ltr-text-primary); }
 .tabActive::after {
   content: ""; position: absolute;
-  left: 0; right: 0; bottom: 0; margin: 0 auto;
+  left: 0; right: 0; bottom: 2px; margin: 0 auto;
   width: 60%; max-width: 64px;
   height: 1px; border-radius: 999px;
-  background: #4ea7ff;
+  background: var(--primit-primary-1, #87d7ea);
 }
 .modes {
   display: flex; align-items: center; gap: 12px;
@@ -46,6 +46,114 @@
   background: transparent; border: 0; cursor: pointer; padding: 0;
   &:hover { color: var(--ltr-text-primary); }
 }
+.iconBtnActive {
+  color: var(--ltr-text-primary);
+}
+
+// Split-layout popover anchored under the layout-selector icon button.
+.splitMenuWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.splitMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  background: #1A1A20;
+  border: 1px solid #2A2A33;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.splitMenuRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.splitMenuRowLabel {
+  width: 18px;
+  flex: 0 0 18px;
+  color: var(--ltr-text-muted, #828285);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.splitMenuOpt {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--ltr-text-muted, #828285);
+  cursor: pointer;
+  padding: 0;
+  &:hover {
+    color: var(--ltr-text-primary, #CFCFD3);
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+.splitMenuOptActive {
+  color: var(--ltr-text-primary, #CFCFD3);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+// Multi-pane chart grid. Gaps render the panel border between panes.
+.splitGrid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 1px;
+  background: var(--ltr-border, #1F1F24);
+}
+.splitGrid_1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+.splitGrid_2H {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+.splitGrid_2V {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.splitGrid_3H {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+.splitGrid_3V {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+.splitGrid_4G {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.splitPane {
+  background: var(--ltr-bg-panel, #121218);
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  // TVChart wraps its container in `<div class="relative grow">`; that needs a
+  // flex parent for grow:1 to take effect, otherwise the inner absolutely
+  // positioned chart collapses to zero height.
+  display: flex;
+  flex-direction: column;
+}
 
 .toolbar {
   display: flex; align-items: center; justify-content: space-between;
@@ -62,6 +170,10 @@
 }
 .tfActive { color: var(--ltr-text-primary); }
 
+.moreWrap {
+  position: relative;
+  display: inline-flex; align-items: center;
+}
 .moreBtn {
   height: 32px;
   padding: 8px;
@@ -72,7 +184,126 @@
   margin-left: -8px;
   &:hover { color: var(--ltr-text-secondary); }
 }
-.moreCaret { width: 8px; height: 8px; display: inline-flex; }
+.moreBtnActive { color: var(--ltr-text-primary); }
+.moreCaret {
+  width: 8px; height: 8px;
+  display: inline-flex;
+  transition: transform 160ms ease;
+}
+.moreCaretOpen { transform: rotate(180deg); }
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 96px;
+  padding: 4px;
+  background: var(--ltr-bg-panel);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 4px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+.moreItem {
+  height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 12px; font-weight: 500;
+  color: var(--ltr-text-secondary);
+  background: transparent; border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+  text-align: left;
+  &:hover {
+    color: var(--ltr-text-primary);
+    background: var(--ltr-overlay-soft, rgba(255, 255, 255, 0.04));
+  }
+}
+.moreItemActive { color: var(--ltr-text-primary); }
+
+.chartTypeMenu {
+  min-width: 160px;
+  padding: 6px;
+}
+
+.chartTypeItem {
+  display: grid;
+  grid-template-columns: 18px 1fr 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 32px;
+  text-align: left;
+}
+
+.chartTypeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ltr-text-muted, #828285);
+
+  .moreItemActive & { color: var(--ltr-text-primary); }
+}
+
+.chartTypeLabel {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chartTypeCheck {
+  color: var(--ltr-text-primary);
+  justify-self: end;
+}
+
+.chartElementsMenu {
+  min-width: 200px;
+  padding: 6px 0;
+}
+
+.chartElementsItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 16px;
+  height: 36px;
+}
+
+.chartElementsLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ltr-text-primary);
+}
+
+.chartElementsLabelWithIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ltr-text-primary);
+}
+
+.chartElementsCheck {
+  color: var(--ltr-text-primary);
+  flex-shrink: 0;
+}
+
+.chartElementsInfo {
+  justify-content: flex-start;
+  cursor: default;
+  &:hover { background: transparent; }
+}
+
+.chartElementsInfoIcon {
+  color: var(--ltr-text-muted, #828285);
+  flex-shrink: 0;
+  margin-left: 6px;
+}
 
 .sep {
   display: inline-block; width: 1px; height: 16px;
@@ -85,6 +316,7 @@
   color: #828285;
   background: transparent; border: 0; cursor: pointer;
   &:hover { color: var(--ltr-text-secondary); }
+  &:disabled { opacity: 0.5; cursor: default; }
 }
 
 .tool {
@@ -99,7 +331,10 @@
 .toolsRight { display: inline-flex; align-items: center; gap: 8px; }
 
 .chart {
-  flex: 1; position: relative; min-height: 0;
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
   background: var(--ltr-bg-panel);
 }
 .chartLayer {
@@ -129,59 +364,4 @@
 .chartLayer :global(.ExchangeChart-bottom-content) {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-}
-
-@media (max-width: 768px) {
-  .root {
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-  }
-
-  .topTabs {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    min-height: 32px;
-    align-items: stretch;
-    gap: 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .topTabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tabsLeft,
-  .modes {
-    flex: 0 0 auto;
-  }
-
-  .tab,
-  .tabActive {
-    min-width: 72px;
-    padding: 8px 10px;
-  }
-
-  .toolbar {
-    width: 100%;
-    max-width: 100%;
-    min-height: 32px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .toolbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tfs,
-  .toolsRight {
-    flex: 0 0 auto;
-  }
-
-  .chart {
-    min-height: 240px;
-  }
 }

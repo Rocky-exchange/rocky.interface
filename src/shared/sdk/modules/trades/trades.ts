@@ -1,5 +1,5 @@
 import merge from "lodash/merge";
-import type { Address } from "viem";
+import type { Address } from "sdk/utils/evmCompat";
 
 import { getWrappedToken } from "sdk/configs/tokens";
 import { MarketsInfoData } from "sdk/types/markets";
@@ -13,7 +13,7 @@ import { isIncreaseOrderType, isLimitOrderType, isSwapOrderType, isTriggerDecrea
 import { getSwapPathOutputAddresses } from "sdk/utils/swap/swapStats";
 import { createRawTradeActionTransformer } from "sdk/utils/tradeHistory";
 
-import type { GmxSdk } from "../..";
+import type { TradingSdk } from "../..";
 import { Module } from "../base";
 
 export type MarketFilterLongShortDirection = "long" | "short" | "swap" | "any";
@@ -84,7 +84,7 @@ export async function fetchTradeActions({
   marketsInfoData,
   tokensData,
 }: {
-  sdk: GmxSdk;
+  sdk: TradingSdk;
   pageIndex: number;
   pageSize: number;
   marketsDirectionsFilter: MarketFilterLongShortItemData[] | undefined;

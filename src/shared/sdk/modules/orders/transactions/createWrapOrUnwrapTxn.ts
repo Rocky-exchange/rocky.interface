@@ -1,16 +1,16 @@
-import { Abi, Address } from "viem";
+import { Abi, Address } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 import { getWrappedToken } from "sdk/configs/tokens";
 
-import type { GmxSdk } from "../../../index";
+import type { TradingSdk } from "../../../index";
 
 export type WrapOrUnwrapParams = {
   amount: bigint;
   isWrap: boolean;
 };
 
-export function createWrapOrUnwrapTxn(sdk: GmxSdk, p: WrapOrUnwrapParams) {
+export function createWrapOrUnwrapTxn(sdk: TradingSdk, p: WrapOrUnwrapParams) {
   const wrappedToken = getWrappedToken(sdk.chainId);
 
   if (p.isWrap) {

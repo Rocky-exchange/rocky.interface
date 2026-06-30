@@ -1,7 +1,7 @@
-import type { GmxSdk } from "..";
+import type { TradingSdk } from "..";
 
 export class Module {
-  constructor(public sdk: GmxSdk) {
+  constructor(public sdk: TradingSdk) {
     this.sdk = sdk;
   }
 

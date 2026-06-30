@@ -1,5 +1,5 @@
 import cryptoJs from "crypto-js";
-import { Abi, decodeErrorResult } from "viem";
+import { Abi, decodeErrorResult } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 
@@ -230,7 +230,7 @@ function hasName(error: unknown): error is { name: string } {
 }
 
 export class CustomError extends Error {
-  isGmxCustomError = true;
+  isProtocolCustomError = true;
   args: any;
 
   constructor({ name, message, args }: { name: string; message: string; args: any }) {
@@ -241,7 +241,7 @@ export class CustomError extends Error {
 }
 
 export function isCustomError(error: Error | undefined): error is CustomError {
-  return (error as CustomError)?.isGmxCustomError === true;
+  return (error as CustomError)?.isProtocolCustomError === true;
 }
 
 export function getCustomError(error: Error): CustomError | Error {

@@ -31,22 +31,18 @@
       "app/*": ["./app/*"],
       "components/*": ["./shared/components/*"],
       "config/*": ["./shared/config/*"],
-      "context/*": ["./modules/dex/context/*"],
-      "domain/*": ["./modules/dex/domain/*"],
+      "domain/*": ["./modules/lighter/domain/*"],
       "fonts/*": ["./shared/fonts/*"],
       "img/*": ["./shared/img/*"],
       "lib/*": ["./shared/lib/*"],
       "locales/*": ["./shared/locales/*"],
-      "pages/*": ["./modules/dex/pages/*"],
-      "features/*": ["./modules/dex/features/*"],
       "modules/*": ["./modules/*"],
-      "landing/*": ["./modules/landing/*"],
       "shared/*": ["./shared/*"],
       "styles/*": ["./shared/styles/*"],
-      "typechain-types": ["./modules/dex/contracts/typechain-types"],
-      "typechain-types/*": ["./modules/dex/contracts/typechain-types/*"],
-      "typechain-types-stargate": ["./modules/dex/contracts/typechain-types-stargate"],
-      "typechain-types-stargate/*": ["./modules/dex/contracts/typechain-types-stargate/*"]
+      "typechain-types": ["./modules/lighter/contracts/typechain-types"],
+      "typechain-types/*": ["./modules/lighter/contracts/typechain-types/*"],
+      "typechain-types-stargate": ["./modules/lighter/contracts/typechain-types-stargate"],
+      "typechain-types-stargate/*": ["./modules/lighter/contracts/typechain-types-stargate/*"]
     }
   },
   "include": ["src", "viem-override.d.ts"]

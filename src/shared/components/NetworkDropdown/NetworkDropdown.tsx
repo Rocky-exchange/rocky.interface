@@ -4,11 +4,11 @@ import cx from "classnames";
 import noop from "lodash/noop";
 import partition from "lodash/partition";
 import { Fragment, useMemo, useState } from "react";
-import { useAccount } from "wagmi";
 
 import { getChainIcon } from "config/icons";
 import { isSourceChain } from "config/multichain";
 import type { NetworkOption } from "config/networkOptions";
+import { AVALANCHE_FUJI } from "config/chains";
 import { switchNetwork } from "lib/wallets";
 import { useIsNonEoaAccountOnAnyChain } from "lib/wallets/useAccountType";
 import { getChainName } from "sdk/configs/chains";
@@ -73,13 +73,14 @@ export default function NetworkDropdown(props: {
   );
 }
 function NavIcons({ chainId, open }) {
-  const icon = getChainIcon(chainId);
-  const chainName = getChainName(chainId);
+  const displayChainId = chainId || AVALANCHE_FUJI;
+  const icon = getChainIcon(displayChainId);
+  const chainName = getChainName(displayChainId);
 
   return (
     <>
       <img className="size-20" src={icon} alt={chainName} />
-
+      <span className="network-dropdown-current-chain max-md:hidden">{chainName.toUpperCase()}</span>
       <ChevronDownIcon className={cx("size-16", { "rotate-180": open })} />
     </>
   );
@@ -173,8 +174,6 @@ function NetworkMenuItem({
   chainId: number;
   disabled?: boolean;
 }) {
-  const { isConnected } = useAccount();
-
   const menuItemContent = (
     <div
       className={cx("network-dropdown-menu-item menu-item", {
@@ -185,7 +184,7 @@ function NetworkMenuItem({
         if (disabled) {
           return;
         }
-        switchNetwork(network.value, isConnected);
+        switchNetwork(network.value, false);
       }}
     >
       <div className="menu-item-group">
@@ -211,7 +210,11 @@ function NetworkMenuItem({
   return (
     <Menu.Item key={network.value} disabled={disabled}>
       {disabled ? (
-        <TooltipWithPortal variant="none" as="div" content={<Trans>Smart wallets are not supported on this network.</Trans>}>
+        <TooltipWithPortal
+          variant="none"
+          as="div"
+          content={<Trans>Smart wallets are not supported on this network.</Trans>}
+        >
           {menuItemContent}
         </TooltipWithPortal>
       ) : (
@@ -265,14 +268,12 @@ function NetworkModalContent({
 }
 
 function NetworkModalOption({ network, chainId }: { network: NetworkOption; chainId: number }) {
-  const { isConnected } = useAccount();
-
   const dotStyle = useMemo(() => {
     return { backgroundColor: network.value === chainId ? network.color : undefined };
   }, [chainId, network.color, network.value]);
 
   return (
-    <div className="network-option" onClick={() => switchNetwork(network.value, isConnected)} key={network.value}>
+    <div className="network-option" onClick={() => switchNetwork(network.value, false)} key={network.value}>
       <div className="menu-item-group">
         <img src={network.icon} alt={network.label} />
         <span>{network.label}</span>

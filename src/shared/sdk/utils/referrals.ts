@@ -1,7 +1,7 @@
 export const MAX_REFERRAL_CODE_LENGTH = 20;
 
-import { Hash, padHex, stringToHex, zeroHash } from "viem";
-import { bytesToString, hexToBytes } from "viem/utils";
+import { Hash, padHex, stringToHex, zeroHash } from "sdk/utils/evmCompat";
+import { bytesToString, hexToBytes } from "sdk/utils/evmCompat";
 
 export function decodeReferralCode(hexCode?: Hash) {
   if (!hexCode || hexCode === zeroHash) {

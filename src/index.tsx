@@ -9,7 +9,6 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { LANGUAGE_LOCALSTORAGE_KEY } from "config/localStorage";
 import { defaultLocale, dynamicActivate } from "lib/i18n";
 import { initSentry, Sentry } from "lib/sentry";
-import WalletProvider from "lib/wallets/WalletProvider";
 
 import App from "./app/App";
 import reportWebVitals from "./reportWebVitals";
@@ -44,9 +43,7 @@ function bootstrap() {
       }}
     >
       <Router>
-        <WalletProvider>
-          <App />
-        </WalletProvider>
+        <App />
       </Router>
     </Sentry.ErrorBoundary>
   );

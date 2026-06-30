@@ -127,9 +127,9 @@
 }
 
 .positive {
-  color: #1bd289;
+  color: var(--ltr-up);
 }
 
 .negative {
-  color: #ff384f;
+  color: var(--ltr-down);
 }

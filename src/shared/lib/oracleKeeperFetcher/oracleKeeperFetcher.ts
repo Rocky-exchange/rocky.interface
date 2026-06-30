@@ -8,7 +8,7 @@ import {
   OracleKeeperFallbackCounter,
   OracleKeeperMetricMethodId,
 } from "lib/metrics";
-import { getCandles, type KlinePeriod } from "@/modules/cex/lib/api/client";
+import { getCandles, type KlinePeriod } from "@/modules/lighter/api/client";
 import { getOracleKeeperFallbackUrls, getOracleKeeperUrl } from "sdk/configs/oracleKeeper";
 import { getNormalizedTokenSymbol } from "sdk/configs/tokens";
 import { buildUrl } from "sdk/utils/buildUrl";
@@ -98,8 +98,8 @@ function convertPeriodToApiFormat(period: string): KlinePeriod {
   return periodMap[period] || "1m";
 }
 
-// Check if we're in x10000 mode
-function isX10000Mode(): boolean {
+// Check if we're in trade mode
+function isTradeMode(): boolean {
   // 始终返回 true
   return true;
 }
@@ -165,7 +165,7 @@ export class OracleKeeperFetcher implements OracleFetcher {
   }
 
   fetchTickers(): Promise<TickersResponse> {
-    // Disabled: price data is fetched from rocky API
+    // Disabled: price data is fetched from Primit API
     return Promise.resolve([]);
 
     // return fetch(buildUrl(this.url!, "/prices/tickers"))
@@ -193,19 +193,11 @@ export class OracleKeeperFetcher implements OracleFetcher {
 
   fetchPostBatchReport(body: BatchReportBody, debug?: boolean): Promise<Response> {
     // Disabled: metrics reporting to oracle keeper is no longer used
-    if (debug) {
-      // eslint-disable-next-line no-console
-      console.log("sendBatchMetrics (disabled)", body);
-    }
     return Promise.resolve(new Response());
   }
 
   fetchPostFeedback(body: UserFeedbackBody, debug): Promise<Response> {
     // Disabled: feedback reporting to oracle keeper is no longer used
-    if (debug) {
-      // eslint-disable-next-line no-console
-      console.log("sendFeedback (disabled)", body);
-    }
     return Promise.resolve(new Response());
   }
 
@@ -215,8 +207,8 @@ export class OracleKeeperFetcher implements OracleFetcher {
   }
 
   async fetchOracleCandles(tokenSymbol: string, period: string, limit: number): Promise<FromNewToOldArray<Bar>> {
-    // Use new API for x10000 mode
-    if (isX10000Mode()) {
+    // Use new API for trade mode
+    if (isTradeMode()) {
       try {
         tokenSymbol = getNormalizedTokenSymbol(tokenSymbol);
         const apiSymbol = convertSymbolToApiFormat(tokenSymbol);
@@ -293,7 +285,7 @@ export class OracleKeeperFetcher implements OracleFetcher {
       }
     }
 
-    // Use old API for non-x10000 mode
+    // Use old API for non-trade mode
     tokenSymbol = getNormalizedTokenSymbol(tokenSymbol);
 
     return fetch(buildUrl(this.url!, "/prices/candles", { tokenSymbol, period, limit }))

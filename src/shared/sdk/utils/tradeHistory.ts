@@ -1,4 +1,4 @@
-import { getAddress } from "viem";
+import { getAddress } from "sdk/utils/evmCompat";
 
 import type { MarketsInfoData } from "sdk/types/markets";
 import type { TradeAction as SubsquidTradeAction } from "sdk/types/subsquid";

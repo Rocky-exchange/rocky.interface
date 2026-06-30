@@ -72,11 +72,21 @@
 }
 
 .marketCellLong {
-  background: linear-gradient(90deg, rgba(27, 210, 137, 0.22) 0%, rgba(27, 210, 137, 0.08) 56%, rgba(27, 210, 137, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ltr-up) 22%, transparent) 0%,
+    color-mix(in srgb, var(--ltr-up) 8%, transparent) 56%,
+    transparent 100%
+  );
 }
 
 .marketCellShort {
-  background: linear-gradient(90deg, rgba(255, 56, 79, 0.22) 0%, rgba(255, 56, 79, 0.08) 56%, rgba(255, 56, 79, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ltr-down) 22%, transparent) 0%,
+    color-mix(in srgb, var(--ltr-down) 8%, transparent) 56%,
+    transparent 100%
+  );
 }
 
 .marketStripe {
@@ -86,11 +96,11 @@
 }
 
 .marketCellLong .marketStripe {
-  background: #1bd289;
+  background: var(--ltr-up);
 }
 
 .marketCellShort .marketStripe {
-  background: #ff384f;
+  background: var(--ltr-down);
 }
 
 .marketContent {
@@ -101,12 +111,12 @@
 }
 
 .table tbody td.sideLong {
-  color: #53ca81;
+  color: var(--ltr-up);
   font-weight: 500;
 }
 
 .table tbody td.sideShort {
-  color: #df6570;
+  color: var(--ltr-down);
   font-weight: 500;
 }
 
@@ -136,13 +146,3 @@
 .colAverage { width: 72px; }
 .colReduceOnly { width: 76px; }
 .colStatus { width: 62px; }
-
-@media (max-width: 768px) {
-  .root {
-    overflow: auto;
-  }
-
-  .table {
-    min-width: 760px;
-  }
-}

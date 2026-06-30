@@ -1,4 +1,4 @@
-import { encodeAbiParameters, keccak256, stringToBytes } from "viem";
+import { encodeAbiParameters, keccak256, stringToBytes } from "sdk/utils/evmCompat";
 
 import { LRUCache } from "./LruCache";
 

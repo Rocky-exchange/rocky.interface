@@ -1,5 +1,3 @@
-import fetch from "cross-fetch";
-
 export default async function graphqlFetcher<T>(
   endpoint: string,
   query: string,

@@ -67,9 +67,9 @@ export type Order = {
   uiFeeReceiver: string;
   validFromTime: bigint;
   title?: string;
-  originalOrderId?: string; // For x10000 mode: store original API order ID
-  originalStatus?: string; // For x10000 mode: store original API order status
-  originalOrderType?: string; // For x10000 mode: store original API order type
+  originalOrderId?: string; // For API trading mode: store original API order ID
+  originalStatus?: string; // For API trading mode: store original API order status
+  originalOrderType?: string; // For API trading mode: store original API order type
 };
 
 export type SwapOrderInfo = Order & {

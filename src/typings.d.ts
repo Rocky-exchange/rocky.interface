@@ -1,10 +1,5 @@
-import "ethers";
 declare global {
-  interface Window {
-    ethereum?: any;
-    evmproviders?: Record<string, any>;
-    avalanche?: any;
-  }
+  interface Window {}
   interface Navigator {
     msSaveBlob?: (blob: any, defaultName?: string) => boolean;
   }
@@ -33,3 +28,5 @@ interface CustomEventMap {
   chartMouseMove: CustomEvent<{ x: number; y: number } | undefined>;
   networkChange: CustomEvent<{ chainId: number }>;
 }
+
+export {};

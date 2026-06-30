@@ -5,7 +5,7 @@ import { MarketInfo, MarketsInfoData } from "sdk/types/markets";
 import { TokenData, TokensData } from "sdk/types/tokens";
 import { getByKey } from "sdk/utils/objects";
 import * as swapPath from "sdk/utils/swap/swapPath";
-import { arbitrumSdk } from "sdk/utils/testUtil";
+import { disabledSdk } from "sdk/utils/testUtil";
 import * as tradeAmounts from "sdk/utils/trade/increase";
 
 describe("increaseOrderHelper", () => {
@@ -18,7 +18,7 @@ describe("increaseOrderHelper", () => {
   let collateralToken: TokenData;
 
   beforeAll(async () => {
-    const result = await arbitrumSdk.markets.getMarketsInfo();
+    const result = await disabledSdk.markets.getMarketsInfo();
 
     if (!result.marketsInfoData || !result.tokensData) {
       throw new Error("Markets info data or tokens data is not available");
@@ -50,7 +50,7 @@ describe("increaseOrderHelper", () => {
 
   describe("validation", () => {
     it("should throw an error if wrong collateral token selected", async () => {
-      const e = await arbitrumSdk.orders
+      const e = await disabledSdk.orders
         .long({
           ...mockParams,
           marketAddress: "0x47c031236e19d024b42f8AE6780E44A573170703",
@@ -64,7 +64,7 @@ describe("increaseOrderHelper", () => {
     });
 
     it("should throw an error if wrong collateral token selected", async () => {
-      const e = await arbitrumSdk.orders
+      const e = await disabledSdk.orders
         .long({
           ...mockParams,
           collateralTokenAddress: "0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A",
@@ -77,7 +77,7 @@ describe("increaseOrderHelper", () => {
     });
 
     it("should throw an error if wrong collateral token selected", async () => {
-      const e = await arbitrumSdk.orders
+      const e = await disabledSdk.orders
         .long({
           ...mockParams,
           collateralTokenAddress: "0x912CE59144191C1204E64559FE8253a0e49E6548",
@@ -94,14 +94,14 @@ describe("increaseOrderHelper", () => {
     beforeEach(() => {
       vi.clearAllMocks();
 
-      createIncreaseOrderSpy = vi.spyOn(arbitrumSdk.orders, "createIncreaseOrder").mockResolvedValue();
+      createIncreaseOrderSpy = vi.spyOn(disabledSdk.orders, "createIncreaseOrder").mockResolvedValue();
     });
 
     it("should call createIncreaseOrder with correct parameters for a market order with payAmount", async () => {
       const findSwapPathSpy = vi.spyOn(swapPath, "createFindSwapPath");
       const getIncreasePositionAmountsSpy = vi.spyOn(tradeAmounts, "getIncreasePositionAmounts");
 
-      await arbitrumSdk.orders.long(mockParams);
+      await disabledSdk.orders.long(mockParams);
 
       expect(findSwapPathSpy).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -146,10 +146,21 @@
 }
 
 .tpSl {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  min-width: 0;
   color: #b4b7c2;
+
+  // 数字部分可被压缩并省略,保证右侧编辑按钮始终可见
+  > span:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .editBadge {
@@ -165,6 +176,7 @@
   color: #c4c8d3;
   line-height: 1;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .editIcon {
@@ -192,12 +204,33 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  border: 1px solid rgba(255, 56, 79, 0.35);
-  background: rgba(255, 56, 79, 0.06);
-  color: #ff384f;
+  border: 1px solid color-mix(in srgb, var(--ltr-down) 35%, transparent);
+  background: color-mix(in srgb, var(--ltr-down) 6%, transparent);
+  color: var(--ltr-down);
   line-height: 1;
   cursor: pointer;
   transform: translateX(-10px);
+  transition: background 120ms, border-color 120ms, opacity 120ms;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 56, 79, 0.14);
+    border-color: rgba(255, 56, 79, 0.55);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.loadingSpinner {
+  animation: positions-close-spin 0.9s linear infinite;
+}
+
+@keyframes positions-close-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .actionIcon {
@@ -226,35 +259,3 @@
 .colFunding { width: 58px; }
 .colTpSl { width: 70px; }
 .colCloseAll { width: 64px; }
-
-@media (max-width: 768px) {
-  .root {
-    overflow: auto;
-  }
-
-  .table {
-    min-width: 960px;
-  }
-}
-
-@media (max-width: 480px) {
-  .table thead th,
-  .table tbody td {
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-
-  .table thead th:first-child,
-  .table tbody td:first-child {
-    padding-left: 8px;
-  }
-
-  .table thead th:last-child,
-  .table tbody td:last-child {
-    padding-right: 8px;
-  }
-
-  .closeActionButton {
-    transform: none;
-  }
-}

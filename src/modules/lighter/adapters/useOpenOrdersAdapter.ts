@@ -1,24 +1,21 @@
 import { useMemo } from "react";
-import { useAccount } from "wagmi";
 
-import { useApiOrders } from "@/modules/cex/lib/api";
-import { useOrdersInfoData } from "context/SyntheticsStateContext/hooks/globalsHooks";
+import { useApiOrders } from "@/modules/lighter/api";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
 
-import {
-  findOrderKeyByOriginalOrderId,
-  formatExpiry,
-  mapApiOrderToLighterOpenOrder,
-  type LighterOpenOrder,
-} from "./lighterOpenOrders";
+import { formatExpiry, mapApiOrderToLighterOpenOrder, type LighterOpenOrder } from "./lighterOpenOrders";
 
 export type { LighterOpenOrder } from "./lighterOpenOrders";
 
 export function useOpenOrdersAdapter(): LighterOpenOrder[] {
   const { chainId } = useChainId();
-  const { address } = useAccount();
-  const { apiOrders } = useApiOrders(chainId, address);
-  const ordersInfoData = useOrdersInfoData();
+  const cantonSession = useCantonSession();
+  const accountKey = useMemo(
+    () => (cantonSession.connected ? cantonSession.party || cantonSession.username || "canton-session" : undefined),
+    [cantonSession.connected, cantonSession.party, cantonSession.username]
+  );
+  const { apiOrders } = useApiOrders(chainId, accountKey);
 
   return useMemo(() => {
     const list = apiOrders;
@@ -29,14 +26,9 @@ export function useOpenOrdersAdapter(): LighterOpenOrder[] {
         const status = (order.status || "").toLowerCase();
         return status === "open" || status === "pending" || status === "partially_filled";
       })
-      .map((order) => {
-        const orderKey = findOrderKeyByOriginalOrderId(ordersInfoData, order.id);
-        const normalized = mapApiOrderToLighterOpenOrder(order, orderKey);
-
-        return {
-          ...normalized,
-          expiresIn: order.expires_at ? formatExpiry(order.expires_at) : null,
-        };
-      });
-  }, [apiOrders, ordersInfoData]);
+      .map((order) => ({
+        ...mapApiOrderToLighterOpenOrder(order),
+        expiresIn: order.expires_at ? formatExpiry(order.expires_at) : null,
+      }));
+  }, [apiOrders]);
 }

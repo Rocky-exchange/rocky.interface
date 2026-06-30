@@ -5,6 +5,14 @@
 
     cursor: pointer;
 
+    .primit-chevron-rotate {
+      transition: transform 180ms ease;
+    }
+
+    &-open .primit-chevron-rotate {
+      transform: rotate(180deg);
+    }
+
     &-disabled {
       cursor: text;
       opacity: 1;

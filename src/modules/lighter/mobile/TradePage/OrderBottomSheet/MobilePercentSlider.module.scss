@@ -1,0 +1,24 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.slider {
+  flex: 1;
+  height: 44px;
+  background: transparent;
+  accent-color: var(--ltr-up, #00FFB2);
+}
+
+.box {
+  width: 64px;
+  height: 36px;
+  text-align: center;
+  background: var(--ltr-bg-elev, #16161C);
+  border: 1px solid var(--ltr-border, #2B2B30);
+  border-radius: 8px;
+  color: var(--ltr-text-primary, #F3F3F3);
+  font-size: 14px;
+}

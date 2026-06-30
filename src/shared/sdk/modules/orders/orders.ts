@@ -1,4 +1,4 @@
-import { Address } from "viem";
+import { Address } from "sdk/utils/evmCompat";
 
 import { getWrappedToken } from "sdk/configs/tokens";
 import { MarketFilterLongShortItemData } from "sdk/modules/trades/trades";

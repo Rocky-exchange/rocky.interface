@@ -48,7 +48,7 @@ type Props = {
 };
 
 /**
- * GMX v1 launch date is 06 sept 2021
+ * Legacy v1 launch date is 06 sept 2021
  */
 const MIN_DATE = new Date(2021, 8, 6);
 const MAX_DATE = addYears(new Date(), 1);
@@ -178,7 +178,14 @@ export function DateRangeSelect({ startDate, endDate, onChange, handleClassName 
           />
           <div className="flex justify-between gap-4 border-t border-slate-600 p-12">
             {DATE_RANGE_SELECT_PRESETS.map((preset) => (
-              <Button key={preset} variant="secondary" size="small" data-preset={preset} onClick={handlePresetSelect}>
+              <Button
+                key={preset}
+                variant="secondary"
+                size="small"
+                className="primit-ui-button--no-navbar-line"
+                data-preset={preset}
+                onClick={handlePresetSelect}
+              >
                 {_(PRESET_LABELS[preset])}
               </Button>
             ))}
@@ -281,7 +288,14 @@ export function DateSelect({
         <Popover.Panel className="DateRangeSelect-popover" ref={refs.setFloating} style={floatingStyles}>
           <div className="flex gap-4 border-t border-slate-600 p-12">
             {DATE_SELECT_PRESETS.map((preset) => (
-              <Button key={preset} variant="secondary" size="small" data-preset={preset} onClick={handlePresetSelect}>
+              <Button
+                key={preset}
+                variant="secondary"
+                size="small"
+                className="primit-ui-button--no-navbar-line"
+                data-preset={preset}
+                onClick={handlePresetSelect}
+              >
                 {_(PRESET_LABELS[preset])}
               </Button>
             ))}

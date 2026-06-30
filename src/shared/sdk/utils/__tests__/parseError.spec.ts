@@ -127,7 +127,7 @@ describe("parseError", () => {
   });
 
   describe("transaction errors", () => {
-    it("should handle ethers v6 user rejected error", () => {
+    it("should handle wallet user rejected error", () => {
       const error: ErrorLike = {
         info: {
           error: {
@@ -150,7 +150,7 @@ describe("parseError", () => {
       );
     });
 
-    it("should handle ethers v6 insufficient funds error", () => {
+    it("should handle wallet insufficient funds error", () => {
       const error: ErrorLike = {
         info: {
           error: {

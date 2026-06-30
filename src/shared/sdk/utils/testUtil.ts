@@ -1,9 +1,9 @@
-import { createTestClient, http, publicActions, walletActions } from "viem";
+import { createTestClient, http, publicActions, walletActions } from "sdk/utils/evmCompat";
 
 import { ARBITRUM, getViemChain } from "sdk/configs/chains";
-import { GmxSdkConfig } from "sdk/types/sdk";
+import { TradingSdkConfig } from "sdk/types/sdk";
 
-import { GmxSdk } from "../index";
+import { TradingSdk } from "../index";
 
 const client = createTestClient({
   chain: getViemChain(ARBITRUM),
@@ -13,13 +13,13 @@ const client = createTestClient({
   .extend(publicActions)
   .extend(walletActions);
 
-export const arbitrumSdkConfig: GmxSdkConfig = {
+export const disabledSdkConfig: TradingSdkConfig = {
   chainId: ARBITRUM,
   account: "0x9f7198eb1b9Ccc0Eb7A07eD228d8FbC12963ea33",
-  oracleUrl: "https://arbitrum-api.gmxinfra.io",
-  rpcUrl: "https://arb1.arbitrum.io/rpc",
+  oracleUrl: "https://oracle.test.primit.io",
+  rpcUrl: "",
   walletClient: client,
-  subsquidUrl: "https://gmx.squids.live/gmx-synthetics-arbitrum:prod/api/graphql",
+  subsquidUrl: "https://subsquid.test.primit.io/api/graphql",
 };
 
-export const arbitrumSdk = new GmxSdk(arbitrumSdkConfig);
+export const disabledSdk = new TradingSdk(disabledSdkConfig);

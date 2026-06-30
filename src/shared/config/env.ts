@@ -1,7 +1,6 @@
 import { PRODUCTION_PREVIEW_KEY } from "./localStorage";
-import staticConfig from "../../../public/config.json";
 
-export const UI_VERSION = staticConfig.uiVersion;
+export const UI_VERSION = 1.6;
 
 export const IS_TOUCH = "ontouchstart" in self;
 
@@ -17,7 +16,7 @@ export function isDevelopment() {
       Boolean((self as DedicatedWorkerGlobalScope).PRODUCTION_PREVIEW_KEY)
     : Boolean(localStorage.getItem(PRODUCTION_PREVIEW_KEY));
 
-  return !self.location.host?.includes("gmx.io") && !self.location.host?.includes("ipfs.io") && !isProductionPreview;
+  return !self.location.host?.includes("primit.io") && !self.location.host?.includes("ipfs.io") && !isProductionPreview;
 }
 
 export function isLocal() {

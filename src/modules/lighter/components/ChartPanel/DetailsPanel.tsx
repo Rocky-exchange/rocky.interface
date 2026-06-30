@@ -1,15 +1,16 @@
-import { useMemo } from "react";
+import { Trans } from "@lingui/macro";
+import { useMemo, type ReactNode } from "react";
 
 import { useChainId } from "lib/chains";
-import { useApiMarketDetails } from "modules/cex/lib/api/hooks";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { useApiMarketDetails } from "modules/lighter/api/hooks";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 import TokenIcon from "components/TokenIcon/TokenIcon";
 
 import { buildDetailsViewModel } from "./detailsMock";
 import styles from "./DetailsPanel.module.scss";
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className={styles.summaryRow}>
       <span className={styles.summaryLabel}>{label}</span>
@@ -20,7 +21,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 export function DetailsPanel() {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
+  const { selectedSymbol } = useTradeState();
   const { details } = useApiMarketDetails(chainId, selectedSymbol ?? undefined);
   const model = useMemo(() => buildDetailsViewModel(details), [details]);
 
@@ -28,14 +29,14 @@ export function DetailsPanel() {
     return (
       <div className={styles.root}>
         <section className={styles.card}>
-          <div className={styles.description}>Loading…</div>
+          <div className={styles.description}>
+            <Trans>Loading…</Trans>
+          </div>
         </section>
         <section className={styles.card} />
       </div>
     );
   }
-
-  const baseLabel = `Min ${model.assetSymbol} Amount:`;
 
   return (
     <div className={styles.root}>
@@ -55,16 +56,19 @@ export function DetailsPanel() {
 
       <section className={styles.card}>
         <div className={styles.summaryList}>
-          <SummaryRow label="Market Name:" value={model.summary.marketName} />
-          <SummaryRow label={baseLabel} value={model.summary.minBtcAmount} />
-          <SummaryRow label="Min USD Amount:" value={model.summary.minUsdAmount} />
-          <SummaryRow label="Price Steps:" value={model.summary.priceSteps} />
-          <SummaryRow label="Max Leverage:" value={model.summary.maxLeverage} />
-          <SummaryRow label="Initial Margin Fraction:" value={model.summary.initialMarginFraction} />
-          <SummaryRow label="Maintenance Margin Fraction:" value={model.summary.maintenanceMarginFraction} />
-          <SummaryRow label="Close Out Margin Fraction:" value={model.summary.closeOutMarginFraction} />
-          <SummaryRow label="Market Cap:" value={model.summary.marketCap} />
-          <SummaryRow label="FDV:" value={model.summary.fdv} />
+          <SummaryRow label={<Trans>Market Name:</Trans>} value={model.summary.marketName} />
+          <SummaryRow label={<Trans>Min {model.assetSymbol} Amount:</Trans>} value={model.summary.minBtcAmount} />
+          <SummaryRow label={<Trans>Min USD Amount:</Trans>} value={model.summary.minUsdAmount} />
+          <SummaryRow label={<Trans>Price Steps:</Trans>} value={model.summary.priceSteps} />
+          <SummaryRow label={<Trans>Max Leverage:</Trans>} value={model.summary.maxLeverage} />
+          <SummaryRow label={<Trans>Initial Margin Fraction:</Trans>} value={model.summary.initialMarginFraction} />
+          <SummaryRow
+            label={<Trans>Maintenance Margin Fraction:</Trans>}
+            value={model.summary.maintenanceMarginFraction}
+          />
+          <SummaryRow label={<Trans>Close Out Margin Fraction:</Trans>} value={model.summary.closeOutMarginFraction} />
+          <SummaryRow label={<Trans>Market Cap:</Trans>} value={model.summary.marketCap} />
+          <SummaryRow label={<Trans>FDV:</Trans>} value={model.summary.fdv} />
         </div>
       </section>
     </div>

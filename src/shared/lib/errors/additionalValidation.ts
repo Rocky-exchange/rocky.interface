@@ -1,10 +1,15 @@
-import { BaseContract, Overrides, Provider, TransactionRequest } from "ethers";
-
 import { ErrorLike, parseError } from "lib/errors";
 import { ErrorEvent } from "lib/metrics";
 import { emitMetricEvent } from "lib/metrics/emitMetricEvent";
 import { ErrorPattern } from "sdk/utils/errors/transactionsErrors";
 import { mustNeverExist } from "sdk/utils/types";
+
+type TransactionRequest = Record<string, any>;
+type ProviderLike = {
+  estimateGas?: (txnData: TransactionRequest) => Promise<bigint>;
+  getTransaction?: (txnHash: string) => Promise<TransactionRequest | null>;
+  call?: (txnData: TransactionRequest) => Promise<unknown>;
+};
 
 const UNRECOGNIZED_ERROR_PATTERNS: ErrorPattern[] = [
   { msg: "header not found" },
@@ -39,7 +44,11 @@ export function getAdditionalValidationType(error: Error) {
   return undefined;
 }
 
-export function getEstimateGasError(provider: Provider, txnData: TransactionRequest) {
+export function getEstimateGasError(provider: ProviderLike, txnData: TransactionRequest) {
+  if (!provider.estimateGas) {
+    return Promise.resolve(new Error("EVM estimateGas is disabled in the Canton runtime"));
+  }
+
   return provider
     .estimateGas(txnData)
     .then(() => {
@@ -53,14 +62,14 @@ export function getEstimateGasError(provider: Provider, txnData: TransactionRequ
 
 export async function getCallStaticError(
   chainId: number,
-  provider: Provider,
+  provider: ProviderLike,
   txnData?: TransactionRequest,
   txnHash?: string
 ): Promise<{ error?: ErrorLike; txnData?: TransactionRequest }> {
   // if txnData is not provided, try to fetch it from blockchain by txnHash
   if (!txnData && txnHash) {
     try {
-      txnData = (await provider.getTransaction(txnHash)) || undefined;
+      txnData = (await provider.getTransaction?.(txnHash)) || undefined;
     } catch (error) {
       return { error };
     }
@@ -74,7 +83,7 @@ export async function getCallStaticError(
   }
 
   try {
-    // avalanche could return both gasPrice and maxPriorityFeePerGas/maxFeePerGas
+    // Some legacy providers could return both gasPrice and maxPriorityFeePerGas/maxFeePerGas
     // which is not allowed, so we need to delete gasPrice
 
     // EIP-1559
@@ -83,6 +92,10 @@ export async function getCallStaticError(
     } else {
       delete txnData.maxPriorityFeePerGas;
       delete txnData.maxFeePerGas;
+    }
+
+    if (!provider.call) {
+      throw new Error("EVM callStatic is disabled in the Canton runtime");
     }
 
     await provider.call(txnData);
@@ -97,7 +110,7 @@ export async function getCallStaticError(
 export async function additionalTxnErrorValidation(
   error: Error,
   chainId: number,
-  provider: Provider,
+  provider: ProviderLike,
   txnData: TransactionRequest
 ) {
   const additionalValidationType = getAdditionalValidationType(error);
@@ -154,10 +167,10 @@ export async function additionalTxnErrorValidation(
 
 export function makeTransactionErrorHandler(
   chainId: number,
-  contract: BaseContract,
+  contract: any,
   method: string,
   params: any[],
-  txnOpts: Overrides,
+  txnOpts: TransactionRequest,
   from: string
 ) {
   return async (error) => {

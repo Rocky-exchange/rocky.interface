@@ -1,5 +1,7 @@
 import cx from "classnames";
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+import { useDesignSystem } from "shared/context/DesignSystemContext/DesignSystemContext";
 
 import NestedTab from "./NestedTab";
 import RegularTab from "./RegularTab";
@@ -12,15 +14,29 @@ type Props<V extends BaseOptionValue> = {
   selectedValue: V | undefined;
   onChange?: (value: V) => void;
   size?: "l" | "m";
-  type?: "inline" | "block" | "inline-primary";
+  /**
+   * `primit-big-tab`：Primit 第 9 章 Big_Tab（40px、ac-15、选中底边线），见 `BigTab` / `primit-big-tab.primit.css`
+   */
+  type?: "inline" | "block" | "inline-primary" | "primit-big-tab";
   className?: string;
   regularOptionClassname?: string;
   qa?: string;
   rightContent?: ReactNode;
   /** 是否使用统一样式（自动应用 trade-direction-tab--active 类名和隐藏下划线） */
   useUnifiedStyle?: boolean;
+  /** block 类型：完全隐藏动画下划线 */
+  hideBlockUnderline?: boolean;
+  /**
+   * 与 useUnifiedStyle 联用：未传时由全局 `useDesignSystem().isPrimit`（`html[data-ui-theme]`）决定；
+   * 显式 `"default"` | `"primit"` 可覆盖。
+   */
+  unifiedStyleVariant?: "default" | "primit";
 };
 
+/**
+ * @deprecated 请改为从 `shared/ui` 引入：`import { Tabs } from "shared/ui"`.
+ * 当前文件保留为兼容层，避免历史引用立即中断。
+ */
 export default function Tabs<V extends string | number>({
   options,
   selectedValue,
@@ -33,9 +49,18 @@ export default function Tabs<V extends string | number>({
   qa,
   rightContent,
   useUnifiedStyle = false,
+  hideBlockUnderline = false,
+  unifiedStyleVariant,
 }: Props<V>) {
+  const { isPrimit } = useDesignSystem();
+  const effectiveUnifiedVariant =
+    unifiedStyleVariant !== undefined ? unifiedStyleVariant : isPrimit ? "primit" : "default";
+
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [underlineStyle, setUnderlineStyle] = useState<{ left: number; width: number } | null>(null);
+
+  const showBlockUnderline =
+    type === "block" && !useUnifiedStyle && !hideBlockUnderline;
 
   // 自动为统一样式的 tabs 添加 active className
   const processedOptions = useMemo(() => {
@@ -58,12 +83,14 @@ export default function Tabs<V extends string | number>({
   }, [options, useUnifiedStyle]);
 
   const updateUnderlinePosition = useCallback(() => {
-    if (type !== "block" || !tabsContainerRef.current || selectedValue === undefined) {
+    if (!showBlockUnderline || !tabsContainerRef.current || selectedValue === undefined) {
       return;
     }
 
     const container = tabsContainerRef.current;
-    const activeTab = container.querySelector(`[data-tab-value="${selectedValue}"]`) as HTMLElement;
+    const activeTab = container.querySelector(
+      `[data-tab-value="${CSS.escape(String(selectedValue))}"]`,
+    ) as HTMLElement;
 
     if (activeTab) {
       const containerRect = container.getBoundingClientRect();
@@ -73,36 +100,46 @@ export default function Tabs<V extends string | number>({
 
       setUnderlineStyle({ left, width });
     }
-  }, [selectedValue, type]);
+  }, [showBlockUnderline, selectedValue]);
 
-  useEffect(() => {
-    updateUnderlinePosition();
+  useLayoutEffect(() => {
+    const measure = () => {
+      updateUnderlinePosition();
+      requestAnimationFrame(() => updateUnderlinePosition());
+    };
+    measure();
+    void document.fonts?.ready?.then(measure);
 
-    // 监听窗口大小改变，重新计算下划线位置
-    if (type === "block") {
+    if (showBlockUnderline) {
       window.addEventListener("resize", updateUnderlinePosition);
       return () => {
         window.removeEventListener("resize", updateUnderlinePosition);
       };
     }
-  }, [updateUnderlinePosition, type]);
+  }, [showBlockUnderline, updateUnderlinePosition, processedOptions, selectedValue]);
 
   return (
     <div
       ref={tabsContainerRef}
       data-qa={qa}
+      data-tabs-type={type}
+      data-hide-block-underline={hideBlockUnderline || undefined}
       data-unified-style={useUnifiedStyle || undefined}
+      data-unified-variant={useUnifiedStyle && effectiveUnifiedVariant !== "default" ? effectiveUnifiedVariant : undefined}
       className={cx(
         "relative flex items-center justify-between",
         {
           "rounded-t-8": type === "block",
         },
-        className
+        type === "primit-big-tab" && "min-w-0",
+        className,
       )}
     >
       <div
         className={cx("flex w-full", {
           "gap-8": type === "inline" || type === "inline-primary",
+          "tabs-row--block": type === "block",
+          "min-w-0 shrink-0 gap-1": type === "primit-big-tab",
         })}
       >
         {processedOptions.map((opt) =>
@@ -127,8 +164,7 @@ export default function Tabs<V extends string | number>({
         )}
       </div>
 
-      {/* 下划线动画元素 - 仅用于 block 类型，统一样式的 tabs 不需要下划线 */}
-      {type === "block" && underlineStyle && !useUnifiedStyle && (
+      {showBlockUnderline && underlineStyle && (
         <div
           className="tab-underline-indicator"
           style={{

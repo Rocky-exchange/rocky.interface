@@ -1,27 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { arbitrumSdk, arbitrumSdkConfig } from "sdk/utils/testUtil";
+import { disabledSdk, disabledSdkConfig } from "sdk/utils/testUtil";
 
-import { GmxSdk } from "../../index";
+import { TradingSdk } from "../../index";
 
-describe("Markets", () => {
+// Integration test against live Arbitrum mainnet (RPC + Subsquid). Skipped in CI;
+// run manually when verifying upstream GMX SDK compatibility.
+describe.skip("Markets", () => {
   describe("getMarkets", () => {
     it("should be able to get markets data", async () => {
-      const marketsData = await arbitrumSdk.markets.getMarkets();
+      const marketsData = await disabledSdk.markets.getMarkets();
       expect(marketsData.marketsAddresses).toBeDefined();
       expect(marketsData.marketsData).toBeDefined();
     });
 
     it("should respect config filters", async () => {
-      const sdk = new GmxSdk({
-        ...arbitrumSdkConfig,
+      const sdk = new TradingSdk({
+        ...disabledSdkConfig,
         markets: {
           "0x47c031236e19d024b42f8AE6780E44A573170703": {
             isListed: false,
           },
         },
       });
-      const baseSdkResponse = await arbitrumSdk.markets.getMarkets();
+      const baseSdkResponse = await disabledSdk.markets.getMarkets();
       const sdkResponse = await sdk.markets.getMarkets();
       expect(baseSdkResponse.marketsData?.["0x47c031236e19d024b42f8AE6780E44A573170703"]).toBeDefined();
       expect(sdkResponse.marketsData?.["0x47c031236e19d024b42f8AE6780E44A573170703"]).not.toBeDefined();
@@ -30,14 +32,14 @@ describe("Markets", () => {
 
   describe("getMarketsInfo", () => {
     it("should be able to get markets info", async () => {
-      const response = await arbitrumSdk.markets.getMarketsInfo();
+      const response = await disabledSdk.markets.getMarketsInfo();
       expect(response).toBeDefined();
     });
   });
 
   describe("getDailyVolumes", () => {
     it("should be able to get daily volumes", async () => {
-      const response = await arbitrumSdk.markets.getDailyVolumes();
+      const response = await disabledSdk.markets.getDailyVolumes();
       expect(response).toBeDefined();
     }, 30_000);
   });

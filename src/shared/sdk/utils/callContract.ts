@@ -1,4 +1,4 @@
-import { Abi, Address, encodeFunctionData, PublicClient, withRetry } from "viem";
+import { Abi, Address, encodeFunctionData, PublicClient, withRetry } from "sdk/utils/evmCompat";
 
 import {
   GAS_PRICE_BUFFER_MAP,
@@ -9,12 +9,12 @@ import {
 } from "sdk/configs/chains";
 import { BASIS_POINTS_DIVISOR_BIGINT } from "sdk/configs/factors";
 
-import type { GmxSdk } from "../index";
+import type { TradingSdk } from "../index";
 import { bigMath } from "./bigmath";
 
 export async function getGasPrice(client: PublicClient, chainId: number) {
   let maxFeePerGas = MAX_FEE_PER_GAS_MAP[chainId];
-  const premium: bigint = GAS_PRICE_PREMIUM_MAP[chainId] || 0n;
+  const premium: bigint = GAS_PRICE_PREMIUM_MAP[chainId] ?? 0n;
 
   const feeData = await withRetry(
     () =>
@@ -35,7 +35,7 @@ export async function getGasPrice(client: PublicClient, chainId: number) {
 
   const gasPrice = feeData.gasPrice;
 
-  if (maxFeePerGas) {
+  if (maxFeePerGas !== undefined && maxFeePerGas !== null) {
     if (gasPrice !== undefined && gasPrice !== null) {
       maxFeePerGas = bigMath.max(gasPrice, maxFeePerGas);
     }
@@ -61,7 +61,7 @@ export async function getGasPrice(client: PublicClient, chainId: number) {
     throw new Error("Can't fetch gas price");
   }
 
-  const bufferBps: bigint = GAS_PRICE_BUFFER_MAP[chainId] || 0n;
+  const bufferBps: bigint = GAS_PRICE_BUFFER_MAP[chainId] ?? 0n;
   const buffer = bigMath.mulDiv(gasPrice, bufferBps, BASIS_POINTS_DIVISOR_BIGINT);
 
   return {
@@ -128,7 +128,7 @@ export interface CallContractOpts {
 }
 
 export async function callContract(
-  sdk: GmxSdk,
+  sdk: TradingSdk,
   contractAddress: Address,
   abi: Abi,
   method: string,

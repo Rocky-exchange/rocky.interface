@@ -1,5 +1,6 @@
 import { ARBITRUM, ARBITRUM_SEPOLIA, AVALANCHE, AVALANCHE_FUJI, BOTANIX, ContractsChainId } from "config/chains";
-import { Address } from "viem";
+
+type Address = `0x${string}`;
 
 /**
  * Market addresses used for RPC health check probing

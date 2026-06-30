@@ -1,4 +1,4 @@
-import type { MarketDetailsResponse } from "modules/cex/lib/api/custom/client";
+import type { MarketDetailsResponse } from "modules/lighter/api/custom/client";
 
 type DetailsSummary = {
   marketName: string;

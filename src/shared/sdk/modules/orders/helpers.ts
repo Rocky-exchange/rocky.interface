@@ -9,7 +9,7 @@ import { createFindSwapPath } from "sdk/utils/swap/swapPath";
 import { convertToUsd, getIsUnwrap, getIsWrap, getTokensRatioByPrice } from "sdk/utils/tokens";
 import { getIncreasePositionAmounts } from "sdk/utils/trade/increase";
 
-import type { GmxSdk } from "../..";
+import type { TradingSdk } from "../..";
 
 /** Base Optional params for helpers, allows to avoid calling markets, tokens and uiFeeFactor methods if they are already passed */
 interface BaseOptionalParams {
@@ -56,7 +56,7 @@ function passThoughOrFetch<T>(value: T, condition: (input: T) => boolean, fetchF
 }
 
 async function getAndValidateBaseParams(
-  sdk: GmxSdk,
+  sdk: TradingSdk,
   params: BaseOptionalParams
 ): Promise<Required<BaseOptionalParams>> {
   const [marketsInfoResult, uiFeeFactor, gasPrice, gasLimits] = await Promise.all([
@@ -115,7 +115,7 @@ async function getAndValidateBaseParams(
 }
 
 export async function increaseOrderHelper(
-  sdk: GmxSdk,
+  sdk: TradingSdk,
   params: PositionIncreaseParams & {
     isLong: boolean;
   }
@@ -259,7 +259,7 @@ export type SwapParams = (
   triggerPrice?: bigint;
 } & BaseOptionalParams;
 
-export async function swap(sdk: GmxSdk, params: SwapParams) {
+export async function swap(sdk: TradingSdk, params: SwapParams) {
   const { tokensData, marketsInfoData, uiFeeFactor, gasLimits, gasPrice } = await getAndValidateBaseParams(sdk, params);
 
   const fromToken = tokensData[params.fromTokenAddress];

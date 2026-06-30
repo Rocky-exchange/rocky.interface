@@ -1,8 +1,8 @@
-import type { Address } from "viem";
-
 import { UserFeedback } from "domain/synthetics/userFeedback";
 import { FromNewToOldArray, Bar } from "domain/tradingview/types";
 import { OracleKeeperMetricMethodId } from "lib/metrics";
+
+type Address = `0x${string}`;
 
 export type EventPayload = {
   isError: boolean;

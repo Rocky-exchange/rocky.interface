@@ -1,17 +1,11 @@
-import { Contract, ContractRunner, ethers, InterfaceAbi } from "ethers";
-import type { Address } from "viem";
-
 import { ContractName, getContract } from "sdk/configs/contracts";
-import {
-  GlvRouter__factory,
-  DataStore__factory,
-  ExchangeRouter__factory,
-  Multicall3__factory,
-} from "typechain-types";
 
 import { ContractsChainId } from "./chains";
 
-const { ZeroAddress } = ethers;
+type ContractRunner = unknown;
+type Address = `0x${string}`;
+
+const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
 
 export { getContract } from "sdk/configs/contracts";
 
@@ -22,20 +16,30 @@ export const XGMT_EXCLUDED_ACCOUNTS = [
   "0xffd0a93b4362052a336a7b22494f1b77018dd34b",
 ];
 
-function makeGetContract<T extends { abi: InterfaceAbi; connect: (address: string) => unknown }>(
-  name: ContractName,
-  factory: T
-) {
-  return (chainId: ContractsChainId, provider?: ContractRunner) =>
-    new Contract(getContract(chainId, name), factory.abi, provider) as unknown as ReturnType<T["connect"]>;
+function makeDisabledContract(name: ContractName) {
+  return (chainId: ContractsChainId, _provider?: ContractRunner) => {
+    const address = getContract(chainId, name);
+
+    return {
+      address,
+      target: address,
+      runner: undefined,
+      interface: undefined,
+    } as any;
+  };
 }
 
-export const getDataStoreContract = makeGetContract("DataStore", DataStore__factory);
-export const getMulticallContract = makeGetContract("Multicall", Multicall3__factory);
-export const getExchangeRouterContract = makeGetContract("ExchangeRouter", ExchangeRouter__factory);
-export const getGlvRouterContract = makeGetContract("GlvRouter", GlvRouter__factory);
+export const getDataStoreContract = makeDisabledContract("DataStore");
+export const getMulticallContract = makeDisabledContract("Multicall");
+export const getExchangeRouterContract = makeDisabledContract("ExchangeRouter");
+export const getGlvRouterContract = makeDisabledContract("GlvRouter");
 
-export const getZeroAddressContract = (provider?: ContractRunner) => new Contract(ZeroAddress, [], provider);
+export const getZeroAddressContract = (_provider?: ContractRunner) => ({
+  address: ZERO_ADDRESS,
+  target: ZERO_ADDRESS,
+  runner: undefined,
+  interface: undefined,
+}) as any;
 
 export function tryGetContract(chainId: ContractsChainId, name: ContractName): Address | undefined {
   try {

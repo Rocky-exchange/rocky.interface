@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { getContract } from "config/contracts";
+import { tryGetContract } from "config/contracts";
 import type { ContractsChainId } from "sdk/configs/chains";
 
 import { useMulticall } from "./multicall";
@@ -19,14 +19,16 @@ export function useBlockTimestampRequest(
   chainId: ContractsChainId,
   { skip }: { skip?: boolean } = {}
 ): BlockTimestampResult {
+  const multicallAddress = !skip ? tryGetContract(chainId, "Multicall") : undefined;
+
   const { data } = useMulticall(chainId, "useBlockTimestamp", {
-    key: !skip ? [] : null,
+    key: !skip && multicallAddress ? [] : null,
 
     refreshInterval: FREQUENT_UPDATE_INTERVAL,
 
     request: () => ({
       multicall: {
-        contractAddress: getContract(chainId, "Multicall"),
+        contractAddress: multicallAddress!,
         abiId: "Multicall",
         calls: {
           getCurrentBlockTimestamp: {

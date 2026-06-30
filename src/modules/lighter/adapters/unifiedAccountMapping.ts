@@ -1,4 +1,4 @@
-import type { UnifiedAccountResponse } from "modules/cex/lib/api/custom/client";
+import type { UnifiedAccountResponse } from "modules/lighter/api/custom/client";
 
 export type LighterUnifiedAccountPanelModel = {
   perpetualsEquity: number | null;

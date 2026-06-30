@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
-import { getCandles, type KlinePeriod } from "@/modules/cex/lib/api/custom/client";
-import { useX10000State } from "@/modules/cex/store/X10000StateContext";
+import { getCandles, type KlinePeriod } from "@/modules/lighter/api/custom/client";
+import { useTradeState } from "@/modules/lighter/store/TradeStateContext";
 import { useChainId } from "lib/chains";
 
 import { TVChart } from "components/TVChart/TVChart";
 import type { TVChartLayout } from "components/TVChartContainer/TVChartContainer";
 
 import styles from "./LighterOriginalChart.module.scss";
-import type { CrossHairMovedEventParams } from "../../../../../charting_library";
+import type { CrossHairMovedEventParams } from "charting_library";
 
 const LIGHTER_ORIGINAL_TV_DISABLED: string[] = [
   "header_resolutions",
@@ -157,7 +157,7 @@ function parseHoverStats(params: CrossHairMovedEventParams | null): HoverStats |
 
 export function LighterOriginalChart({ timeframe }: { timeframe: string }) {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
+  const { selectedSymbol } = useTradeState();
   const period = PERIOD_MAP[timeframe] ?? "5m";
   const [hoverStats, setHoverStats] = useState<HoverStats | null>(null);
   const [layout, setLayout] = useState<TVChartLayout | null>(null);
@@ -268,8 +268,8 @@ export function LighterOriginalChart({ timeframe }: { timeframe: string }) {
           initialBarsCount={170}
           onCrosshairMove={handleCrosshairMove}
           onLayoutChange={setLayout}
-          x10000VisiblePlotsSet="ohlc"
-          x10000VolumeMetric="quote"
+          visiblePlotsSet="ohlc"
+          volumeMetric="quote"
           createVolumeStudyOnReady
           loadLastChart={false}
           disableAutoSave

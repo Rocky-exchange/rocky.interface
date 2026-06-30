@@ -58,7 +58,9 @@ export const chartOverridesLight: Partial<WidgetOverrides> = {
 export const disabledFeaturesOnMobile: ChartingLibraryFeatureset[] = ["header_saveload", "header_fullscreen_button"];
 
 const disabledFeatures: ChartingLibraryFeatureset[] = [
-  // Removed "volume_force_overlay" and "create_volume_indicator_by_default" to allow volume display
+  // 关闭「强制把 Volume 叠在主图」：默认在独立子窗格，可拖中间分隔条调高度（与 TradingView 桌面行为一致）。
+  // 仍保留 create_volume_indicator_by_default 在 enabled_features，避免「不显示成交量」。
+  "volume_force_overlay",
   "header_compare",
   "symbol_search_hot_key",
   "allow_arbitrary_symbol_search_input",

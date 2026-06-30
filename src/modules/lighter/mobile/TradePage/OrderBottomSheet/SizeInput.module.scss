@@ -1,0 +1,43 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--ltr-text-secondary, #B4B4B6);
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--ltr-text-primary, #F3F3F3);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.unitButton {
+  min-width: 64px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: transparent;
+  border: 0;
+  color: var(--ltr-text-secondary, #B4B4B6);
+  font-size: 13px;
+}

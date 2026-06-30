@@ -131,7 +131,9 @@ export async function connectLoopWallet(): Promise<ConnectedWallet> {
 export const loopWalletAdapter: WalletProviderAdapter = {
   provider: "loop",
   connect: connectLoopWallet,
-  async disconnect() {},
+  async disconnect() {
+    return undefined;
+  },
   async getPartyId() {
     return null;
   },
@@ -279,7 +281,7 @@ function describeLoopError(error: unknown): string {
   if (typeof error === "object") {
     try {
       return JSON.stringify(error);
-    } catch {
+    } catch (_error) {
       return String(error);
     }
   }

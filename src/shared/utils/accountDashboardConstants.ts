@@ -7,12 +7,11 @@ export const NETWORK_QUERY_PARAM = "network";
 export const VERSION_QUERY_PARAM = "v";
 
 export const NETWORK_ID_SLUGS_MAP: Record<ContractsChainId, string> = {
-  [ARBITRUM]: "arbitrum",
-  [AVALANCHE]: "avalanche",
-  [AVALANCHE_FUJI]: "avalanche_fuji",
+  [ARBITRUM]: "disabled",
+  [AVALANCHE]: "disabled",
+  [AVALANCHE_FUJI]: "disabled",
   [BOTANIX]: "botanix",
-  [ARBITRUM_SEPOLIA]: "arbitrum_sepolia",
+  [ARBITRUM_SEPOLIA]: "disabled",
 };
 
 export const NETWORK_SLUGS_ID_MAP = mapValues(invert(NETWORK_ID_SLUGS_MAP), Number);
-

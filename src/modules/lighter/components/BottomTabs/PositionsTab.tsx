@@ -1,12 +1,24 @@
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useCallback, useMemo, useState } from "react";
+import { useSWRConfig } from "swr";
 
-import { useClosePositionHandler } from "@/modules/cex/lib/api/useClosePositionHandler";
+import { useClosePositionHandler } from "@/modules/lighter/api";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { useChainId } from "lib/chains";
+
 import type { BottomTabFilterMode } from "./BottomTabs";
 import styles from "./PositionsTab.module.scss";
 import { TpSlPositionModal } from "./TpSlPositionModal";
 import { usePositionsAdapter, type LighterPosition } from "../../adapters/usePositionsAdapter";
 
 type PositionRow = {
+  /** 用于调用 POST /positions/:id/close 的持仓 ID。 */
+  positionId: string;
+  /** 数字形式的 base-asset 数量(如 0.5 BTC),用于显示 */
+  sizeTokenAmount: number;
+  /** 持仓 USD 金额,用于 close 请求体的 size 字段(后端期望 USD 而非 token 数量) */
+  sizeUsd: number;
   market: string;
   leverage: string;
   side: "long" | "short" | null;
@@ -48,6 +60,17 @@ function ClosePositionIcon() {
           strokeLinejoin="round"
           strokeWidth="16"
         />
+      </svg>
+    </span>
+  );
+}
+
+function CloseSpinnerIcon() {
+  return (
+    <span className={styles.actionIcon}>
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={styles.loadingSpinner}>
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" />
+        <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
       </svg>
     </span>
   );
@@ -129,6 +152,9 @@ function formatPercent(value: number | null | undefined) {
 
 function toRow(position: LighterPosition): PositionRow {
   return {
+    positionId: position.positionId,
+    sizeTokenAmount: Number.isFinite(position.sizeTokenAmount) ? position.sizeTokenAmount : 0,
+    sizeUsd: Number.isFinite(position.size) ? position.size : 0,
     market: position.market,
     leverage: position.leverage && position.leverage !== "0x" ? position.leverage : "--",
     side: position.side,
@@ -150,25 +176,44 @@ function toRow(position: LighterPosition): PositionRow {
 }
 
 export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
+  const { i18n } = useLingui();
   const positions = usePositionsAdapter();
+  const { chainId } = useChainId();
+  const cantonSession = useCantonSession();
+  const accountKey = useMemo(
+    () => (cantonSession.connected ? cantonSession.party || cantonSession.username || "canton-session" : undefined),
+    [cantonSession.connected, cantonSession.party, cantonSession.username]
+  );
+  const { mutate } = useSWRConfig();
+  const { closePositionViaApi, isReady: isCloseReady } = useClosePositionHandler();
   const [editingTpSlPositionKey, setEditingTpSlPositionKey] = useState<string | undefined>();
-  const [closingId, setClosingId] = useState<string | null>(null);
-  const { closePositionViaApi, isReady } = useClosePositionHandler();
+  const [closingPositionId, setClosingPositionId] = useState<string | undefined>();
 
-  const handleClose = useCallback(
+  const handleClosePosition = useCallback(
     async (positionId: string, sizeUsd: number) => {
-      if (!positionId || closingId) return;
-      if (!Number.isFinite(sizeUsd) || sizeUsd <= 0) return;
-      setClosingId(positionId);
+      if (!positionId || closingPositionId) return;
+      if (!isCloseReady) return;
+      setClosingPositionId(positionId);
       try {
-        await closePositionViaApi(positionId, { size: sizeUsd.toString() });
-      } catch {
-        // helperToast already surfaced the error from useClosePositionHandler
+        // 后端 POST /positions/:id/close 的 size 字段是 USD 金额（不是 token 数量）。
+        // price 留空 → 走市价平仓。传整个持仓的 USD 金额实现全平。
+        const sizePayload =
+          Number.isFinite(sizeUsd) && sizeUsd > 0
+            ? { size: String(sizeUsd) }
+            : {};
+        await closePositionViaApi(positionId, sizePayload);
+        // 手动触发持仓/订单 SWR 重算,不用等 2s 轮询;与 ModifyOrderModal 内的 mutate 保持一致。
+        await Promise.all([
+          mutate(["primit-positions", chainId, accountKey], undefined, { revalidate: true }),
+          mutate(["primit-orders", chainId, accountKey], undefined, { revalidate: true }),
+        ]);
+      } catch (_error) {
+        // closePositionViaApi 内部已经 toast,无需在这里重复处理
       } finally {
-        setClosingId(null);
+        setClosingPositionId(undefined);
       }
     },
-    [closePositionViaApi, closingId]
+    [accountKey, chainId, closePositionViaApi, closingPositionId, isCloseReady, mutate]
   );
 
   const filteredPositions = useMemo(() => {
@@ -204,28 +249,50 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
         </colgroup>
         <thead>
           <tr>
-            <th>Market</th>
-            <th>Size</th>
-            <th>Position Value</th>
-            <th>Entry Price</th>
-            <th>Mark Price</th>
-            <th>Liq. Price</th>
-            <th>Unrealized PnL</th>
-            <th>Margin</th>
-            <th>Funding</th>
-            <th>TP / SL</th>
-            <th>Close All</th>
+            <th>
+              <Trans>Market</Trans>
+            </th>
+            <th>
+              <Trans>Size</Trans>
+            </th>
+            <th>
+              <Trans>Position Value</Trans>
+            </th>
+            <th>
+              <Trans>Entry Price</Trans>
+            </th>
+            <th>
+              <Trans>Mark Price</Trans>
+            </th>
+            <th>
+              <Trans>Liq. Price</Trans>
+            </th>
+            <th>
+              <Trans>Unrealized PnL</Trans>
+            </th>
+            <th>
+              <Trans>Margin</Trans>
+            </th>
+            <th>
+              <Trans>Funding</Trans>
+            </th>
+            <th>
+              <Trans>TP / SL</Trans>
+            </th>
+            <th>
+              <Trans>Close All</Trans>
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => {
             const rowKey = `${row.market}-${index}`;
-            const pos = filteredPositions[index];
-            const positionId = pos?.positionId ?? "";
-            const positionSizeUsd = pos?.size ?? 0;
-            const isClosingThis = closingId === positionId;
             const pnlTone =
-              row.unrealizedPnlValue == null ? styles.placeholder : row.unrealizedPnlValue >= 0 ? styles.up : styles.down;
+              row.unrealizedPnlValue == null
+                ? styles.placeholder
+                : row.unrealizedPnlValue >= 0
+                  ? styles.up
+                  : styles.down;
             return (
               <tr key={rowKey}>
                 <td>
@@ -243,26 +310,42 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                     </span>
                   </span>
                 </td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.size === "--" ? styles.placeholder : ""}`}>{row.size}</td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.positionValue === "--" ? styles.placeholder : ""}`}>{row.positionValue}</td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.entryPrice === "--" ? styles.placeholder : ""}`}>{row.entryPrice}</td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.markPrice === "--" ? styles.placeholder : ""}`}>{row.markPrice}</td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.liqPrice === "--" ? styles.placeholder : ""}`}>{row.liqPrice}</td>
+                <td className={`${styles.mono} ${styles.numeric} ${row.size === "--" ? styles.placeholder : ""}`}>
+                  {row.size}
+                </td>
+                <td
+                  className={`${styles.mono} ${styles.numeric} ${row.positionValue === "--" ? styles.placeholder : ""}`}
+                >
+                  {row.positionValue}
+                </td>
+                <td className={`${styles.mono} ${styles.numeric} ${row.entryPrice === "--" ? styles.placeholder : ""}`}>
+                  {row.entryPrice}
+                </td>
+                <td className={`${styles.mono} ${styles.numeric} ${row.markPrice === "--" ? styles.placeholder : ""}`}>
+                  {row.markPrice}
+                </td>
+                <td className={`${styles.mono} ${styles.numeric} ${row.liqPrice === "--" ? styles.placeholder : ""}`}>
+                  {row.liqPrice}
+                </td>
                 <td>
                   <span className={`${styles.pnlCell} ${pnlTone}`}>
                     <span>{row.unrealizedPnl}</span>
                     {row.unrealizedPnlPct ? <span className={styles.pnlPct}>{row.unrealizedPnlPct}</span> : null}
                   </span>
                 </td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.margin === "--" ? styles.placeholder : ""}`}>{row.margin}</td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.funding === "--" ? styles.placeholder : ""}`}>{row.funding}</td>
+                <td className={`${styles.mono} ${styles.numeric} ${row.margin === "--" ? styles.placeholder : ""}`}>
+                  {row.margin}
+                </td>
+                <td className={`${styles.mono} ${styles.numeric} ${row.funding === "--" ? styles.placeholder : ""}`}>
+                  {row.funding}
+                </td>
                 <td>
                   <span className={styles.tpSl}>
                     <span className={row.tpSl === "-- / --" ? styles.placeholder : ""}>{row.tpSl}</span>
                     <button
                       type="button"
                       className={styles.editBadge}
-                      aria-label={`Edit take profit / stop loss for ${row.market}`}
+                      aria-label={i18n._(t`Edit take profit / stop loss for ${row.market}`)}
                       onClick={() => setEditingTpSlPositionKey(rowKey)}
                     >
                       <EditTpSlIcon />
@@ -273,12 +356,11 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                   <button
                     type="button"
                     className={styles.closeActionButton}
-                    aria-label={`Close ${row.market} position`}
-                    onClick={() => handleClose(positionId, positionSizeUsd)}
-                    disabled={!isReady || !positionId || positionSizeUsd <= 0 || isClosingThis}
-                    style={isClosingThis ? { opacity: 0.5, cursor: "default" } : undefined}
+                    aria-label={i18n._(t`Close ${row.market} position`)}
+                    disabled={!row.positionId || !isCloseReady || closingPositionId === row.positionId}
+                    onClick={() => void handleClosePosition(row.positionId, row.sizeUsd)}
                   >
-                    <ClosePositionIcon />
+                    {closingPositionId === row.positionId ? <CloseSpinnerIcon /> : <ClosePositionIcon />}
                   </button>
                 </td>
               </tr>

@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/macro";
+
 import styles from "./AssetsTab.module.scss";
 import type { BottomTabFilterMode } from "./BottomTabs";
 import { useAssetsAdapter } from "../../adapters/useAssetsAdapter";
@@ -33,13 +35,23 @@ export function AssetsTab({ mode: _mode = "all" }: { mode?: BottomTabFilterMode 
         </colgroup>
         <thead>
           <tr>
-            <th>Asset</th>
-            <th>Total Balance</th>
-            <th>Available Balance</th>
-            <th>PnL</th>
+            <th>
+              <Trans>Asset</Trans>
+            </th>
+            <th>
+              <Trans>Total Balance</Trans>
+            </th>
+            <th>
+              <Trans>Available Balance</Trans>
+            </th>
+            <th>
+              <Trans>PnL</Trans>
+            </th>
             <th>
               <span className={styles.sortHeader}>
-                <span>USDC Value</span>
+                <span>
+                  <Trans>USDC Value</Trans>
+                </span>
                 <span className={styles.sortCaret}>⌄</span>
               </span>
             </th>
@@ -60,10 +72,14 @@ export function AssetsTab({ mode: _mode = "all" }: { mode?: BottomTabFilterMode 
                     </span>
                   </span>
                 </td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.totalBalance == null ? styles.placeholder : ""}`}>
+                <td
+                  className={`${styles.mono} ${styles.numeric} ${row.totalBalance == null ? styles.placeholder : ""}`}
+                >
                   {formatAsset(row.totalBalance, row.asset)}
                 </td>
-                <td className={`${styles.mono} ${styles.numeric} ${row.availableBalance == null ? styles.placeholder : ""}`}>
+                <td
+                  className={`${styles.mono} ${styles.numeric} ${row.availableBalance == null ? styles.placeholder : ""}`}
+                >
                   {formatAsset(row.availableBalance, row.asset)}
                 </td>
                 <td className={`${styles.mono} ${styles.numeric} ${row.pnl == null ? styles.placeholder : ""}`}>

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
-import { useZtdxUserPositions } from "modules/cex/lib/api/hooks";
-import type { Position } from "modules/cex/lib/api/types";
+import { usePrimitUserPositions } from "modules/lighter/api/hooks";
+import type { Position } from "modules/lighter/api/types";
 
 export type LighterPosition = {
   positionId: string;
@@ -51,13 +51,13 @@ function toPosition(position: Position): LighterPosition {
     unrealizedPnlPct: Number.isFinite(pnlPercent) ? pnlPercent * 100 : null,
     margin: parseNumber(position.collateral_amount || position.margin),
     funding: null,
-    takeProfit: null,
-    stopLoss: null,
+    takeProfit: position.take_profit_price ? parseNumber(position.take_profit_price) : null,
+    stopLoss: position.stop_loss_price ? parseNumber(position.stop_loss_price) : null,
   };
 }
 
 export function usePositionsAdapter(): LighterPosition[] {
-  const { data } = useZtdxUserPositions();
+  const { data } = usePrimitUserPositions();
 
   return useMemo(() => {
     return (data?.positions ?? []).map(toPosition);

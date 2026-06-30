@@ -1,0 +1,30 @@
+.tablist {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ltr-border, #2B2B30);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  white-space: nowrap;
+  color: var(--ltr-text-secondary, #B4B4B6);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.tabActive {
+  color: var(--ltr-text-primary, #F3F3F3);
+  border-bottom: 2px solid var(--ltr-up, #00FFB2);
+}

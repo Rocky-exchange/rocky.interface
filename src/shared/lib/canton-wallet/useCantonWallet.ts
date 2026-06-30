@@ -1,5 +1,12 @@
 import { useCallback, useState } from "react";
-import { connectLoopWallet, connectConsoleWallet, createExchangeSession } from "./index";
+import {
+  connectLoopWallet,
+  connectConsoleWallet,
+  connectRockyWallet,
+  createExchangeSession,
+  type RockyWalletAuthInput,
+  type RockyWalletAuthResult,
+} from "./index";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
 export function useCantonWallet() {
@@ -21,12 +28,36 @@ export function useCantonWallet() {
     }
   }, []);
 
+  const connectRocky = useCallback(async (input: RockyWalletAuthInput): Promise<RockyWalletAuthResult> => {
+    setConnecting(true);
+    setError(null);
+    try {
+      const result = await connectRockyWallet(input);
+      notifyCantonSessionChange();
+      return result;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Rocky wallet login failed");
+      throw e;
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
   const disconnect = useCallback(() => {
-    ["rocky_exchange_session", "rocky_user_id", "rocky_binding_id", "mtc_party", "mtc_username", "mtc_email", "mtc_login_method"].forEach(
-      (k) => localStorage.removeItem(k),
-    );
+    [
+      "rocky_exchange_session",
+      "rocky_user_id",
+      "rocky_binding_id",
+      "rocky_perp_user_id",
+      "rocky_perp_user_id_for",
+      "mtc_token",
+      "mtc_party",
+      "mtc_username",
+      "mtc_email",
+      "mtc_login_method",
+    ].forEach((k) => localStorage.removeItem(k));
     notifyCantonSessionChange();
   }, []);
 
-  return { connect, disconnect, connecting, error };
+  return { connect, connectRocky, disconnect, connecting, error };
 }

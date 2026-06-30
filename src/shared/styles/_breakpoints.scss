@@ -1,0 +1,13 @@
+// src/shared/styles/_breakpoints.scss
+// 与 src/shared/lib/breakpoints.ts 中的 BREAKPOINTS 保持一致
+$bp-small-mobile: 400px;
+$bp-mobile:       768px;
+$bp-tablet:      1024px;
+$bp-desktop:     1280px;
+$bp-2xl:         1460px;
+
+@mixin mobile-only   { @media (max-width: #{$bp-mobile - 1px})  { @content; } }
+@mixin tablet-up     { @media (min-width: #{$bp-mobile})        { @content; } }
+@mixin desktop-up    { @media (min-width: #{$bp-tablet})        { @content; } }
+@mixin large-up      { @media (min-width: #{$bp-desktop})       { @content; } }
+@mixin xlarge-up     { @media (min-width: #{$bp-2xl})           { @content; } }

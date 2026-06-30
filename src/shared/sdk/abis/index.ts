@@ -1,4 +1,4 @@
-import { erc20Abi } from "viem";
+import { erc20Abi } from "sdk/utils/evmCompat";
 
 import ArbitrumNodeInterface from "./ArbitrumNodeInterface";
 import ClaimHandler from "./ClaimHandler";
@@ -8,13 +8,10 @@ import ERC20PermitInterface from "./ERC20PermitInterface";
 import ERC721 from "./ERC721";
 import EventEmitter from "./EventEmitter";
 import ExchangeRouter from "./ExchangeRouter";
-import GelatoRelayRouter from "./GelatoRelayRouter";
 import GlpManager from "./GlpManager";
 import GlvReader from "./GlvReader";
 import GlvRouter from "./GlvRouter";
-import GmxMigrator from "./GmxMigrator";
 import GovToken from "./GovToken";
-import LayerZeroProvider from "./LayerZeroProvider";
 import MintableBaseToken from "./MintableBaseToken";
 import Multicall from "./Multicall";
 import MultichainClaimsRouter from "./MultichainClaimsRouter";
@@ -30,11 +27,9 @@ import ReaderV2 from "./ReaderV2";
 import ReferralStorage from "./ReferralStorage";
 import RelayParams from "./RelayParams";
 import RewardReader from "./RewardReader";
-import RewardRouter from "./RewardRouter";
 import RewardTracker from "./RewardTracker";
 import SmartAccount from "./SmartAccount";
 import StBTC from "./StBTC";
-import SubaccountGelatoRelayRouter from "./SubaccountGelatoRelayRouter";
 import SubaccountRouter from "./SubaccountRouter";
 import SyntheticsReader from "./SyntheticsReader";
 import SyntheticsRouter from "./SyntheticsRouter";
@@ -87,13 +82,10 @@ export const abis = {
   ERC721: ERC721,
   EventEmitter,
   ExchangeRouter,
-  GelatoRelayRouter,
   GlpManager,
   GlvReader,
   GlvRouter,
-  GmxMigrator,
   GovToken,
-  LayerZeroProvider,
   MintableBaseToken,
   Multicall,
   MultichainClaimsRouter,
@@ -107,11 +99,9 @@ export const abis = {
   ReferralStorage,
   RelayParams,
   RewardReader,
-  RewardRouter,
   RewardTracker,
   SmartAccount,
   StBTC,
-  SubaccountGelatoRelayRouter,
   SubaccountRouter,
   SyntheticsReader,
   SyntheticsRouter,

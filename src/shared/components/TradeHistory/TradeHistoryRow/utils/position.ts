@@ -1,6 +1,5 @@
 import { i18n } from "@lingui/core";
 import { t } from "@lingui/macro";
-import { MaxInt256 } from "ethers";
 
 import { getMarketFullName, getMarketIndexName, getMarketPoolName } from "domain/synthetics/markets";
 import { OrderType, isDecreaseOrderType, isIncreaseOrderType, isLiquidationOrderType } from "domain/synthetics/orders";
@@ -20,13 +19,12 @@ import {
 } from "lib/numbers";
 import { PositionTradeAction, TradeActionType } from "sdk/types/tradeHistory";
 import { bigMath } from "sdk/utils/bigmath";
-import { shouldUseApiTrades } from "@/modules/cex/lib/api";
+import { shouldUseApiTrades } from "@/modules/lighter/api";
 
 import {
   INEQUALITY_GT,
   INEQUALITY_LT,
   Line,
-  MakeOptional,
   RowDetails,
   formatTradeActionTimestamp,
   formatTradeActionTimestampISO,
@@ -37,6 +35,8 @@ import {
   tryGetError,
 } from "./shared";
 import { actionTextMap, getActionTitle } from "../../keys";
+
+const MAX_INT_256 = 2n ** 255n - 1n;
 
 export const formatPositionMessage = (
   tradeAction: PositionTradeAction,
@@ -71,10 +71,10 @@ export const formatPositionMessage = (
   const longShortText = isLong ? t`Long` : t`Short`;
   const indexTokenSymbol = tradeAction.indexToken.symbol;
 
-  // Check x10000 mode early since it's used in multiple places
-  const isX10000Mode = shouldUseApiTrades();
-  // For x10000 mode, get base symbol without visual multiplier prefix (e.g., "BTC" instead of "1BTC")
-  const x10000BaseSymbol = indexTokenSymbol.replace(/^[0-9]+/, "");
+  // Check API trading mode early since it's used in multiple places
+  const isTradeMode = shouldUseApiTrades();
+  // For API trading mode, get base symbol without visual multiplier prefix (e.g., "BTC" instead of "1BTC")
+  const tradeBaseSymbol = indexTokenSymbol.replace(/^[0-9]+/, "");
 
   //          | long | short
   // increase |  <   |  >
@@ -118,25 +118,25 @@ export const formatPositionMessage = (
     displayPlus: true,
   })!;
 
-  // For x10000 mode, use base symbol without visual multiplier prefix (e.g., "BTC/USD" instead of "1BTC/USD")
-  const indexName = isX10000Mode
-    ? `${x10000BaseSymbol}/USD`
+  // For API trading mode, use base symbol without visual multiplier prefix (e.g., "BTC/USD" instead of "1BTC/USD")
+  const indexName = isTradeMode
+    ? `${tradeBaseSymbol}/USD`
     : getMarketIndexName({
         indexToken: tradeAction.indexToken,
         isSpotOnly: tradeAction.marketInfo.isSpotOnly,
       });
 
-  // For x10000 mode, use "{baseSymbol}-USDT" format (e.g., "BTC-USDT")
-  const poolName = isX10000Mode
-    ? `${x10000BaseSymbol}-USDT`
+  // For API trading mode, use "{baseSymbol}-USDT" format (e.g., "BTC-USDT")
+  const poolName = isTradeMode
+    ? `${tradeBaseSymbol}-USDT`
     : getMarketPoolName({
         longToken: tradeAction.marketInfo.longToken,
         shortToken: tradeAction.marketInfo.shortToken,
       });
 
-  // For x10000 mode, construct full market name manually
-  const fullMarket = isX10000Mode
-    ? `${x10000BaseSymbol}/USD [${x10000BaseSymbol}-USDT]`
+  // For API trading mode, construct full market name manually
+  const fullMarket = isTradeMode
+    ? `${tradeBaseSymbol}/USD [${tradeBaseSymbol}-USDT]`
     : getMarketFullName({
         indexToken: tradeAction.indexToken,
         longToken: tradeAction.marketInfo.longToken,
@@ -186,13 +186,13 @@ export const formatPositionMessage = (
     visualMultiplier: tradeAction.indexToken.visualMultiplier,
   });
 
-  // In x10000 mode, use original API string values directly (no precision conversion needed)
+  // In API trading mode, use original API string values directly (no precision conversion needed)
   let feePercent: string | undefined = undefined;
   let feeAmount: string | undefined = undefined;
-  let x10000Size: string | undefined = undefined;
-  let x10000Price: string | undefined = undefined;
+  let tradeSize: string | undefined = undefined;
+  let tradePrice: string | undefined = undefined;
 
-  if (isX10000Mode && originalApiTrade) {
+  if (isTradeMode && originalApiTrade) {
     try {
       // Use original API string values directly
       const amountStr = originalApiTrade.amount;
@@ -201,11 +201,11 @@ export const formatPositionMessage = (
 
       // Format size as "{amount} {symbol}" (e.g., "0.054 BTC")
       const amountNum = parseFloat(amountStr);
-      x10000Size = `${amountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ${x10000BaseSymbol}`;
+      tradeSize = `${amountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ${tradeBaseSymbol}`;
 
       // Format price directly
       const priceNum = parseFloat(priceStr);
-      x10000Price = priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+      tradePrice = priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 
       // Fee amount - raw fee value from API
       const feeNum = parseFloat(feeStr);
@@ -233,7 +233,7 @@ export const formatPositionMessage = (
     displayedPriceImpact = formatDeltaUsd(tradeAction.totalImpactUsd);
   }
 
-  let result: MakeOptional<RowDetails, "action" | "market" | "timestamp" | "timestampISO" | "price" | "size">;
+  let result: Partial<RowDetails> = {};
 
   //#region MarketIncrease
   if (ot === OrderType.MarketIncrease && ev === TradeActionType.OrderCreated) {
@@ -251,15 +251,15 @@ export const formatPositionMessage = (
     };
   } else if (ot === OrderType.MarketIncrease && ev === TradeActionType.OrderExecuted) {
     const customAction = sizeDeltaUsd > 0 ? action : i18n._(actionTextMap["Deposit-OrderExecuted"]!);
-    // In x10000 mode, use amount field directly for size
-    const customSize = isX10000Mode 
-      ? (x10000Size || (sizeDeltaUsd > 0 ? formatUsd(sizeDeltaUsd, { displayPlus: true })! : formattedCollateralDelta))
+    // In API trading mode, use amount field directly for size
+    const customSize = isTradeMode
+      ? (tradeSize || (sizeDeltaUsd > 0 ? formatUsd(sizeDeltaUsd, { displayPlus: true })! : formattedCollateralDelta))
       : (sizeDeltaUsd > 0 ? sizeDeltaText : formattedCollateralDelta);
-    // In x10000 mode, use price field directly
-    const customPrice = isX10000Mode ? (x10000Price || formattedExecutionPrice) : undefined;
+    // In API trading mode, use price field directly
+    const customPrice = isTradeMode ? (tradePrice || formattedExecutionPrice) : undefined;
 
-    // For x10000 mode, only show simple message without price impact
-    const priceComment = isX10000Mode
+    // For API trading mode, only show simple message without price impact
+    const priceComment = isTradeMode
       ? lines(t`Mark price for the order.`)
       : sizeDeltaUsd > 0 && priceImpactLines.length > 0
         ? lines(t`Mark price for the order.`, "", ...priceImpactLines)
@@ -271,8 +271,8 @@ export const formatPositionMessage = (
       price: customPrice,
       priceComment: priceComment,
       acceptablePrice: acceptablePriceInequality + formattedAcceptablePrice,
-      feePercent: isX10000Mode ? feePercent : undefined,
-      feeAmount: isX10000Mode ? feeAmount : undefined,
+      feePercent: isTradeMode ? feePercent : undefined,
+      feeAmount: isTradeMode ? feeAmount : undefined,
     };
   } else if (ot === OrderType.MarketIncrease && ev === TradeActionType.OrderCancelled) {
     const customAction = sizeDeltaUsd > 0 ? action : i18n._(actionTextMap["Deposit-OrderCancelled"]!);
@@ -355,7 +355,7 @@ export const formatPositionMessage = (
         visualMultiplier: tradeAction.indexToken.visualMultiplier,
       })!;
 
-    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MaxInt256;
+    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MAX_INT_256;
 
     result = {
       price: customPrice,
@@ -367,7 +367,7 @@ export const formatPositionMessage = (
     (ot === OrderType.LimitIncrease && ev === TradeActionType.OrderExecuted) ||
     (ot === OrderType.StopIncrease && ev === TradeActionType.OrderExecuted)
   ) {
-    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MaxInt256;
+    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MAX_INT_256;
 
     result = {
       priceComment: lines(
@@ -383,7 +383,7 @@ export const formatPositionMessage = (
     (ot === OrderType.StopIncrease && ev === TradeActionType.OrderFrozen)
   ) {
     let error = tradeAction.reasonBytes ? tryGetError(tradeAction.reasonBytes) ?? undefined : undefined;
-    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MaxInt256;
+    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MAX_INT_256;
 
     result = {
       actionComment:
@@ -570,7 +570,7 @@ export const formatPositionMessage = (
     };
   } else if (ot === OrderType.StopLossDecrease && ev === TradeActionType.OrderFrozen) {
     let error = tradeAction.reasonBytes ? tryGetError(tradeAction.reasonBytes) ?? undefined : undefined;
-    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MaxInt256;
+    const isAcceptablePriceUseful = tradeAction.acceptablePrice !== 0n && tradeAction.acceptablePrice < MAX_INT_256;
 
     result = {
       actionComment:
@@ -745,13 +745,13 @@ export const formatPositionMessage = (
     //#endregion Liquidation
   }
 
-  // In x10000 mode, use amount and price fields directly
-  const finalSize = isX10000Mode && result?.size 
-    ? result.size 
-    : (isX10000Mode ? (x10000Size || formatUsd(sizeDeltaUsd, { displayPlus: true })!) : sizeDeltaText);
-  const finalPrice = isX10000Mode && result?.price
+  // In API trading mode, use amount and price fields directly
+  const finalSize = isTradeMode && result.size
+    ? result.size
+    : (isTradeMode ? (tradeSize || formatUsd(sizeDeltaUsd, { displayPlus: true }) || "") : sizeDeltaText);
+  const finalPrice = isTradeMode && result.price
     ? result.price
-    : (isX10000Mode ? (x10000Price || formattedExecutionPrice) : (formattedMarketPrice || ""));
+    : (isTradeMode ? (tradePrice || formattedExecutionPrice || "") : (formattedMarketPrice || ""));
 
   return {
     action,
@@ -766,10 +766,11 @@ export const formatPositionMessage = (
     marketPrice: formattedMarketPrice,
     executionPrice: formattedExecutionPrice,
     priceImpact: displayedPriceImpact,
+    priceComment: result.priceComment ?? null,
     indexName,
     poolName,
-    feePercent: isX10000Mode ? feePercent : undefined,
-    feeAmount: isX10000Mode ? feeAmount : undefined,
+    feePercent: isTradeMode ? feePercent : undefined,
+    feeAmount: isTradeMode ? feeAmount : undefined,
     ...result!,
   };
 };

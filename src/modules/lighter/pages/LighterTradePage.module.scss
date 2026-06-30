@@ -51,7 +51,11 @@
   text-align: center;
   padding: 8px 12px;
   border-bottom: 1px solid var(--ltr-border);
-  a { color: #f3f3f3; text-decoration: underline; }
+
+  a {
+    color: #f3f3f3;
+    text-decoration: underline;
+  }
 }
 
 // 顶行:Chart(1165) | OrderBook(321) | Form(321),共 608 高
@@ -61,7 +65,12 @@
   grid-template-rows: minmax(0, 1fr);
   column-gap: 4px;
   min-height: 0;
-  > div { min-width: 0; min-height: 0; overflow: hidden; }
+
+  > div {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
 .mainLarge {
@@ -86,16 +95,20 @@
   grid-column: 2 / 4;
 }
 
-// Chart 列内部:SymbolBar(32) + gap + Chart(572) = 608
+// Chart 列内部:SymbolBar 与 SymbolBar.module 一致(min-height 40px) + 收藏条 + K 线区
 .chartCol {
   display: grid;
-  grid-template-rows: 32px 25px minmax(0, 1fr);
+  grid-template-rows: 40px 25px minmax(0, 1fr);
   row-gap: 4px;
   background: #000;
   min-width: 0;
   min-height: 0;
 }
-.chartCol > .chart { min-height: 0; overflow: hidden; }
+
+.chartCol > .chart {
+  min-height: 0;
+  overflow: hidden;
+}
 
 .favoritesBar {
   display: flex;
@@ -132,7 +145,12 @@
   grid-template-rows: var(--ltr-bottom-h);
   column-gap: 4px;
   min-height: 0;
-  > div { min-width: 0; min-height: 0; overflow: hidden; }
+
+  > div {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
 .tabs {

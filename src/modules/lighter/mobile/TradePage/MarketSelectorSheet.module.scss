@@ -1,0 +1,31 @@
+.wrap {
+  width: 100%;
+  // The dropdown has its own internal layout; just give it room.
+  min-height: 60vh;
+  // The desktop TradingMarketsDropdown table sizes its market column to
+  // content, which overflows a ~343px sheet. The component renders a
+  // mobile-only <colgroup> (star / market / price / vol); table-layout:fixed
+  // makes those <col> widths authoritative, so the flexible market column
+  // bounds long symbols (they truncate via the component's own .truncate)
+  // instead of pushing price/vol off the sheet edge. Scoped via :global so
+  // the desktop dropdown elsewhere is unaffected.
+  overflow-x: hidden;
+
+  :global(table) {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  // Header's oversized left padding (Tailwind first-of-type:!pl-44) inflates
+  // nothing under fixed layout, but the min-w-[18ch] would; neutralize it so
+  // the <col> widths win cleanly.
+  :global(th) {
+    min-width: 0 !important;
+  }
+
+  // Numeric columns: keep on one line so values read as a unit.
+  :global(td) {
+    white-space: nowrap;
+  }
+}

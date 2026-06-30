@@ -1,9 +1,10 @@
+import { Trans } from "@lingui/macro";
 import { useMemo } from "react";
 import useSWR from "swr";
 
 import { useChainId } from "lib/chains";
-import { getFundingFeeHistory } from "modules/cex/lib/api/custom/client";
-import { useX10000State } from "modules/cex/store/X10000StateContext";
+import { getFundingFeeHistory } from "modules/lighter/api/custom/client";
+import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
 import type { BottomTabFilterMode } from "./BottomTabs";
 import styles from "./BottomTabs.module.scss";
@@ -11,7 +12,7 @@ import { formatFundingFeeHistoryRows } from "./fundingFeeHistory";
 
 export function FundingHistoryTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
   const { chainId } = useChainId();
-  const { selectedSymbol } = useX10000State();
+  const { selectedSymbol } = useTradeState();
 
   const { data, isLoading } = useSWR(
     chainId ? ["lighter-funding-fee-history", chainId, selectedSymbol] : null,
@@ -36,23 +37,43 @@ export function FundingHistoryTab({ mode = "all" }: { mode?: BottomTabFilterMode
   }, [data, mode]);
 
   if (isLoading) {
-    return <div className={styles.empty}>Loading funding history...</div>;
+    return (
+      <div className={styles.empty}>
+        <Trans>Loading funding history...</Trans>
+      </div>
+    );
   }
 
   if (!rows.length) {
-    return <div className={styles.empty}>No funding history.</div>;
+    return (
+      <div className={styles.empty}>
+        <Trans>No funding history.</Trans>
+      </div>
+    );
   }
 
   return (
     <table className={styles.table}>
       <thead>
         <tr>
-          <th className={styles.th}>Time</th>
-          <th className={styles.th}>Market</th>
-          <th className={styles.th}>Rate</th>
-          <th className={styles.th}>Position</th>
-          <th className={styles.th}>Size</th>
-          <th className={styles.th}>Payment</th>
+          <th className={styles.th}>
+            <Trans>Time</Trans>
+          </th>
+          <th className={styles.th}>
+            <Trans>Market</Trans>
+          </th>
+          <th className={styles.th}>
+            <Trans>Rate</Trans>
+          </th>
+          <th className={styles.th}>
+            <Trans>Position</Trans>
+          </th>
+          <th className={styles.th}>
+            <Trans>Size</Trans>
+          </th>
+          <th className={styles.th}>
+            <Trans>Payment</Trans>
+          </th>
         </tr>
       </thead>
       <tbody>

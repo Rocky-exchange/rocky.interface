@@ -1,7 +1,7 @@
 import { t } from "@lingui/macro";
 import { useCallback } from "react";
 
-import { useSettings } from "context/SettingsContext/SettingsContextProvider";
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 
 import SettingsIcon from "img/ic_settings.svg?react";
 

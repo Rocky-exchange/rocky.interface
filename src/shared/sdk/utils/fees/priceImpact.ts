@@ -397,7 +397,7 @@ export function getNextPoolAmountsParams(p: {
 }
 
 /**
- * @see https://github.com/gmx-io/gmx-synthetics/blob/updates/contracts/pricing/SwapPricingUtils.sol
+ * Reference pricing logic from the legacy synthetics implementation.
  */
 export function getPriceImpactUsd(p: {
   currentLongUsd: bigint;
@@ -458,7 +458,7 @@ export function getPriceImpactUsd(p: {
 }
 
 /**
- *  @see https://github.com/gmx-io/gmx-synthetics/blob/5fd9991ff2c37ae5f24f03bc9c132730b012ebf2/contracts/pricing/PricingUtils.sol
+ * Reference pricing logic from the legacy synthetics implementation.
  */
 export function calculateImpactForSameSideRebalance(p: {
   currentDiff: bigint;
@@ -478,7 +478,7 @@ export function calculateImpactForSameSideRebalance(p: {
 }
 
 /**
- *  @see  https://github.com/gmx-io/gmx-synthetics/blob/5fd9991ff2c37ae5f24f03bc9c132730b012ebf2/contracts/pricing/PricingUtils.sol
+ * Reference pricing logic from the legacy synthetics implementation.
  */
 export function calculateImpactForCrossoverRebalance(p: {
   currentDiff: bigint;

@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
-import { useSettings } from "context/SettingsContext/SettingsContextProvider";
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 
 import ExternalLink from "components/ExternalLink/ExternalLink";
 import ToggleSwitch from "components/ToggleSwitch/ToggleSwitch";

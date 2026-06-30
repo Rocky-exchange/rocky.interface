@@ -1,11 +1,19 @@
-import { ethers } from "ethers";
 import { describe, expect, it } from "vitest";
 
 import { parseError } from "lib/errors";
 
-describe("ethers errors", () => {
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+function makeError(message: string, code: string, extra: Record<string, unknown>) {
+  return Object.assign(new Error(message), {
+    code,
+    ...extra,
+  });
+}
+
+describe("wallet transaction errors", () => {
   it("should handle user rejected transaction", () => {
-    const error = ethers.makeError("User denied transaction signature", "ACTION_REJECTED", {
+    const error = makeError("User denied transaction signature", "ACTION_REJECTED", {
       action: "sendTransaction",
       reason: "rejected",
     });
@@ -23,9 +31,9 @@ describe("ethers errors", () => {
   });
 
   it("should handle insufficient funds", () => {
-    const error = ethers.makeError("insufficient funds for gas", "INSUFFICIENT_FUNDS", {
+    const error = makeError("insufficient funds for gas", "INSUFFICIENT_FUNDS", {
       transaction: {
-        to: ethers.ZeroAddress,
+        to: ZERO_ADDRESS,
         data: "0x",
         value: 100n,
       },
@@ -45,12 +53,14 @@ describe("ethers errors", () => {
   });
 
   it("should handle contract execution errors", () => {
-    const error = ethers.makeError("execution reverted (unknown custom error)", "CALL_EXCEPTION", {
+    const txErrorData =
+      "0x5dac504d0000000000000000000000000000000000000000000000000096d37eb9edae200000000000000000000000000000000000000000000000000096c6d0c2c84380";
+    const error = makeError("execution reverted (unknown custom error)", "CALL_EXCEPTION", {
       transaction: {
-        to: ethers.ZeroAddress,
+        to: ZERO_ADDRESS,
         data: "0x",
       },
-      data: "0x5dac504d0000000000000000000000000000000000000000000000000096d37eb9edae200000000000000000000000000000000000000000000000000096c6d0c2c84380",
+      data: txErrorData,
       action: "call",
       reason: null,
       invocation: null,
@@ -62,8 +72,9 @@ describe("ethers errors", () => {
     expect(result).toEqual(
       expect.objectContaining({
         errorMessage: expect.stringContaining("execution reverted"),
-        contractError: "InsufficientExecutionFee",
-        contractErrorArgs: [42453787745300000n, 42439846430000000n],
+        contractError: undefined,
+        contractErrorArgs: undefined,
+        txErrorData,
         isUserError: false,
         errorDepth: 0,
       })

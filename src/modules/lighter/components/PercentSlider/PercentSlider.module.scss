@@ -58,10 +58,10 @@
   opacity: 0.5;
 }
 .fill.buy {
-  background: linear-gradient(to right, #0a4d2f, #1bd289);
+  background: linear-gradient(to right, var(--ltr-trade-buy-gradient-start), var(--ltr-trade-buy-gradient-end));
 }
 .fill.sell {
-  background: linear-gradient(to right, #5c1420, #ff384f);
+  background: linear-gradient(to right, var(--ltr-trade-sell-gradient-start), var(--ltr-trade-sell-gradient-end));
 }
 
 .steps {
@@ -89,8 +89,14 @@
   border-radius: 8px;
   border: 0.4px solid;
   backdrop-filter: blur(16px);
-  &.buy { background: #1bd289; border-color: #5ae3a7; }
-  &.sell { background: #ff384f; border-color: #ff7a8a; }
+  &.buy {
+    background: var(--ltr-trade-buy-mid);
+    border-color: var(--ltr-trade-buy-mid-soft);
+  }
+  &.sell {
+    background: var(--ltr-trade-sell-gradient-end);
+    border-color: var(--ltr-trade-sell-bright);
+  }
 }
 
 .inputBox {

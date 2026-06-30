@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -15,7 +15,26 @@ import { LIGHTER_DEPTH_CHART_THEME } from "./lighterDepthChartTheme";
 import { useOrderBookAdapter } from "../../adapters/useOrderBookAdapter";
 
 const AXIS_TICK = { fill: LIGHTER_DEPTH_CHART_THEME.axisText, fontSize: 11 };
-const Y_AXIS_DOMAIN = [0, "auto"] as const;
+// Pull the curve peak up near the top instead of recharts' generous "auto"
+// max, which on a tall mobile container leaves ~40% dead space above the data.
+const Y_AXIS_DOMAIN: [number, (dataMax: number) => number] = [0, (dataMax) => dataMax * 1.08];
+// The order book streams several WS ticks/sec; rendering recharts every tick
+// makes the depth chart visibly flicker. Snapshot at a calm cadence — depth
+// is a shape, not a ticker, so ~1.5Hz is plenty and matches the reference.
+const DEPTH_REFRESH_MS = 650;
+
+function useThrottledSnapshot<T>(value: T, intervalMs: number): T {
+  const [snapshot, setSnapshot] = useState(value);
+  const latest = useRef(value);
+  latest.current = value;
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSnapshot((prev) => (prev === latest.current ? prev : latest.current));
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return snapshot;
+}
 const REFERENCE_LABEL = {
   value: "MID PRICE",
   position: "bottom" as const,
@@ -90,7 +109,8 @@ function DepthTooltip({
 }
 
 export function LighterDepthChart({ currency = "BTC" }: { currency?: string } = {}) {
-  const ob = useOrderBookAdapter();
+  const obLive = useOrderBookAdapter();
+  const ob = useThrottledSnapshot(obLive, DEPTH_REFRESH_MS);
 
   const { data, midPrice, priceRange } = useMemo(() => {
     if (!ob.bids.length || !ob.asks.length) {

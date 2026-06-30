@@ -3,10 +3,9 @@ import { t, Trans } from "@lingui/macro";
 import cx from "classnames";
 import { Link } from "react-router-dom";
 import { useCopyToClipboard } from "react-use";
-import { Address } from "viem";
 
+import { useDisconnectAndClose } from "@/modules/lighter/domain/multichain/useDisconnectAndClose";
 import { BOTANIX } from "config/chains";
-import { useDisconnectAndClose } from "domain/multichain/useDisconnectAndClose";
 import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
 import { getAccountUrl, useENS } from "lib/legacy";
@@ -27,6 +26,8 @@ import PnlAnalysisIcon from "img/ic_pnl_analysis.svg?react";
 import DisconnectIcon from "img/ic_sign_out_20.svg?react";
 
 import "./AddressDropdownWithoutMultichain.scss";
+
+type Address = `0x${string}`;
 
 export function AddressDropdownWithoutMultichain({ account }: { account: string }) {
   const [, copyToClipboard] = useCopyToClipboard();

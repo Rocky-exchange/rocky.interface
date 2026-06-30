@@ -1,4 +1,4 @@
-import { maxUint256 } from "viem";
+import { maxUint256 } from "sdk/utils/evmCompat";
 
 import { NATIVE_TOKEN_ADDRESS } from "sdk/configs/tokens";
 import { MarketInfo, MarketsInfoData } from "sdk/types/markets";
@@ -281,7 +281,6 @@ export function getSwapStats(p: {
     );
     cappedImpactDeltaUsd = convertToUsd(positiveImpactAmountTokenOut, tokenOut.decimals, priceOut)!;
 
-    // https://github.com/gmx-io/gmx-synthetics/blob/3df10f1eab2734cf1b5f0a5dff12b79cbb19907d/contracts/swap/SwapUtils.sol#L290-L291
     if (cappedDiffUsd > 0) {
       const { impactDeltaAmount: positiveImpactAmountTokenIn } = applySwapImpactWithCap(
         marketInfo,

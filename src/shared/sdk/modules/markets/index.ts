@@ -1,4 +1,4 @@
-import { zeroAddress } from "viem";
+import { zeroAddress } from "sdk/utils/evmCompat";
 
 import { getContract } from "sdk/configs/contracts";
 import { convertTokenAddress, getToken } from "sdk/configs/tokens";
@@ -203,8 +203,6 @@ export class Markets extends Module {
 
           // Skip invalid market
           if (!dataStoreValues || dataStoreErrors) {
-            // eslint-disable-next-line no-console
-            console.log("Market info error", marketAddress, dataStoreErrors, dataStoreValues);
             return acc;
           }
 

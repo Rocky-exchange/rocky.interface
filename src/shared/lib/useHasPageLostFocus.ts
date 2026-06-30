@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
-import { isDevelopment } from "config/env";
 import { TRADE_LOST_FOCUS_TIMEOUT, WS_LOST_FOCUS_TIMEOUT } from "config/ui";
 
 import useIsWindowVisible from "./useIsWindowVisible";
@@ -12,7 +11,7 @@ function useHasLostFocusHelper(p: {
   whiteListedPages?: string[];
   debugId?: string;
 }) {
-  const { whiteListedPages, checkIsTabFocused, timeout, debugId } = p;
+  const { whiteListedPages, checkIsTabFocused, timeout } = p;
 
   const isWindowVisible = useIsWindowVisible();
   const location = useLocation();
@@ -58,13 +57,6 @@ function useHasLostFocusHelper(p: {
     };
   }, [hasLostFocus, isFocused, timeout]);
 
-  useEffect(() => {
-    if (isDevelopment() && hasLostFocus) {
-      // eslint-disable-next-line no-console
-      console.log("hasLostFocus", debugId);
-    }
-  }, [debugId, hasLostFocus]);
-
   return hasLostFocus;
 }
 
@@ -75,7 +67,7 @@ export function useHasLostFocus() {
     debugId: "Tab",
   });
 
-  const v2WhiteListedPages = useMemo(() => ["/trade", "/v2", "/pools"], []);
+  const v2WhiteListedPages = useMemo(() => ["/trade", "/v2", "/earn"], []);
 
   const hasV2LostFocus = useHasLostFocusHelper({
     timeout: TRADE_LOST_FOCUS_TIMEOUT,

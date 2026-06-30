@@ -2,6 +2,22 @@
   display: flex; flex-direction: column; height: 100%;
   background: #000; overflow: hidden;
 }
+
+/** Tab 布局:顶栏 + subbar 之后,订单簿/成交主体占满剩余高度,避免底部大块留白与左侧 K 线底不齐 */
+.tabMain {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/** 订单簿行数算不满剩余高度时,用与盘口同底色的占位条垫齐底边(不改动 ask/bid 行数比例) */
+.tabMainSpacer {
+  flex: 1 1 0;
+  min-height: 0;
+  background: var(--ltr-bg-panel);
+}
 .section {
   display: flex;
   flex-direction: column;
@@ -35,13 +51,14 @@
   background: #14151b;
   border-radius: 4px;
   overflow: visible;
-  min-height: 32px;
+  /** 与 LighterTradePage `.chartCol` 首行 SymbolBar(40px) + row-gap 对齐 */
+  min-height: 40px;
   margin-bottom: 4px;
   z-index: 3;
 }
 .tab, .tabActive {
   position: relative;
-  height: 32px; min-height: 32px; flex: 1;
+  height: 40px; min-height: 40px; flex: 1;
   min-width: 80px;
   padding: 0 8px;
   font-size: 11px; font-weight: 400;
@@ -61,7 +78,7 @@
   left: 0; right: 0; bottom: 1px; margin: 0 auto;
   width: 52%; max-width: 52px;
   height: 2px; border-radius: 999px;
-  background: #4ea7ff; // blue-7
+  background: var(--primit-primary-1, #87d7ea);
   transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
   transform: scaleX(0);
   opacity: 0;
@@ -80,7 +97,8 @@
   min-height: 28px;
   padding: 0 8px 0 10px;
   background: #14151b;
-  border-bottom: 1px solid #2a2b33;
+  /** 主题色 1px · 50% alpha */
+  border-bottom: 1px solid color-mix(in srgb, var(--primit-primary-1, #87d7ea) 50%, transparent);
   overflow: visible;
   z-index: 3;
 }
@@ -109,16 +127,20 @@
 
 .subbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 10px;
-  min-height: 32px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  /** 与 `.chartCol` 收藏条行高 25px + 与 K 线区间 row-gap 对齐 */
+  height: 25px;
+  padding: 0 10px;
+  margin-bottom: 4px;
   background: var(--ltr-bg-panel);
 }
 .subRight { display: inline-flex; gap: 6px; align-items: center; }
 .modeBtns { display: inline-flex; gap: 4px; align-items: center; }
 .modeBtn {
-  width: 20px; height: 20px;
+  width: 18px; height: 18px;
   display: inline-flex; align-items: center; justify-content: center;
-  padding: 4px; border: 0; border-radius: 2px;
+  padding: 2px; border: 0; border-radius: 2px;
   background: transparent; cursor: pointer;
   opacity: 0.5;
   &:hover { opacity: 1; background: var(--ltr-bg-hover); }
@@ -134,8 +156,8 @@
 }
 
 .subSel {
-  height: 24px;
-  font-size: 12px; color: var(--ltr-text-secondary);
+  height: 22px;
+  font-size: 11px; color: var(--ltr-text-secondary);
   background: transparent; padding: 0 6px; border-radius: 2px;
   border: 0; cursor: pointer;
   display: inline-flex; align-items: center; gap: 4px;
@@ -178,6 +200,7 @@
 }
 
 .header {
+  flex-shrink: 0;
   display: grid; grid-template-columns: 1fr 1fr 1fr;
   font-size: 12px; color: var(--ltr-text-secondary);
   padding: 4px 10px;
@@ -208,6 +231,12 @@
     color: transparent;
   }
 }
+.rowClickable {
+  cursor: pointer;
+  &:hover {
+    background: var(--ltr-overlay-faint, rgba(255, 255, 255, 0.04));
+  }
+}
 .price, .size, .total {
   padding: 0 10px;
   font-size: 12px;
@@ -222,10 +251,15 @@
 }
 .depthTotalAsk { background: var(--ltr-down-bg); }
 .depthTotalBid { background: var(--ltr-up-bg); }
-.depthSizeAsk { background: rgba(255, 56, 79, 0.32); }
-.depthSizeBid { background: rgba(27, 210, 137, 0.32); }
+.depthSizeAsk {
+  background: color-mix(in srgb, var(--ltr-down) 32%, transparent);
+}
+.depthSizeBid {
+  background: color-mix(in srgb, var(--ltr-up) 32%, transparent);
+}
 
 .spreadRow {
+  flex-shrink: 0;
   display: grid; grid-template-columns: 1fr 1fr 1fr;
   padding: 4px 10px;
   font-size: 12px;
@@ -238,6 +272,7 @@
 
 // Trades tab
 .tradesHeader {
+  flex-shrink: 0;
   display: grid; grid-template-columns: 1fr 1fr 1fr;
   font-size: 12px; color: var(--ltr-text-secondary);
   padding: 4px 10px;
@@ -252,6 +287,14 @@
   overflow: auto;
   min-height: 0;
   background: var(--ltr-bg-panel);
+  /** 隐藏滚动条，仍可用滚轮 / 触控滑动 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 .tradeRow {
   display: flex; align-items: center;
@@ -265,64 +308,3 @@
 .tradeTime { text-align: left; }
 .tradeSize { text-align: center; font-variant-numeric: tabular-nums; }
 .tradePrice { text-align: right; color: var(--ltr-text-primary); font-variant-numeric: tabular-nums; }
-
-@media (max-width: 1024px) {
-  .root {
-    min-height: 340px;
-  }
-
-  .tabs {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab,
-  .tabActive {
-    flex: 0 0 auto;
-  }
-
-  .largeLayout {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .sectionHeader,
-  .subbar {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .subbar {
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .subbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .subRight,
-  .modeBtns {
-    flex: 0 0 auto;
-  }
-
-  .header,
-  .row,
-  .spreadRow,
-  .tradesHeader {
-    grid-template-columns: minmax(86px, 1fr) minmax(72px, 1fr) minmax(72px, 1fr);
-  }
-
-  .price,
-  .size,
-  .total {
-    padding: 0 8px;
-  }
-}

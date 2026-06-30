@@ -2,7 +2,7 @@ import { t, Trans } from "@lingui/macro";
 import cx from "classnames";
 import { useCallback } from "react";
 
-import { useTheme } from "context/ThemeContext/ThemeContext";
+import { useTheme } from "@/shared/context/ThemeContext/ThemeContext";
 
 import Button from "components/Button/Button";
 import { SelectorBase, useSelectorClose } from "components/SelectorBase/SelectorBase";

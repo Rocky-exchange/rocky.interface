@@ -62,7 +62,17 @@
 }
 
 .Modal-close-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  margin: 0;
   text-align: right;
+  cursor: pointer;
+  background: transparent;
+  line-height: 0;
 }
 
 .Modal-close-icon {
@@ -74,3 +84,5 @@
 .Modal-close-icon:hover {
   opacity: 0.9;
 }
+
+/* Primit Popup（variant="primit"）：`styles/themes/primit/modal.primit.css`，由 `app/theme/component-themes.ts` 加载 */

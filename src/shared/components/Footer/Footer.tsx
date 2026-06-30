@@ -1,6 +1,6 @@
 import cx from "classnames";
 
-import { useSettings } from "context/SettingsContext/SettingsContextProvider";
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 import { getAppBaseUrl, shouldShowRedirectModal } from "lib/legacy";
 import { userAnalytics } from "lib/userAnalytics";
 import { LandingPageFooterMenuEvent } from "lib/userAnalytics/types";

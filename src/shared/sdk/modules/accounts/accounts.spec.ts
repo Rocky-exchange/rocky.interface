@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { arbitrumSdk } from "sdk/utils/testUtil";
+import { disabledSdk } from "sdk/utils/testUtil";
 
 describe("Accounts", () => {
   it("should be able to get delegates", async () => {
-    const delegates = await arbitrumSdk.accounts.getGovTokenDelegates();
+    const delegates = await disabledSdk.accounts.getGovTokenDelegates();
     expect(delegates).toBeDefined();
   });
 });

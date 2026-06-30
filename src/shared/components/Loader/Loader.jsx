@@ -13,7 +13,7 @@ const ANIMATIONS = [animation01, animation02, animation03];
  * Rocky 品牌加载动画：3 套 Lottie 资源，挂载时随机选一套播放。
  * 通过 `variant`（1|2|3）可强制指定具体动画。
  */
-export default function Loader({ variant, size = 150, className = "" }) {
+export default function Loader({ variant = undefined, size = 150, className = "" } = {}) {
   const containerRef = useRef(null);
 
   const animationData = useMemo(() => {

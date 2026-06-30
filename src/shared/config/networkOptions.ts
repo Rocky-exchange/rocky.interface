@@ -1,9 +1,4 @@
-import {
-  ARBITRUM,
-  ARBITRUM_SEPOLIA,
-  getChainName,
-} from "config/chains";
-import { isDevelopment } from "config/env";
+import { AVALANCHE, getChainName } from "config/chains";
 import { getChainIcon } from "config/icons";
 
 export type NetworkOption = {
@@ -15,18 +10,9 @@ export type NetworkOption = {
 
 export const NETWORK_OPTIONS: NetworkOption[] = [
   {
-    label: getChainName(ARBITRUM),
-    value: ARBITRUM,
-    icon: getChainIcon(ARBITRUM),
-    color: "#264f79",
+    label: getChainName(AVALANCHE),
+    value: AVALANCHE,
+    icon: getChainIcon(AVALANCHE),
+    color: "#e84142",
   },
 ];
-
-if (isDevelopment()) {
-  NETWORK_OPTIONS.push({
-    label: getChainName(ARBITRUM_SEPOLIA),
-    value: ARBITRUM_SEPOLIA,
-    icon: getChainIcon(ARBITRUM_SEPOLIA),
-    color: "#0052ff",
-  });
-}

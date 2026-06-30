@@ -1,6 +1,5 @@
-import { useGlobalContext } from "context/GlobalContext/GlobalContextProvider";
+const NOOP = () => undefined;
 
 export function useTradePageVersion() {
-  const { setTradePageVersion, tradePageVersion } = useGlobalContext();
-  return [tradePageVersion, setTradePageVersion] as const;
+  return [2, NOOP] as const;
 }

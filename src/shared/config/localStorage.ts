@@ -1,11 +1,7 @@
 export const SELECTED_NETWORK_LOCAL_STORAGE_KEY = "SELECTED_NETWORK";
 export const SELECTED_SETTLEMENT_CHAIN_ID_KEY = "SELECTED_SETTLEMENT_CHAIN_ID";
-export const WALLET_CONNECT_LOCALSTORAGE_KEY = "walletconnect";
-export const WALLET_CONNECT_V2_LOCALSTORAGE_KEY = "walletconnect_v2";
-export const WALLET_LINK_LOCALSTORAGE_PREFIX = "-walletlink";
-export const SHOULD_EAGER_CONNECT_LOCALSTORAGE_KEY = "eagerconnect";
-export const CURRENT_PROVIDER_LOCALSTORAGE_KEY = "currentprovider";
 export const LANGUAGE_LOCALSTORAGE_KEY = "LANGUAGE_KEY";
+export const APP_UI_THEME_MODE_KEY = "app-ui-theme-mode";
 export const SLIPPAGE_BPS_KEY = "Exchange-swap-slippage-basis-points-v4";
 export const EXECUTION_FEE_BUFFER_BPS_KEY = "execution-fee-buffer-basis-points";
 export const HAS_OVERRIDDEN_DEFAULT_ARB_30_EXECUTION_FEE_BUFFER_BPS_KEY =
@@ -17,7 +13,7 @@ export const IS_AUTO_CANCEL_TPSL_KEY = "is-auto-cancel-tpsl";
 export const DISABLE_ORDER_VALIDATION_KEY = "disable-order-validation";
 export const DISABLE_SHARE_MODAL_PNL_CHECK_KEY = "disable-share-modal-pnl-check";
 export const SHOULD_SHOW_POSITION_LINES_KEY = "Exchange-swap-should-show-position-lines-key";
-export const REFERRAL_CODE_KEY = "GMX-referralCode";
+export const REFERRAL_CODE_KEY = "PRIMIT-referralCode";
 export const REFERRALS_SELECTED_TAB_KEY = "Referrals-selected-tab";
 export const TV_SAVE_LOAD_CHARTS_KEY = "tv-save-load-charts";
 export const TV_CHART_RELOAD_TIMESTAMP_KEY = "tv-chart-reload-timestamp";
@@ -47,8 +43,8 @@ export const SYNTHETICS_LIST_SECTION_KEY = "synthetics-list-section";
 export const ACCOUNT_DASHBOARD_TAB_KEY = "account-dashboard-tab";
 export const LAST_EARN_TAB_KEY = "last-earn-tab";
 export const SYNTHETICS_COLLATERAL_EDIT_TOKEN_MAP_KEY = "synthetics-collateral-edit-token-map";
-export const SYNTHETICS_COLLATERAL_EDIT_TOKEN_IS_FROM_GMX_ACCOUNT_KEY =
-  "synthetics-collateral-edit-token-is-from-gmx-account";
+export const SYNTHETICS_COLLATERAL_EDIT_TOKEN_IS_FROM_TRADING_ACCOUNT_KEY =
+  "synthetics-collateral-edit-token-is-from-trading-account";
 export const PRODUCTION_PREVIEW_KEY = "production-preview";
 export const REQUIRED_UI_VERSION_KEY = "required-ui-version";
 export const DEBUG_SWAP_SETTINGS_KEY = "debug-swap-settings";
@@ -126,17 +122,16 @@ export function getSyntheticsAcceptablePriceImpactBufferKey(chainId: number) {
   return [chainId, SYNTHETICS_ACCEPTABLE_PRICE_IMPACT_BUFFER_KEY];
 }
 
-export function getSyntheticsTradeOptionsKey(chainId: number, pageType?: "trade" | "x10000trade") {
-  const suffix = pageType === "x10000trade" ? "-x10000" : "";
-  return [chainId, `${SYNTHETICS_TRADE_OPTIONS}${suffix}`];
+export function getSyntheticsTradeOptionsKey(chainId: number) {
+  return [chainId, SYNTHETICS_TRADE_OPTIONS];
 }
 
 export function getSyntheticsCollateralEditAddressMapKey(chainId: number) {
   return [chainId, SYNTHETICS_COLLATERAL_EDIT_TOKEN_MAP_KEY];
 }
 
-export function getSyntheticsCollateralEditTokenIsFromGmxAccountMapKey(chainId: number) {
-  return [chainId, SYNTHETICS_COLLATERAL_EDIT_TOKEN_IS_FROM_GMX_ACCOUNT_KEY];
+export function getSyntheticsCollateralEditTokenIsFromTradingAccountMapKey(chainId: number) {
+  return [chainId, SYNTHETICS_COLLATERAL_EDIT_TOKEN_IS_FROM_TRADING_ACCOUNT_KEY];
 }
 
 export function getLeverageKey(chainId: number) {
@@ -214,8 +209,8 @@ export function getExpressTradingPromoHiddenKey(chainId: number) {
   return `${chainId}-${EXPRESS_TRADING_PROMO_HIDDEN_KEY}`;
 }
 
-export function getFromTokenIsGmxAccountKey(chainId: number) {
-  return [chainId, "from-token-is-gmx-account"];
+export function getFromTokenIsTradingAccountKey(chainId: number) {
+  return [chainId, "from-token-is-trading-account"];
 }
 
 export function getClaimTermsAcceptedKey(

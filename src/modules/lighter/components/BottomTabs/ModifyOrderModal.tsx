@@ -1,56 +1,65 @@
-import { t } from "@lingui/macro";
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
-import { useAccount } from "wagmi";
 
-import { updateOrder } from "@/modules/cex/lib/api/custom/client";
-import { useApiOrders } from "@/modules/cex/lib/api/custom/useApiOrders";
 import { symbolToMarket } from "@/modules/lighter/adapters/lighterOpenOrders";
-import { useOrdersInfoData } from "context/SyntheticsStateContext/hooks/globalsHooks";
-import { PositionOrderInfo, isSwapOrderType } from "domain/synthetics/orders";
+import { updateOrder, setPositionTpSl } from "@/modules/lighter/api/custom/client";
+import { useApiOrders } from "@/modules/lighter/api/custom/useApiOrders";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import type { TpSlRequest } from "@/modules/lighter/api/types";
 import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
-import { getByKey } from "lib/objects";
 
 import Modal from "components/Modal/Modal";
 
 import { AmountUnit, convertAmountValue, formatAmountValue } from "./modifyOrderAmount";
 import styles from "./OpenOrdersTab.module.scss";
 
-function getSimpleOrderTypeLabel(orderType?: string) {
+// TP/SL orders live in the `trigger_orders` table, not `orders`. They must be
+// modified via the position TP/SL endpoint — PATCH/PUT /orders/{id} only looks
+// up `orders` and returns 订单不存在. Mirrors the cancel path's isTpSlOrder
+// special-case (useCancelOrderHandler).
+const TPSL_ORDER_TYPES = ["take_profit", "take_profit_limit", "stop_market", "stop_limit"];
+
+type SimpleOrderTypeKey = "limit" | "market" | "trigger";
+
+function getSimpleOrderTypeKey(orderType?: string): SimpleOrderTypeKey {
   switch ((orderType || "").toLowerCase()) {
     case "limit":
     case "take_profit":
     case "take_profit_limit":
-      return "Limit";
+      return "limit";
     case "market":
-      return "Market";
+      return "market";
     case "stop_market":
     case "stop_limit":
-      return "Trigger";
+      return "trigger";
     default:
-      return "Limit";
+      return "limit";
   }
 }
 
 type Props = {
-  orderKey?: string;
+  orderId?: string;
   onClose: () => void;
 };
 
-export function ModifyOrderModal({ orderKey, onClose }: Props) {
+export function ModifyOrderModal({ orderId, onClose }: Props) {
+  const { i18n } = useLingui();
   const { chainId } = useChainId();
-  const { address } = useAccount();
+  const cantonSession = useCantonSession();
+  const accountKey = useMemo(
+    () => (cantonSession.connected ? cantonSession.party || cantonSession.username || "canton-session" : undefined),
+    [cantonSession.connected, cantonSession.party, cantonSession.username]
+  );
   const { mutate } = useSWRConfig();
-  const ordersInfoData = useOrdersInfoData();
-  const { apiOrders } = useApiOrders(chainId, address);
+  const { apiOrders } = useApiOrders(chainId, accountKey);
 
-  const order = orderKey ? getByKey(ordersInfoData, orderKey) : undefined;
-  const positionOrder = order && !isSwapOrderType(order.orderType) ? (order as PositionOrderInfo) : undefined;
   const apiOrder = useMemo(() => {
-    if (!positionOrder?.originalOrderId || !apiOrders) return undefined;
-    return apiOrders.find((item) => item.id === positionOrder.originalOrderId);
-  }, [apiOrders, positionOrder?.originalOrderId]);
+    if (!orderId || !apiOrders) return undefined;
+    return apiOrders.find((item) => String(item.id) === orderId);
+  }, [apiOrders, orderId]);
 
   const [priceInputValue, setPriceInputValue] = useState("");
   const [amountInputValue, setAmountInputValue] = useState("");
@@ -59,16 +68,20 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const amountUnitMenuRef = useRef<HTMLDivElement>(null);
 
-  const marketSymbol = apiOrder?.symbol ? symbolToMarket(apiOrder.symbol) : positionOrder?.indexToken?.symbol ?? "-";
+  const marketSymbol = apiOrder?.symbol ? symbolToMarket(apiOrder.symbol) : "-";
   const markPriceText = apiOrder?.mark_price ? formatAmountValue(apiOrder.mark_price) : "-";
-  const orderTypeLabel = getSimpleOrderTypeLabel(apiOrder?.order_type);
+  const orderTypeKey = getSimpleOrderTypeKey(apiOrder?.order_type);
+  const orderTypeLabel =
+    orderTypeKey === "limit" ? i18n._(t`Limit`) : orderTypeKey === "market" ? i18n._(t`Market`) : i18n._(t`Trigger`);
 
   useEffect(() => {
     if (!apiOrder) return;
 
     setPriceInputValue(formatAmountValue(apiOrder.price ?? apiOrder.trigger_price ?? ""));
-    setAmountUnit("symbol");
-    setAmountInputValue(formatAmountValue(apiOrder.amount ?? apiOrder.size ?? ""));
+    // 后端 Order 只返回 `size`(USD),没有 `amount`(BTC)。默认用 USD 展示,避免把 USD 数值挂成 BTC 单位。
+    // 用户可在 dropdown 切到 symbol,由 convertAmountValue 用 price 做换算。
+    setAmountUnit("usd");
+    setAmountInputValue(formatAmountValue(apiOrder.size ?? ""));
   }, [apiOrder]);
 
   useEffect(() => {
@@ -90,17 +103,17 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
   const originalAmountValue = amountUnit === "symbol" ? String(apiOrder?.amount ?? "") : String(apiOrder?.size ?? "");
 
   const error = useMemo(() => {
-    if (!positionOrder?.originalOrderId || !apiOrder) return "Unknown order";
-    if (!normalizedPrice) return "Enter a price";
-    if (!normalizedAmount) return "Enter an amount";
+    if (!apiOrder) return i18n._(t`Unknown order`);
+    if (!normalizedPrice) return i18n._(t`Enter a price`);
+    if (!normalizedAmount) return i18n._(t`Enter an amount`);
 
     const isPriceChanged = normalizedPrice !== String(apiOrder.price ?? apiOrder.trigger_price ?? "");
     const isAmountChanged = normalizedAmount !== originalAmountValue;
 
-    if (!isPriceChanged && !isAmountChanged) return "Enter a new size or price";
+    if (!isPriceChanged && !isAmountChanged) return i18n._(t`Enter a new size or price`);
 
     return undefined;
-  }, [apiOrder, normalizedAmount, normalizedPrice, originalAmountValue, positionOrder?.originalOrderId]);
+  }, [apiOrder, i18n, normalizedAmount, normalizedPrice, originalAmountValue]);
 
   const handleMidClick = useCallback(() => {
     if (!apiOrder?.mark_price) return;
@@ -122,41 +135,90 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
   );
 
   const handleSubmit = useCallback(async () => {
-    if (!chainId || !address || !apiOrder?.id || error) return;
+    if (!chainId || !accountKey || !apiOrder?.id || error) return;
 
-    const submittedAmount = amountUnit === "symbol" ? normalizedAmount : convertAmountValue(normalizedAmount, "usd", "symbol", effectivePrice);
-    const submittedSize = amountUnit === "usd" ? normalizedAmount : convertAmountValue(normalizedAmount, "symbol", "usd", effectivePrice);
+    const submittedAmount =
+      amountUnit === "symbol"
+        ? normalizedAmount
+        : convertAmountValue(normalizedAmount, "usd", "symbol", effectivePrice);
+    const submittedSize =
+      amountUnit === "usd" ? normalizedAmount : convertAmountValue(normalizedAmount, "symbol", "usd", effectivePrice);
 
     setIsSubmitting(true);
 
     try {
-      await updateOrder(
-        chainId,
-        apiOrder.id,
-        {
-          price: normalizedPrice,
-          size: submittedSize,
-          amount: submittedAmount,
-        },
-        address
-      );
+      const normalizedType = (apiOrder.order_type || "").toLowerCase();
+      const isTpSl = TPSL_ORDER_TYPES.includes(normalizedType);
+
+      if (isTpSl) {
+        // TP/SL trigger orders are modified through the position TP/SL endpoint,
+        // never PATCH/PUT /orders/{id}. position_id is preserved by
+        // convertTriggerOrderToOrder; without it there is no position to attach to.
+        const positionId = (apiOrder as { position_id?: string }).position_id;
+        if (!positionId) {
+          throw new Error(i18n._(t`This order can't be modified — cancel and recreate it instead.`));
+        }
+
+        const isTakeProfit = normalizedType === "take_profit" || normalizedType === "take_profit_limit";
+        const isLimitTrigger = normalizedType === "take_profit_limit" || normalizedType === "stop_limit";
+        const request: TpSlRequest = {};
+
+        if (isTakeProfit) {
+          // For *_limit triggers the single price field edits the LIMIT price, so
+          // preserve the existing trigger price and send the edited limit price.
+          request.take_profit_price = isLimitTrigger ? (apiOrder.trigger_price ?? normalizedPrice) : normalizedPrice;
+          if (isLimitTrigger) request.take_profit_limit_price = normalizedPrice;
+          request.take_profit_size = submittedSize;
+        } else {
+          request.stop_loss_price = isLimitTrigger ? (apiOrder.trigger_price ?? normalizedPrice) : normalizedPrice;
+          if (isLimitTrigger) request.stop_loss_limit_price = normalizedPrice;
+          request.stop_loss_size = submittedSize;
+        }
+
+        // Backend only cancels/recreates the side whose price is sent, so the
+        // untouched side (e.g. the SL when editing the TP) is preserved.
+        await setPositionTpSl(chainId, positionId, request, accountKey);
+      } else {
+        await updateOrder(
+          chainId,
+          apiOrder.id,
+          {
+            price: normalizedPrice,
+            size: submittedSize,
+            amount: submittedAmount,
+          },
+          accountKey
+        );
+      }
 
       await Promise.all([
-        mutate(["api-orders", chainId, address], undefined, { revalidate: true }),
-        mutate(["api-positions", chainId, address], undefined, { revalidate: true }),
+        mutate(["api-orders", chainId, accountKey], undefined, { revalidate: true }),
+        mutate(["api-positions", chainId, accountKey], undefined, { revalidate: true }),
       ]);
 
       helperToast.success(t`Order updated`);
       onClose();
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : "Failed to update order";
+      const message = submitError instanceof Error ? submitError.message : i18n._(t`Failed to update order`);
       helperToast.error(message);
     } finally {
       setIsSubmitting(false);
     }
-  }, [address, amountUnit, apiOrder?.id, chainId, effectivePrice, error, mutate, normalizedAmount, normalizedPrice, onClose]);
+  }, [
+    accountKey,
+    amountUnit,
+    apiOrder,
+    chainId,
+    effectivePrice,
+    error,
+    i18n,
+    mutate,
+    normalizedAmount,
+    normalizedPrice,
+    onClose,
+  ]);
 
-  if (!orderKey || !positionOrder) {
+  if (!orderId || !apiOrder) {
     return null;
   }
 
@@ -166,7 +228,7 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
       setIsVisible={(visible) => {
         if (!visible) onClose();
       }}
-      label="Modify Order"
+      label={i18n._(t`Modify Order`)}
       contentPadding={false}
       qa="lighter-modify-order-modal"
       contentClassName={styles.modifyOrderModalContent}
@@ -176,21 +238,29 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
       <div className={styles.modifyOrderBody}>
         <div className={styles.modifyOrderInfoGrid}>
           <div className={styles.modifyOrderInfoRow}>
-            <span className={styles.modifyOrderLabel}>Order Type</span>
+            <span className={styles.modifyOrderLabel}>
+              <Trans>Order Type</Trans>
+            </span>
             <span className={styles.modifyOrderValue}>{orderTypeLabel}</span>
           </div>
           <div className={styles.modifyOrderInfoRow}>
-            <span className={styles.modifyOrderLabel}>Market</span>
+            <span className={styles.modifyOrderLabel}>
+              <Trans>Market</Trans>
+            </span>
             <span className={styles.modifyOrderValue}>{marketSymbol}</span>
           </div>
           <div className={styles.modifyOrderInfoRow}>
-            <span className={styles.modifyOrderLabel}>Mark Price</span>
+            <span className={styles.modifyOrderLabel}>
+              <Trans>Mark Price</Trans>
+            </span>
             <span className={styles.modifyOrderValue}>{markPriceText}</span>
           </div>
         </div>
 
         <div className={styles.modifyOrderField}>
-          <span className={styles.modifyOrderFieldLabel}>Price</span>
+          <span className={styles.modifyOrderFieldLabel}>
+            <Trans>Price</Trans>
+          </span>
           <div className={styles.modifyOrderFieldValue}>
             <input
               value={priceInputValue}
@@ -199,13 +269,15 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
               inputMode="decimal"
             />
             <button type="button" className={styles.modifyOrderHint} onClick={handleMidClick}>
-              Mid
+              <Trans>Mid</Trans>
             </button>
           </div>
         </div>
 
         <div className={styles.modifyOrderField} ref={amountUnitMenuRef}>
-          <span className={styles.modifyOrderFieldLabel}>Amount</span>
+          <span className={styles.modifyOrderFieldLabel}>
+            <Trans>Amount</Trans>
+          </span>
           <div className={styles.modifyOrderFieldValue}>
             <input
               value={amountInputValue}
@@ -242,7 +314,11 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
                     </span>
                   )}
                 </button>
-                <button type="button" className={styles.modifyOrderUnitOption} onClick={() => handleAmountUnitChange("usd")}>
+                <button
+                  type="button"
+                  className={styles.modifyOrderUnitOption}
+                  onClick={() => handleAmountUnitChange("usd")}
+                >
                   <span>USD</span>
                   {amountUnit === "usd" && (
                     <span className={styles.modifyOrderUnitCheck}>
@@ -263,7 +339,7 @@ export function ModifyOrderModal({ orderKey, onClose }: Props) {
           disabled={Boolean(error) || isSubmitting}
           onClick={handleSubmit}
         >
-          {isSubmitting ? "Submitting..." : "Modify Order"}
+          {isSubmitting ? <Trans>Submitting...</Trans> : <Trans>Modify Order</Trans>}
         </button>
       </div>
     </Modal>

@@ -12,6 +12,16 @@ body,
   color: var(--color-typography-primary);
 }
 
+/* 禁止文档根纵向滚动：否则与 App 内主列 overflow-y-auto 叠成双滚动条；纵向只滚 AppRoutes 那一列 */
+html {
+  overflow-y: hidden;
+}
+
+#root {
+  overflow: hidden;
+  min-height: 0;
+}
+
 #root > div {
   height: 100%;
   width: 100%;
@@ -25,13 +35,14 @@ body,
 body {
   width: 100vw;
   overflow-x: hidden !important;
+  /* 不用 !important，便于弹层（react-remove-scroll 等）临时改 body overflow */
+  overflow-y: hidden;
 }
 
 body {
   margin: 0;
   font-family:
-    "Outfit",
-    "TTHoves",
+    "Messina Sans",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
@@ -94,8 +105,6 @@ code {
   --dark-blue-border: var(--color-gray-800);
   --dark-blue-active: var(--color-cold-blue-700);
   --warning-yellow: var(--color-yellow-300);
-  --avax-red: #e84143;
-  --arbitrum-blue: #28a0f0;
   --border-radius-sm: 8px;
   --error-red: var(--color-red-500);
   --error-red-hover: var(--color-red-400);
@@ -112,6 +121,11 @@ code {
 
   --default-container-padding: 3.2rem;
   --default-container-padding-mobile: 1rem;
+
+  /** react-loading-skeleton：与转场高光（Skeleton.scss ::after） */
+  --skeleton-base: #b4bbff1a;
+  --skeleton-highlight: #b4bbff1a;
+  --skeleton-shimmer-mid: #b4bbff1a;
 
   font-variant-numeric: tabular-nums lining-nums;
 }
@@ -416,17 +430,17 @@ th {
   letter-spacing: 0.08em;
 }
 
-/* Rocky side nav: 两个金色圆角 + 中间发光竖线 */
-.rocky-sidenav {
+/* Primit side nav: 两个绿色圆角 + 中间发光竖线 */
+.primit-sidenav-deco {
   position: relative;
   border-radius: 20px;
   overflow: hidden; /* 让右侧光效跟随容器圆角裁剪 */
   transition: all 0.3s ease;
 }
 
-/* 顶部 / 底部两个金色圆角 */
-.rocky-sidenav::before,
-.rocky-sidenav::after {
+/* 顶部 / 底部两个绿色圆角 */
+.primit-sidenav-deco::before,
+.primit-sidenav-deco::after {
 
   content: "";
   position: absolute;
@@ -434,20 +448,20 @@ th {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 2px solid rgba(240, 185, 11, 0.7);
-  box-shadow: 0 0 14px rgba(240, 185, 11, 0.65);
+  border: 2px solid rgba(0, 255, 178, 0.7);
+  box-shadow: 0 0 14px rgba(0, 255, 178, 0.65);
   pointer-events: none;
 }
 
-/* 右侧主体：左边两个金色圆角，呼应侧边栏 */
-.rocky-main {
+/* 右侧主体：左边两个绿色圆角，呼应侧边栏 */
+.primit-sidenav-main-deco {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
 }
 
-.rocky-main::before,
-.rocky-main::after {
+.primit-sidenav-main-deco::before,
+.primit-sidenav-main-deco::after {
   
   content: "";
   position: absolute;
@@ -455,29 +469,29 @@ th {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 2px solid rgba(240, 185, 11, 0.7);
-  box-shadow: 0 0 14px rgba(240, 185, 11, 0.65);
+  border: 2px solid rgba(0, 255, 178, 0.7);
+  box-shadow: 0 0 14px rgba(0, 255, 178, 0.65);
   pointer-events: none;
 }
 
-.rocky-main::before {
+.primit-sidenav-main-deco::before {
   top: -13px;
 }
 
-.rocky-main::after {
+.primit-sidenav-main-deco::after {
   bottom: -13px;
 }
 
-.rocky-sidenav::before {
+.primit-sidenav-deco::before {
   top: -13px;
 }
 
-.rocky-sidenav::after {
+.primit-sidenav-deco::after {
   bottom: -13px;
 }
 
 /* 右侧竖线，只在中间一段发光 */
-.rocky-sidenav-right-line {
+.primit-sidenav-deco-right-line {
   position: absolute;
   right: 1px;
   top: 1px;    /* 避开顶部圆角 */
@@ -486,48 +500,49 @@ th {
   border-radius: 999px;
   background: linear-gradient(
     to bottom,
-    rgba(240, 185, 11, 0.7) 0%,
-    rgba(240, 185, 11, 0.1) 5%,
-    rgba(240, 185, 11, 0.1) 40%,
-    rgba(240, 185, 11, 0.7) 50%,
-    rgba(240, 185, 11, 0.1) 60%,
-    rgba(240, 185, 11, 0.1) 90%,
-    rgba(240, 185, 11, 0.7)  100%
+    rgba(0, 255, 178, 0.7) 0%,
+    rgba(0, 255, 178, 0.1) 5%,
+    rgba(0, 255, 178, 0.1) 40%,
+    rgba(0, 255, 178, 0.7) 50%,
+    rgba(0, 255, 178, 0.1) 60%,
+    rgba(0, 255, 178, 0.1) 90%,
+    rgba(0, 255, 178, 0.7)  100%
   );
-  box-shadow: 0 0 12px rgba(240, 185, 11, 0.7);
+  box-shadow: 0 0 12px rgba(0, 255, 178, 0.7);
   pointer-events: none;
 }
 
-/* Header 底部发光渐变线，呼应侧边栏竖线效果 */
+/* 允许下拉框显示在 header 外部（与顶栏 overflow 策略配合） */
 [data-qa="header"] {
   position: relative;
-  overflow: visible; /* 改为 visible，允许下拉框显示在 header 外部 */
+  overflow: visible;
 }
 
-[data-qa="header"]::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(240, 185, 11, 0) 0%,
-    rgba(240, 185, 11, 0.5) 15%,
-    rgba(240, 185, 11, 0.1) 25%,
-    rgba(240, 185, 11, 0) 50%,
-    rgba(240, 185, 11, 0.1) 85%,
-    rgba(240, 185, 11, 0.5) 95%,
-    rgba(240, 185, 11, 0) 100%
-  );
-
-  pointer-events: none;
-}
-
-/* 统一各模块背景色为 #090909，圆角 20px */
+/**
+ * 列表/卡片等模块统一表面色（与 Primit `--text-bg-color-secondary-3` 同步；浅深主题由 token 解析）。
+ * 圆角由各节点自身的 rounded-* 控制，勿在此全局写 border-radius。
+ */
 .bg-slate-900 {
-  background-color: #090909 ;
-  border-radius: 12px ;
+  background: var(--text-bg-color-secondary-3, #191919);
+}
+
+/**
+ * ic_spinner.svg：双圆环为 stroke currentColor。默认灰、持仓行 Legacy 蓝（见 DeprecatedExchageStyles / ApproveTokenButton）。
+ */
+:root {
+  --spinner-icon-color: rgb(160, 163, 196);
+}
+
+svg.spin:not(.text-white),
+svg.animate-spin:not(.text-white) {
+  color: var(--spinner-icon-color);
+}
+
+/* Legacy：持仓区与授权按钮等仍为蓝圈（Primit 下由 loading.primit.css 改为主色） */
+svg.spin.position-loading-icon:not(.text-white) {
+  color: var(--color-blue-600);
+}
+
+svg.spin.ApproveTokenButton-spin {
+  color: var(--color-blue-600);
 }

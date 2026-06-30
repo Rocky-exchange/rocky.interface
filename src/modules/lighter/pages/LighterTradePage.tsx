@@ -1,23 +1,59 @@
 // src/modules/lighter/pages/LighterTradePage.tsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { useTokensFavorites } from "@/modules/lighter/store/TokensFavoritesContext/TokensFavoritesContextProvider";
 
 import "../styles/global.scss";
 import styles from "./LighterTradePage.module.scss";
+import { useTradeState } from "@/modules/lighter/store/TradeStateContext";
+
+import { OrderFormPanel } from "../features/orderForm/desktop/OrderFormPanel";
 import { AccountsPanel } from "../components/AccountsPanel/AccountsPanel";
 import { BottomTabs } from "../components/BottomTabs/BottomTabs";
 import { ChartPanel } from "../components/ChartPanel/ChartPanel";
 import { OrderBookPanel, type OrderBookLayout } from "../components/OrderBookPanel/OrderBookPanel";
-import { OrderFormPanel } from "../components/OrderFormPanel/OrderFormPanel";
 import { SymbolBar } from "../components/SymbolBar/SymbolBar";
 import { TopNav } from "../components/TopNav/TopNav";
+import { useBreakpoints } from "@/shared/lib/useBreakpoints";
+import { TradePageMobile } from "@/modules/lighter/mobile/TradePage/TradePageMobile";
+import { useSettings } from "@/modules/lighter/context/SettingsContext";
 
 export default function LighterTradePage() {
   const [orderBookLayout, setOrderBookLayout] = useState<OrderBookLayout>("Tab");
+  const { isMobile } = useBreakpoints();
+  const { setIsSettingsVisible } = useSettings();
 
   useEffect(() => {
     document.body.classList.add("lighter-active");
     return () => document.body.classList.remove("lighter-active");
   }, []);
+
+  /** ========= Favorite market 按钮逻辑 =========
+   *  - key "trade-market-selector" 与交易对下拉面板共用，
+   *    这样 SymbolBar 下方的星星和搜索面板里的星星状态同步。
+   *  - token id 是 "BTCUSDT" 形式（与 market.symbol / 收藏 store 格式一致）。
+   *    selectedSymbol 形如 "BTCUSDT-USD"，截前半段即可。 */
+  const { selectedSymbol } = useTradeState();
+  const { favoriteTokens, toggleFavoriteToken } = useTokensFavorites("trade-market-selector");
+  const currentMarketKey = useMemo(() => {
+    if (!selectedSymbol) return "";
+    const base = selectedSymbol.split("-")[0]?.toUpperCase();
+    if (!base) return "";
+    return base.endsWith("USDT") ? base : `${base}USDT`;
+  }, [selectedSymbol]);
+  const isFavorite = Boolean(currentMarketKey && favoriteTokens?.includes(currentMarketKey));
+  const handleToggleFavorite = useCallback(() => {
+    if (!currentMarketKey) return;
+    toggleFavoriteToken(currentMarketKey);
+  }, [currentMarketKey, toggleFavoriteToken]);
+
+  if (isMobile) {
+    return (
+      <TradePageMobile
+        onOpenSettings={() => setIsSettingsVisible(true)}
+      />
+    );
+  }
 
   return (
     <div className={`lighter-root ${styles.page}`}>
@@ -33,8 +69,23 @@ export default function LighterTradePage() {
         <div className={styles.chartCol}>
           <SymbolBar />
           <div className={styles.favoritesBar}>
-            <button type="button" className={styles.favoriteButton} aria-label="favorite market">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+            <button
+              type="button"
+              className={styles.favoriteButton}
+              aria-label={isFavorite ? "remove favorite" : "add favorite"}
+              aria-pressed={isFavorite}
+              onClick={handleToggleFavorite}
+              disabled={!currentMarketKey}
+              data-favorited={isFavorite ? "true" : "false"}
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill={isFavorite ? "var(--color-yellow-300, #ffe166)" : "none"}
+                stroke={isFavorite ? "var(--color-yellow-300, #ffe166)" : "currentColor"}
+                strokeWidth="1.9"
+              >
                 <path
                   d="M12 3.8l2.53 5.12 5.65.82-4.09 3.99.97 5.63L12 16.68l-5.06 2.68.97-5.63L3.82 9.74l5.65-.82L12 3.8z"
                   strokeLinecap="round"

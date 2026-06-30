@@ -1,4 +1,4 @@
-import { Abi, encodeFunctionData, zeroAddress, zeroHash } from "viem";
+import { Abi, encodeFunctionData, zeroAddress, zeroHash } from "sdk/utils/evmCompat";
 
 import { abis } from "sdk/abis";
 import { getContract } from "sdk/configs/contracts";
@@ -9,7 +9,7 @@ import { isMarketOrderType } from "sdk/utils/orders";
 import { simulateExecuteOrder } from "sdk/utils/simulateExecuteOrder";
 import { applySlippageToMinOut } from "sdk/utils/trade";
 
-import type { GmxSdk } from "../../..";
+import type { TradingSdk } from "../../..";
 
 export type SwapOrderParams = {
   fromTokenAddress: string;
@@ -26,7 +26,7 @@ export type SwapOrderParams = {
   dataList?: string[];
 };
 
-export async function createSwapOrderTxn(sdk: GmxSdk, p: SwapOrderParams) {
+export async function createSwapOrderTxn(sdk: TradingSdk, p: SwapOrderParams) {
   const { encodedPayload, totalWntAmount } = await getParams(sdk, p);
   const { encodedPayload: simulationEncodedPayload, totalWntAmount: sumaltionTotalWntAmount } = await getParams(sdk, p);
 
@@ -50,7 +50,7 @@ export async function createSwapOrderTxn(sdk: GmxSdk, p: SwapOrderParams) {
   );
 }
 
-async function getParams(sdk: GmxSdk, p: SwapOrderParams) {
+async function getParams(sdk: TradingSdk, p: SwapOrderParams) {
   const isNativePayment = p.fromTokenAddress === NATIVE_TOKEN_ADDRESS;
   const isNativeReceive = p.toTokenAddress === NATIVE_TOKEN_ADDRESS;
   const orderVaultAddress = getContract(sdk.chainId, "OrderVault");

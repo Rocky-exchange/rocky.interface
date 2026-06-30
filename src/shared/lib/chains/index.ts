@@ -1,4 +1,4 @@
-import { useChainContext } from "context/ChainContext/ChainContext";
+import { useChainContext } from "shared/context/ChainContext/ChainContext";
 
 export function useChainId() {
   return useChainContext();

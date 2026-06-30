@@ -160,7 +160,7 @@ export const MARKETS: Record<ContractsChainId, Record<string, MarketConfig>> = {
       longTokenAddress: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       shortTokenAddress: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     },
-    // GMX/USD [GMX-USDC]
+    // Primit/USD market
     "0x55391D178Ce46e7AC8eaAEa50A72D1A5a8A622Da": {
       marketTokenAddress: "0x55391D178Ce46e7AC8eaAEa50A72D1A5a8A622Da",
       indexTokenAddress: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
@@ -370,7 +370,7 @@ export const MARKETS: Record<ContractsChainId, Record<string, MarketConfig>> = {
       longTokenAddress: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
       shortTokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     },
-    // GMX [GMX]
+    // Primit
     "0xbD48149673724f9cAeE647bb4e9D9dDaF896Efeb": {
       marketTokenAddress: "0xbD48149673724f9cAeE647bb4e9D9dDaF896Efeb",
       indexTokenAddress: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
@@ -1016,7 +1016,7 @@ export const MARKETS: Record<ContractsChainId, Record<string, MarketConfig>> = {
       marketTokenAddress: "0xeE8827D67C054cAa89C9d6058Fdddccd1C499c74",
       indexTokenAddress: "0x0000000000000000000000000000000000000000",
       longTokenAddress: "0x3eBDeaA0DB3FfDe96E7a0DBBAFEC961FC50F725F",
-      shortTokenAddress: "0x50df4892Bd13f01E4e1Cd077ff394A8fa1A3fD7c",
+      shortTokenAddress: "0x289a53c680dD1162cD792101Fff5352728C6Fa41",
     },
     // DOGE/USD [ETH-DAI]
     "0xAC2c6C1b0cd1CabF78B4e8ad58aA9d43375318Cb": {
@@ -1086,7 +1086,7 @@ export const MARKETS: Record<ContractsChainId, Record<string, MarketConfig>> = {
       marketTokenAddress: "0xd783EB54407d6d3A4D5c94b634eC9BAE3F574098",
       indexTokenAddress: "0x3Bd8e00c25B12E6E60fc8B6f1E1E2236102073Ca",
       longTokenAddress: "0x3eBDeaA0DB3FfDe96E7a0DBBAFEC961FC50F725F",
-      shortTokenAddress: "0x50df4892Bd13f01E4e1Cd077ff394A8fa1A3fD7c",
+      shortTokenAddress: "0x289a53c680dD1162cD792101Fff5352728C6Fa41",
     },
     // ETH/USD [USDC-DAI]
     "0x6d72D2787107c32a48bbA4687Eb8F9C19FE5e29C": {
@@ -1139,7 +1139,7 @@ export const MARKETS: Record<ContractsChainId, Record<string, MarketConfig>> = {
       longTokenAddress: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
       shortTokenAddress: "0x3253a335E7bFfB4790Aa4C25C4250d206E9b9773",
     },
-    // ZTDX/USD [ZTDX-USDC]
+    // Stable token/USD market
     "0x756be641d97c796bd13856c76830f274fb0ac857": {
       marketTokenAddress: "0x756be641d97c796bd13856c76830f274fb0ac857",
       indexTokenAddress: "0x21358c79Ea3104784827De6FB8Ab9d39d83EC89A",

@@ -1,7 +1,10 @@
+import { Trans } from "@lingui/macro";
+import type { ReactNode } from "react";
+
 import styles from "./AccountsPanel.module.scss";
 import { useUnifiedAccountAdapter } from "../../adapters/useUnifiedAccountAdapter";
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className={styles.row}>
       <span className={styles.label}>{label}</span>
@@ -34,17 +37,23 @@ export function AccountsPanel() {
   return (
     <div className={styles.root}>
       <div className={styles.section}>
-        <div className={styles.head}>Accounts</div>
-        <Row label="Perpetuals Equity" value={formatUsd(account.perpetualsEquity)} />
-        <Row label="Spot Equity" value={formatUsd(account.spotEquity)} />
+        <div className={styles.head}>
+          <Trans>Accounts</Trans>
+        </div>
+        <Row label={<Trans>Perpetuals Equity</Trans>} value={formatUsd(account.perpetualsEquity)} />
+        {/* Spot 账户暂未接入,先下线 Spot Equity 行,保留 JSX 供后续打开。
+        <Row label={<Trans>Spot Equity</Trans>} value={formatUsd(account.spotEquity)} />
+        */}
       </div>
       <div className={styles.section}>
-        <div className={styles.head}>Perpetuals Overview</div>
-        <Row label="Unrealized PnL" value={formatUsd(account.unrealizedPnl)} />
-        <Row label="Cross Leverage" value={formatLeverage(account.crossLeverage)} />
-        <Row label="Cross Margin Usage" value={formatUsd(account.crossMarginUsage)} />
-        <Row label="Maintenance Margin" value={formatUsd(account.maintenanceMargin)} />
-        <Row label="Cross Margin Ratio" value={formatPercent(account.crossMarginRatio)} />
+        <div className={styles.head}>
+          <Trans>Perpetuals Overview</Trans>
+        </div>
+        <Row label={<Trans>Unrealized PnL</Trans>} value={formatUsd(account.unrealizedPnl)} />
+        <Row label={<Trans>Cross Leverage</Trans>} value={formatLeverage(account.crossLeverage)} />
+        <Row label={<Trans>Cross Margin Usage</Trans>} value={formatUsd(account.crossMarginUsage)} />
+        <Row label={<Trans>Maintenance Margin</Trans>} value={formatUsd(account.maintenanceMargin)} />
+        <Row label={<Trans>Cross Margin Ratio</Trans>} value={formatPercent(account.crossMarginRatio)} />
       </div>
     </div>
   );

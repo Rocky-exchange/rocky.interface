@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import TokenIcon from "components/TokenIcon/TokenIcon";
 
@@ -13,11 +15,14 @@ import { useAssetsAdapter } from "../../adapters/useAssetsAdapter";
 import { useOpenOrdersAdapter } from "../../adapters/useOpenOrdersAdapter";
 import { useOrderHistoryAdapter } from "../../adapters/useOrderHistoryAdapter";
 import { usePositionsAdapter } from "../../adapters/usePositionsAdapter";
+import { useTradeHistoryAdapterState } from "../../adapters/useTradeHistoryAdapter";
+import type { LighterTradeHistoryRow } from "../../adapters/useTradeHistoryAdapter";
 
 type Tab = "Positions" | "Assets" | "Open Orders" | "Order History" | "Trade History" | "Funding History";
 export type BottomTabFilterMode = "all" | "asks" | "bids";
 export type OpenOrdersMarketFilter = "All" | string;
-export type OpenOrdersTypeFilter = "All" | "Limit" | "S/L Market" | "S/L Limit" | "T/P Market" | "T/P Limit" | "TWAP";
+export type OpenOrdersTypeFilter = "All" | "Market" | "Limit" | "S/L Market" | "S/L Limit" | "T/P Market" | "T/P Limit";
+export type TradeHistoryTypeFilter = "All" | "Trade" | "Liquidation" | "Deleverage" | "Market Settlement";
 
 function MarketFilterIcon() {
   return (
@@ -178,6 +183,13 @@ function TabFilters({
   onOrderHistoryMarketFilterChange,
   openOrdersTypeFilter,
   onOpenOrdersTypeFilterChange,
+  tradeHistoryMarkets,
+  tradeHistoryMarketFilter,
+  onTradeHistoryMarketFilterChange,
+  tradeHistoryTypeFilter,
+  onTradeHistoryTypeFilterChange,
+  onTradeHistoryExport,
+  isTradeHistoryExportDisabled,
 }: {
   tab: Tab;
   mode: BottomTabFilterMode;
@@ -190,19 +202,82 @@ function TabFilters({
   onOrderHistoryMarketFilterChange: (value: OpenOrdersMarketFilter) => void;
   openOrdersTypeFilter: OpenOrdersTypeFilter;
   onOpenOrdersTypeFilterChange: (value: OpenOrdersTypeFilter) => void;
+  tradeHistoryMarkets: string[];
+  tradeHistoryMarketFilter: OpenOrdersMarketFilter;
+  onTradeHistoryMarketFilterChange: (value: OpenOrdersMarketFilter) => void;
+  tradeHistoryTypeFilter: TradeHistoryTypeFilter;
+  onTradeHistoryTypeFilterChange: (value: TradeHistoryTypeFilter) => void;
+  onTradeHistoryExport: () => void;
+  isTradeHistoryExportDisabled: boolean;
 }) {
+  const { i18n } = useLingui();
   const [marketMenuOpen, setMarketMenuOpen] = useState(false);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const [tradeTypeMenuOpen, setTradeTypeMenuOpen] = useState(false);
   const [marketSearch, setMarketSearch] = useState("");
-  const activeMarketFilter = tab === "Order History" ? orderHistoryMarketFilter : openOrdersMarketFilter;
-  const marketOptions = tab === "Order History" ? orderHistoryMarkets : openOrdersMarkets;
+  const showsMarketDropdown = tab === "Open Orders" || tab === "Order History" || tab === "Trade History";
+  const activeMarketFilter =
+    tab === "Trade History"
+      ? tradeHistoryMarketFilter
+      : tab === "Order History"
+        ? orderHistoryMarketFilter
+        : openOrdersMarketFilter;
+  const marketOptions =
+    tab === "Trade History" ? tradeHistoryMarkets : tab === "Order History" ? orderHistoryMarkets : openOrdersMarkets;
   const filteredMarkets = marketOptions.filter((market) => market.toLowerCase().includes(marketSearch.toLowerCase()));
-  const openOrderTypeOptions: OpenOrdersTypeFilter[] = ["All", "Limit", "S/L Market", "S/L Limit", "T/P Market", "T/P Limit", "TWAP"];
+  const applyMarketFilter = (value: OpenOrdersMarketFilter) => {
+    if (tab === "Trade History") onTradeHistoryMarketFilterChange(value);
+    else if (tab === "Order History") onOrderHistoryMarketFilterChange(value);
+    else onOpenOrdersMarketFilterChange(value);
+  };
+  // 跟下单面板保持一致:基本(Market / Limit)+ 高级(S/L / T/P 四档)。
+  const openOrderTypeOptions: OpenOrdersTypeFilter[] = [
+    "All",
+    "Market",
+    "Limit",
+    "S/L Market",
+    "S/L Limit",
+    "T/P Market",
+    "T/P Limit",
+  ];
+  const tradeTypeOptions: TradeHistoryTypeFilter[] = ["All", "Trade", "Liquidation", "Deleverage", "Market Settlement"];
+
+  // Trade History 型别下拉的静态多语言(同样绕开 Lingui catalog 短词冲突)。zh 跟随项目繁体风格。
+  const tradeTypeLabelMap: Record<Exclude<TradeHistoryTypeFilter, "All">, { en: string; zh: string }> = {
+    Trade: { en: "Trade", zh: "成交" },
+    Liquidation: { en: "Liquidation", zh: "強平" },
+    Deleverage: { en: "Deleverage", zh: "自動減倉" },
+    "Market Settlement": { en: "Market Settlement", zh: "市場結算" },
+  };
+  const pickTradeTypeLabel = (option: TradeHistoryTypeFilter) => {
+    if (option === "All") return i18n._(t`All`);
+    const entry = tradeTypeLabelMap[option];
+    return i18n.locale.startsWith("zh") ? entry.zh : entry.en;
+  };
+
+  // Open Orders 型别下拉:同套路避开 Lingui catalog 短词冲突(Limit / Market 等在项目内有多处条目)。
+  // "S/L" / "T/P" / "TWAP" 是交易术语,繁体不翻,只给 Limit / Market 中文。
+  const openOrderTypeLabelMap: Record<Exclude<OpenOrdersTypeFilter, "All">, { en: string; zh: string }> = {
+    Market: { en: "Market", zh: "市價" },
+    Limit: { en: "Limit", zh: "限價" },
+    // 对齐下单面板 Advanced 下拉的全称用字(止損/止盈 + 市價/限價 + 單)。
+    "S/L Market": { en: "S/L Market", zh: "止損市價單" },
+    "S/L Limit": { en: "S/L Limit", zh: "止損限價單" },
+    "T/P Market": { en: "T/P Market", zh: "止盈市價單" },
+    "T/P Limit": { en: "T/P Limit", zh: "止盈限價單" },
+  };
+  const pickOpenOrderTypeLabel = (option: OpenOrdersTypeFilter) => {
+    if (option === "All") return i18n._(t`All`);
+    const entry = openOrderTypeLabelMap[option];
+    return i18n.locale.startsWith("zh") ? entry.zh : entry.en;
+  };
+
+  const typeLabel = tradeHistoryTypeFilter === "All" ? i18n._(t`Type`) : pickTradeTypeLabel(tradeHistoryTypeFilter);
 
   return (
     <div className={styles.filters}>
       <FilterModeButtons mode={mode} onChange={onModeChange} />
-      {(tab === "Open Orders" || tab === "Order History") && (
+      {showsMarketDropdown && (
         <div className={styles.filterMenuWrap}>
           <button
             type="button"
@@ -210,10 +285,11 @@ function TabFilters({
             onClick={() => {
               setMarketMenuOpen((prev) => !prev);
               setTypeMenuOpen(false);
+              setTradeTypeMenuOpen(false);
             }}
           >
             <MarketFilterIcon />
-            <span>{activeMarketFilter}</span>
+            <span>{activeMarketFilter === "All" ? <Trans>All</Trans> : activeMarketFilter}</span>
             <CaretDownIcon open={marketMenuOpen} />
           </button>
           {marketMenuOpen && (
@@ -225,7 +301,7 @@ function TabFilters({
                     className={styles.marketSearchInput}
                     value={marketSearch}
                     onChange={(event) => setMarketSearch(event.target.value)}
-                    placeholder="Search"
+                    placeholder={i18n._(t`Search`)}
                   />
                 </div>
               </div>
@@ -234,16 +310,14 @@ function TabFilters({
                   type="button"
                   className={`${styles.marketOption} ${activeMarketFilter === "All" ? styles.marketOptionActive : ""}`}
                   onClick={() => {
-                    if (tab === "Order History") {
-                      onOrderHistoryMarketFilterChange("All");
-                    } else {
-                      onOpenOrdersMarketFilterChange("All");
-                    }
+                    applyMarketFilter("All");
                     setMarketMenuOpen(false);
                     setMarketSearch("");
                   }}
                 >
-                  <span>All</span>
+                  <span>
+                    <Trans>All</Trans>
+                  </span>
                   <MarketFilterIcon />
                 </button>
                 {filteredMarkets.map((market) => (
@@ -252,11 +326,7 @@ function TabFilters({
                     type="button"
                     className={`${styles.marketOption} ${activeMarketFilter === market ? styles.marketOptionActive : ""}`}
                     onClick={() => {
-                      if (tab === "Order History") {
-                        onOrderHistoryMarketFilterChange(market);
-                      } else {
-                        onOpenOrdersMarketFilterChange(market);
-                      }
+                      applyMarketFilter(market);
                       setMarketMenuOpen(false);
                       setMarketSearch("");
                     }}
@@ -270,12 +340,6 @@ function TabFilters({
           )}
         </div>
       )}
-      {tab === "Trade History" && (
-        <span className={styles.filterItem}>
-          <span>Aggregate</span>
-          <span className={styles.filterCaret}>⌄</span>
-        </span>
-      )}
       {tab === "Open Orders" && (
         <div className={styles.filterMenuWrap}>
           <button
@@ -287,7 +351,9 @@ function TabFilters({
             }}
           >
             <TypeFilterIcon />
-            <span>Type</span>
+            <span>
+              <Trans>Type</Trans>
+            </span>
             <CaretDownIcon open={typeMenuOpen} />
           </button>
           {typeMenuOpen && (
@@ -303,8 +369,7 @@ function TabFilters({
                       setTypeMenuOpen(false);
                     }}
                   >
-                    <TypeFilterIcon />
-                    <span>{option}</span>
+                    <span>{pickOpenOrderTypeLabel(option)}</span>
                     {openOrdersTypeFilter === option && <span className={styles.typeCheck}>✓</span>}
                   </button>
                 ))}
@@ -314,49 +379,208 @@ function TabFilters({
         </div>
       )}
       {tab === "Trade History" && (
-        <span className={styles.filterItem}>
-          <TypeFilterIcon />
-          <span>Type</span>
-          <span className={styles.filterCaret}>⌄</span>
-        </span>
+        <div className={styles.filterMenuWrap}>
+          <button
+            type="button"
+            className={styles.filterButton}
+            onClick={() => {
+              setTradeTypeMenuOpen((prev) => !prev);
+              setMarketMenuOpen(false);
+            }}
+          >
+            <TypeFilterIcon />
+            <span>{typeLabel}</span>
+            <CaretDownIcon open={tradeTypeMenuOpen} />
+          </button>
+          {tradeTypeMenuOpen && (
+            <div className={styles.typeMenu}>
+              <div className={styles.typeMenuList}>
+                {tradeTypeOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`${styles.typeOption} ${tradeHistoryTypeFilter === option ? styles.typeOptionActive : ""}`}
+                    onClick={() => {
+                      onTradeHistoryTypeFilterChange(option);
+                      setTradeTypeMenuOpen(false);
+                    }}
+                  >
+                    <span>{pickTradeTypeLabel(option)}</span>
+                    {tradeHistoryTypeFilter === option && <span className={styles.typeCheck}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {tab === "Trade History" && (
-        <span className={styles.filterItem}>
-          <span className={styles.filterItemMuted}>Export</span>
-        </span>
+        <button
+          type="button"
+          className={styles.filterButton}
+          onClick={onTradeHistoryExport}
+          disabled={isTradeHistoryExportDisabled}
+          title={isTradeHistoryExportDisabled ? i18n._(t`Nothing to export`) : i18n._(t`Download as CSV`)}
+        >
+          <Trans>Export</Trans>
+        </button>
       )}
     </div>
   );
 }
 
+/**
+ * Trade History 前端筛选:按 Market + Type 过滤(均大小写不敏感,"All" 放行)。
+ * 保持函数纯,便于单测 / 导出逻辑共用同一份结果。
+ */
+export function filterTradeHistory(
+  trades: LighterTradeHistoryRow[],
+  marketFilter: OpenOrdersMarketFilter,
+  typeFilter: TradeHistoryTypeFilter
+): LighterTradeHistoryRow[] {
+  const wantType = typeFilter === "All" ? null : typeFilter.toLowerCase();
+  return trades.filter((trade) => {
+    if (marketFilter !== "All" && trade.market !== marketFilter) return false;
+    if (wantType != null && (trade.type || "").toLowerCase() !== wantType) return false;
+    return true;
+  });
+}
+
+/** 把聚合后的 Trade History 行导出为 CSV(当前筛选态的快照,不含未来数据)。 */
+function buildTradeHistoryCsv(rows: LighterTradeHistoryRow[]): string {
+  const header = [
+    "market",
+    "side",
+    "date",
+    "trade_value_usd",
+    "size",
+    "price",
+    "closed_pnl_usd",
+    "fee_usd",
+    "role",
+    "type",
+  ];
+  const esc = (v: string) => {
+    if (v.includes(",") || v.includes('"') || v.includes("\n")) {
+      return `"${v.replace(/"/g, '""')}"`;
+    }
+    return v;
+  };
+  const num = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? "" : String(v));
+  const lines = [header.join(",")];
+  for (const row of rows) {
+    lines.push(
+      [
+        esc(row.market),
+        esc(row.side),
+        esc(new Date(row.date).toISOString()),
+        num(row.tradeValue),
+        num(row.size),
+        num(row.price),
+        num(row.closedPnl),
+        num(row.fee),
+        esc(row.role || ""),
+        esc(row.type || ""),
+      ].join(",")
+    );
+  }
+  return lines.join("\n");
+}
+
+function downloadCsv(filename: string, csv: string) {
+  if (typeof window === "undefined") return;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
 export function BottomTabs() {
+  const { i18n } = useLingui();
   const [tab, setTab] = useState<Tab>("Positions");
   const [mode, setMode] = useState<BottomTabFilterMode>("all");
   const [openOrdersMarketFilter, setOpenOrdersMarketFilter] = useState<OpenOrdersMarketFilter>("All");
   const [orderHistoryMarketFilter, setOrderHistoryMarketFilter] = useState<OpenOrdersMarketFilter>("All");
   const [openOrdersTypeFilter, setOpenOrdersTypeFilter] = useState<OpenOrdersTypeFilter>("All");
+  const [tradeHistoryMarketFilter, setTradeHistoryMarketFilter] = useState<OpenOrdersMarketFilter>("All");
+  const [tradeHistoryTypeFilter, setTradeHistoryTypeFilter] = useState<TradeHistoryTypeFilter>("All");
   const tabs: Tab[] = ["Positions", "Assets", "Open Orders", "Order History", "Trade History"];
   const positions = usePositionsAdapter();
   const assets = useAssetsAdapter();
   const openOrders = useOpenOrdersAdapter();
   const orderHistory = useOrderHistoryAdapter();
+  const { rows: trades, refreshTradeHistory } = useTradeHistoryAdapterState();
+
+  useEffect(() => {
+    if (tab === "Trade History") {
+      refreshTradeHistory();
+    }
+  }, [refreshTradeHistory, tab]);
+
+  const handleTabClick = useCallback(
+    (nextTab: Tab) => {
+      if (nextTab === "Trade History") {
+        refreshTradeHistory();
+      }
+
+      setTab(nextTab);
+    },
+    [refreshTradeHistory]
+  );
+
+  // Market + Type 筛选后的 trades,供表格渲染和 CSV 导出共用,保证口径一致。
+  // long/short mode 颜色筛选仍交给 TradeHistoryTab 处理(已有),导出时一并应用。
+  const prefilteredTrades = useMemo(
+    () => filterTradeHistory(trades, tradeHistoryMarketFilter, tradeHistoryTypeFilter),
+    [trades, tradeHistoryMarketFilter, tradeHistoryTypeFilter]
+  );
+
+  const visibleTradesForExport = useMemo(
+    () =>
+      prefilteredTrades.filter((trade) => {
+        if (mode === "all") return true;
+        if (mode === "asks") return trade.side.includes("Short");
+        return trade.side.includes("Long");
+      }),
+    [mode, prefilteredTrades]
+  );
+
+  const visibleTradesRef = useRef(visibleTradesForExport);
+  visibleTradesRef.current = visibleTradesForExport;
+
+  const handleTradeHistoryExport = useCallback(() => {
+    const rows = visibleTradesRef.current;
+    if (!rows.length) return;
+    const stamp = new Date().toISOString().replace(/[:]/g, "-").replace(/\..+$/, "");
+    downloadCsv(`trade-history-${stamp}.csv`, buildTradeHistoryCsv(rows));
+  }, []);
 
   const tabLabelMap: Record<Tab, string> = {
-    Positions: `Positions (${positions.length})`,
-    Assets: `Assets (${assets.length})`,
-    "Open Orders": `Open Orders (${openOrders.length})`,
-    "Order History": "Order History",
-    "Trade History": "Trade History",
-    "Funding History": "Funding History",
+    Positions: i18n._(t`Positions (${positions.length})`),
+    Assets: i18n._(t`Assets (${assets.length})`),
+    "Open Orders": i18n._(t`Open Orders (${openOrders.length})`),
+    "Order History": i18n._(t`Order History`),
+    "Trade History": i18n._(t`Trade History`),
+    "Funding History": i18n._(t`Funding History`),
   };
   const openOrdersMarkets = Array.from(new Set(openOrders.map((order) => order.market))).sort();
-  const orderHistoryMarkets = Array.from(new Set(orderHistory.map((order) => order.market).filter((market) => market && market !== "--"))).sort();
+  const orderHistoryMarkets = Array.from(
+    new Set(orderHistory.map((order) => order.market).filter((market) => market && market !== "--"))
+  ).sort();
+  const tradeHistoryMarkets = Array.from(
+    new Set(trades.map((trade) => trade.market).filter((market) => market && market !== "--"))
+  ).sort();
 
   return (
     <div className={styles.root}>
       <div className={styles.tabs}>
         {tabs.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={tab === t ? styles.tabActive : styles.tab}>
+          <button key={t} onClick={() => handleTabClick(t)} className={tab === t ? styles.tabActive : styles.tab}>
             {tabLabelMap[t]}
           </button>
         ))}
@@ -372,6 +596,13 @@ export function BottomTabs() {
           onOrderHistoryMarketFilterChange={setOrderHistoryMarketFilter}
           openOrdersTypeFilter={openOrdersTypeFilter}
           onOpenOrdersTypeFilterChange={setOpenOrdersTypeFilter}
+          tradeHistoryMarkets={tradeHistoryMarkets}
+          tradeHistoryMarketFilter={tradeHistoryMarketFilter}
+          onTradeHistoryMarketFilterChange={setTradeHistoryMarketFilter}
+          tradeHistoryTypeFilter={tradeHistoryTypeFilter}
+          onTradeHistoryTypeFilterChange={setTradeHistoryTypeFilter}
+          onTradeHistoryExport={handleTradeHistoryExport}
+          isTradeHistoryExportDisabled={visibleTradesForExport.length === 0}
         />
       </div>
       <div className={styles.body}>
@@ -381,7 +612,7 @@ export function BottomTabs() {
           <OpenOrdersTab mode={mode} marketFilter={openOrdersMarketFilter} typeFilter={openOrdersTypeFilter} />
         )}
         {tab === "Order History" && <OrderHistoryTab mode={mode} marketFilter={orderHistoryMarketFilter} />}
-        {tab === "Trade History" && <TradeHistoryTab mode={mode} />}
+        {tab === "Trade History" && <TradeHistoryTab mode={mode} trades={prefilteredTrades} />}
         {tab === "Funding History" && <FundingHistoryTab mode={mode} />}
       </div>
     </div>

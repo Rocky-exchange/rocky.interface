@@ -1,4 +1,4 @@
-import type { FundingFeeHistoryItem } from "modules/cex/lib/api/types";
+import type { FundingFeeHistoryItem } from "modules/lighter/api/types";
 
 function normalizeMarketSymbol(symbol: string) {
   const upper = symbol.toUpperCase();

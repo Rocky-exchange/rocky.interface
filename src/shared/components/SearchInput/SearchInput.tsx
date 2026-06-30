@@ -69,7 +69,11 @@ export default function SearchInput({
   }, [inputRef]);
 
   return (
-    <div className={cx("relative flex h-32 grow cursor-pointer items-center", className)} ref={containerRef}>
+    <div
+      className={cx("SearchInput-root relative flex h-32 grow cursor-pointer items-center", className)}
+      ref={containerRef}
+      data-search-no-border={noBorder ? "true" : undefined}
+    >
       <div className="absolute top-0 flex h-full items-center px-8">
         <SearchIconComponent
           height={18}
@@ -89,7 +93,7 @@ export default function SearchInput({
         onFocus={handleFocus}
         autoFocus={autoFocus ?? !isSmallerScreen}
         className={cx(
-          "block h-full w-full rounded-8 bg-slate-800 leading-1 placeholder-slate-100 hover:bg-fill-surfaceElevatedHover",
+          "SearchInput-field block h-full w-full rounded-8 bg-slate-800 leading-1 placeholder-slate-100 hover:bg-fill-surfaceElevatedHover",
           {
             border: !noBorder,
             "border-blue-300": isFocused && !noBorder,

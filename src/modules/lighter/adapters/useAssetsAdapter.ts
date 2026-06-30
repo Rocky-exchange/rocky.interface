@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { useChainId } from "lib/chains";
-import { useZtdxBalances } from "modules/cex/lib/api/hooks";
+import { usePrimitBalances } from "modules/lighter/api/hooks";
 
 export type LighterAssetRow = {
   asset: string;
@@ -20,7 +20,7 @@ function toNumber(value: string | number | null | undefined) {
 
 export function useAssetsAdapter(): LighterAssetRow[] {
   const { chainId } = useChainId();
-  const { data } = useZtdxBalances(chainId);
+  const { data } = usePrimitBalances(chainId);
 
   return useMemo(() => {
     const balances = data?.balances ?? [];

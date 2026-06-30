@@ -1,4 +1,4 @@
-import { zeroAddress, zeroHash } from "viem";
+import { zeroAddress, zeroHash } from "sdk/utils/evmCompat";
 
 import { BOTANIX } from "sdk/configs/chains";
 import { getContract } from "sdk/configs/contracts";

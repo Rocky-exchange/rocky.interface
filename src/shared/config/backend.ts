@@ -1,66 +1,63 @@
-import { ARBITRUM, AVALANCHE, ARBITRUM_SEPOLIA } from "./chains";
-
-export const GMX_STATS_API_URL = "https://stats.gmx.io/api";
+export const PROTOCOL_STATS_API_URL = "";
 
 // ============================================
-// 统一的后端服务 URL 配置
+// Unified backend service URL configuration
 // ============================================
-// Same-origin by default: requests go to "/api/v1/*" on the current host,
-// which nginx (prod) / vite proxy (dev) forwards to the demo Next.js compat routes.
-const X10000_API_DOMAINS: Record<number, string> = {
-  [ARBITRUM]: import.meta.env.VITE_PROXY_API_URL || "",
-  [ARBITRUM_SEPOLIA]: import.meta.env.VITE_PROXY_SEPOLIA_API_URL || "",
-};
+// The active chain is selected by VITE_DEFAULT_CHAIN, so a single backend URL
+// pair is sufficient by default; Avalanche deployments may override it without
+// changing the rest of the API plumbing.
+const TRADING_API_URL = import.meta.env.VITE_PROXY_API_URL || "https://api.primit.io";
+const TRADING_WS_URL = import.meta.env.VITE_PROXY_WS_URL || "wss://api.primit.io";
+const TRADING_AVAX_API_URL = import.meta.env.VITE_PROXY_AVAX_API_URL || TRADING_API_URL;
+const TRADING_AVAX_WS_URL = import.meta.env.VITE_PROXY_AVAX_WS_URL || TRADING_WS_URL;
 
-// WebSocket URL (unused — live updates use REST polling; see X10000KlineDataFeed)
-const X10000_WS_DOMAINS: Record<number, string> = {
-  [ARBITRUM]: import.meta.env.VITE_PROXY_WS_URL || "",
-  [ARBITRUM_SEPOLIA]: import.meta.env.VITE_PROXY_SEPOLIA_WS_URL || "",
-};
+// Legacy trading backend URL（已弃用，保留兼容）
+const LEGACY_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
 
-// Legacy ZTDX 后端 URL（已弃用，保留兼容）
-const ZTDX_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
-
-const BACKEND_URLS: Record<number | string, string> = {
-  default: ZTDX_BACKEND_URL,
-  [ARBITRUM]: ZTDX_BACKEND_URL,
-  [AVALANCHE]: ZTDX_BACKEND_URL,
-  [ARBITRUM_SEPOLIA]: ZTDX_BACKEND_URL,
-};
+function isAvalancheTradingChain(chainId: number): boolean {
+  return chainId === 43114 || chainId === 43113;
+}
 
 // ============================================
-// 导出函数
+// Exported helpers
 // ============================================
 
 /**
- * 获取 X10000 后端 API URL（根据链 ID 自动切换）
+ * Get the trading backend API URL.
+ * The chainId arg is retained for call-site compatibility; the URL itself
+ * is driven entirely by VITE_PROXY_API_URL.
  */
-export function getX10000BackendUrl(chainId: number): string {
-  return X10000_API_DOMAINS[chainId] || X10000_API_DOMAINS[ARBITRUM];
+export function getTradingBackendUrl(chainId: number): string {
+  if (import.meta.env.DEV) {
+    return "";
+  }
+  return isAvalancheTradingChain(chainId) ? TRADING_AVAX_API_URL : TRADING_API_URL;
 }
 
 /**
- * 获取 X10000 WebSocket URL（根据链 ID 自动切换）
+ * Get the trading WebSocket URL.
  */
-export function getX10000WsUrl(chainId: number): string {
-  return X10000_WS_DOMAINS[chainId] || X10000_WS_DOMAINS[ARBITRUM];
+export function getTradingWsUrl(chainId: number): string {
+  if (import.meta.env.DEV) {
+    return "";
+  }
+  return isAvalancheTradingChain(chainId) ? TRADING_AVAX_WS_URL : TRADING_WS_URL;
 }
 
-
 /**
- * 获取积分系统 API URL（根据链 ID 自动切换）
- * 使用与理财接口相同的基础URL，拼接 /api/v1 路径
+ * Get the points API URL.
+ * Uses the same base URL as the trading backend and appends /api/v1.
  */
 export function getPointsApiUrl(chainId: number): string {
-  const baseUrl = getX10000BackendUrl(chainId);
+  const baseUrl = getTradingBackendUrl(chainId);
   return `${baseUrl}/api/v1`;
 }
 
 /**
- * 是否启用 X10000 数据模式
- * 当前始终返回 true
+ * Whether API trading data mode is enabled.
+ * This currently always returns true.
  */
-function isX10000Mode(): boolean {
+function isTradingApiMode(): boolean {
   return true;
 }
 
@@ -69,9 +66,9 @@ export function getServerBaseUrl(chainId: number) {
     throw new Error("chainId is not provided");
   }
 
-  // Force x10000 mode to use new backend URL (根据链 ID 自动切换)
-  if (isX10000Mode()) {
-    return getX10000BackendUrl(chainId);
+  // Force API trading mode to use the new backend URL for the selected chain.
+  if (isTradingApiMode()) {
+    return getTradingBackendUrl(chainId);
   }
 
   if (document.location.hostname.includes("deploy-preview")) {
@@ -81,7 +78,7 @@ export function getServerBaseUrl(chainId: number) {
     }
   }
 
-  return BACKEND_URLS[chainId] || BACKEND_URLS.default;
+  return LEGACY_BACKEND_URL;
 }
 
 export function getServerUrl(chainId: number, path: string) {

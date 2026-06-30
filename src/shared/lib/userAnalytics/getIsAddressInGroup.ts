@@ -1,5 +1,15 @@
 import { useMemo } from "react";
-import { keccak256, stringToHex } from "viem/utils";
+
+function stableBucket(input: string) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Math.abs(hash) % 100;
+}
 
 export function getIsAddressInGroup({
   address,
@@ -13,9 +23,8 @@ export function getIsAddressInGroup({
   experimentGroupProbability: number;
   grouping: string;
 }): boolean {
-  const hash = keccak256(stringToHex(address.toLowerCase() + (salt || "")));
-  const twoDigits = BigInt(hash) % 100n;
-  const isInGroup = twoDigits < BigInt(Math.trunc(probability * 100));
+  const twoDigits = stableBucket(address.toLowerCase() + (salt || ""));
+  const isInGroup = twoDigits < Math.trunc(probability * 100);
   return isInGroup;
 }
 

@@ -1,5 +1,7 @@
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import cx from "classnames";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Area,
   CartesianGrid,
@@ -17,7 +19,7 @@ import styles from "./FundingPanel.module.scss";
 
 const AXIS_TICK = { fill: "#9FA3AE", fontSize: 11 };
 const CHART_MARGIN = { top: 6, right: 16, bottom: 8, left: 10 };
-const Y_AXIS_DOMAIN = [-0.003, 0.002] as const;
+const Y_AXIS_DOMAIN: [number, number] = [-0.003, 0.002];
 
 function formatRateTick(value: number) {
   if (Math.abs(value) < 0.0000001) return "0%";
@@ -33,12 +35,13 @@ function FundingTooltip({
   payload?: Array<{ payload: FundingHistoryPoint }>;
   label?: string;
 }) {
+  const { i18n } = useLingui();
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
 
   return (
     <div className={styles.tooltip}>
-      <div className={styles.tooltipLabel}>{label || "Funding"}</div>
+      <div className={styles.tooltipLabel}>{label || i18n._(t`Funding`)}</div>
       <div className={cx(styles.tooltipValue, point.rate >= 0 ? styles.positive : styles.negative)}>
         {point.rate >= 0 ? "+" : ""}
         {(point.rate * 100).toFixed(4)}%
@@ -47,7 +50,7 @@ function FundingTooltip({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className={styles.infoRow}>
       <span className={styles.infoLabel}>{label}</span>
@@ -63,20 +66,24 @@ export function FundingPanel() {
   return (
     <div className={styles.root}>
       <section className={styles.card}>
-        <div className={styles.cardTitle}>Real-Time Funding Rate</div>
+        <div className={styles.cardTitle}>
+          <Trans>Real-Time Funding Rate</Trans>
+        </div>
         <div className={styles.summaryValue}>{model.summary.realtimeFundingRate}</div>
         <div className={styles.infoList}>
-          <InfoRow label="Interval" value={model.summary.interval} />
-          <InfoRow label="Next Funding Countdown" value={model.summary.nextFundingCountdown} />
-          <InfoRow label="Weekly Funding Rate" value={model.summary.weeklyFundingRate} />
-          <InfoRow label="Monthly Funding Rate" value={model.summary.monthlyFundingRate} />
-          <InfoRow label="Yearly Funding Rate" value={model.summary.yearlyFundingRate} />
+          <InfoRow label={<Trans>Interval</Trans>} value={model.summary.interval} />
+          <InfoRow label={<Trans>Next Funding Countdown</Trans>} value={model.summary.nextFundingCountdown} />
+          <InfoRow label={<Trans>Weekly Funding Rate</Trans>} value={model.summary.weeklyFundingRate} />
+          <InfoRow label={<Trans>Monthly Funding Rate</Trans>} value={model.summary.monthlyFundingRate} />
+          <InfoRow label={<Trans>Yearly Funding Rate</Trans>} value={model.summary.yearlyFundingRate} />
         </div>
       </section>
 
       <section className={styles.card}>
         <div className={styles.chartHeader}>
-          <div className={styles.cardTitle}>Funding Rate History</div>
+          <div className={styles.cardTitle}>
+            <Trans>Funding Rate History</Trans>
+          </div>
           <div className={styles.rangeButtons}>
             {FUNDING_RANGE_OPTIONS.map((option) => (
               <button

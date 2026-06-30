@@ -1,9 +1,7 @@
-import fetch from "cross-fetch";
-
 import { MarketSdkConfig } from "sdk/types/markets";
 import { buildUrl } from "sdk/utils/buildUrl";
 
-import type { GmxSdk } from "../index";
+import type { TradingSdk } from "../index";
 
 export type TickersResponse = {
   minPrice: string;
@@ -28,7 +26,7 @@ export type TokensResponse = (Omit<RawTokenResponse, "synthetic"> & {
 export class Oracle {
   private url: string;
 
-  constructor(public sdk: GmxSdk) {
+  constructor(public sdk: TradingSdk) {
     this.url = sdk.config.oracleUrl;
   }
 

@@ -1,4 +1,4 @@
-import { maxUint256 } from "viem";
+import { maxUint256 } from "sdk/utils/evmCompat";
 
 import { GasLimitsConfig } from "sdk/types/fees";
 import { MarketsInfoData } from "sdk/types/markets";

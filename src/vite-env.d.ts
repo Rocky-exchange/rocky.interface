@@ -2,9 +2,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // WalletConnect Configuration
-  readonly VITE_WALLET_CONNECT_PROJECT_ID: string;
-
   // Backend API URLs
   readonly VITE_PROXY_API_URL: string;
   readonly VITE_PROXY_SEPOLIA_API_URL: string;
@@ -22,14 +19,6 @@ interface ImportMetaEnv {
   readonly VITE_IS_HOME_SITE: string;
   readonly VITE_APP_VERSION: string;
   readonly VITE_APP_UI_FEE_RECEIVER: string;
-
-  // RPC URLs
-  readonly VITE_APP_ARBITRUM_RPC_URLS: string;
-  readonly VITE_APP_AVALANCHE_RPC_URLS: string;
-  readonly VITE_APP_BOTANIX_RPC_URLS: string;
-
-  // Alchemy Configuration
-  readonly VITE_ALCHEMY_API_KEY: string;
 
   // Sentry
   readonly VITE_SENTRY_DSN: string;

@@ -1,7 +1,4 @@
 import { deserializeBigIntsInObject, serializeBigIntsInObject } from "lib/numbers";
-import { AVALANCHE } from "sdk/configs/chains";
-
-import { ARBITRUM } from "./chains";
 import { isDevelopment } from "./env";
 import { DEBUG_SWAP_SETTINGS_KEY } from "./localStorage";
 
@@ -18,26 +15,12 @@ let swapDebugSettings = {
   failExternalSwaps: false,
 };
 
-const OPEN_OCEAN_BASE_URL = "https://open-api.openocean.finance/v3";
 export const OPEN_OCEAN_REFERRER = "0xC539cB358a58aC67185BaAD4d5E3f7fCfc903700";
 
-const OPEN_OCEAN_API_URL = {
-  [ARBITRUM]: `${OPEN_OCEAN_BASE_URL}/arbitrum`,
-  [AVALANCHE]: `${OPEN_OCEAN_BASE_URL}/avax`,
-};
+const OPEN_OCEAN_API_URL: Record<number, string> = {};
 
 export const DISABLED_OPEN_OCEAN_DEXES = {
-  /**
-   *  @see https://open-api.openocean.finance/v3/arbitrum/dexList
-   */
-  [ARBITRUM]: [8, 54],
-  /**
-   *  @see https://open-api.openocean.finance/v3/avax/dexList
-   */
-  [AVALANCHE]: [
-    18, // GMX
-  ],
-};
+} as Record<number, number[]>;
 
 export function getOpenOceanUrl(chainId: number) {
   const url = OPEN_OCEAN_API_URL[chainId];

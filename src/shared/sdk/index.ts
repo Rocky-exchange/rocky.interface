@@ -1,4 +1,4 @@
-import { Abi, Address, createPublicClient, createWalletClient, http, PublicClient, WalletClient } from "viem";
+import { Abi, Address, createPublicClient, createWalletClient, http, PublicClient, WalletClient } from "sdk/utils/evmCompat";
 
 import { BATCH_CONFIGS } from "sdk/configs/batch";
 import { getViemChain } from "sdk/configs/chains";
@@ -10,11 +10,11 @@ import { Positions } from "sdk/modules/positions/positions";
 import { Tokens } from "sdk/modules/tokens/tokens";
 import { Trades } from "sdk/modules/trades/trades";
 import { Utils } from "sdk/modules/utils/utils";
-import type { GmxSdkConfig } from "sdk/types/sdk";
+import type { TradingSdkConfig } from "sdk/types/sdk";
 import { callContract, CallContractOpts } from "sdk/utils/callContract";
 import { MAX_TIMEOUT, Multicall, MulticallRequestConfig } from "sdk/utils/multicall";
 
-export class GmxSdk {
+export class TradingSdk {
   public readonly markets = new Markets(this);
   public readonly tokens = new Tokens(this);
   public readonly positions = new Positions(this);
@@ -27,14 +27,14 @@ export class GmxSdk {
   public publicClient: PublicClient;
   public walletClient: WalletClient;
 
-  constructor(public config: GmxSdkConfig) {
+  constructor(public config: TradingSdkConfig) {
     this.oracle = new Oracle(this);
 
     this.publicClient =
       config.publicClient ??
       createPublicClient({
         transport: http(this.config.rpcUrl, {
-          // retries works strangely in viem, so we disable them
+          // Legacy clients are disabled in Canton mode.
           retryCount: 0,
           retryDelay: 10000000,
           batch: BATCH_CONFIGS[this.config.chainId]?.http,

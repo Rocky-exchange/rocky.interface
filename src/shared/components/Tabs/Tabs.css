@@ -1,5 +1,5 @@
 /* ================================
- * 基础 Tab 样式
+ * 基础 Tab 样式（冷色块 Tab，与荧光 Legacy / Primit 稿面独立）
  * ==============================*/
 .Tab.Tab__block {
   display: grid;
@@ -80,23 +80,13 @@
 }
 
 /* ================================
- * 统一样式 Tabs（绿色渐变边框）
- * 通过 useUnifiedStyle 参数启用
+ * 统一样式 Tabs — 结构层（配色见 themes/legacy/tabs.legacy.css 或 primit/tabs.primit.css）
  * ==============================*/
 [data-unified-style="true"] {
   display: flex;
   gap: 0;
   width: 100%;
   margin-top: 4px;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background: linear-gradient(#000, #000) padding-box, linear-gradient(90deg, rgba(0, 255, 178, 0.8) 0%, rgba(0, 255, 178, 0) 10%, rgb(0, 0, 0) 50%, rgba(0, 255, 178, 0) 90%, rgba(0, 255, 178, 0.8) 100%) border-box;
-  transition: all 0.3s ease;
-}
-
-/* trade-direction 当 Short 选中时使用红色边框 */
-[data-qa="trade-direction"][data-unified-style="true"]:has(button:last-child.trade-direction-tab--active) {
-  background: linear-gradient(#000, #000) padding-box, linear-gradient(90deg, rgba(255, 82, 82, 0.8) 0%, rgba(255, 82, 82, 0) 10%, rgb(0, 0, 0) 50%, rgba(255, 82, 82, 0) 90%, rgba(255, 82, 82, 0.8) 100%) border-box;
 }
 
 /* 内部容器：flex 布局，自动均分 */
@@ -114,7 +104,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* 公共按钮基础样式 */
+/* 公共按钮基础样式（布局与字重；背景/字色由主题层覆写） */
 [data-unified-style="true"] button {
   flex: 1 1 0;
   min-width: 0;
@@ -126,9 +116,7 @@
   border: none;
   margin: 0;
   border-radius: 0;
-  background: #141414;
-  color: rgba(255, 255, 255, 0.6);
-  font-family: "Chakra Petch", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Messina Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.1em;
@@ -162,7 +150,7 @@
   border-bottom-left-radius: 2px;
 }
 
-/* 避免内层背景圆角遮住外层绿色圆角 */
+/* 避免内层背景圆角遮住外层主题描边圆角 */
 [data-unified-style="true"] button:first-child {
   border-top-left-radius: 10px !important;
 }
@@ -174,44 +162,6 @@
 /* 中间按钮圆角（三个或更多按钮时） */
 [data-unified-style="true"] button:not(:first-child):not(:last-child) {
   border-radius: 2px;
-}
-
-/* 公共 Hover 状态 */
-[data-unified-style="true"] button:not(.trade-direction-tab--active):hover {
-  background: #1a1a1a;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* 公共激活状态：深灰背景，绿色文字 */
-[data-unified-style="true"] button.trade-direction-tab--active {
-  color: #00ffb2;
-  background: linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.2) 100%), #090909;
-}
-
-/* ================================
- * 激活按钮的发光效果
- * ==============================*/
-/* 激活的第一个按钮（Long）：左边绿色阴影 */
-[data-unified-style="true"] button:first-child.trade-direction-tab--active {
-  color: #00ffb2 !important;
-  box-shadow: -1px 0 4px rgba(0, 255, 178, 0.7);
-}
-
-/* 激活的最后一个按钮（Short）：右边红色阴影 */
-[data-qa="trade-direction"][data-unified-style="true"] button:last-child.trade-direction-tab--active {
-  color: #ff5252 !important;
-  box-shadow: 1px 0 4px rgba(255, 82, 82, 0.7);
-}
-
-/* 非 trade-direction 的最后一个按钮：保持绿色 */
-[data-unified-style="true"]:not([data-qa="trade-direction"]) button:last-child.trade-direction-tab--active {
-  color: #00ffb2 !important;
-  box-shadow: 1px 0 4px rgba(0, 255, 178, 0.7);
-}
-
-/* 激活的中间按钮：左右绿色阴影（三个或更多按钮时） */
-[data-unified-style="true"] button:not(:first-child):not(:last-child).trade-direction-tab--active {
-  box-shadow: 0 0 4px rgba(0, 255, 178, 0.7), 0 0 4px rgba(0, 255, 178, 0.7);
 }
 
 /* ================================
@@ -231,20 +181,16 @@
 }
 
 /* ================================
- * 通用样式
+ * Block 下划线动画（条形色值：Legacy / Primit 主题层）
  * ==============================*/
-/* Block type tabs 激活状态 - 绿色文字 */
 .tab-active-green {
-  color: #00ffb2 !important;
   border-bottom-color: transparent !important;
 }
 
-/* 独立的下划线元素 - 带左右移动动画 */
 .tab-underline-indicator {
   position: absolute;
   bottom: 0;
   height: 3px;
-  background: #00ffb2;
   border-radius: 999px;
   transition: left 0.3s ease, width 0.3s ease;
   pointer-events: none;
@@ -255,8 +201,15 @@
   display: none !important;
 }
 
+/* block：完全隐藏下划线 */
+[data-hide-block-underline="true"] .tab-underline-indicator {
+  display: none !important;
+}
+
+/* Primit 壳：见 `styles/themes/primit/tabs.primit.css` */
+
 /* ================================
- * NestedTab (More 下拉框)
+ * NestedTab (More 下拉框) — 结构；荧光见 legacy/tabs.legacy.css
  * ==============================*/
 .nested-tab-wrapper {
   display: flex;
@@ -265,17 +218,12 @@
   gap: 8px;
 }
 
-/* More 按钮样式 */
 .nested-tab-button {
   display: flex;
   align-items: center;
   gap: 4px;
   transition: color 0.2s ease;
-  font-family: "Chakra Petch", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.nested-tab-button--active .nested-tab-label--active {
-  color: #00ffb2 !important;
+  font-family: "Messina Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .nested-tab-icon {
@@ -286,39 +234,17 @@
   color: currentColor;
 }
 
-.nested-tab-button--active .nested-tab-icon {
-  color: #00ffb2 !important;
-}
-
-.nested-tab-icon--up {
-  color: #00ffb2 !important;
-}
-
-/* 下拉框容器 */
 .nested-tab-dropdown {
   z-index: 1000;
   margin-top: 8px;
   overflow: hidden;
   border-radius: 20px;
-  border: 1px solid transparent;
-  background: linear-gradient(#090909, #090909) padding-box,
-    linear-gradient(
-      90deg,
-      rgba(0, 255, 178, 0.8) 0%,
-      rgba(0, 255, 178, 0) 10%,
-      rgb(0, 0, 0) 50%,
-      rgba(0, 255, 178, 0) 90%,
-      rgba(0, 255, 178, 0.8) 100%
-    )
-      border-box;
-  box-shadow: 0 0 12px rgba(0, 255, 178, 0.3), 0 10px 24px rgba(0, 0, 0, 0.6);
   outline: none;
   padding: 8px 0;
 }
 
-/* 下拉选项 */
 .nested-tab-item {
-  font-family: "Chakra Petch", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Messina Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.5;

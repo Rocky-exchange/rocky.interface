@@ -35,7 +35,7 @@ export function getExecutionFee(
 
   let feeTokenAmountPerExecution = gasLimit * gasPrice;
 
-  if (minGasCost) {
+  if (minGasCost !== undefined && minGasCost !== null && minGasCost !== 0n) {
     feeTokenAmountPerExecution = bigMath.max(feeTokenAmountPerExecution, minGasCost);
   }
 
@@ -104,29 +104,29 @@ export function estimateBatchGasLimit({
   updateOrdersCount,
   cancelOrdersCount,
   externalCallsGasLimit,
-  isGmxAccount,
+  isTradingAccount,
 }: {
   gasLimits: GasLimitsConfig;
   createOrdersCount: number;
   updateOrdersCount: number;
   cancelOrdersCount: number;
   externalCallsGasLimit: bigint;
-  isGmxAccount: boolean;
+  isTradingAccount: boolean;
 }) {
   const createOrdersGasLimit = gasLimits.createOrderGasLimit * BigInt(createOrdersCount);
   const updateOrdersGasLimit = gasLimits.updateOrderGasLimit * BigInt(updateOrdersCount);
   const cancelOrdersGasLimit = gasLimits.cancelOrderGasLimit * BigInt(cancelOrdersCount);
-  const gmxAccountOverhead = isGmxAccount ? gasLimits.gmxAccountCollateralGasLimit : 0n;
+  const tradingAccountOverhead = isTradingAccount ? gasLimits.tradingAccountCollateralGasLimit : 0n;
 
   return (
-    createOrdersGasLimit + updateOrdersGasLimit + cancelOrdersGasLimit + externalCallsGasLimit + gmxAccountOverhead
+    createOrdersGasLimit + updateOrdersGasLimit + cancelOrdersGasLimit + externalCallsGasLimit + tradingAccountOverhead
   );
 }
 
 export function estimateBatchMinGasPaymentTokenAmount({
   chainId,
   gasPaymentToken,
-  isGmxAccount,
+  isTradingAccount,
   relayFeeToken,
   gasPrice,
   gasLimits,
@@ -138,7 +138,7 @@ export function estimateBatchMinGasPaymentTokenAmount({
   executionFeeAmount,
 }: {
   chainId: ContractsChainId;
-  isGmxAccount: boolean;
+  isTradingAccount: boolean;
   gasLimits: GasLimitsConfig;
   gasPaymentToken: TokenData;
   relayFeeToken: TokenData;
@@ -156,7 +156,7 @@ export function estimateBatchMinGasPaymentTokenAmount({
     updateOrdersCount,
     cancelOrdersCount,
     externalCallsGasLimit: 0n,
-    isGmxAccount,
+    isTradingAccount,
   });
 
   const relayerGasLimit = estimateRelayerGasLimit({

@@ -1,0 +1,44 @@
+// Rows bleed past BottomSheet .body's 16px side padding so the dividers read
+// as full-width list separators; each row re-pads 16px so the label stays
+// aligned with the sheet title.
+.nav {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -16px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ltr-text-primary, #f3f3f3);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ltr-border, #2b2b30);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+
+.link:last-child {
+  border-bottom: none;
+}
+
+.link:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+// Right-pointing chevron affordance.
+.link::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--ltr-text-secondary, #b4b4b6);
+  border-bottom: 2px solid var(--ltr-text-secondary, #b4b4b6);
+  transform: rotate(-45deg);
+  flex-shrink: 0;
+  opacity: 0.55;
+}

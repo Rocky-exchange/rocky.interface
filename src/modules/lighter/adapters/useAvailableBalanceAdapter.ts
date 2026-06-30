@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { useChainId } from "lib/chains";
-import { useZtdxBalances } from "modules/cex/lib/api/hooks";
+import { usePrimitBalances } from "modules/lighter/api/hooks";
 
 /**
  * 读取用户账户 Available to Trade(USD 值)。
@@ -13,7 +13,7 @@ export function useAvailableBalanceAdapter(): {
   loading: boolean;
 } {
   const { chainId } = useChainId();
-  const { data, isLoading } = useZtdxBalances(chainId);
+  const { data, isLoading } = usePrimitBalances(chainId);
 
   const available = useMemo(() => {
     const list = data?.balances;

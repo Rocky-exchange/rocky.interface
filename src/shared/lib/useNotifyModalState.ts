@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { useGlobalContext } from "context/GlobalContext/GlobalContextProvider";
+import { useGlobalContext } from "@/modules/lighter/context/GlobalContext";
 
 export function useNotifyModalState() {
   const { setNotifyModalOpen, notifyModalOpen } = useGlobalContext();

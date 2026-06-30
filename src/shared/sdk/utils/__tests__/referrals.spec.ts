@@ -1,4 +1,4 @@
-import { zeroHash } from "viem";
+import { zeroHash } from "sdk/utils/evmCompat";
 import { describe, expect, it } from "vitest";
 
 import { decodeReferralCode, encodeReferralCode, MAX_REFERRAL_CODE_LENGTH } from "../referrals";

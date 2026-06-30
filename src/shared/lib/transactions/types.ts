@@ -1,12 +1,18 @@
-import { TaskState } from "@gelatonetwork/relay-sdk";
-
 import { ErrorLike } from "lib/errors";
+
+export type RelayTaskState =
+  | "ExecSuccess"
+  | "ExecReverted"
+  | "Cancelled"
+  | "CheckPending"
+  | "ExecPending"
+  | "WaitingForConfirmation";
 
 export type TransactionWaiterResult = {
   relayStatus:
     | {
         taskId: string;
-        taskState: TaskState;
+        taskState: RelayTaskState;
       }
     | undefined;
   transactionHash: string | undefined;
@@ -14,10 +20,10 @@ export type TransactionWaiterResult = {
   status: "success" | "failed";
 };
 
-export type GelatoTaskStatus = {
+export type RelayTaskStatus = {
   chainId: number;
   taskId: string;
-  taskState: TaskState;
+  taskState: RelayTaskState;
   creationDate: string;
   lastCheckDate?: string;
   lastCheckMessage?: string;

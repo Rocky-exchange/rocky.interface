@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 
-import { useZtdxUserUnifiedAccount } from "modules/cex/lib/api/hooks";
+import { usePrimitUserUnifiedAccount } from "modules/lighter/api/hooks";
 
 import { mapUnifiedAccountToPanelModel, type LighterUnifiedAccountPanelModel } from "./unifiedAccountMapping";
 
 export function useUnifiedAccountAdapter(): LighterUnifiedAccountPanelModel {
-  const { data } = useZtdxUserUnifiedAccount();
+  const { data } = usePrimitUserUnifiedAccount();
 
   return useMemo(() => mapUnifiedAccountToPanelModel(data), [data]);
 }

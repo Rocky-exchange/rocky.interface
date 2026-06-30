@@ -1,5 +1,5 @@
 import { AbiId, abis as allAbis } from "sdk/abis";
-import type { GmxSdk } from "index";
+import type { TradingSdk } from "sdk";
 
 import { sleep } from "./common";
 
@@ -15,7 +15,7 @@ export class Multicall {
     [chainId: number]: Multicall | undefined;
   } = {};
 
-  static async getInstance(sdk: GmxSdk) {
+  static async getInstance(sdk: TradingSdk) {
     const chainId = sdk.chainId;
     let instance = Multicall.instances[chainId];
 
@@ -28,7 +28,7 @@ export class Multicall {
     return instance;
   }
 
-  constructor(public sdk: GmxSdk) {}
+  constructor(public sdk: TradingSdk) {}
 
   get chainId() {
     return this.sdk.chainId;
@@ -143,9 +143,9 @@ export class Multicall {
         timeoutController.abort();
         return processResponse(response);
       })
-      .catch((_viemError) => {
+      .catch((_clientError) => {
         timeoutController.abort();
-        const e = new Error(_viemError.message.slice(0, 150));
+        const e = new Error(_clientError.message.slice(0, 150));
 
         /* eslint-disable-next-line */
         console.error(e);

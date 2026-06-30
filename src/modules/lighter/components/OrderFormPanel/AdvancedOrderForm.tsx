@@ -1,11 +1,16 @@
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { CoinSelect, Row } from "./MarketOrderForm";
+import { getCurrentOrderFormPosition, getProjectedOrderFormPositionValue } from "./orderFormPosition";
+import { formatPreviewFeeRatePercent } from "./orderPreviewFeeFormat";
 import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../adapters/useMarketInfoAdapter";
-import { useOrderPreviewAdapter } from "../../adapters/useOrderPreviewAdapter";
+import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../adapters/usePositionsAdapter";
+import { getLatestLimitPrice, subscribeLimitPrice } from "../../state/limitPriceBus";
 import { Checkbox } from "../Checkbox/Checkbox";
 import { PercentSlider } from "../PercentSlider/PercentSlider";
 
@@ -24,23 +29,13 @@ function formatUsd(value?: string) {
   return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatPct(value?: string) {
-  if (!value) return "-";
-  return `${(Number(value) * 100).toFixed(2)}%`;
-}
-
 function formatTrimmed(value: number, maxDecimals = 6) {
   if (!Number.isFinite(value) || value <= 0) return "-";
   return parseFloat(value.toFixed(maxDecimals)).toString();
 }
 
-export function AdvancedOrderForm({
-  side,
-  type = "Stop Market",
-  isConnected,
-  leverage,
-  marginMode,
-}: Props) {
+export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, leverage, marginMode }: Props) {
+  const { i18n } = useLingui();
   const [triggerPrice, setTriggerPrice] = useState("");
   const [limitPrice, setLimitPrice] = useState("");
   const [amount, setAmount] = useState("");
@@ -53,9 +48,9 @@ export function AdvancedOrderForm({
   const market = useMarketInfoAdapter();
   const positions = usePositionsAdapter();
   const baseSymbol = market.symbol || "BTC";
-  const currentPosition = positions.find((position) => position.market === baseSymbol) ?? null;
+  const currentPosition = getCurrentOrderFormPosition(positions, baseSymbol);
 
-  const triggerLabel = type.startsWith("Take Profit") ? "TP Trigger Price" : "Trigger Price";
+  const triggerLabel = type.startsWith("Take Profit") ? i18n._(t`TP Trigger Price`) : i18n._(t`Trigger Price`);
   const submitLabelMap: Record<AdvancedType, string> = {
     "Stop Market": "S/L Market",
     "Stop Limit": "S/L Limit",
@@ -75,9 +70,24 @@ export function AdvancedOrderForm({
   const rawAmount = Number(amount) || 0;
   const triggerPriceNum = Number(triggerPrice) || 0;
   const limitPriceNum = Number(limitPrice) || 0;
-  const refPrice = (hasLimitPrice ? limitPriceNum : triggerPriceNum) || market.markPrice || 0;
-  const amountNum = amountUnit === "USD" && refPrice > 0 ? rawAmount / refPrice : rawAmount;
 
+  // market.markPrice 来自 ticker 轮询,每 2s 会微动。当用户还没填 trigger/limit 价格时,
+  // refPrice 会回退到 market.markPrice —— 这会让 amountNum 每 2s 抖一下尾数,
+  // 继而 preview SWR key 变化 → 每 2s 重发 /orders/preview → Order Size/Value 刷屏。
+  // 解法:首次拿到 markPrice 时快照一份,之后 ticker 抖动不更新;
+  // 用户在下方 onAmountInput / onPctChange / onUnitChange 中显式改动时才重新快照。
+  const [conversionPrice, setConversionPrice] = useState<number | null>(null);
+  useEffect(() => {
+    if (conversionPrice == null && market.markPrice != null && market.markPrice > 0) {
+      setConversionPrice(market.markPrice);
+    }
+  }, [conversionPrice, market.markPrice]);
+  const resnapConversionPrice = () => {
+    if (market.markPrice != null && market.markPrice > 0) setConversionPrice(market.markPrice);
+  };
+
+  const refPrice = (hasLimitPrice ? limitPriceNum : triggerPriceNum) || conversionPrice || 0;
+  const amountNum = amountUnit === "USD" ? (refPrice > 0 ? rawAmount / refPrice : 0) : rawAmount;
   const preview = useOrderPreviewAdapter({
     side,
     orderType: previewOrderType,
@@ -88,6 +98,9 @@ export function AdvancedOrderForm({
     price: hasLimitPrice ? limitPriceNum : undefined,
   });
   const p = preview.data;
+  const availableBalance = p?.available_balance ? Number(p.available_balance) : available ?? 0;
+  const buyingPowerUsd = availableBalance > 0 ? availableBalance * leverage : 0;
+  const previewErrorMessage = usePreviewErrorMessage(preview);
 
   const availableValue =
     p?.available_balance != null
@@ -103,6 +116,15 @@ export function AdvancedOrderForm({
         ? `${formatTrimmed(currentPositionAmount, 4)} ${baseSymbol}`
         : "-";
 
+  // 止損限價單 / 止盈限價單 的限價输入框也接 OrderBook 行点击推送。
+  // 订单类型不是 Limit 变种时 hasLimitPrice=false,输入框根本不渲染,setState 无副作用。
+  useEffect(() => {
+    if (!hasLimitPrice) return;
+    const latest = getLatestLimitPrice();
+    if (latest != null) setLimitPrice(String(latest));
+    return subscribeLimitPrice((next) => setLimitPrice(String(next)));
+  }, [hasLimitPrice]);
+
   useEffect(() => {
     if (amount || currentPositionAmount <= 0 || !market.markPrice || market.markPrice <= 0) return;
 
@@ -115,12 +137,12 @@ export function AdvancedOrderForm({
 
   const onAmountInput = (nextRaw: string) => {
     setAmount(nextRaw);
+    // 用户显式改 amount:刷一次 conversionPrice 快照,让后续 USD↔token 换算用最新行情
+    resnapConversionPrice();
     const typed = Number(nextRaw) || 0;
-    const balanceUsd = p?.available_balance ? Number(p.available_balance) : available;
-
-    if (balanceUsd != null && balanceUsd > 0 && refPrice > 0) {
+    if (buyingPowerUsd > 0 && refPrice > 0) {
       const usdValue = amountUnit === "USD" ? typed : typed * refPrice;
-      setPct(Math.max(0, Math.min(100, Math.round((usdValue / balanceUsd) * 100))));
+      setPct(Math.max(0, Math.min(100, Math.round((usdValue / buyingPowerUsd) * 100))));
     } else {
       setPct(0);
     }
@@ -128,14 +150,14 @@ export function AdvancedOrderForm({
 
   const onPctChange = (nextPct: number) => {
     setPct(nextPct);
-    const balanceUsd = p?.available_balance ? Number(p.available_balance) : available;
-    if (balanceUsd != null && refPrice > 0) {
+    if (buyingPowerUsd > 0 && refPrice > 0) {
       const nextAmount =
         amountUnit === "USD"
-          ? (balanceUsd * (nextPct / 100)).toFixed(2)
-          : ((balanceUsd * (nextPct / 100)) / refPrice).toFixed(5);
+          ? (buyingPowerUsd * (nextPct / 100)).toFixed(2)
+          : ((buyingPowerUsd * (nextPct / 100)) / refPrice).toFixed(5);
       setAmount(nextAmount);
     }
+    resnapConversionPrice();
   };
 
   const onUnitChange = (nextValue: string) => {
@@ -144,12 +166,15 @@ export function AdvancedOrderForm({
       const converted = nextUnit === "USD" ? rawAmount * refPrice : rawAmount / refPrice;
       setAmount(converted.toFixed(nextUnit === "USD" ? 2 : 5));
     }
+    resnapConversionPrice();
     setAmountUnit(nextUnit);
   };
 
   const canSubmit = triggerPriceNum > 0 && amountNum > 0;
   const orderValueText =
-    amountNum > 0 && refPrice > 0 ? `$${(amountNum * refPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+    amountNum > 0 && refPrice > 0
+      ? `$${(amountNum * refPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : "-";
   const maximumOrderValueText = p?.order_value ? formatUsd(p.order_value) : "-";
 
   const submit = () =>
@@ -169,18 +194,10 @@ export function AdvancedOrderForm({
   return (
     <div className="ltr-form">
       <div className="ltr-form__section">
-        <Row label="Available to Trade" value={availableValue} />
+        <Row label={<Trans>Available to Trade</Trans>} value={availableValue} />
         <Row
-          label="Position"
-          value={
-            currentPositionAmount > 0 ? (
-              <span className={currentPosition?.side === "short" ? "ltr-down" : "ltr-up"}>
-                {formatTrimmed(currentPositionAmount, 4)}
-              </span>
-            ) : (
-              "-"
-            )
-          }
+          label={<Trans>Position</Trans>}
+          value={getProjectedOrderFormPositionValue(currentPosition, baseSymbol, amountNum, side, reduceOnly)}
         />
       </div>
 
@@ -198,7 +215,9 @@ export function AdvancedOrderForm({
 
         {hasLimitPrice && (
           <div className="ltr-form__field">
-            <label className="ltr-form__label">Limit Price</label>
+            <label className="ltr-form__label">
+              <Trans>Limit Price</Trans>
+            </label>
             <input
               className="ltr-form__input"
               value={limitPrice}
@@ -213,13 +232,15 @@ export function AdvancedOrderForm({
                 if (market.markPrice) setLimitPrice(market.markPrice.toString());
               }}
             >
-              Mid
+              <Trans>Mid</Trans>
             </button>
           </div>
         )}
 
         <div className="ltr-form__field">
-          <label className="ltr-form__label">Amount</label>
+          <label className="ltr-form__label">
+            <Trans>Amount</Trans>
+          </label>
           <input
             className="ltr-form__input"
             value={amount}
@@ -236,29 +257,34 @@ export function AdvancedOrderForm({
 
         <PercentSlider value={pct} onChange={onPctChange} side={side} />
 
-        {isConnected && (
-          <button
-            onClick={submit}
-            disabled={submitting || !canSubmit}
-            className={`ltr-form__submit ltr-form__submit--${side}`}
-          >
-            {canSubmit ? submitLabelMap[type] : `Enter ${triggerLabel}`}
-          </button>
-        )}
-
-        <Checkbox checked={reduceOnly} onChange={setReduceOnly} label="Reduce Only" />
-
+        <Checkbox checked={reduceOnly} onChange={setReduceOnly} label={i18n._(t`Reduce Only`)} />
       </div>
 
       <div className="ltr-form__section">
-        {hasLimitPrice && <Row label="Maximum Order Value" value={maximumOrderValueText} />}
-        <Row label="Order Size" value={currentPositionValue} />
-        {hasLimitPrice && <Row label="Order Value" value={orderValueText} />}
+        {hasLimitPrice && <Row label={<Trans>Maximum Order Value</Trans>} value={maximumOrderValueText} />}
+        <Row label={<Trans>Order Size</Trans>} value={currentPositionValue} />
+        {hasLimitPrice && <Row label={<Trans>Order Value</Trans>} value={orderValueText} />}
         <Row
-          label="Fees"
-          value={`Taker: ${formatPct(p?.taker_fee_rate) || "0%"} | Maker: ${formatPct(p?.maker_fee_rate) || "0%"}`}
+          label={<Trans>Fees</Trans>}
+          value={
+            <Trans>
+              Taker: {formatPreviewFeeRatePercent(p?.taker_fee_rate)} | Maker:{" "}
+              {formatPreviewFeeRatePercent(p?.maker_fee_rate)}
+            </Trans>
+          }
         />
+        {previewErrorMessage && <div className="ltr-form__note ltr-form__note--error">{previewErrorMessage}</div>}
       </div>
+
+      {isConnected && (
+        <button
+          onClick={submit}
+          disabled={submitting || !canSubmit}
+          className={`ltr-form__submit ltr-form__submit--${side}`}
+        >
+          {canSubmit ? submitLabelMap[type] : i18n._(t`Enter ${triggerLabel}`)}
+        </button>
+      )}
     </div>
   );
 }

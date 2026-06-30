@@ -1,4 +1,4 @@
-import { zeroAddress, zeroHash } from "viem";
+import { zeroAddress, zeroHash } from "sdk/utils/evmCompat";
 import { describe, expect, it } from "vitest";
 
 import { ARBITRUM } from "sdk/configs/chains";

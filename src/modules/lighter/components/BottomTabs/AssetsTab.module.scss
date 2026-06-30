@@ -135,13 +135,3 @@
 .colAvailable { width: 166px; }
 .colPnl { width: 120px; }
 .colValue { width: 132px; }
-
-@media (max-width: 768px) {
-  .root {
-    overflow: auto;
-  }
-
-  .table {
-    min-width: 660px;
-  }
-}

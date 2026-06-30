@@ -72,11 +72,21 @@
 }
 
 .marketCellLong {
-  background: linear-gradient(90deg, rgba(27, 210, 137, 0.22) 0%, rgba(27, 210, 137, 0.08) 56%, rgba(27, 210, 137, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ltr-up) 22%, transparent) 0%,
+    color-mix(in srgb, var(--ltr-up) 8%, transparent) 56%,
+    transparent 100%
+  );
 }
 
 .marketCellShort {
-  background: linear-gradient(90deg, rgba(255, 56, 79, 0.22) 0%, rgba(255, 56, 79, 0.08) 56%, rgba(255, 56, 79, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ltr-down) 22%, transparent) 0%,
+    color-mix(in srgb, var(--ltr-down) 8%, transparent) 56%,
+    transparent 100%
+  );
 }
 
 .marketStripe {
@@ -86,11 +96,11 @@
 }
 
 .marketCellLong .marketStripe {
-  background: #1bd289;
+  background: var(--ltr-up);
 }
 
 .marketCellShort .marketStripe {
-  background: #ff384f;
+  background: var(--ltr-down);
 }
 
 .marketContent {
@@ -101,13 +111,21 @@
 }
 
 .table tbody td.sideLong {
-  color: #1bd289;
+  color: var(--ltr-up);
   font-weight: 500;
 }
 
 .table tbody td.sideShort {
-  color: #ff384f;
+  color: var(--ltr-down);
   font-weight: 500;
+}
+
+.table tbody td.pnlGain {
+  color: var(--ltr-up);
+}
+
+.table tbody td.pnlLoss {
+  color: var(--ltr-down);
 }
 
 .sortHeader {
@@ -123,7 +141,7 @@
 }
 
 .colMarket { width: 72px; }
-.colSide { width: 92px; }
+.colSide { width: 110px; }
 .colDate { width: 116px; }
 .colTradeValue { width: 90px; }
 .colSize { width: 64px; }
@@ -132,13 +150,3 @@
 .colFee { width: 64px; }
 .colRole { width: 56px; }
 .colType { width: 56px; }
-
-@media (max-width: 768px) {
-  .root {
-    overflow: auto;
-  }
-
-  .table {
-    min-width: 720px;
-  }
-}

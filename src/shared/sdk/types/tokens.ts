@@ -24,7 +24,7 @@ export type Token = {
   wrappedAddress?: string;
   coingeckoUrl?: string;
   coingeckoSymbol?: string;
-  metamaskSymbol?: string;
+  walletSymbol?: string;
   explorerSymbol?: string;
   explorerUrl?: string;
   reservesUrl?: string;
@@ -127,20 +127,22 @@ export type TokenPrices = {
 
 export type TokenAsyncData = {
   prices: TokenPrices;
-  isGmxAccount?: boolean;
+  isTradingAccount?: boolean;
+  isAccount?: boolean;
   walletBalance?: bigint;
-  gmxAccountBalance?: bigint;
+  accountBalance?: bigint;
+  tradingAccountBalance?: bigint;
   /**
-   * If isGmxAccount is true, then this is the gmx account balance
-   * If isGmxAccount is false, then this is the wallet balance
+   * If isTradingAccount is true, then this is the trading account balance
+   * If isTradingAccount is false, then this is the wallet balance
    */
   balance?: bigint;
   totalSupply?: bigint;
   hasPriceFeedProvider?: boolean;
 
-  // X10000 mode: frozen and total balances (from /balances API)
-  frozenBalance?: bigint;  // Frozen balance (locked in orders)
-  totalBalance?: bigint;   // Total balance (available + frozen)
+  // API trading mode: frozen and total balances (from /balances API)
+  frozenBalance?: bigint; // Frozen balance (locked in orders)
+  totalBalance?: bigint; // Total balance (available + frozen)
 };
 
 export type TokenData = Token & TokenAsyncData;

@@ -73,21 +73,23 @@ export default defineConfig(({ mode }) => {
         app: path.resolve(__dirname, "src/app"),
         components: path.resolve(__dirname, "src/shared/components"),
         config: path.resolve(__dirname, "src/shared/config"),
-        context: path.resolve(__dirname, "src/modules/dex/context"),
-        domain: path.resolve(__dirname, "src/modules/dex/domain"),
+        context: path.resolve(__dirname, "src/modules/lighter/context"),
+        domain: path.resolve(__dirname, "src/modules/lighter/domain"),
         fonts: path.resolve(__dirname, "src/shared/fonts"),
         img: path.resolve(__dirname, "src/shared/img"),
         lib: path.resolve(__dirname, "src/shared/lib"),
         locales: path.resolve(__dirname, "src/shared/locales"),
-        pages: path.resolve(__dirname, "src/modules/dex/pages"),
-        features: path.resolve(__dirname, "src/modules/dex/features"),
+        pages: path.resolve(__dirname, "src/modules/lighter/pages"),
+        features: path.resolve(__dirname, "src/modules/lighter/features"),
         modules: path.resolve(__dirname, "src/modules"),
-        landing: path.resolve(__dirname, "src/modules/landing"),
+        landing: path.resolve(__dirname, "src/modules/lighter/pages"),
         shared: path.resolve(__dirname, "src/shared"),
         styles: path.resolve(__dirname, "src/shared/styles"),
-        // Typechain types moved to modules/dex/contracts
-        "typechain-types": path.resolve(__dirname, "src/modules/dex/contracts/typechain-types"),
-        "typechain-types-stargate": path.resolve(__dirname, "src/modules/dex/contracts/typechain-types-stargate"),
+        "typechain-types": path.resolve(__dirname, "src/modules/lighter/contracts/typechain-types"),
+        "typechain-types-stargate": path.resolve(
+          __dirname,
+          "src/modules/lighter/contracts/typechain-types-stargate"
+        ),
         sdk: path.resolve(__dirname, "src/shared/sdk"),
       },
     },
@@ -98,7 +100,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            web3: ["ethers", "viem", "date-fns", "@rainbow-me/rainbowkit", "lodash", "@gelatonetwork/relay-sdk"],
+            utilities: ["date-fns", "lodash"],
             charts: ["recharts"],
             ui: ["@headlessui/react", "framer-motion", "react-select"],
           },
