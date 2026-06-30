@@ -1,0 +1,824 @@
+.page {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: #000;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.topnav {
+  height: var(--ltr-topnav-h);
+  flex: 0 0 var(--ltr-topnav-h);
+  border-bottom: 1px solid var(--ltr-border);
+  background: var(--ltr-bg-root);
+}
+
+.holdingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.holdingValue {
+  color: var(--ltr-text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.content {
+  flex: 1;
+  padding: 20px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panel {
+  background: #0f0f15;
+  border: 1px solid #1b1b22;
+  border-radius: 10px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+// Status banner
+.statusPanel {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  padding: 26px 30px;
+  background: radial-gradient(circle at 22% 55%, rgba(247, 164, 59, 0.08), rgba(15, 15, 21, 0.9) 55%);
+}
+
+.rockWrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+}
+
+.rockImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.rockLabel {
+  position: relative;
+  z-index: 1;
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 800;
+  color: #2b1600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  -webkit-text-stroke: 1px rgba(255, 222, 170, 0.35);
+}
+
+.offBadge {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffc97a 0%, #f7a43b 100%);
+  color: #1a1104;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.offBadgePercent {
+  font-weight: 800;
+}
+
+.statusMain {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.statusTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.statusTopLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statusTitleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.currentChip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ffc97a 0%, #f7a43b 100%);
+  color: #1a1104;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  box-shadow: 0 0 0 rgba(247, 164, 59, 0.55);
+  animation: chipPulse 2400ms ease-in-out infinite;
+}
+
+.currentChip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: chipShine 3200ms ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes chipPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(247, 164, 59, 0.2); }
+  50% { box-shadow: 0 0 18px rgba(247, 164, 59, 0.7); }
+}
+
+@keyframes chipShine {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+
+.currentLabel {
+  color: var(--ltr-text-primary);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.currentHold {
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.statusTopRight {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.nextLabel {
+  color: #3dd68c;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.nextSub {
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.progressBar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: #1b1b22;
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0;
+  width: var(--p, 0%);
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f7a43b 0%, #ffc97a 50%, #8cd8ae 100%);
+  transition: width 1400ms cubic-bezier(0.2, 0.8, 0.25, 1);
+  box-shadow: 0 0 24px rgba(247, 164, 59, 0.35);
+}
+
+.progressMeta {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+}
+
+.progressMetaCenter {
+  text-align: center;
+  color: var(--ltr-text-secondary);
+}
+
+.progressMetaCenter strong {
+  color: #3dd68c;
+  font-weight: 600;
+  margin: 0 2px;
+}
+
+.progressMetaEnd {
+  text-align: right;
+}
+
+.infoCallout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(247, 164, 59, 0.08);
+  border: 1px solid rgba(247, 164, 59, 0.2);
+  color: #f7a43b;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.infoCalloutIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+// Fee Tiers
+.tiersPanel {
+  gap: 16px;
+}
+
+.tiersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tiersTitle {
+  color: var(--ltr-text-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--ltr-text-secondary);
+  font-size: 11px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.tiersTable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tiersHead,
+.tierRow {
+  display: grid;
+  grid-template-columns: 1.6fr 1.1fr 1.2fr 0.9fr 0.9fr 1.2fr 1.2fr;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.tiersHead {
+  padding: 0 18px;
+  color: var(--ltr-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.tierRow {
+  background: #0c0c12;
+  border: 1px solid #1b1b22;
+  border-radius: 8px;
+  color: var(--ltr-text-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tierRowCurrent {
+  border-color: rgba(247, 164, 59, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(247, 164, 59, 0.15);
+}
+
+.tierRowClose {
+  border-color: rgba(61, 214, 140, 0.35);
+  border-style: dashed;
+  background: rgba(61, 214, 140, 0.03);
+}
+
+.tierCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tierIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #1b1b22 center/60% no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ltr-text-muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.tierTitle {
+  font-weight: 700;
+  font-style: italic;
+}
+
+.tierSub {
+  color: var(--ltr-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.tierDiscountMain {
+  font-weight: 700;
+}
+
+.tierDiscountSub {
+  color: var(--ltr-text-secondary);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.tierStatus {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.statusAchieved {
+  background: rgba(91, 180, 247, 0.1);
+  color: #5bb4f7;
+}
+
+.statusCurrent {
+  background: rgba(247, 164, 59, 0.12);
+  color: #f7a43b;
+}
+
+.statusClose {
+  background: rgba(61, 214, 140, 0.12);
+  color: #3dd68c;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusLocked {
+  background: rgba(180, 180, 182, 0.08);
+  color: var(--ltr-text-muted);
+}
+
+.tierCurrentText {
+  color: #f7a43b;
+}
+
+.tierCloseText {
+  color: #3dd68c;
+}
+
+// Comparison cards
+.compareRow {
+  display: grid;
+  grid-template-columns: 1fr 56px 1fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.compareCard {
+  background: #0f0f15;
+  border: 1px solid #1b1b22;
+  border-radius: 10px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.compareArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f7a43b;
+}
+
+.compareTitleRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ltr-text-primary);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.compareTitleEm {
+  font-size: 26px;
+  line-height: 32px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.compareSubLabel {
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.compareFeeRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.compareFeeValue {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ltr-text-primary);
+}
+
+.compareFeeValueOrange {
+  color: #f7a43b;
+}
+
+.compareFeeDesc {
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+  flex: 1;
+}
+
+.compareList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed #1b1b22;
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+}
+
+.compareListItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compareDot {
+  color: var(--ltr-text-muted);
+}
+
+.saveValue {
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 800;
+  color: #3dd68c;
+  letter-spacing: -0.02em;
+}
+
+.saveUnit {
+  color: var(--ltr-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  align-self: flex-end;
+  margin-bottom: 8px;
+  margin-left: -4px;
+}
+
+.saveNote {
+  color: var(--ltr-text-muted);
+  font-size: 11px;
+  padding-top: 10px;
+  border-top: 1px dashed #1b1b22;
+}
+
+// CTA row
+.ctaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.ctaLeft {
+  display: flex;
+  gap: 10px;
+}
+
+.btnOutline {
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--ltr-border);
+  color: var(--ltr-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ltr-bg-hover);
+  }
+}
+
+.btnPrimaryLg {
+  height: 48px;
+  padding: 0 28px;
+  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(90deg, #f5a85f, #b0d6ea);
+  color: #1a1104;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+}
+
+@media (max-width: 1024px) {
+  .page {
+    width: 100dvw;
+    max-width: 100dvw;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .topnav {
+    height: auto;
+    min-height: var(--ltr-topnav-h);
+    flex-basis: auto;
+    position: relative;
+    z-index: 200;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 14px 24px;
+    gap: 14px;
+    overflow-x: hidden;
+  }
+
+  .panel,
+  .compareCard {
+    min-width: 0;
+    border-radius: 8px;
+  }
+
+  .statusPanel {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .rockWrap {
+    width: 150px;
+    height: 150px;
+  }
+
+  .tiersHeader {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .legend {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 12px;
+  }
+
+  .tiersTable {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tiersTable::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tiersHead,
+  .tierRow {
+    min-width: 920px;
+  }
+
+  .compareRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .compareArrow {
+    transform: rotate(90deg);
+    min-height: 36px;
+  }
+
+  .ctaRow {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .topnav {
+    border-bottom: 0;
+  }
+
+  .holdingBadge {
+    display: none;
+  }
+
+  .content {
+    padding: 12px 8px 20px;
+    gap: 10px;
+  }
+
+  .panel,
+  .compareCard {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .statusPanel {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 16px 14px;
+    background: radial-gradient(circle at 50% 18%, rgba(247, 164, 59, 0.1), rgba(15, 15, 21, 0.92) 58%);
+  }
+
+  .rockWrap {
+    width: 132px;
+    height: 132px;
+  }
+
+  .statusMain {
+    width: 100%;
+  }
+
+  .statusTop {
+    gap: 12px;
+  }
+
+  .statusTitleRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .currentLabel {
+    font-size: 13px;
+  }
+
+  .nextLabel {
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .progressMeta {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .progressMetaCenter,
+  .progressMetaEnd {
+    text-align: left;
+  }
+
+  .infoCallout {
+    padding: 10px;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .tiersHeader {
+    flex-direction: column;
+  }
+
+  .legend {
+    justify-content: flex-start;
+    font-size: 10px;
+  }
+
+  .tiersHead,
+  .tierRow {
+    min-width: 840px;
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 10px;
+  }
+
+  .tierRow {
+    font-size: 12px;
+  }
+
+  .compareTitleRow {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .compareTitleEm {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  .compareFeeRow {
+    flex-wrap: wrap;
+  }
+
+  .compareFeeValue {
+    font-size: 30px;
+    line-height: 36px;
+  }
+
+  .saveValue {
+    font-size: 34px;
+    line-height: 40px;
+  }
+
+  .ctaRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ctaLeft {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btnOutline,
+  .btnPrimaryLg {
+    width: 100%;
+    justify-content: center;
+    padding: 0 14px;
+  }
+}

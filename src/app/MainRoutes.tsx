@@ -1,8 +1,11 @@
 import { useEffect } from "react";
 import { Route, Switch, useLocation } from "react-router-dom";
 
+import LighterExplorerPage from "@/modules/lighter/pages/LighterExplorerPage";
+import LighterMiningPage from "@/modules/lighter/pages/LighterMiningPage";
+import LighterPortfolioPage from "@/modules/lighter/pages/LighterPortfolioPage";
 import LighterTradePage from "@/modules/lighter/pages/LighterTradePage";
-import RockyInfoPage from "@/modules/lighter/pages/RockyInfoPage";
+import LighterVipPage from "@/modules/lighter/pages/LighterVipPage";
 import { LighterTradeRuntimeProviders } from "@/modules/lighter/providers/LighterTradeRuntimeProviders";
 import { TradeStateProvider } from "@/modules/lighter/store/TradeStateContext/TradeStateContext";
 import { RedirectWithQuery } from "@/shared/components/RedirectWithQuery/RedirectWithQuery";
@@ -17,7 +20,9 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
   return (
     <Switch>
       <Route exact path="/">
-        <RedirectWithQuery to="/trade" />
+        <LighterTradeRuntimeProviders>
+          <LighterPortfolioPage />
+        </LighterTradeRuntimeProviders>
       </Route>
 
       <Route exact path="/trade/:tradeType?">
@@ -28,9 +33,27 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
         </LighterTradeRuntimeProviders>
       </Route>
 
-      <Route exact path={["/portfolio", "/mining", "/vip", "/explorer"]}>
+      <Route exact path="/portfolio">
         <LighterTradeRuntimeProviders>
-          <RockyInfoPage />
+          <LighterPortfolioPage />
+        </LighterTradeRuntimeProviders>
+      </Route>
+
+      <Route exact path="/mining">
+        <LighterTradeRuntimeProviders>
+          <LighterMiningPage />
+        </LighterTradeRuntimeProviders>
+      </Route>
+
+      <Route exact path="/vip">
+        <LighterTradeRuntimeProviders>
+          <LighterVipPage />
+        </LighterTradeRuntimeProviders>
+      </Route>
+
+      <Route exact path="/explorer">
+        <LighterTradeRuntimeProviders>
+          <LighterExplorerPage />
         </LighterTradeRuntimeProviders>
       </Route>
 
