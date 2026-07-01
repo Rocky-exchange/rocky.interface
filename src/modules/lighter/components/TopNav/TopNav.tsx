@@ -92,15 +92,6 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Trade</Trans>
         </NavLink>
-        <NavLink to="/mining" className={styles.link} activeClassName={styles.active}>
-          <Trans>Mining</Trans>
-        </NavLink>
-        <NavLink to="/vip" className={styles.link} activeClassName={styles.active}>
-          <Trans>VIP</Trans>
-        </NavLink>
-        <NavLink to="/explorer" className={styles.link} activeClassName={styles.active}>
-          <Trans>Explorer</Trans>
-        </NavLink>
       </div>
       <div className={styles.right}>
         {rightExtra}

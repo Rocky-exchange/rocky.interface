@@ -615,10 +615,6 @@ msgstr ""
 msgid "Place Short"
 msgstr ""
 
-#: src/modules/lighter/components/TopNav/TopNav.tsx
-msgid "VIP"
-msgstr ""
-
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Slippage tolerance above {SLIPPAGE_WARN_THRESHOLD_PCT}% is aggressive — the executed price may deviate significantly from the estimate."
@@ -1401,10 +1397,6 @@ msgstr ""
 
 #: src/modules/lighter/api/custom/useReferralCode.ts
 msgid "Referral code created successfully!"
-msgstr ""
-
-#: src/modules/lighter/components/TopNav/TopNav.tsx
-msgid "Mining"
 msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
@@ -2635,10 +2627,6 @@ msgstr "새 크기 또는 가격 입력"
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 msgid "Unknown order"
 msgstr "알 수 없는 주문"
-
-#: src/modules/lighter/components/TopNav/TopNav.tsx
-msgid "Explorer"
-msgstr ""
 
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "limit order"

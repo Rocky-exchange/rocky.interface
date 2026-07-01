@@ -223,12 +223,7 @@ export default function LighterPortfolioPage() {
                 </svg>
                 VIP Level
               </div>
-              <button type="button" className={styles.vipBadge} onClick={() => history.push("/vip")}>
-                VIP2
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
+              <span className={styles.vipBadge}>VIP2</span>
             </div>
             <div className={styles.vipBar}>
               {Array.from({ length: VIP_TOTAL }).map((_, i) => (

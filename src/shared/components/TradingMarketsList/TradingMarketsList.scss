@@ -72,15 +72,15 @@ html[data-ui-theme="primit"] .SelectorBase-panel.TradingMarketsDropdown-panel {
 }
 
 .TradingMarketsDropdown-header {
-  padding: 28px 32px 0 !important;
+  padding: 12px 16px 0 !important;
 }
 
 .TradingMarketsDropdown-header > .flex {
-  gap: 24px;
+  gap: 8px;
 }
 
 .TradingMarketsDropdown-search {
-  height: 48px !important;
+  height: 40px !important;
   flex: 0 0 auto;
 }
 
@@ -94,7 +94,7 @@ html[data-ui-theme="primit"]
   background-image: none !important;
   box-shadow: none !important;
   color: #e9e9ef !important;
-  font-size: 15px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   letter-spacing: 0.02em !important;
 }
@@ -134,14 +134,14 @@ html[data-ui-theme="primit"]
 }
 
 html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="block"] button {
-  min-height: 40px;
+  min-height: 30px;
   padding: 0 18px !important;
   border-radius: 10px !important;
   color: rgba(226, 231, 237, 0.62) !important;
   background: transparent !important;
-  font-size: 15px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
-  line-height: 40px !important;
+  line-height: 30px !important;
   letter-spacing: 0 !important;
 }
 
@@ -151,8 +151,8 @@ html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="bl
 }
 
 .TradingMarketsDropdown-dividerWrap {
-  margin: 0 -32px !important;
-  padding: 24px 0 0 !important;
+  margin: 0 -16px !important;
+  padding: 8px 0 0 !important;
   background: #12131a !important;
 }
 
@@ -194,12 +194,12 @@ html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="bl
 }
 
 .TradingMarketsDropdown-th {
-  height: 68px;
+  height: 40px;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   background: #12131a !important;
   color: rgba(226, 231, 237, 0.62) !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
   letter-spacing: 0.1em !important;
   border-bottom: 1px solid #242832;
@@ -208,12 +208,12 @@ html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="bl
 .TradingMarketsDropdown-th:first-child {
   padding-left: 28px !important;
   text-transform: none;
-  font-size: 15px !important;
+  font-size: 13px !important;
   letter-spacing: 0.02em !important;
 }
 
 .TradingMarketsDropdown-row {
-  height: 84px;
+  height: 48px;
 }
 
 .TradingMarketsDropdown-row:hover {
@@ -239,20 +239,20 @@ html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="bl
 
 .TradingMarketsDropdown-rowLeverage {
   display: inline-flex;
-  height: 30px;
+  height: 20px;
   align-items: center;
-  border-radius: 8px;
+  border-radius: 6px;
   background: #303441;
-  padding: 0 10px;
+  padding: 0 7px;
   color: rgba(226, 231, 237, 0.76);
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1;
 }
 
 .TradingMarketsDropdown-popover tbody td {
   color: #f1f1f5;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .TradingMarketsDropdown-popover tbody td:first-child {
@@ -261,7 +261,7 @@ html[data-ui-theme="primit"] .TradingMarketsDropdown-popover [data-tabs-type="bl
 }
 
 .TradingMarketsDropdown-popover tbody td:nth-child(2) {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
