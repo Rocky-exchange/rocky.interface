@@ -1,13 +1,17 @@
 import React, { type FormEvent, useCallback, useEffect, useState } from "react";
 
 import {
+  emptyWalletBalanceRows,
+  fetchWalletBalanceSnapshot,
+  getWalletProviderLabel,
+  type WalletBalanceSnapshot,
+} from "./balances";
+import type { ConsoleWalletPendingOffer } from "./console";
+import {
   acceptUsdcxWalletTransfers,
   authorizeUsdcxWallet,
-  CantonFundsError,
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
-  getCurrentReturnToPath,
-  requestRockyWalletPreapproval,
   setUsdcxAutoAccept,
   submitCantonWalletDeposit,
   submitPlatformWithdrawal,
@@ -15,15 +19,8 @@ import {
   type CantonFundsAsset,
   type UsdcxPendingOffersResult,
 } from "./funds";
-import {
-  emptyWalletBalanceRows,
-  fetchWalletBalanceSnapshot,
-  getWalletProviderLabel,
-  type WalletBalanceSnapshot,
-} from "./balances";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
-import type { ConsoleWalletPendingOffer } from "./console";
 
 type Props = {
   open: boolean;
@@ -143,7 +140,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [depositResult, setDepositResult] = useState<CantonDepositResult | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [needsRockyAuthorization, setNeedsRockyAuthorization] = useState(false);
   const [copiedKey, setCopiedKey] = useState("");
 
   const walletParty = snapshot?.party || party;
@@ -213,7 +209,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setError("");
     setNotice("");
     setDepositResult(null);
-    setNeedsRockyAuthorization(false);
     try {
       const result = await submitCantonWalletDeposit({
         provider: walletProvider,
@@ -226,9 +221,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setNotice(depositNotice(result));
       await Promise.all([refreshBalances(), refreshPendingOffers()]);
     } catch (err) {
-      if (err instanceof CantonFundsError && err.code === "rocky_wallet_authorization_required") {
-        setNeedsRockyAuthorization(true);
-      }
       setError(errorMessage(err));
     } finally {
       setDepositBusy(false);
@@ -253,19 +245,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setError(errorMessage(err));
     } finally {
       setWithdrawBusy(false);
-    }
-  }
-
-  async function handleRockyAuthorization() {
-    setAuthorizationBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const authorizeUrl = await requestRockyWalletPreapproval({ returnTo: getCurrentReturnToPath() });
-      window.location.assign(authorizeUrl);
-    } catch (err) {
-      setError(errorMessage(err));
-      setAuthorizationBusy(false);
     }
   }
 
@@ -405,11 +384,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <button type="submit" style={button} disabled={depositBusy || !depositAmount.trim()}>
             {depositBusy ? "Depositing..." : "Deposit"}
           </button>
-          {needsRockyAuthorization ? (
-            <button type="button" style={secondaryButton} onClick={handleRockyAuthorization} disabled={authorizationBusy}>
-              {authorizationBusy ? "Opening authorization..." : "Authorize Rocky Wallet"}
-            </button>
-          ) : null}
           {depositResult?.deposit_ref ? (
             <DepositReferenceView result={depositResult} copiedKey={copiedKey} onCopy={copyValue} />
           ) : null}
@@ -593,6 +567,7 @@ function PendingOffersList({
 }
 
 function depositNotice(result: CantonDepositResult): string {
+  if (result.wallet_transfer === "rocky_wallet_submitted") return "Rocky Wallet transfer submitted";
   if (result.wallet_transfer === "console_wallet_submitted") return "Console Wallet transfer submitted";
   if (result.wallet_transfer === "loop_wallet_submitted") return "Loop Wallet transfer submitted";
   if (result.wallet_transfer === "submitted" || result.wallet_transfer === "submitted_and_accepted") {

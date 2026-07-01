@@ -1,110 +1,188 @@
-import type { ConnectedWallet, WalletConnectionResult, WalletProviderAdapter } from "./types";
-import { createExchangeSession } from "./session";
+import { createRockyWalletSdk } from "./rocky-wallet-sdk";
+import type { GetCoinsResponse, RockyAccount, RockyWalletSdk } from "./rocky-wallet-sdk";
+import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
-type RockyAuthData = {
-  token?: string;
-  user_id?: string;
-  party?: string;
-  username?: string;
-  email?: string;
-  wallet_preapproval_status?: string;
+type RockyWalletTarget = "local";
+type RockyWalletTransferToken = "CC" | "USDCx";
+
+type RockyWalletTransferInput = {
+  from?: string;
+  to: string;
+  token: RockyWalletTransferToken;
+  amount: string;
+  memo: string;
+  waitForFinalization?: number;
 };
 
-export type RockyWalletAuthMode = "login" | "register";
-
-export type RockyWalletAuthInput = {
-  mode: RockyWalletAuthMode;
-  email: string;
-  password: string;
-  username?: string;
+export type RockyWalletBalanceResult = {
+  party: string;
+  network: string;
+  balance: GetCoinsResponse;
 };
 
-export type RockyWalletAuthResult = RockyAuthData & {
-  preapprovalRequired: boolean;
-};
+const ROCKY_MAINNET_NETWORK_ID = "CANTON_NETWORK";
+const ROCKY_WALLET_TARGET: RockyWalletTarget = "local";
+const ROCKY_WALLET_APP_NAME = "Rocky Exchange";
 
-export function createRockyConnectionFromAuth(
-  data: RockyAuthData,
-  source: "rocky-login" | "rocky-register" | string,
-): WalletConnectionResult {
-  return {
-    provider: "rocky",
-    userId: data.user_id,
-    partyId: data.party,
-    proof: data.token,
-    displayName: data.username,
-    email: data.email,
-    metadata: { source },
-  };
-}
-
-export async function connectRockyWallet(input: RockyWalletAuthInput): Promise<RockyWalletAuthResult> {
-  const email = input.email.trim();
-  const password = input.password;
-  const username = input.username?.trim() || "";
-
-  if (!email || !password) {
-    throw new Error("Email and password are required");
-  }
-  if (input.mode === "register" && !username) {
-    throw new Error("Username is required");
+export async function connectRockyWallet(): Promise<ConnectedWallet> {
+  const sdk = getRockyWalletSdk();
+  const availability = await sdk.checkExtensionAvailability();
+  if (availability.status !== "installed") {
+    throw new Error("Rocky Wallet Chrome extension not detected");
   }
 
-  const endpoint = input.mode === "register" ? "/api/register" : "/api/auth";
-  const body =
-    input.mode === "register"
-      ? { email, password, username }
-      : { email, password };
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  const status = await sdk.connect({
+    name: ROCKY_WALLET_APP_NAME,
+    target: ROCKY_WALLET_TARGET,
   });
-  const data = (await res.json().catch(() => ({}))) as RockyAuthData & { error?: string };
-  if (!res.ok) {
-    throw new Error(data.error || (input.mode === "register" ? "Registration failed" : "Login failed"));
+  if (status?.isConnected === false) {
+    throw new Error(status.reason || "Rocky Wallet connection failed");
   }
 
-  if (data.user_id && data.party) {
-    await createExchangeSession(
-      createRockyConnectionFromAuth(
-        data,
-        input.mode === "register" ? "rocky-register" : "rocky-login",
-      ),
-    );
-  }
-  persistRockyAuthData(data);
+  const account = await resolveRockyAccount(sdk, status?.account);
+  const network = await resolveRockyNetwork(sdk, account);
+  assertRockyMainnet(network);
 
+  const party = account.partyId;
   return {
-    ...data,
-    preapprovalRequired: data.wallet_preapproval_status === "wallet_login_required",
+    connection: {
+      provider: "rocky",
+      partyId: party,
+      displayName: account.displayName || account.username || `${party.slice(0, 8)}...`,
+      metadata: {
+        source: "rocky-wallet-sdk",
+        target: ROCKY_WALLET_TARGET,
+        networkId: network,
+        namespace: account.namespace,
+        fingerprint: account.fingerprint,
+        externalSigningKey: account.externalSigningKey,
+      },
+    },
+    signMessage: async (message: string) => {
+      const signature = await sdk.signMessage({
+        message: { hex: utf8ToHex(message) },
+        metaData: {
+          purpose: "authentication",
+          app: ROCKY_WALLET_APP_NAME,
+        },
+      });
+      if (!signature) throw new Error("Rocky Wallet did not return a signature");
+      return signature;
+    },
   };
 }
 
-function persistRockyAuthData(data: RockyAuthData) {
-  if (typeof window === "undefined") return;
-  if (data.token) localStorage.setItem("mtc_token", data.token);
-  if (data.party) localStorage.setItem("mtc_party", data.party);
-  if (data.username) localStorage.setItem("mtc_username", data.username);
-  if (data.email) localStorage.setItem("mtc_email", data.email);
-  if (data.user_id) localStorage.setItem("rocky_user_id", data.user_id);
-  localStorage.setItem("mtc_login_method", "rocky");
+export async function submitRockyWalletTransfer(input: RockyWalletTransferInput) {
+  const sdk = getRockyWalletSdk();
+  const account = await resolveRockyAccount(sdk);
+  const network = await resolveRockyNetwork(sdk, account);
+  assertRockyMainnet(network);
+  if (input.from && input.from !== account.partyId) {
+    throw new Error("Rocky Wallet active account does not match the logged-in party");
+  }
+
+  const result = await sdk.sendTransfer({
+    from: account.partyId,
+    to: input.to,
+    token: input.token,
+    amount: input.amount,
+    expireDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    memo: input.memo,
+    waitForFinalization: input.waitForFinalization ?? 5000,
+  });
+  if (!result?.status) {
+    throw new Error("rocky_wallet_transfer_failed");
+  }
+  return result;
+}
+
+export async function fetchRockyWalletBalancesFromSdk(input: {
+  party?: string;
+} = {}): Promise<RockyWalletBalanceResult> {
+  const sdk = getRockyWalletSdk();
+  const account = await resolveRockyAccount(sdk);
+  const network = await resolveRockyNetwork(sdk, account);
+  assertRockyMainnet(network);
+  const party = input.party || account.partyId;
+  if (party !== account.partyId) {
+    throw new Error("Rocky Wallet active account does not match the logged-in party");
+  }
+
+  return {
+    party,
+    network,
+    balance: await sdk.getCoinsBalance({ party, network }),
+  };
 }
 
 export const rockyWalletAdapter: WalletProviderAdapter = {
   provider: "rocky",
-  async connect(): Promise<ConnectedWallet> {
-    throw new Error("Rocky wallet connection requires email authentication");
-  },
+  connect: connectRockyWallet,
   async disconnect() {
-    return undefined;
+    const sdk = getRockyWalletSdk();
+    await sdk.disconnect().catch(() => undefined);
   },
   async getPartyId() {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("mtc_party");
+    try {
+      const account = await getRockyWalletSdk().getPrimaryAccount();
+      return account?.partyId || null;
+    } catch (_error) {
+      if (typeof window === "undefined") return null;
+      return localStorage.getItem("mtc_party");
+    }
   },
   async getAddress() {
     return null;
   },
+  async signMessage(message: string) {
+    const signature = await getRockyWalletSdk().signMessage({
+      message: { hex: utf8ToHex(message) },
+      metaData: {
+        purpose: "authentication",
+        app: ROCKY_WALLET_APP_NAME,
+      },
+    });
+    if (!signature) throw new Error("Rocky Wallet did not return a signature");
+    return signature;
+  },
 };
+
+function getRockyWalletSdk(): RockyWalletSdk {
+  return createRockyWalletSdk();
+}
+
+async function resolveRockyAccount(
+  sdk: RockyWalletSdk,
+  connectedAccount?: RockyAccount,
+): Promise<RockyAccount & { partyId: string }> {
+  const account = connectedAccount?.partyId ? connectedAccount : await sdk.getPrimaryAccount();
+  if (!account?.partyId) {
+    throw new Error("Rocky Wallet did not return an active account");
+  }
+  return account as RockyAccount & { partyId: string };
+}
+
+async function resolveRockyNetwork(
+  sdk: RockyWalletSdk,
+  account: RockyAccount,
+): Promise<string> {
+  const activeNetwork = await sdk.getActiveNetwork().catch(() => undefined);
+  return (
+    activeNetwork?.id ||
+    activeNetwork?.networkId ||
+    account.networkId ||
+    ROCKY_MAINNET_NETWORK_ID
+  );
+}
+
+function assertRockyMainnet(network: string) {
+  if (network !== ROCKY_MAINNET_NETWORK_ID) {
+    throw new Error("Please switch Rocky Wallet to Canton mainnet");
+  }
+}
+
+function utf8ToHex(value: string): string {
+  return `0x${Array.from(new TextEncoder().encode(value), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("")}`;
+}

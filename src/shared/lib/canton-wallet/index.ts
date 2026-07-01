@@ -26,11 +26,11 @@ export { consoleWalletAdapter, connectConsoleWallet } from "./console";
 export { loopWalletAdapter, connectLoopWallet } from "./loop";
 export {
   connectRockyWallet,
-  createRockyConnectionFromAuth,
+  fetchRockyWalletBalancesFromSdk,
   rockyWalletAdapter,
+  submitRockyWalletTransfer,
 } from "./rocky";
-export type { RockyWalletAuthInput, RockyWalletAuthMode, RockyWalletAuthResult } from "./rocky";
-export { walletPreapprovalAuthorizePath } from "./preapprovalRedirect";
+export type { RockyWalletBalanceResult } from "./rocky";
 export {
   acceptUsdcxWalletTransfers,
   authorizeUsdcxWallet,
@@ -38,15 +38,12 @@ export {
   fetchPlatformAccountBalance,
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
-  getCurrentReturnToPath,
   makeWalletWithdrawalIdempotencyKey,
   platformDepositApiAsset,
   requestDepositReference,
-  requestRockyWalletPreapproval,
   setUsdcxAutoAccept,
   submitCantonWalletDeposit,
   submitPlatformWithdrawal,
-  submitRockyWalletDeposit,
   walletFacingDepositAsset,
 } from "./funds";
 export type {

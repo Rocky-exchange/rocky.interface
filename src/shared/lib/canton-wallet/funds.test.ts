@@ -5,10 +5,9 @@ import {
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
   requestDepositReference,
-  requestRockyWalletPreapproval,
+  submitCantonWalletDeposit,
   setUsdcxAutoAccept,
   submitPlatformWithdrawal,
-  submitRockyWalletDeposit,
 } from "./funds";
 
 beforeEach(() => {
@@ -49,17 +48,44 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("surfaces Rocky Wallet authorization-required deposits as a typed error", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({ error: "rocky_wallet_authorization_required" }, 401),
-    );
+  it("submits Rocky deposits through the local wallet SDK transfer flow", async () => {
+    const provider = createRockyWalletProvider();
+    window.rockyWallet = provider;
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/api/deposits/reference") {
+        return jsonResponse({
+          asset: "CC",
+          target_party_id: "target-party",
+          deposit_ref: "dep-1",
+          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
+          expires_at: "2030-01-01T00:00:00Z",
+        });
+      }
+      return jsonResponse({ error: "unexpected" }, 500);
+    });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(submitRockyWalletDeposit({ asset: "CC", amount: "1" })).rejects.toMatchObject({
-      name: "CantonFundsError",
-      status: 401,
-      code: "rocky_wallet_authorization_required",
+    const result = await submitCantonWalletDeposit({
+      provider: "rocky",
+      walletParty: "party-1",
+      asset: "CC",
+      amount: "1.5",
     });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/deposits/reference",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(provider.sendTransfer).toHaveBeenCalledWith({
+      from: "party-1",
+      to: "target-party",
+      token: "CC",
+      amount: "1.5",
+      expireDate: expect.any(String),
+      memo: "dep-1",
+      waitForFinalization: 5000,
+    });
+    expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
   });
 
   it("submits withdrawals to the connected wallet party", async () => {
@@ -90,21 +116,6 @@ describe("canton wallet funds", () => {
       dest_user_handle_party: "party-1",
       idempotency_key: "idempotency-1",
     });
-  });
-
-  it("requests a Rocky Wallet preapproval authorization URL", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({
-        authorize_url: "https://wallet.example/authorize",
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(requestRockyWalletPreapproval({ returnTo: "/trade?market=BTC" })).resolves.toBe(
-      "https://wallet.example/authorize",
-    );
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(init.body as string)).toEqual({ return_to: "/trade?market=BTC" });
   });
 
   it("requires an exchange session before funds actions", async () => {
@@ -152,6 +163,25 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function createRockyWalletProvider() {
+  return {
+    isRockyWallet: true,
+    version: "0.1.0",
+    getPrimaryAccount: vi.fn(async () => ({
+      partyId: "party-1",
+      displayName: "alice",
+      networkId: "CANTON_NETWORK",
+    })),
+    getActiveNetwork: vi.fn(async () => ({ id: "CANTON_NETWORK" })),
+    getCoinsBalance: vi.fn(),
+    signMessage: vi.fn(),
+    submitCommands: vi.fn(),
+    sendTransfer: vi.fn(async () => ({ status: true, transferId: "transfer-1" })),
+    getNodeOffers: vi.fn(),
+    submitInstructionChoice: vi.fn(),
+  };
 }
 
 function createMemoryStorage(): Storage {

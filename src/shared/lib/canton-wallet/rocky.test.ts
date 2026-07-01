@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { connectRockyWallet, createRockyConnectionFromAuth } from "./rocky";
-import { getExchangeSessionToken, getMtcAuthToken } from "./session";
+import { connectRockyWallet } from "./rocky";
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -9,80 +8,63 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", createMemoryStorage());
 });
 
-describe("rocky wallet auth", () => {
-  it("creates an exchange session from Rocky login auth data", async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      const path = String(url);
-      if (path === "/api/auth") {
-        return jsonResponse({
-          token: "rocky-token",
-          user_id: "user-1",
-          party: "party-1",
-          username: "alice",
-          email: "alice@example.com",
-        });
-      }
-      if (path === "/api/wallet/challenge") {
-        return jsonResponse({ challenge_id: "challenge-1", message: "sign me" });
-      }
-      if (path === "/api/wallet/verify") {
-        return jsonResponse({
-          user_id: "user-1",
-          binding_id: "binding-1",
-          provider: "rocky",
-          party_id: "party-1",
-          session_token: "exchange-token",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-      return jsonResponse({ error: "unexpected" }, 404);
+describe("rocky wallet sdk", () => {
+  it("connects with the injected local Rocky Wallet SDK provider", async () => {
+    const provider = createRockyWalletProvider();
+    window.rockyWallet = provider;
+
+    const wallet = await connectRockyWallet();
+
+    expect(provider.connect).toHaveBeenCalledWith({
+      name: "Rocky Exchange",
+      target: "local",
     });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await connectRockyWallet({
-      mode: "login",
-      email: " alice@example.com ",
-      password: "secret",
-    });
-
-    expect(result.preapprovalRequired).toBe(false);
-    expect(getExchangeSessionToken()).toBe("exchange-token");
-    expect(getMtcAuthToken()).toBe("rocky-token");
-    expect(localStorage.getItem("mtc_party")).toBe("party-1");
-    expect(localStorage.getItem("mtc_username")).toBe("alice");
-    expect(localStorage.getItem("mtc_login_method")).toBe("rocky");
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-  });
-
-  it("builds a Rocky connection result from auth payload", () => {
-    expect(
-      createRockyConnectionFromAuth(
-        {
-          token: "proof-token",
-          user_id: "user-2",
-          party: "party-2",
-          username: "bob",
-          email: "bob@example.com",
-        },
-        "rocky-login",
-      ),
-    ).toMatchObject({
+    expect(wallet.connection).toMatchObject({
       provider: "rocky",
-      userId: "user-2",
-      partyId: "party-2",
-      proof: "proof-token",
-      displayName: "bob",
-      email: "bob@example.com",
-      metadata: { source: "rocky-login" },
+      partyId: "party-1",
+      displayName: "alice",
+      metadata: {
+        source: "rocky-wallet-sdk",
+        target: "local",
+        networkId: "CANTON_NETWORK",
+      },
+    });
+
+    await expect(wallet.signMessage?.("sign me")).resolves.toBe("rocky-signature");
+    expect(provider.signMessage).toHaveBeenCalledWith({
+      message: { hex: "0x7369676e206d65" },
+      metaData: {
+        purpose: "authentication",
+        app: "Rocky Exchange",
+      },
     });
   });
 });
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+function createRockyWalletProvider() {
+  return {
+    isRockyWallet: true,
+    version: "0.1.0",
+    connect: vi.fn(async () => ({
+      isConnected: true,
+      account: {
+        partyId: "party-1",
+        displayName: "alice",
+        networkId: "CANTON_NETWORK",
+      },
+    })),
+    getPrimaryAccount: vi.fn(async () => ({
+      partyId: "party-1",
+      displayName: "alice",
+      networkId: "CANTON_NETWORK",
+    })),
+    getActiveNetwork: vi.fn(async () => ({ id: "CANTON_NETWORK" })),
+    getCoinsBalance: vi.fn(),
+    signMessage: vi.fn(async () => "rocky-signature"),
+    submitCommands: vi.fn(),
+    getNodeOffers: vi.fn(),
+    submitInstructionChoice: vi.fn(),
+  };
 }
 
 function createMemoryStorage(): Storage {

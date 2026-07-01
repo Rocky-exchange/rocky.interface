@@ -5,6 +5,7 @@ import {
   type ConsoleWalletPendingOffer,
 } from "./console";
 import { submitLoopWalletTransfer } from "./loop";
+import { submitRockyWalletTransfer } from "./rocky";
 import { exchangeSessionHeaders, getExchangeSessionToken } from "./session";
 import type { WalletProviderId } from "./types";
 
@@ -13,6 +14,7 @@ export type CantonFundsApiAsset = "CC" | "USDC";
 export type CantonWalletTransferStatus =
   | "submitted"
   | "submitted_and_accepted"
+  | "rocky_wallet_submitted"
   | "console_wallet_submitted"
   | "loop_wallet_submitted";
 
@@ -111,18 +113,6 @@ export async function requestDepositReference(input: {
   });
 }
 
-export async function submitRockyWalletDeposit(input: {
-  asset: CantonFundsAsset;
-  amount: string;
-}): Promise<CantonDepositResult> {
-  const url = input.asset === "USDCx" ? "/api/deposits/usdcx/credit" : "/api/deposits/cc/credit";
-  return requestJson<CantonDepositResult>(url, {
-    method: "POST",
-    headers: sessionJsonHeaders(),
-    body: JSON.stringify({ amount: positiveAmount(input.amount) }),
-  });
-}
-
 export async function submitCantonWalletDeposit(input: {
   provider: WalletProviderId | "";
   walletParty: string;
@@ -131,11 +121,7 @@ export async function submitCantonWalletDeposit(input: {
 }): Promise<CantonDepositResult> {
   const amount = positiveAmount(input.amount);
 
-  if (input.provider === "rocky") {
-    return submitRockyWalletDeposit({ asset: input.asset, amount });
-  }
-
-  if (input.provider === "console" || input.provider === "loop") {
+  if (input.provider === "rocky" || input.provider === "console" || input.provider === "loop") {
     const reference = await requestDepositReference({ asset: input.asset, amount });
     await submitWalletTransfer({
       provider: input.provider,
@@ -147,8 +133,7 @@ export async function submitCantonWalletDeposit(input: {
     });
     return {
       ...reference,
-      wallet_transfer:
-        input.provider === "console" ? "console_wallet_submitted" : "loop_wallet_submitted",
+      wallet_transfer: `${input.provider}_wallet_submitted`,
     };
   }
 
@@ -188,23 +173,6 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
     ? Number(data.available)
     : NaN;
   return Number.isFinite(available) ? available : null;
-}
-
-export async function requestRockyWalletPreapproval(input: {
-  returnTo: string;
-}): Promise<string> {
-  const data = await requestJson<{ authorize_url?: string }>("/api/wallet/preapproval/authorize", {
-    method: "POST",
-    headers: sessionJsonHeaders(),
-    body: JSON.stringify({ return_to: input.returnTo || "/trade" }),
-  });
-  if (!data.authorize_url) {
-    throw new CantonFundsError("wallet authorization URL missing", {
-      code: "wallet_authorization_url_missing",
-      data,
-    });
-  }
-  return data.authorize_url;
 }
 
 export async function authorizeUsdcxWallet(): Promise<UsdcxAuthorizationResult> {
@@ -264,11 +232,6 @@ export async function setUsdcxAutoAccept(enabled: boolean): Promise<UsdcxAutoAcc
   return { enabled: data.enabled === true, raw: data };
 }
 
-export function getCurrentReturnToPath(): string {
-  if (typeof window === "undefined") return "/trade";
-  return `${window.location.pathname}${window.location.search}${window.location.hash}` || "/trade";
-}
-
 function sessionJsonHeaders(): HeadersInit {
   ensureExchangeSession();
   return {
@@ -293,13 +256,24 @@ function positiveAmount(value: string): string {
 }
 
 async function submitWalletTransfer(input: {
-  provider: "console" | "loop";
+  provider: "rocky" | "console" | "loop";
   from: string;
   to: string;
   token: CantonFundsAsset;
   amount: string;
   memo: string;
 }) {
+  if (input.provider === "rocky") {
+    return submitRockyWalletTransfer({
+      from: input.from,
+      to: input.to,
+      token: input.token,
+      amount: input.amount,
+      memo: input.memo,
+      waitForFinalization: 5000,
+    });
+  }
+
   if (input.provider === "console") {
     return submitConsoleWalletTransfer({
       from: input.from,

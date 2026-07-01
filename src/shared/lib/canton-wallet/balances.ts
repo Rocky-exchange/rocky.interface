@@ -1,5 +1,5 @@
+import { fetchRockyWalletBalancesFromSdk } from "./rocky";
 import type { WalletProviderId } from "./types";
-import { exchangeSessionHeaders } from "./session";
 
 export type WalletBalanceStatus = "ready" | "disconnected" | "unavailable" | "error";
 
@@ -254,32 +254,12 @@ async function fetchLoopWalletBalances(identity: StoredWalletIdentity): Promise<
 async function fetchRockyWalletBalances(
   identity: StoredWalletIdentity,
 ): Promise<WalletBalanceSnapshot> {
-  const res = await fetch("/api/wallet/rocky/balance", {
-    method: "GET",
-    headers: { Accept: "application/json", ...exchangeSessionHeaders() },
-  });
-  if (res.status === 401) {
-    return {
-      ...baseSnapshot(identity),
-      status: "unavailable",
-      message: "rocky_wallet_ui_auth_required",
-    };
-  }
-
-  const data = (await res.json().catch(() => ({}))) as {
-    balances?: unknown;
-    balance?: unknown;
-    raw?: unknown;
-    error?: string;
-  };
-  if (!res.ok) {
-    throw new Error(data.error || `rocky_wallet_balance_failed_${res.status}`);
-  }
+  const result = await fetchRockyWalletBalancesFromSdk({ party: identity.party });
 
   return {
-    ...baseSnapshot(identity),
+    ...baseSnapshot({ ...identity, party: result.party }),
     status: "ready",
-    balances: normalizeRockyWalletBalance(data.balances ?? data.balance ?? data.raw ?? data),
+    balances: normalizeRockyWalletBalance(result.balance.tokens ?? result.balance.items ?? result.balance),
   };
 }
 

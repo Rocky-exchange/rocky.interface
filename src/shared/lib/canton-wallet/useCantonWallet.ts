@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
+
 import {
   connectLoopWallet,
   connectConsoleWallet,
   connectRockyWallet,
   createExchangeSession,
-  type RockyWalletAuthInput,
-  type RockyWalletAuthResult,
+  type ConnectedWallet,
 } from "./index";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
@@ -13,30 +13,22 @@ export function useCantonWallet() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(async (provider: "loop" | "console") => {
+  const connect = useCallback(async (provider: "rocky" | "loop" | "console") => {
     setConnecting(true);
     setError(null);
     try {
-      const w = provider === "loop" ? await connectLoopWallet() : await connectConsoleWallet();
+      let w: ConnectedWallet;
+      if (provider === "rocky") {
+        w = await connectRockyWallet();
+      } else if (provider === "loop") {
+        w = await connectLoopWallet();
+      } else {
+        w = await connectConsoleWallet();
+      }
       await createExchangeSession(w.connection, w.signMessage);
       notifyCantonSessionChange();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "connect failed");
-      throw e;
-    } finally {
-      setConnecting(false);
-    }
-  }, []);
-
-  const connectRocky = useCallback(async (input: RockyWalletAuthInput): Promise<RockyWalletAuthResult> => {
-    setConnecting(true);
-    setError(null);
-    try {
-      const result = await connectRockyWallet(input);
-      notifyCantonSessionChange();
-      return result;
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Rocky wallet login failed");
       throw e;
     } finally {
       setConnecting(false);
@@ -59,5 +51,5 @@ export function useCantonWallet() {
     notifyCantonSessionChange();
   }, []);
 
-  return { connect, connectRocky, disconnect, connecting, error };
+  return { connect, disconnect, connecting, error };
 }
