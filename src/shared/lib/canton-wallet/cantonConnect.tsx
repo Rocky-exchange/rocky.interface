@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import React, { useSyncExternalStore } from "react";
 
 import { useCantonWallet } from "./useCantonWallet";
@@ -25,7 +26,9 @@ export function CantonConnectModal() {
   return (
     <div style={overlay} onClick={closeCantonConnect}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div style={title}>Connect Wallet</div>
+        <div style={title}>
+          <Trans>Connect Wallet</Trans>
+        </div>
         <button type="button" style={option} disabled={connecting} onClick={() => pick("rocky")}>Rocky Wallet</button>
         <button type="button" style={option} disabled={connecting} onClick={() => pick("loop")}>Loop Wallet</button>
         <button type="button" style={option} disabled={connecting} onClick={() => pick("console")}>Console Wallet</button>

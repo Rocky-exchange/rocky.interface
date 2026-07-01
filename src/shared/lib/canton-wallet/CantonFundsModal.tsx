@@ -1,3 +1,6 @@
+import { i18n } from "@lingui/core";
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import React, { type FormEvent, useCallback, useEffect, useState } from "react";
 
 import {
@@ -118,6 +121,7 @@ const inlineButton: React.CSSProperties = {
 };
 
 export function CantonFundsModal({ open, onClose }: Props) {
+  const { i18n } = useLingui();
   const { connected, party, username, provider } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
@@ -239,7 +243,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
         destinationParty: walletParty,
       });
       setWithdrawAmount("");
-      setNotice(`Withdrawal submitted${result.withdrawal_id || result.withdrawal_request_id ? `: ${result.withdrawal_id || result.withdrawal_request_id}` : ""}`);
+      const withdrawalRef = result.withdrawal_id || result.withdrawal_request_id;
+      setNotice(
+        withdrawalRef ? i18n._(t`Withdrawal submitted: ${withdrawalRef}`) : i18n._(t`Withdrawal submitted`),
+      );
       await Promise.all([refreshBalances(), refreshPendingOffers()]);
     } catch (err) {
       setError(errorMessage(err));
@@ -254,7 +261,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setNotice("");
     try {
       const result = await authorizeUsdcxWallet();
-      setNotice(result.status === "confirmed" ? "USDCx authorization confirmed" : "USDCx authorization submitted");
+      setNotice(
+        result.status === "confirmed"
+          ? i18n._(t`USDCx authorization confirmed`)
+          : i18n._(t`USDCx authorization submitted`),
+      );
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -268,7 +279,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setNotice("");
     try {
       const result = await acceptUsdcxWalletTransfers({ provider: walletProvider, party: walletParty });
-      setNotice(result.acceptedCount > 0 ? `Accepted ${result.acceptedCount} USDCx offer(s)` : "No pending USDCx offers");
+      setNotice(
+        result.acceptedCount > 0
+          ? i18n._(t`Accepted ${result.acceptedCount} USDCx offer(s)`)
+          : i18n._(t`No pending USDCx offers`),
+      );
       await Promise.all([refreshBalances(), refreshPendingOffers()]);
     } catch (err) {
       setError(errorMessage(err));
@@ -290,7 +305,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     try {
       const result = await setUsdcxAutoAccept(next);
       setAutoAcceptEnabled(result.enabled);
-      setNotice(result.enabled ? "USDCx auto-accept enabled" : "USDCx auto-accept disabled");
+      setNotice(result.enabled ? i18n._(t`USDCx auto-accept enabled`) : i18n._(t`USDCx auto-accept disabled`));
       if (result.enabled) {
         await handleAcceptUsdcxOffers();
       }
@@ -308,30 +323,38 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }
 
+  const autoAcceptStateLabel = autoAcceptEnabled ? i18n._(t`enabled`) : i18n._(t`disabled`);
+
   return (
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={(event) => event.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Wallet Funds</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>
+              <Trans>Wallet Funds</Trans>
+            </div>
             <div style={muted}>{username || walletLabel}</div>
           </div>
           <button type="button" style={ghostButton} onClick={onClose}>
-            Close
+            <Trans>Close</Trans>
           </button>
         </div>
 
         <div style={section}>
           <div style={row}>
-            <span style={{ color: "#9aa1ad" }}>Provider</span>
+            <span style={{ color: "#9aa1ad" }}>
+              <Trans>Provider</Trans>
+            </span>
             <span>{walletLabel}</span>
           </div>
           <div style={row}>
-            <span style={{ color: "#9aa1ad" }}>Party</span>
+            <span style={{ color: "#9aa1ad" }}>
+              <Trans>Party</Trans>
+            </span>
             <span style={{ textAlign: "right", wordBreak: "break-all" }}>{walletParty || "-"}</span>
             {walletParty ? (
               <button type="button" style={inlineButton} onClick={() => copyValue(walletParty, "party")}>
-                {copiedKey === "party" ? "Copied" : "Copy"}
+                {copiedKey === "party" ? i18n._(t`Copied`) : i18n._(t`Copy`)}
               </button>
             ) : null}
           </div>
@@ -351,16 +374,18 @@ export function CantonFundsModal({ open, onClose }: Props) {
             }}
             disabled={balanceLoading || offersLoading}
           >
-            {balanceLoading ? "Refreshing..." : "Refresh balances"}
+            {balanceLoading ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
           </button>
           {snapshot?.message ? <div style={muted}>{snapshot.message}</div> : null}
         </div>
 
         <form style={section} onSubmit={handleDeposit}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Deposit</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>
+            <Trans>Deposit</Trans>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
             <label style={label}>
-              Asset
+              <Trans>Asset</Trans>
               <select
                 style={input}
                 value={depositAsset}
@@ -371,7 +396,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </select>
             </label>
             <label style={label}>
-              Amount
+              <Trans>Amount</Trans>
               <input
                 style={input}
                 value={depositAmount}
@@ -382,7 +407,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
             </label>
           </div>
           <button type="submit" style={button} disabled={depositBusy || !depositAmount.trim()}>
-            {depositBusy ? "Depositing..." : "Deposit"}
+            {depositBusy ? i18n._(t`Depositing...`) : i18n._(t`Deposit`)}
           </button>
           {depositResult?.deposit_ref ? (
             <DepositReferenceView result={depositResult} copiedKey={copiedKey} onCopy={copyValue} />
@@ -390,10 +415,12 @@ export function CantonFundsModal({ open, onClose }: Props) {
         </form>
 
         <form style={section} onSubmit={handleWithdraw}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Withdraw</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>
+            <Trans>Withdraw</Trans>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
             <label style={label}>
-              Asset
+              <Trans>Asset</Trans>
               <select
                 style={input}
                 value={withdrawAsset}
@@ -404,7 +431,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </select>
             </label>
             <label style={label}>
-              Amount
+              <Trans>Amount</Trans>
               <input
                 style={input}
                 value={withdrawAmount}
@@ -414,9 +441,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
               />
             </label>
           </div>
-          <div style={muted}>Destination: connected wallet party</div>
+          <div style={muted}>
+            <Trans>Destination: connected wallet party</Trans>
+          </div>
           <button type="submit" style={button} disabled={withdrawBusy || !withdrawAmount.trim() || !walletParty}>
-            {withdrawBusy ? "Withdrawing..." : "Withdraw"}
+            {withdrawBusy ? i18n._(t`Withdrawing...`) : i18n._(t`Withdraw`)}
           </button>
         </form>
 
@@ -425,21 +454,21 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {walletProvider === "rocky" ? (
               <button type="button" style={secondaryButton} onClick={handleUsdcxAuthorization} disabled={authorizationBusy}>
-                {authorizationBusy ? "Authorizing..." : "Authorize USDCx"}
+                {authorizationBusy ? i18n._(t`Authorizing...`) : i18n._(t`Authorize USDCx`)}
               </button>
             ) : null}
             {walletProvider === "rocky" ? (
               <button type="button" style={secondaryButton} onClick={handleToggleAutoAccept} disabled={autoAcceptBusy}>
                 {autoAcceptBusy
-                  ? "Updating auto-accept..."
+                  ? i18n._(t`Updating auto-accept...`)
                   : autoAcceptEnabled
-                    ? "Disable auto-accept"
-                    : "Enable auto-accept"}
+                    ? i18n._(t`Disable auto-accept`)
+                    : i18n._(t`Enable auto-accept`)}
               </button>
             ) : null}
             {(walletProvider === "rocky" || walletProvider === "console") ? (
               <button type="button" style={secondaryButton} onClick={handleAcceptUsdcxOffers} disabled={acceptBusy}>
-                {acceptBusy ? "Checking offers..." : "Accept USDCx offers"}
+                {acceptBusy ? i18n._(t`Checking offers...`) : i18n._(t`Accept USDCx offers`)}
               </button>
             ) : null}
           </div>
@@ -453,8 +482,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
           ) : null}
           {walletProvider === "rocky" ? (
             <div style={muted}>
-              Pending USDCx offers are accepted through the backend. Auto-accept is{" "}
-              {autoAcceptEnabled ? "enabled" : "disabled"}.
+              <Trans>
+                Pending USDCx offers are accepted through the backend. Auto-accept is {autoAcceptStateLabel}.
+              </Trans>
             </div>
           ) : null}
         </div>
@@ -463,7 +493,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
         {error ? <div style={errorStyle}>{error}</div> : null}
 
         <button type="button" style={ghostButton} onClick={handleDisconnect}>
-          Disconnect wallet
+          <Trans>Disconnect wallet</Trans>
         </button>
       </div>
     </div>
@@ -479,27 +509,34 @@ function DepositReferenceView({
   copiedKey: string;
   onCopy: (value: string | undefined, key: string) => void;
 }) {
+  const { i18n } = useLingui();
   return (
     <div style={{ ...section, paddingTop: 10 }}>
       <div style={row}>
-        <span style={{ color: "#9aa1ad" }}>Deposit ref</span>
+        <span style={{ color: "#9aa1ad" }}>
+          <Trans>Deposit ref</Trans>
+        </span>
         <span style={{ textAlign: "right", wordBreak: "break-all" }}>{result.deposit_ref}</span>
         <button type="button" style={inlineButton} onClick={() => onCopy(result.deposit_ref, "deposit_ref")}>
-          {copiedKey === "deposit_ref" ? "Copied" : "Copy"}
+          {copiedKey === "deposit_ref" ? i18n._(t`Copied`) : i18n._(t`Copy`)}
         </button>
       </div>
       {result.target_party_id ? (
         <div style={row}>
-          <span style={{ color: "#9aa1ad" }}>Target party</span>
+          <span style={{ color: "#9aa1ad" }}>
+            <Trans>Target party</Trans>
+          </span>
           <span style={{ textAlign: "right", wordBreak: "break-all" }}>{result.target_party_id}</span>
           <button type="button" style={inlineButton} onClick={() => onCopy(result.target_party_id, "target_party")}>
-            {copiedKey === "target_party" ? "Copied" : "Copy"}
+            {copiedKey === "target_party" ? i18n._(t`Copied`) : i18n._(t`Copy`)}
           </button>
         </div>
       ) : null}
       {result.expires_at ? (
         <div style={row}>
-          <span style={{ color: "#9aa1ad" }}>Expires</span>
+          <span style={{ color: "#9aa1ad" }}>
+            <Trans>Expires</Trans>
+          </span>
           <span>{new Date(result.expires_at).toLocaleString()}</span>
         </div>
       ) : null}
@@ -518,11 +555,20 @@ function PendingOffersList({
   copiedKey: string;
   onCopy: (value: string | undefined, key: string) => void;
 }) {
+  const { i18n } = useLingui();
   if (loading && offers.length === 0) {
-    return <div style={muted}>Loading pending USDCx offers...</div>;
+    return (
+      <div style={muted}>
+        <Trans>Loading pending USDCx offers...</Trans>
+      </div>
+    );
   }
   if (offers.length === 0) {
-    return <div style={muted}>No pending Console Wallet USDCx offers.</div>;
+    return (
+      <div style={muted}>
+        <Trans>No pending Console Wallet USDCx offers.</Trans>
+      </div>
+    );
   }
 
   return (
@@ -542,44 +588,54 @@ function PendingOffersList({
             }}
           >
             <div style={row}>
-              <span style={{ color: "#9aa1ad" }}>Amount</span>
+              <span style={{ color: "#9aa1ad" }}>
+                <Trans>Amount</Trans>
+              </span>
               <span>{formatOfferAmount(offer)}</span>
             </div>
             <div style={row}>
-              <span style={{ color: "#9aa1ad" }}>Sender</span>
+              <span style={{ color: "#9aa1ad" }}>
+                <Trans>Sender</Trans>
+              </span>
               <span style={{ textAlign: "right", wordBreak: "break-all" }}>{offer.sender || "-"}</span>
               {offer.sender ? (
                 <button type="button" style={inlineButton} onClick={() => onCopy(offer.sender, `sender-${key}`)}>
-                  {copiedKey === `sender-${key}` ? "Copied" : "Copy"}
+                  {copiedKey === `sender-${key}` ? i18n._(t`Copied`) : i18n._(t`Copy`)}
                 </button>
               ) : null}
             </div>
             <div style={row}>
-              <span style={{ color: "#9aa1ad" }}>Expires</span>
+              <span style={{ color: "#9aa1ad" }}>
+                <Trans>Expires</Trans>
+              </span>
               <span>{formatOfferTimestamp(offer.expiredAt)}</span>
             </div>
           </div>
         );
       })}
-      {offers.length > 5 ? <div style={muted}>{offers.length - 5} more pending offer(s)</div> : null}
+      {offers.length > 5 ? (
+        <div style={muted}>
+          <Trans>{offers.length - 5} more pending offer(s)</Trans>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function depositNotice(result: CantonDepositResult): string {
-  if (result.wallet_transfer === "rocky_wallet_submitted") return "Rocky Wallet transfer submitted";
-  if (result.wallet_transfer === "console_wallet_submitted") return "Console Wallet transfer submitted";
-  if (result.wallet_transfer === "loop_wallet_submitted") return "Loop Wallet transfer submitted";
+  if (result.wallet_transfer === "rocky_wallet_submitted") return i18n._(t`Rocky Wallet transfer submitted`);
+  if (result.wallet_transfer === "console_wallet_submitted") return i18n._(t`Console Wallet transfer submitted`);
+  if (result.wallet_transfer === "loop_wallet_submitted") return i18n._(t`Loop Wallet transfer submitted`);
   if (result.wallet_transfer === "submitted" || result.wallet_transfer === "submitted_and_accepted") {
-    return "Rocky Wallet transfer submitted";
+    return i18n._(t`Rocky Wallet transfer submitted`);
   }
-  if (result.deposit_ref) return "Deposit reference created";
-  return "Deposit submitted";
+  if (result.deposit_ref) return i18n._(t`Deposit reference created`);
+  return i18n._(t`Deposit submitted`);
 }
 
 function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
-  return "Request failed";
+  return i18n._(t`Request failed`);
 }
 
 function formatOfferAmount(offer: ConsoleWalletPendingOffer): string {

@@ -62,6 +62,10 @@ msgstr "タイプ"
 msgid ""
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Request failed"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Limit"
 msgstr "指値失敗"
@@ -228,10 +232,6 @@ msgstr "もっと"
 msgid "Sell / Short"
 msgstr ""
 
-#: src/shared/config/bridging.tsx
-msgid "Buy APE on Arbitrum with <0>Camelot</0>."
-msgstr "<0>Camelot</0>でArbitrum上のAPEを購入。"
-
 #: src/shared/components/AvaxUsdteSwapBanner/AvaxUsdteSwapBanner.tsx
 msgid "Swap on Trader Joe →"
 msgstr ""
@@ -240,13 +240,13 @@ msgstr ""
 msgid "Telegram contact (optional)"
 msgstr "Telegram連絡先（任意）"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Loop Wallet transfer submitted"
+msgstr ""
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Signature request was cancelled."
 msgstr ""
-
-#: src/shared/components/BotanixBanner/BotanixBanner.tsx
-msgid "providing liquidity"
-msgstr "流動性を提供"
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Real-Time Funding Rate"
@@ -258,6 +258,10 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "SL Price"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Deposit ref"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
@@ -345,6 +349,14 @@ msgstr "SL - ショート減少"
 msgid "Unrealized PnL"
 msgstr "未実現PnL"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Checking offers..."
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Updating auto-accept..."
+msgstr ""
+
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "LEVERAGE"
 msgstr ""
@@ -370,6 +382,10 @@ msgid "Request Withdraw"
 msgstr "出金リクエスト"
 
 #: src/shared/components/ToastifyDebug/ToastifyDebug.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Copied"
 msgstr "コピー済"
 
@@ -421,17 +437,9 @@ msgstr ""
 msgid "Position has already been closed"
 msgstr ""
 
-#: src/shared/config/bridging.tsx
-msgid "Mint tBTC using BTC with <0>Threshold</0>."
-msgstr "<0>Threshold</0>でBTCを使用してtBTCをミント。"
-
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
 msgid "What issues did you encounter that led to your rating?"
 msgstr "評価につながった問題は何ですか？"
-
-#: src/shared/components/BotanixBanner/BotanixBanner.tsx
-msgid "trading"
-msgstr ""
 
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
@@ -441,6 +449,10 @@ msgstr ""
 
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "This withdraw request has already been processed."
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Authorizing..."
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
@@ -603,6 +615,10 @@ msgstr ""
 msgid "Place Short"
 msgstr ""
 
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "VIP"
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Slippage tolerance above {SLIPPAGE_WARN_THRESHOLD_PCT}% is aggressive — the executed price may deviate significantly from the estimate."
@@ -662,6 +678,7 @@ msgid "Market - Short Inc."
 msgstr "市場 - ショート増加"
 
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
+#: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
 msgstr "ウォレット接続"
 
@@ -770,6 +787,10 @@ msgstr ""
 msgid "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "USDCx authorization submitted"
+msgstr ""
+
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Submit Order"
 msgstr ""
@@ -826,6 +847,10 @@ msgstr "折りたたむ"
 msgid "Market Name:"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Loading pending USDCx offers..."
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
@@ -836,16 +861,24 @@ msgstr ""
 msgid "TP/SL for Position"
 msgstr ""
 
-#: src/shared/components/BotanixBanner/BotanixBanner.tsx
-msgid "and"
-msgstr "と"
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Sender"
+msgstr ""
 
 #: src/shared/components/SettingsModal/SettingsModal.tsx
 msgid "Trading"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Console Wallet transfer submitted"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Original"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Deposit reference created"
 msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
@@ -984,6 +1017,15 @@ msgstr ""
 msgid "Leverage"
 msgstr "レバレッジ"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Expires"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawing..."
+msgstr ""
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "Insufficient available liquidity. The order will fill when there is liquidity available."
 msgstr "利用可能な流動性が不足しています。流動性があるときに注文が満たされます。"
@@ -1011,6 +1053,10 @@ msgstr "マーケット"
 msgid "Submitting..."
 msgstr "送信中..."
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Wallet Funds"
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -1027,6 +1073,10 @@ msgstr ""
 msgid "Withdraw authorization expired. Please request a new one."
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "No pending USDCx offers"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Liquidated"
 msgstr "清算済"
@@ -1034,10 +1084,6 @@ msgstr "清算済"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Submitting…"
 msgstr ""
-
-#: src/shared/components/BotanixBanner/BotanixBanner.tsx
-msgid "Please switch to the <0><1/><2>Arbitrum</2></0> or <3><4/><5>Avalanche</5></3> deployment for those features."
-msgstr "これらの機能を使用するには<0><1/><2>Arbitrum</2></0>または<3><4/><5>Avalanche</5></3>のデプロイに切り替えてください。"
 
 #: src/shared/components/SideNav/LanguageNavItem.tsx
 msgid "Select Language"
@@ -1088,6 +1134,7 @@ msgstr ""
 msgid "This order can't be modified — cancel and recreate it instead."
 msgstr ""
 
+#: src/modules/lighter/components/TopNav/TopNav.tsx
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/shared/components/SideNav/SideNav.tsx
 msgid "Portfolio"
@@ -1120,6 +1167,10 @@ msgstr "マーケット増加リクエスト"
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "TWAP"
 msgstr "TWAP"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Party"
+msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Limit"
@@ -1182,12 +1233,18 @@ msgstr "テストのため検証を無効化"
 msgid "PnL"
 msgstr "損益"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "disabled"
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Market Increase"
 msgstr "マーケット増加"
 
 #: src/shared/components/TradeHistory/keys.ts
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdraw"
 msgstr "出金"
 
@@ -1201,6 +1258,10 @@ msgstr "Explorerで見る"
 
 #: src/shared/components/SettingsModal/TradingSettings.tsx
 msgid "Canton"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "USDCx auto-accept disabled"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
@@ -1301,13 +1362,13 @@ msgstr ""
 msgid "No live price available for this market right now. Please retry in a moment."
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Accepted {0} USDCx offer(s)"
+msgstr ""
+
 #: src/shared/components/AvaxUsdteSwapBanner/AvaxUsdteSwapBanner.tsx
 msgid "To deposit, please swap your native USDT or USDC for USDT.e on one of the AVAX DEXes below. The swap typically takes < 30 seconds and incurs a small slippage of <0.1% for normal amounts."
 msgstr ""
-
-#: src/shared/components/BotanixBanner/BotanixBanner.tsx
-msgid "<0>Botanix</0> currently only supports"
-msgstr "<0>Botanix</0>は現在のみサポート"
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
@@ -1334,8 +1395,16 @@ msgstr "ガス支払いのための{0}残高が不足しています"
 msgid "PnL Analysis"
 msgstr "損益分析"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "No pending Console Wallet USDCx offers."
+msgstr ""
+
 #: src/modules/lighter/api/custom/useReferralCode.ts
 msgid "Referral code created successfully!"
+msgstr ""
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Mining"
 msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
@@ -1364,6 +1433,10 @@ msgstr ""
 msgid "Initial Margin Fraction:"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Disconnect wallet"
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "TP"
 msgstr "TP"
@@ -1380,6 +1453,11 @@ msgstr ""
 msgid "Failed Stop Market"
 msgstr "ストップマーケット失敗"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Rocky Wallet transfer submitted"
+msgstr ""
+
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
 #: src/shared/components/NetworkDropdown/NetworkDropdown.tsx
 #: src/shared/components/SideNav/SettingsNavItem.tsx
@@ -1390,6 +1468,10 @@ msgstr "設定"
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "Take Profit"
 msgstr "テイクプロフィット"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "USDCx auto-accept enabled"
+msgstr ""
 
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
@@ -1438,7 +1520,9 @@ msgstr "SL - ロング減少"
 msgid "Create Stop Loss"
 msgstr "ストップロスを作成"
 
+#: src/modules/lighter/components/TopNav/TopNav.tsx
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
+#: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Connect wallet"
 msgstr "ウォレットを接続"
 
@@ -1499,6 +1583,10 @@ msgstr ""
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Market"
 msgstr "ストップマーケットを作成"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Target party"
+msgstr ""
 
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/shared/components/SideNav/SideNav.tsx
@@ -1577,6 +1665,10 @@ msgstr ""
 msgid "Execution price for the order."
 msgstr "注文の執行価格"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "enabled"
+msgstr ""
+
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Partial Position"
 msgstr ""
@@ -1601,6 +1693,10 @@ msgstr "価格"
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 msgid "No pending earnings to claim"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Provider"
 msgstr ""
 
 #: src/shared/components/SettingsModal/TradingSettings.tsx
@@ -1647,6 +1743,8 @@ msgid "Accounts"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Asset"
 msgstr "資産"
 
@@ -1735,6 +1833,10 @@ msgstr "90日"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderInfoRows.tsx
 msgid "Liquidation"
 msgstr "清算"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Refreshing..."
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Min collateral: {0}"
@@ -1891,6 +1993,13 @@ msgstr "提出"
 msgid "Create"
 msgstr "作成"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Copy"
+msgstr ""
+
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
@@ -1901,6 +2010,9 @@ msgstr "作成"
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Amount"
 msgstr "額"
 
@@ -1953,6 +2065,10 @@ msgstr "トリガー価格がマーク価格を上回る"
 msgid "Reduce-only requires an open position on this market."
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "{0} more pending offer(s)"
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
@@ -1976,6 +2092,10 @@ msgstr "テイクプロフィットを更新"
 msgid "1hr Funding"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Pending USDCx offers are accepted through the backend. Auto-accept is {autoAcceptStateLabel}."
+msgstr ""
+
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 msgid "Connect wallet to claim"
 msgstr ""
@@ -1997,8 +2117,16 @@ msgstr "ストップマーケットを執行"
 msgid "AI"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Refresh balances"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Min USD Amount:"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Accept USDCx offers"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
@@ -2021,6 +2149,8 @@ msgid "You"
 msgstr "あなた"
 
 #: src/shared/components/TradeHistory/keys.ts
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Deposit"
 msgstr "入金"
 
@@ -2226,6 +2356,10 @@ msgstr "ロング"
 msgid "Position"
 msgstr "ポジション"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Deposit submitted"
+msgstr ""
+
 #: src/shared/components/TradingMarketsList/MarketTypeTabs.tsx
 msgid "DeFi"
 msgstr ""
@@ -2253,6 +2387,10 @@ msgstr "ダーク"
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Increase"
 msgstr "増加"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Enable auto-accept"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "take profit"
@@ -2337,10 +2475,6 @@ msgstr ""
 msgid "Candles"
 msgstr ""
 
-#: src/shared/components/BotanixBanner/BotanixBanner.tsx
-msgid "using GLV and pool tokens. Buying or staking Primit, or using referrals, is not supported at this time."
-msgstr ""
-
 #: src/shared/components/AddressDropdown/AddressDropdownWithoutMultichain.tsx
 msgid "Alerts"
 msgstr "アラート"
@@ -2360,6 +2494,10 @@ msgstr ""
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Exit fullscreen"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal submitted: {withdrawalRef}"
 msgstr ""
 
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
@@ -2406,9 +2544,17 @@ msgstr "リーダーボード"
 msgid "There may not be enough liquidity to execute parts of this order when the time conditions are met."
 msgstr "時間条件が満たされたときにこの注文の一部を執行するのに十分な流動性がない可能性があります。"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "USDCx authorization confirmed"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Stop Loss"
 msgstr "ストップロス失敗"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal submitted"
+msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 msgid "Trade Value"
@@ -2417,6 +2563,10 @@ msgstr ""
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed"
 msgstr "取引失敗"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Depositing..."
+msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
 msgid "Status"
@@ -2447,6 +2597,10 @@ msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Weekly Funding Rate"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Destination: connected wallet party"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -2481,6 +2635,10 @@ msgstr "新しいサイズまたは価格を入力"
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 msgid "Unknown order"
 msgstr "不明な注文"
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Explorer"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "limit order"
@@ -2550,6 +2708,10 @@ msgstr "非常に可能性が高い"
 msgid "Place Long"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Authorize USDCx"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Market Decrease"
 msgstr "マーケット減少リクエスト"
@@ -2587,6 +2749,10 @@ msgstr "入金リクエスト"
 msgid "Bars"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Disable auto-accept"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Indicators"
@@ -2610,6 +2776,10 @@ msgstr ""
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "The order may not execute as the max. allowed leverage is exceeded. Consider decreasing the order's leverage by editing and decreasing its size. <0>Read more</0>."
 msgstr "最大許容レバレッジを超えるため注文が執行されない可能性があります。サイズを減少させて注文のレバレッジを減少させてください。<0>詳細を読む</0>。"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Close"
+msgstr ""
 
 #: src/shared/components/SettingsModal/TradingSettings.tsx
 msgid "Orders are routed through Rocky exchange session APIs."

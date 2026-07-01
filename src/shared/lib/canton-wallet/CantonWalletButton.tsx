@@ -1,9 +1,11 @@
+import { Trans } from "@lingui/macro";
 import { useState } from "react";
 
 import ConnectWalletButton from "@/shared/components/ConnectWalletButton/ConnectWalletButton";
-import { useCantonSession } from "./useCantonSession";
+
 import { openCantonConnect } from "./cantonConnect";
 import { CantonFundsModal } from "./CantonFundsModal";
+import { useCantonSession } from "./useCantonSession";
 
 export function CantonWalletButton() {
   const { connected, username, party } = useCantonSession();
@@ -16,5 +18,9 @@ export function CantonWalletButton() {
       </>
     );
   }
-  return <ConnectWalletButton onClick={() => openCantonConnect()}>Connect wallet</ConnectWalletButton>;
+  return (
+    <ConnectWalletButton onClick={() => openCantonConnect()}>
+      <Trans>Connect wallet</Trans>
+    </ConnectWalletButton>
+  );
 }
