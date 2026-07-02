@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR, { SWRConfiguration } from "swr";
 
-import { getMarkets } from "./client";
+import { getMarkets, getTicker } from "./client";
 import { getWebSocketService, normalizeMarketSymbolToApiFormat } from "./websocket";
 import type { Market, Ticker } from "../types";
 import type { WsTickerUpdate } from "./websocket";
@@ -131,6 +131,38 @@ export function useTradingMarketsWithTickers(
   const [tickersError, setTickersError] = useState<Error | undefined>();
   const [tickersLoading, setTickersLoading] = useState(true);
   const subscriptionsRef = useRef<Array<() => void>>([]);
+
+  // REST ticker polling: rocky-backend has no WebSocket server (the WS path
+  // below is a no-op unless VITE_WS_ENABLED==="true"), so poll /ticker per
+  // market to give the market list live prices/24h-change instead of "-".
+  useEffect(() => {
+    if (!chainId || symbols.length === 0) return;
+    let cancelled = false;
+    const load = async () => {
+      const entries = await Promise.all(
+        symbols.map(async (sym) => {
+          try {
+            return [sym, await getTicker(chainId, sym)] as const;
+          } catch {
+            return null;
+          }
+        })
+      );
+      if (cancelled) return;
+      setTickersData((prev) => {
+        const next = { ...prev };
+        for (const e of entries) if (e) next[e[0]] = e[1];
+        return next;
+      });
+      setTickersLoading(false);
+    };
+    load();
+    const id = setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [chainId, symbols.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!chainId || symbols.length === 0) {

@@ -315,11 +315,27 @@ export interface OpenPositionRequest {
   stop_loss?: string;
 }
 
+/**
+ * rocky-backend has no dedicated "close position by id" endpoint -- closing
+ * is done by submitting a reduce-only opposing order (see
+ * custom/client.ts::closePosition). This describes what that opposing order
+ * needs, not a request to a close-specific route.
+ */
 export interface ClosePositionRequest {
-  size?: string; // Position size to close (e.g., "0.5" for 0.5 BTC)
-  price?: string | null; // Can be null for market orders
-  aa_smart_account_address?: string;
-  aa_session_key_address?: string;
+  /** Rocky-native symbol, e.g. "BTC-PERP" (as returned by GET /v1/positions/me). */
+  symbol: string;
+  /** The position's CURRENT side; the opposing order is submitted on the other side. */
+  side: "long" | "short";
+  /** Amount to close, in base-asset units (e.g. "0.5" for 0.5 BTC). Pass the full position size for a full close. */
+  qty: string;
+  /**
+   * Current mark price. rocky-backend's /v1/orders rejects MARKET orders, so
+   * the opposing order is a LIMIT order priced aggressively past this mark
+   * price (same "cross N bps past mid" pattern rocky-bot's TakerLoop uses to
+   * guarantee a fill against resting orders).
+   */
+  markPrice: string;
+  leverage?: number;
 }
 
 export interface CloseOperatorAuthorizationResponse {

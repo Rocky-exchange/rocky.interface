@@ -4,8 +4,10 @@ import { useCallback, useMemo, useState } from "react";
 import { useSWRConfig } from "swr";
 
 import { useClosePositionHandler } from "@/modules/lighter/api";
+import type { ClosePositionRequest } from "@/modules/lighter/api/types";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
+import { helperToast } from "lib/helperToast";
 
 import type { BottomTabFilterMode } from "./BottomTabs";
 import styles from "./PositionsTab.module.scss";
@@ -13,12 +15,10 @@ import { TpSlPositionModal } from "./TpSlPositionModal";
 import { usePositionsAdapter, type LighterPosition } from "../../adapters/usePositionsAdapter";
 
 type PositionRow = {
-  /** 用于调用 POST /positions/:id/close 的持仓 ID。 */
+  /** 持仓 ID;完整持仓详情(symbol/side/qty/markPrice)通过它从 usePositionsAdapter() 的原始列表中查找,用于构造平仓的反向订单。 */
   positionId: string;
   /** 数字形式的 base-asset 数量(如 0.5 BTC),用于显示 */
   sizeTokenAmount: number;
-  /** 持仓 USD 金额,用于 close 请求体的 size 字段(后端期望 USD 而非 token 数量) */
-  sizeUsd: number;
   market: string;
   leverage: string;
   side: "long" | "short" | null;
@@ -154,7 +154,6 @@ function toRow(position: LighterPosition): PositionRow {
   return {
     positionId: position.positionId,
     sizeTokenAmount: Number.isFinite(position.sizeTokenAmount) ? position.sizeTokenAmount : 0,
-    sizeUsd: Number.isFinite(position.size) ? position.size : 0,
     market: position.market,
     leverage: position.leverage && position.leverage !== "0x" ? position.leverage : "--",
     side: position.side,
@@ -190,18 +189,28 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
   const [closingPositionId, setClosingPositionId] = useState<string | undefined>();
 
   const handleClosePosition = useCallback(
-    async (positionId: string, sizeUsd: number) => {
+    async (positionId: string) => {
       if (!positionId || closingPositionId) return;
       if (!isCloseReady) return;
+
+      // Closing is a real opposing order now (rocky-backend has no
+      // close-by-id endpoint), so we need the position's symbol/side/qty/
+      // markPrice, not just its USD value -- look up the full record.
+      const position = positions.find((p) => p.positionId === positionId);
+      if (!position || !position.side || !(position.sizeTokenAmount > 0) || !(position.markPrice > 0)) {
+        helperToast.error(t`Unable to close position: missing symbol, side, size, or mark price`);
+        return;
+      }
+
       setClosingPositionId(positionId);
       try {
-        // 后端 POST /positions/:id/close 的 size 字段是 USD 金额（不是 token 数量）。
-        // price 留空 → 走市价平仓。传整个持仓的 USD 金额实现全平。
-        const sizePayload =
-          Number.isFinite(sizeUsd) && sizeUsd > 0
-            ? { size: String(sizeUsd) }
-            : {};
-        await closePositionViaApi(positionId, sizePayload);
+        const closeRequest: ClosePositionRequest = {
+          symbol: position.symbol,
+          side: position.side,
+          qty: String(position.sizeTokenAmount),
+          markPrice: String(position.markPrice),
+        };
+        await closePositionViaApi(positionId, closeRequest);
         // 手动触发持仓/订单 SWR 重算,不用等 2s 轮询;与 ModifyOrderModal 内的 mutate 保持一致。
         await Promise.all([
           mutate(["primit-positions", chainId, accountKey], undefined, { revalidate: true }),
@@ -213,7 +222,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
         setClosingPositionId(undefined);
       }
     },
-    [accountKey, chainId, closePositionViaApi, closingPositionId, isCloseReady, mutate]
+    [accountKey, chainId, closePositionViaApi, closingPositionId, isCloseReady, mutate, positions]
   );
 
   const filteredPositions = useMemo(() => {
@@ -358,7 +367,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                     className={styles.closeActionButton}
                     aria-label={i18n._(t`Close ${row.market} position`)}
                     disabled={!row.positionId || !isCloseReady || closingPositionId === row.positionId}
-                    onClick={() => void handleClosePosition(row.positionId, row.sizeUsd)}
+                    onClick={() => void handleClosePosition(row.positionId)}
                   >
                     {closingPositionId === row.positionId ? <CloseSpinnerIcon /> : <ClosePositionIcon />}
                   </button>

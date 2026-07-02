@@ -67,7 +67,10 @@ export function OrderFormPanel() {
   const [marginModalOpen, setMarginModalOpen] = useState(false);
   const advancedRef = useRef<HTMLDivElement>(null);
   const isConnected = connected;
-  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 10);
+  // See the identical comment in features/orderForm/desktop/OrderFormPanel.tsx:
+  // marketDetails is always undefined in practice (its endpoint doesn't
+  // exist on rocky-backend), so this fallback governs the real slider max.
+  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 100);
   const currentPositionLeverage =
     positionsData?.positions?.find((position) => normalizeMarketSymbol(position.symbol) === normalizedSymbol)
       ?.leverage ?? 0;

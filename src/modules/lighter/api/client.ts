@@ -150,9 +150,13 @@ interface FetchOptions extends RequestInit {
   requireAuth?: boolean;
 }
 
+// rocky-backend exposes routes directly at /v1/* and /fapi/*, no /api
+// prefix -- see the matching comment in api/custom/client.ts (the primary
+// client) for the full rationale. Every call site here now passes its own
+// full path.
 async function apiFetch<T>(chainId: number, path: string, options: FetchOptions = {}): Promise<T> {
   const baseUrl = getServerBaseUrl(chainId);
-  const url = `${baseUrl}/api/v1${path}`;
+  const url = `${baseUrl}${path}`;
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -192,6 +196,8 @@ async function apiFetch<T>(chainId: number, path: string, options: FetchOptions 
 // ============================================
 // Auth API
 // ============================================
+// NOT SUPPORTED by rocky-backend (no EVM nonce+signature login route) --
+// see the matching comment in custom/client.ts.
 export async function getNonce(chainId: number, address: string): Promise<NonceResponse> {
   return apiFetch<NonceResponse>(chainId, `/auth/nonce/${address}`);
 }
@@ -242,20 +248,90 @@ export interface MarketDetailsResponse {
   status: string | null;
 }
 
+// See custom/client.ts's getMarkets for the full rationale: /v1/markets returns
+// a bare array with base/max_leverage fields; normalize to the { markets } +
+// Market shape the UI expects, else the market list renders empty.
+interface RawMarketRow {
+  symbol: string;
+  base?: string;
+  quote?: string;
+  max_leverage?: number;
+  tick_size?: string;
+  min_qty?: string;
+}
+function decimalsOf(s?: string): number {
+  if (!s) return 2;
+  const i = s.indexOf(".");
+  return i === -1 ? 0 : s.length - i - 1;
+}
+function normalizeMarketRow(r: RawMarketRow, rank: number): Market {
+  const base = r.base ?? r.symbol.replace(/-PERP$/i, "").replace(/-USD[T]?$/i, "");
+  return {
+    symbol: `${base}-USD`,
+    base_asset: base,
+    quote_asset: r.quote ?? "USDC",
+    last_price: "",
+    price_change_24h: "0",
+    price_change_percent_24h: "0",
+    high_24h: "0",
+    low_24h: "0",
+    volume_24h: "0",
+    volume_24h_usd: "0",
+    rank,
+    leverage: r.max_leverage ?? 100,
+    price_decimals: decimalsOf(r.tick_size),
+    size_decimals: decimalsOf(r.min_qty),
+    status: "active",
+  };
+}
 export async function getMarkets(chainId: number, limit?: number): Promise<MarketsResponse> {
   const queryParams = limit ? `?limit=${limit}` : "";
-  return apiFetch<MarketsResponse>(chainId, `/markets${queryParams}`);
+  const raw = await apiFetch<unknown>(chainId, `/v1/markets${queryParams}`);
+  const arr: RawMarketRow[] = Array.isArray(raw)
+    ? (raw as RawMarketRow[])
+    : ((raw as { markets?: RawMarketRow[] })?.markets ?? []);
+  const markets = arr.map((r, i) => normalizeMarketRow(r, i));
+  return { markets, total: markets.length };
 }
 
+// rocky-backend has NO market-details endpoint -- synthesize from /v1/markets
+// (only `max_leverage` is consumed) rather than 400ing on a nonexistent route.
+// See custom/client.ts's getMarketDetails for the canonical version.
 export async function getMarketDetails(chainId: number, symbol: string): Promise<MarketDetailsResponse> {
-  const apiSymbol = convertSymbolToApiFormat(symbol).toLowerCase();
-  return apiFetch<MarketDetailsResponse>(chainId, `/markets/${apiSymbol}/details`);
+  const rockySymbol = convertSymbolToRockySymbol(symbol);
+  const base = rockySymbol.replace(/-PERP$/i, "");
+  const markets = await getMarkets(chainId);
+  const m = (markets.markets ?? []).find((x) => (x.base_asset ?? "").toUpperCase() === base.toUpperCase());
+  const maxLev = (m && m.leverage) || 100;
+  return {
+    symbol: rockySymbol,
+    market_name: rockySymbol,
+    base_asset: m?.base_asset ?? base,
+    quote_asset: m?.quote_asset ?? "USDC",
+    description: null,
+    min_base_amount: "0",
+    min_usd_amount: "0",
+    price_step: "0",
+    lot_size: "0",
+    max_leverage: maxLev,
+    initial_margin_fraction: "0",
+    maintenance_margin_fraction: "0",
+    close_out_margin_fraction: "0",
+    market_cap: null,
+    fully_diluted_valuation: null,
+    market_cap_updated_at: null,
+    mark_price: m?.last_price ?? null,
+    last_price: m?.last_price ?? null,
+    funding_rate: null,
+    next_funding_time: null,
+    listing_phase: null,
+    status: m?.status ?? "active",
+  };
 }
 
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
-  // Convert symbol to API format (BTCUSDT)
-  const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Orderbook>(chainId, `/markets/${apiSymbol}/orderbook`);
+  const rockySymbol = convertSymbolToRockySymbol(symbol);
+  return apiFetch<Orderbook>(chainId, `/v1/markets/${rockySymbol}/orderbook`);
 }
 
 export interface TradesResponse {
@@ -264,12 +340,29 @@ export interface TradesResponse {
 }
 
 export async function getTrades(chainId: number, symbol: string): Promise<TradesResponse> {
-  // Convert symbol to API format (BTCUSDT)
-  const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<TradesResponse>(chainId, `/markets/${apiSymbol}/trades`);
+  const rockySymbol = convertSymbolToRockySymbol(symbol);
+  // /recent-trades returns a bare array of { trade_id, price, qty, side, ts_ms };
+  // map to the UI Trade shape or the trades panel stays empty. See
+  // custom/client.ts getTrades.
+  const raw = await apiFetch<unknown>(chainId, `/v1/markets/${rockySymbol}/recent-trades`);
+  const rows: Array<Record<string, unknown>> = Array.isArray(raw)
+    ? (raw as Array<Record<string, unknown>>)
+    : ((raw as { trades?: Array<Record<string, unknown>> })?.trades ?? []);
+  const trades: Trade[] = rows.map((r) => ({
+    id: String(r.trade_id ?? r.id ?? ""),
+    symbol: rockySymbol,
+    price: String(r.price ?? "0"),
+    amount: String(r.qty ?? r.amount ?? "0"),
+    size: String(r.qty ?? r.size ?? "0"),
+    side: String(r.side ?? "").toUpperCase() === "BUY" ? "buy" : "sell",
+    timestamp: Number(r.ts_ms ?? r.timestamp ?? 0),
+  }));
+  return { symbol: rockySymbol, trades };
 }
 
-// Helper to convert symbol format (e.g., "BTC-USD" -> "BTCUSDT")
+// Helper to convert symbol format (e.g., "BTC-USD" -> "BTCUSDT"). Used ONLY
+// for /fapi/* (Binance-compatible) calls -- see convertSymbolToRockySymbol
+// below for the /v1/* (Rocky-native) format.
 function convertSymbolToApiFormat(symbol: string): string {
   // If already in BTCUSDT format, return as is
   const upper = symbol.toUpperCase().trim();
@@ -287,15 +380,43 @@ function convertSymbolToApiFormat(symbol: string): string {
   return `${cleaned}USDT`;
 }
 
-export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
-  // Convert symbol to API format (BTCUSDT)
-  const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<Ticker>(chainId, `/markets/${apiSymbol}/ticker`);
+// rocky-backend's /v1/markets/* routes use its own native symbol shape
+// ("BTC-PERP", "ETH-PERP", "CC-PERP"), never the Binance-style "BTCUSDT"
+// convertSymbolToApiFormat produces.
+function convertSymbolToRockySymbol(symbol: string): string {
+  const upper = symbol.toUpperCase().trim();
+  const base = upper.includes("-USD") || upper.includes("/USD")
+    ? (upper.split(/-|\//)[0] ?? "")
+    : upper.replace(/[/-]/g, "").replace(/USDT?$/, "");
+  return `${base}-PERP`;
 }
 
+export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
+  const rockySymbol = convertSymbolToRockySymbol(symbol);
+  // Map rocky-backend's ticker (`price_change_pct_24h`, no index/funding) to
+  // the UI Ticker shape so 24h-change renders. See custom/client.ts getTicker.
+  const raw = await apiFetch<Record<string, unknown>>(chainId, `/v1/markets/${rockySymbol}/ticker`);
+  const s = (v: unknown, d = "0") => (v == null ? d : String(v));
+  return {
+    symbol: s(raw.symbol, rockySymbol),
+    last_price: s(raw.last_price),
+    mark_price: raw.mark_price == null ? undefined : String(raw.mark_price),
+    index_price: raw.index_price == null ? undefined : String(raw.index_price),
+    price_change_24h: s(raw.price_change_24h),
+    price_change_percent_24h: s(raw.price_change_percent_24h ?? raw.price_change_pct_24h),
+    high_24h: s(raw.high_24h),
+    low_24h: s(raw.low_24h),
+    volume_24h: s(raw.volume_24h),
+    open_interest: s(raw.open_interest),
+    funding_rate: s(raw.funding_rate),
+    next_funding_time: Number(raw.next_funding_time ?? 0),
+  };
+}
+
+// NOT SUPPORTED by rocky-backend -- see custom/client.ts's getPrice.
 export async function getPrice(chainId: number, symbol: string): Promise<PriceResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<PriceResponse>(chainId, `/markets/${apiSymbol}/price`);
+  return apiFetch<PriceResponse>(chainId, `/v1/markets/${apiSymbol}/price`);
 }
 
 // ============================================
@@ -305,48 +426,58 @@ export interface FundingRatesResponse {
   rates: FundingRate[];
 }
 
-export async function getAllFundingRates(chainId: number): Promise<FundingRatesResponse> {
-  return apiFetch<FundingRatesResponse>(chainId, "/funding-rates");
+// NOT SUPPORTED by rocky-backend -- see custom/client.ts's getAllFundingRates.
+// No aggregate /v1/funding-rates endpoint on rocky-backend; return empty.
+export async function getAllFundingRates(_chainId: number): Promise<FundingRatesResponse> {
+  return { rates: [] };
 }
 
 export async function getFundingRate(chainId: number, symbol: string): Promise<FundingRate> {
-  const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<FundingRate>(chainId, `/funding-rates/${apiSymbol}`);
+  const rockySymbol = convertSymbolToRockySymbol(symbol);
+  return apiFetch<FundingRate>(chainId, `/v1/markets/${rockySymbol}/funding-rate`);
 }
 
+// NOT SUPPORTED by rocky-backend -- funding rate history is documented as
+// not yet implemented.
+// rocky-backend has NO funding-rate HISTORY endpoint (only the current
+// /v1/markets/{symbol}/funding-rate). Return empty rather than 400-spamming
+// the console. See custom/client.ts getFundingHistory.
 export async function getFundingHistory(
-  chainId: number,
-  symbol: string,
-  params?: { period?: string; limit?: number }
+  _chainId: number,
+  _symbol: string,
+  _params?: { period?: string; limit?: number }
 ): Promise<FundingHistory[]> {
-  const apiSymbol = convertSymbolToApiFormat(symbol);
-  const query = new URLSearchParams();
-  if (params?.period) query.set("period", params.period);
-  if (params?.limit != null) query.set("limit", String(params.limit));
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return apiFetch<FundingHistory[]>(chainId, `/funding-rates/${apiSymbol}/history${suffix}`);
+  return [];
 }
 
 // ============================================
-// Referral dashboard (JWT; 与 `/referral/dashboard` 同源，映射为旧 OnChainDashboard)
+// Referral dashboard (JWT; 与 `/v1/referral/dashboard` 同源，映射为旧 OnChainDashboard)
 // ============================================
 export async function getOnChainDashboard(chainId: number, address: string): Promise<OnChainDashboard> {
-  const raw = await apiFetch<unknown>(chainId, "/referral/dashboard", { requireAuth: true });
+  const raw = await apiFetch<unknown>(chainId, "/v1/referral/dashboard", { requireAuth: true });
   const d = normalizeReferralDashboardResponse(raw);
   return mapReferralDashboardToOnChainDashboard(d, address);
 }
 
+// rocky-backend's real route is GET /v1/referral/on-chain/user-rebate/:address
+// (the old path, /referral/on-chain/claimable/:address, does not exist).
 export async function getOnChainClaimable(chainId: number, address: string): Promise<ClaimableAmount> {
-  return apiFetch<ClaimableAmount>(chainId, `/referral/on-chain/claimable/${address}`);
+  return apiFetch<ClaimableAmount>(chainId, `/v1/referral/on-chain/user-rebate/${address}`);
 }
 
+// NOT SUPPORTED by rocky-backend -- no operator-status endpoint exists.
 export async function getOperatorStatus(chainId: number): Promise<OperatorStatus> {
-  return apiFetch<OperatorStatus>(chainId, "/referral/on-chain/operator-status");
+  return apiFetch<OperatorStatus>(chainId, "/v1/referral/on-chain/operator-status");
 }
 
 // ============================================
 // Protected Account API (Requires Auth)
 // ============================================
+// DEAD CODE: nothing imports getPositions/getOrders/getAccountTrades (or the
+// order-mutation functions further below) from this file specifically --
+// every live call site (hooks.ts, custom/useApi*.ts) imports the
+// custom/client.ts versions of these instead (already fixed above). Paths
+// below were NOT updated; do not wire new code to this section.
 export interface PositionsResponse {
   positions: Position[];
   total_unrealized_pnl: string;
@@ -531,23 +662,29 @@ export interface GetCandlesParams {
 
 /**
  * Get historical candles for a symbol
- * GET /api/v1/markets/{symbol}/candles
+ * GET /v1/markets/{symbol}/candles
+ *
+ * Path and symbol format fixed to match rocky-backend's real route
+ * (Rocky-native symbol, e.g. "BTC-PERP"). Query param names/period values
+ * have NOT been verified against rocky-backend's actual candles route.
  */
 export async function getCandles(chainId: number, symbol: string, params: GetCandlesParams): Promise<CandlesResponse> {
-  // Convert symbol to API format (BTCUSDT)
-  const apiSymbol = convertSymbolToApiFormat(symbol);
+  const rockySymbol = convertSymbolToRockySymbol(symbol);
   const queryParams = new URLSearchParams();
   queryParams.set("period", params.period);
   if (params.limit !== undefined) queryParams.set("limit", params.limit.toString());
   if (params.start !== undefined) queryParams.set("from", Math.floor(params.start / 1000).toString());
   if (params.end !== undefined) queryParams.set("to", Math.floor(params.end / 1000).toString());
 
-  return apiFetch<CandlesResponse>(chainId, `/markets/${apiSymbol}/candles?${queryParams.toString()}`);
+  return apiFetch<CandlesResponse>(chainId, `/v1/markets/${rockySymbol}/candles?${queryParams.toString()}`);
 }
 
 /**
  * Get the latest candle for a symbol
- * GET /api/v1/markets/{symbol}/candles/latest
+ * GET /v1/markets/{symbol}/candles/latest
+ *
+ * NOT SUPPORTED by rocky-backend -- no "latest candle" convenience endpoint
+ * exists. Left calling the old shape.
  */
 export async function getLatestCandle(
   chainId: number,
@@ -555,7 +692,7 @@ export async function getLatestCandle(
   period: KlinePeriod
 ): Promise<LatestCandleResponse> {
   const apiSymbol = convertSymbolToApiFormat(symbol);
-  return apiFetch<LatestCandleResponse>(chainId, `/klines/${apiSymbol}/candles/latest?period=${period}`);
+  return apiFetch<LatestCandleResponse>(chainId, `/v1/klines/${apiSymbol}/candles/latest?period=${period}`);
 }
 
 // ============================================

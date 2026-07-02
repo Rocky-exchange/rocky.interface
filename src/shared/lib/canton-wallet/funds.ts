@@ -103,7 +103,7 @@ export async function requestDepositReference(input: {
   asset: CantonFundsAsset;
   amount: string;
 }): Promise<CantonDepositReference> {
-  return requestJson<CantonDepositReference>("/api/deposits/reference", {
+  return requestJson<CantonDepositReference>("/v1/deposits/reference", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({
@@ -151,7 +151,7 @@ export async function submitPlatformWithdrawal(input: {
     throw new CantonFundsError("Destination party is required", { code: "destination_party_required" });
   }
 
-  return requestJson<CantonWithdrawalResult>("/api/withdrawals", {
+  return requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({
@@ -176,7 +176,7 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
 }
 
 export async function authorizeUsdcxWallet(): Promise<UsdcxAuthorizationResult> {
-  return requestJson<UsdcxAuthorizationResult>("/api/wallet/usdcx/authorize", {
+  return requestJson<UsdcxAuthorizationResult>("/v1/wallet/usdcx/authorize", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -192,7 +192,7 @@ export async function acceptUsdcxWalletTransfers(input: {
     return { acceptedCount: result.acceptedCount, raw: result };
   }
 
-  const data = await requestJson<{ accepted_count?: number }>("/api/wallet/usdcx/accept", {
+  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usdcx/accept", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -216,7 +216,7 @@ export async function fetchPendingUsdcxOffers(input: {
 }
 
 export async function fetchUsdcxAutoAccept(): Promise<UsdcxAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/api/wallet/usdcx/auto-accept", {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usdcx/auto-accept", {
     method: "GET",
     headers: exchangeSessionHeaders(),
   });
@@ -224,7 +224,7 @@ export async function fetchUsdcxAutoAccept(): Promise<UsdcxAutoAcceptResult> {
 }
 
 export async function setUsdcxAutoAccept(enabled: boolean): Promise<UsdcxAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/api/wallet/usdcx/auto-accept", {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usdcx/auto-accept", {
     method: "PUT",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({ enabled }),

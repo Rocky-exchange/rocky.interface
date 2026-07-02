@@ -4,13 +4,14 @@ import {
   AVALANCHE,
   SettlementChainId,
   SOURCE_BASE_MAINNET,
-  SOURCE_BSC_MAINNET,
   SOURCE_OPTIMISM_SEPOLIA,
   SOURCE_SEPOLIA,
   SourceChainId,
 } from "config/static/chains";
 import { getTokenBySymbol } from "sdk/configs/tokens";
 
+// Note: BSC is no longer a supported source chain (Canton migration removed
+// cross-chain EVM bridging), so there is no BNB entry here anymore.
 export const NATIVE_TOKEN_PRICE_MAP: Partial<
   Record<SourceChainId, Partial<Record<SettlementChainId, Partial<Record<SettlementChainId, string>>>>>
 > = {
@@ -20,15 +21,6 @@ export const NATIVE_TOKEN_PRICE_MAP: Partial<
     },
     [ARBITRUM]: {
       [ARBITRUM]: getTokenBySymbol(ARBITRUM, "ETH").address,
-    },
-  },
-  [SOURCE_BSC_MAINNET]: {
-    [ARBITRUM]: {
-      [ARBITRUM]: getTokenBySymbol(ARBITRUM, "BNB").address,
-    },
-    [AVALANCHE]: {
-      // This means on BSC->Avalanche, we will get BNB price from Arbitrum prices.
-      [ARBITRUM]: getTokenBySymbol(ARBITRUM, "BNB").address,
     },
   },
   [SOURCE_SEPOLIA]: {

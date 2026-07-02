@@ -35,14 +35,19 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       proxy: {
-        // Dev: proxy data + wallet/auth routes to the demo Next.js app (same backend).
-        "/api": {
-          target: env.VITE_PROXY_API_URL || "https://demo.rocky.exchange",
+        // Dev: proxy rocky-backend's real routes directly. demo.rocky.exchange
+        // (and its /api, /auth BFF-shaped compatibility routes) is being
+        // deprecated -- api.rocky.exchange exposes rocky-backend's actual
+        // /v1/* and /fapi/* surface with no /api prefix, which is what
+        // getTradingBackendUrl()'s DEV-mode "" fallback relies on this proxy
+        // to resolve.
+        "/v1": {
+          target: env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
           changeOrigin: true,
           secure: true,
         },
-        "/auth": {
-          target: env.VITE_PROXY_API_URL || "https://demo.rocky.exchange",
+        "/fapi": {
+          target: env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
           changeOrigin: true,
           secure: true,
         },

@@ -108,8 +108,13 @@ function appendOptionalOrderFields(
   if (params.clientOrderId) request.client_order_id = params.clientOrderId;
 }
 
+// rocky-backend's POST /v1/orders expects its own native symbol shape
+// ("BTC-PERP", "ETH-PERP", "CC-PERP"), not the Binance-style "BTCUSDT" this
+// used to produce (correct only for the old api.primit.io-shaped backend).
 function getApiSymbol(symbol: string) {
-  return symbol.includes("-USD") ? symbol.replace("-USD", "USDT").toUpperCase() : symbol.toUpperCase();
+  const upper = symbol.toUpperCase().trim();
+  const base = upper.includes("-USD") ? upper.replace("-USD", "").replace(/USDT?$/, "") : upper.replace(/USDT?$/, "");
+  return `${base}-PERP`;
 }
 
 const TRIGGER_TYPE_MAP: Partial<Record<ApiOrderType, CreateTriggerOrderRequest["trigger_type"]>> = {
@@ -235,7 +240,7 @@ export interface UsePrimitOrderSubmitResult {
   submitOrder: (params: PrimitOrderParams) => Promise<CreateOrderResponse>;
   cancelOrderById: (orderId: string) => Promise<{ success: boolean }>;
   batchCancel: (request: BatchCancelRequest) => Promise<BatchCancelResponse>;
-  closePositionById: (positionId: string, request?: ClosePositionRequest) => Promise<CreateOrderResponse>;
+  closePositionById: (positionId: string, request: ClosePositionRequest) => Promise<CreateOrderResponse>;
   isApiEnabled: boolean;
   isReady: boolean;
 }
@@ -378,8 +383,11 @@ export function usePrimitOrderSubmit(): UsePrimitOrderSubmitResult {
     [chainId, refreshBalances, refreshOrders, requireAccountKey]
   );
 
+  // NOTE: unused (no live call sites) -- @/modules/lighter/api/useClosePositionHandler.ts
+  // is what PositionsTab.tsx actually uses. Kept in sync with closePosition's
+  // now-required ClosePositionRequest (symbol/side/qty/markPrice) anyway.
   const closePositionById = useCallback(
-    async (positionId: string, request?: ClosePositionRequest): Promise<CreateOrderResponse> => {
+    async (positionId: string, request: ClosePositionRequest): Promise<CreateOrderResponse> => {
       const authAccountKey = requireAccountKey();
 
       try {

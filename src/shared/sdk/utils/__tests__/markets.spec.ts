@@ -71,7 +71,13 @@ describe("getMarketIndexName", () => {
     const eth = getToken("ETH");
     expect(getMarketIndexName({ indexToken: eth, isSpotOnly: false })).toBe("ETH/USD");
 
-    const pepe = getToken("PEPE");
+    const pepe = {
+      symbol: "PEPE",
+      address: "0xpepe",
+      decimals: 18,
+      visualMultiplier: 1000,
+      visualPrefix: "k",
+    } as Token;
     expect(getMarketIndexName({ indexToken: pepe, isSpotOnly: false })).toBe("kPEPE/USD");
   });
 });

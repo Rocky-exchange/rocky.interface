@@ -61,9 +61,13 @@ export function useMarketInfoAdapter(): LighterMarketInfo {
   const marketLeverage = useMemo(() => {
     if (!selectedSymbol || !marketsData?.markets?.length) return null;
 
-    const normalizedSymbol = normalizeApiMarketSymbol(selectedSymbol);
-    if (!normalizedSymbol) return null;
-    const market = marketsData.markets.find((item) => item.symbol.toUpperCase() === normalizedSymbol);
+    // Match by base asset — getMarkets normalizes symbols to "{BASE}-USD", so
+    // compare on the leading base token (works for "BTC-USD"/"BTC-PERP"/"BTCUSDT").
+    const base = selectedSymbol.split(/[-/]/)[0]?.replace(/USDT?$/i, "").toUpperCase();
+    if (!base) return null;
+    const market = marketsData.markets.find(
+      (item) => (item.base_asset ?? item.symbol.split(/[-/]/)[0] ?? "").toUpperCase() === base
+    );
 
     return market?.leverage ?? null;
   }, [marketsData, selectedSymbol]);

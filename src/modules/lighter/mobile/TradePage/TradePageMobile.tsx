@@ -43,7 +43,10 @@ export function TradePageMobile({ onOpenSettings }: Props) {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
-  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 10);
+  // See the comment in features/orderForm/desktop/OrderFormPanel.tsx:
+  // marketDetails is always undefined in practice (its endpoint doesn't
+  // exist on rocky-backend), so this fallback governs the real slider max.
+  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 100);
 
   const baseSymbol = useMemo(() => selectedSymbol?.split("-")[0] ?? "BTC", [selectedSymbol]);
 

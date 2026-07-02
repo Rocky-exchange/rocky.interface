@@ -22,7 +22,7 @@ export async function createExchangeSession(
   const subject = connection.partyId || connection.walletAddress;
   if (!subject) throw new Error("Wallet did not return a party or address");
 
-  const challenge = await postJson<ChallengeResponse>("/api/wallet/challenge", {
+  const challenge = await postJson<ChallengeResponse>("/v1/wallet/challenge", {
     provider: connection.provider,
     user_id: connection.userId,
     party_id: connection.partyId,
@@ -40,7 +40,7 @@ export async function createExchangeSession(
   proof = proof || connection.proof;
   if (!proof?.trim()) throw new Error("Wallet did not provide a verification proof");
 
-  const session = await postJson<VerifyResponse>("/api/wallet/verify", {
+  const session = await postJson<VerifyResponse>("/v1/wallet/verify", {
     challenge_id: challenge.challenge_id,
     provider: connection.provider,
     party_id: connection.partyId,

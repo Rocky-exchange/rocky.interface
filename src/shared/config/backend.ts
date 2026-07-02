@@ -6,8 +6,8 @@ export const PROTOCOL_STATS_API_URL = "";
 // The active chain is selected by VITE_DEFAULT_CHAIN, so a single backend URL
 // pair is sufficient by default; Avalanche deployments may override it without
 // changing the rest of the API plumbing.
-const TRADING_API_URL = import.meta.env.VITE_PROXY_API_URL || "https://api.primit.io";
-const TRADING_WS_URL = import.meta.env.VITE_PROXY_WS_URL || "wss://api.primit.io";
+const TRADING_API_URL = import.meta.env.VITE_PROXY_API_URL || "https://api.rocky.exchange";
+const TRADING_WS_URL = import.meta.env.VITE_PROXY_WS_URL || "wss://api.rocky.exchange";
 const TRADING_AVAX_API_URL = import.meta.env.VITE_PROXY_AVAX_API_URL || TRADING_API_URL;
 const TRADING_AVAX_WS_URL = import.meta.env.VITE_PROXY_AVAX_WS_URL || TRADING_WS_URL;
 
@@ -17,6 +17,14 @@ const LEGACY_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost
 function isAvalancheTradingChain(chainId: number): boolean {
   return chainId === 43114 || chainId === 43113;
 }
+
+// Some deployments (e.g. app.rocky.exchange behind nginx.conf's /v1, /fapi,
+// /ws reverse proxy) serve the API same-origin, mirroring vite.config.ts's
+// dev proxy. Set VITE_USE_SAME_ORIGIN_PROXY=true there so the browser never
+// makes a direct cross-origin request to api.rocky.exchange (which does not
+// send CORS headers). Deployments without that proxy in front must leave
+// this unset and rely on the absolute TRADING_API_URL/TRADING_WS_URL below.
+const USE_SAME_ORIGIN_PROXY = import.meta.env.VITE_USE_SAME_ORIGIN_PROXY === "true";
 
 // ============================================
 // Exported helpers
@@ -28,7 +36,7 @@ function isAvalancheTradingChain(chainId: number): boolean {
  * is driven entirely by VITE_PROXY_API_URL.
  */
 export function getTradingBackendUrl(chainId: number): string {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV || USE_SAME_ORIGIN_PROXY) {
     return "";
   }
   return isAvalancheTradingChain(chainId) ? TRADING_AVAX_API_URL : TRADING_API_URL;
@@ -38,7 +46,7 @@ export function getTradingBackendUrl(chainId: number): string {
  * Get the trading WebSocket URL.
  */
 export function getTradingWsUrl(chainId: number): string {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV || USE_SAME_ORIGIN_PROXY) {
     return "";
   }
   return isAvalancheTradingChain(chainId) ? TRADING_AVAX_WS_URL : TRADING_WS_URL;

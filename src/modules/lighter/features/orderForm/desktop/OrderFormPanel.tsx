@@ -54,7 +54,14 @@ export function OrderFormPanel() {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
-  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 10);
+  // marketDetails comes from getMarketDetails(), which calls a
+  // /v1/markets/{symbol}/details endpoint rocky-backend doesn't implement
+  // (it only has /v1/markets/{symbol}/ticker) -- marketDetails is always
+  // undefined in practice, so this fallback is what actually governs the
+  // leverage slider. rocky-backend now genuinely supports up to 100x for
+  // all markets (see ledger.markets.max_leverage), so default to that
+  // instead of the old 10x.
+  const maxLeverage = Math.max(1, marketDetails?.max_leverage ?? 100);
   const {
     mode, setMode,
     side, setSide,

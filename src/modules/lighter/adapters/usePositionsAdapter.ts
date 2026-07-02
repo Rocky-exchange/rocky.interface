@@ -5,6 +5,10 @@ import type { Position } from "modules/lighter/api/types";
 
 export type LighterPosition = {
   positionId: string;
+  /** Raw symbol as returned by the backend (e.g. "BTC-PERP") -- use this for
+   * order submission (closing a position), NOT `market` below, which is a
+   * display-only, stripped form. */
+  symbol: string;
   market: string;
   leverage: string;
   side: "long" | "short";
@@ -38,6 +42,7 @@ function toPosition(position: Position): LighterPosition {
 
   return {
     positionId: position.position_id || position.id || "",
+    symbol: position.symbol,
     market: toMarket(position.symbol),
     leverage: position.leverage > 0 ? `${position.leverage}x` : "--",
     side: position.side,

@@ -42,7 +42,7 @@ const GAS_PAYMENT_TOKENS: Record<ContractsChainId, string[]> = {
     getTokenBySymbol(AVALANCHE_FUJI, "WAVAX").address,
   ],
   [ARBITRUM_SEPOLIA]: [
-    getTokenBySymbol(ARBITRUM_SEPOLIA, "USDC.SG").address,
+    getTokenBySymbol(ARBITRUM_SEPOLIA, "USDC").address,
     getTokenBySymbol(ARBITRUM_SEPOLIA, "WETH").address,
   ],
   [BOTANIX]: [getTokenBySymbol(BOTANIX, "pBTC").address],

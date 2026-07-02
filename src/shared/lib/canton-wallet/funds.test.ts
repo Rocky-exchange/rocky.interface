@@ -34,7 +34,7 @@ describe("canton wallet funds", () => {
 
     expect(reference.deposit_ref).toBe("dep-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/deposits/reference",
+      "/v1/deposits/reference",
       expect.objectContaining({ method: "POST" }),
     );
     const init = fetchMock.mock.calls[0][1] as RequestInit;
@@ -52,7 +52,7 @@ describe("canton wallet funds", () => {
     const provider = createRockyWalletProvider();
     window.rockyWallet = provider;
     const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      if (String(url) === "/api/deposits/reference") {
+      if (String(url) === "/v1/deposits/reference") {
         return jsonResponse({
           asset: "CC",
           target_party_id: "target-party",
@@ -73,7 +73,7 @@ describe("canton wallet funds", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/deposits/reference",
+      "/v1/deposits/reference",
       expect.objectContaining({ method: "POST" }),
     );
     expect(provider.sendTransfer).toHaveBeenCalledWith({
@@ -106,7 +106,7 @@ describe("canton wallet funds", () => {
 
     expect(result.withdrawal_id).toBe("wid-1");
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/withdrawals",
+      "/v1/withdrawals",
       expect.objectContaining({ method: "POST" }),
     );
     const init = fetchMock.mock.calls[0][1] as RequestInit;
@@ -131,7 +131,7 @@ describe("canton wallet funds", () => {
 
   it("reads and writes Rocky USDCx auto-accept settings", async () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      if (String(url) === "/api/wallet/usdcx/auto-accept" && init?.method === "PUT") {
+      if (String(url) === "/v1/wallet/usdcx/auto-accept" && init?.method === "PUT") {
         return jsonResponse({ enabled: true });
       }
       return jsonResponse({ enabled: false });

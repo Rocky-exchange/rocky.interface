@@ -227,6 +227,16 @@ export class WebSocketService {
   }
 
   connect(): void {
+    // rocky-backend exposes NO WebSocket endpoint (there is no /ws server in
+    // services/**). This frontend is a GMX/lighter fork that expects live WS
+    // streaming; against rocky-backend every connection attempt fails and
+    // spams the console. All live data is served instead by SWR REST polling
+    // (usePrimitOrderbook/Ticker/Trades refreshInterval), so WS is a pure
+    // enhancement we disable by default. Set VITE_WS_ENABLED=true to opt back
+    // in once a WS server exists.
+    if (import.meta.env.VITE_WS_ENABLED !== "true") {
+      return;
+    }
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
       return;
     }
