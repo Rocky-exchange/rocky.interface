@@ -59,13 +59,7 @@ export async function connectRockyWallet(): Promise<ConnectedWallet> {
       },
     },
     signMessage: async (message: string) => {
-      const signature = await sdk.signMessage({
-        message: { hex: utf8ToHex(message) },
-        metaData: {
-          purpose: "authentication",
-          app: ROCKY_WALLET_APP_NAME,
-        },
-      });
+      const signature = await sdk.signLoginChallenge(message, { app: ROCKY_WALLET_APP_NAME });
       if (!signature) throw new Error("Rocky Wallet did not return a signature");
       return signature;
     },
@@ -135,13 +129,7 @@ export const rockyWalletAdapter: WalletProviderAdapter = {
     return null;
   },
   async signMessage(message: string) {
-    const signature = await getRockyWalletSdk().signMessage({
-      message: { hex: utf8ToHex(message) },
-      metaData: {
-        purpose: "authentication",
-        app: ROCKY_WALLET_APP_NAME,
-      },
-    });
+    const signature = await getRockyWalletSdk().signLoginChallenge(message, { app: ROCKY_WALLET_APP_NAME });
     if (!signature) throw new Error("Rocky Wallet did not return a signature");
     return signature;
   },
@@ -179,10 +167,4 @@ function assertRockyMainnet(network: string) {
   if (network !== ROCKY_MAINNET_NETWORK_ID) {
     throw new Error("Please switch Rocky Wallet to Canton mainnet");
   }
-}
-
-function utf8ToHex(value: string): string {
-  return `0x${Array.from(new TextEncoder().encode(value), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("")}`;
 }

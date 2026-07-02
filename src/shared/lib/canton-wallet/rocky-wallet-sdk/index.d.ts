@@ -69,6 +69,15 @@ export type SignMessageRequest = {
   [key: string]: unknown;
 };
 
+export type SignLoginChallengeOptions = {
+  app?: string;
+  appName?: string;
+  metaData?: Record<string, string>;
+  metadata?: Record<string, string>;
+  timeoutMs?: number;
+  [key: string]: unknown;
+};
+
 export type SignedMessageResponse = string | undefined;
 
 export type GetBalanceRequest = {
@@ -185,6 +194,7 @@ export interface RockyWalletSdk {
   getBalance(request?: GetBalanceRequest): Promise<GetCoinsResponse>;
   getCoinsList(request?: GetBalanceRequest): Promise<{ items: Array<Record<string, unknown>> }>;
   signMessage(request: SignMessageRequest): Promise<SignedMessageResponse>;
+  signLoginChallenge(challenge: string, options?: SignLoginChallengeOptions): Promise<SignedMessageResponse>;
   submitCommands(request: SignSendRequest | Record<string, unknown>): Promise<SignSendResponse>;
   buildTransfer(request: BuildTransferRequest | Record<string, unknown>): Promise<BuildTransferResponse>;
   sendTransfer(request: SignSendRequest | BuildTransferRequest | Record<string, unknown>): Promise<SignSendResponse>;
@@ -213,6 +223,7 @@ export interface RockyWalletSdk {
 export interface RockyWalletClientWallet {
   transfer(to: string, amount: string | number, instrument: unknown, options?: Record<string, unknown>): Promise<SignSendResponse>;
   signMessage(request: SignMessageRequest | string): Promise<SignedMessageResponse>;
+  signLoginChallenge(challenge: string, options?: SignLoginChallengeOptions): Promise<SignedMessageResponse>;
   submitCommands(request: SignSendRequest | Record<string, unknown>): Promise<SignSendResponse>;
   buildTransfer(request: BuildTransferRequest | Record<string, unknown>): Promise<BuildTransferResponse>;
   sendTransfer(request: SignSendRequest | BuildTransferRequest | Record<string, unknown>): Promise<SignSendResponse>;
@@ -233,6 +244,7 @@ export interface RockyWalletClient {
   getActiveNetwork(options?: { timeoutMs?: number }): Promise<Network>;
   getCoinsBalance(request?: GetBalanceRequest): Promise<GetCoinsResponse>;
   signMessage(request: SignMessageRequest): Promise<SignedMessageResponse>;
+  signLoginChallenge(challenge: string, options?: SignLoginChallengeOptions): Promise<SignedMessageResponse>;
   submitCommands(request: SignSendRequest | Record<string, unknown>): Promise<SignSendResponse>;
   buildTransfer(request: BuildTransferRequest | Record<string, unknown>): Promise<BuildTransferResponse>;
   sendTransfer(request: SignSendRequest | BuildTransferRequest | Record<string, unknown>): Promise<SignSendResponse>;

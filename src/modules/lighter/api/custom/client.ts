@@ -543,7 +543,7 @@ async function apiFetch<T>(chainId: number, path: string, options: FetchOptions 
 // ============================================
 // NOT WIRED TO ANY LIVE CALL SITE and NOT SUPPORTED by rocky-backend (which
 // has no EVM nonce+signature login route at all -- its real auth is wallet
-// challenge/verify: POST /v1/wallet/challenge, POST /v1/wallet/verify, see
+// challenge/verify: POST /api/wallet/challenge, POST /api/wallet/verify, see
 // @/shared/lib/canton-wallet/session.ts, which the live /trade auth flow
 // actually uses). Left in place (not deleted) since no call sites reference
 // these two functions anywhere in the app; do not wire new code to them.

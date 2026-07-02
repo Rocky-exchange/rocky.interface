@@ -156,6 +156,11 @@ export function createRockyWalletSdk(options = {}) {
       return callProviderMethod(provider, "signMessage", request);
     },
 
+    async signLoginChallenge(challenge, options = {}) {
+      const provider = await getProvider(options);
+      return callProviderMethod(provider, "signMessage", buildLoginChallengeSignRequest(challenge, options));
+    },
+
     async submitCommands(request) {
       const provider = await getProvider(request || {});
       return callProviderMethod(provider, "submitCommands", request);
@@ -320,6 +325,10 @@ export function createRockyWalletClient(options = {}) {
       return callProviderMethod(requireProvider(), "signMessage", message);
     },
 
+    async signLoginChallenge(challenge, options = {}) {
+      return callProviderMethod(requireProvider(), "signMessage", buildLoginChallengeSignRequest(challenge, options));
+    },
+
     async submitCommands(command) {
       return callProviderMethod(requireProvider(), "submitCommands", command);
     },
@@ -436,6 +445,10 @@ export function createRockyWalletClient(options = {}) {
       return sdk.signMessage(...args);
     },
 
+    signLoginChallenge(...args) {
+      return sdk.signLoginChallenge(...args);
+    },
+
     submitCommands(...args) {
       return sdk.submitCommands(...args);
     },
@@ -506,6 +519,26 @@ export const utils = {
     return `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
   },
 };
+
+function buildLoginChallengeSignRequest(challenge, options = {}) {
+  if (typeof challenge !== "string" || !challenge.trim()) {
+    throw new RockyWalletError("login challenge must be a non-empty string", { code: -32602 });
+  }
+
+  return {
+    message: { hex: utf8ToHex(challenge) },
+    metaData: {
+      purpose: "authentication",
+      app: options.app || options.appName || "Rocky Exchange",
+      ...(options.metadata || {}),
+      ...(options.metaData || {}),
+    },
+  };
+}
+
+function utf8ToHex(value) {
+  return utils.toHex(new TextEncoder().encode(value));
+}
 
 function resolveInjectedProvider(win, options = {}) {
   const provider = getInjectedProvider(win);
