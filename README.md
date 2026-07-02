@@ -88,8 +88,8 @@ comes from a MetaMask-compatible browser extension probing the page, not this ap
 
 ## Deploy
 
-Pushing to `main` triggers CI/CD. For a manual deploy, `./deploy.sh` builds
-locally and uploads `build/` to the frontend host (`/var/www/rocky`, served at
-app.rocky.exchange).
+Pushing to `main` triggers CI/CD, which builds and syncs `build/` to the
+frontend host (`/var/www/rocky`, served at app.rocky.exchange). There is no
+manual deploy script — deployment is CI/CD only.
 
 See [CHANGELOG.md](./CHANGELOG.md) for notable changes.

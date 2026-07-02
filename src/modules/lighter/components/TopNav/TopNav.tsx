@@ -81,6 +81,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         <img src="/logo.svg" alt="Rocky" className={styles.logoImage} />
       </NavLink>
       <div className={styles.nav}>
+        {/* 临时隐藏「个人中心」(Portfolio) 顶部入口 —— 仅临时注释, 请勿删除, 后续需恢复。
         <NavLink
           to="/portfolio"
           className={styles.link}
@@ -89,6 +90,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         >
           <Trans>Portfolio</Trans>
         </NavLink>
+        */}
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Trade</Trans>
         </NavLink>

@@ -1,1 +1,0 @@
-ssh -i ~/.ssh/rocky-canton-sandbox.pem ubuntu@13.231.118.218
