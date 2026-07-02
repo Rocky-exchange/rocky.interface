@@ -35,10 +35,14 @@ function normalizeTimestamp(ts: number | string): number {
 export function useTradesAdapter(): Trade[] {
   const { chainId } = useChainId();
   const { selectedSymbol } = useTradeState();
+  // Poll the REST tape (~1s). Live updates were meant to arrive via WS
+  // (useTradesUpdates -> lastTrade), but rocky-backend has no WS, so with
+  // refreshInterval:0 the tape only refreshed on a full page reload.
   const { trades } = useApiTrades(chainId, selectedSymbol ?? undefined, {
-    refreshInterval: 0,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    refreshInterval: 1000,
+    dedupingInterval: 500,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   const { lastTrade } = useTradesUpdates(chainId, selectedSymbol ?? undefined);
   const [liveTrades, setLiveTrades] = useState<

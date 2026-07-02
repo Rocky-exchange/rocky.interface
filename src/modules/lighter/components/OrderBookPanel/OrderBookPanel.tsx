@@ -175,15 +175,19 @@ export function OrderBookPanel({
   const [tradeSizeFilter, setTradeSizeFilter] = useState<TradeSizeFilter>("All");
   const [openMenu, setOpenMenu] = useState<"unit" | "group" | "layout" | "tradeSize" | null>(null);
   const prevGroupOptionsKeyRef = useRef("");
+  // rocky-backend has no WS — the WS live-update path (useTradesUpdates below)
+  // never fires, so poll REST or the book/tape only refresh on a page reload.
   const { orderbook } = useApiOrderbook(chainId, selectedSymbol ?? undefined, {
-    refreshInterval: 0,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    refreshInterval: 500,
+    dedupingInterval: 250,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   const { trades } = useApiTrades(chainId, selectedSymbol ?? undefined, {
-    refreshInterval: 0,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    refreshInterval: 1000,
+    dedupingInterval: 500,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   const { lastTrade } = useTradesUpdates(chainId, selectedSymbol ?? undefined);
   const [lastTrades, setLastTrades] = useState<

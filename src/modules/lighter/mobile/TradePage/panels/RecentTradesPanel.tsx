@@ -34,10 +34,13 @@ function formatAmount(value: string): string {
 export function RecentTradesPanel() {
   const { chainId } = useChainId();
   const { selectedSymbol } = useTradeState();
+  // Poll REST (~1s) — rocky-backend has no WS, so without this the tape only
+  // refreshed on a full page reload.
   const { trades } = useApiTrades(chainId, selectedSymbol ?? undefined, {
-    refreshInterval: 0,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    refreshInterval: 1000,
+    dedupingInterval: 500,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   const { lastTrade } = useTradesUpdates(chainId, selectedSymbol ?? undefined);
   const [tradeList, setTradeList] = useState<TradeRow[]>([]);
