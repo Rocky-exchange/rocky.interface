@@ -46,6 +46,10 @@ msgstr "손절 주문 실행"
 msgid "Create TWAP Swap"
 msgstr "TWAP 스왑 생성"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "That's it. Connect your wallet, pick a market and place your first order. You can replay this tour anytime from the \"?\" button."
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "stop loss"
 msgstr "손절"
@@ -64,6 +68,10 @@ msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Request failed"
+msgstr ""
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Your open positions, orders and history live here. Close any position with one click — Rocky places the closing order for you."
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -207,6 +215,10 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Maximum Order Value"
+msgstr ""
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Welcome to Rocky 👋"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -373,6 +385,10 @@ msgstr "스탑 마켓 취소"
 msgid "Execute Limit"
 msgstr "지정가 실행"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "1 · Connect your wallet"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Withdraw"
 msgstr "인출 요청"
@@ -424,6 +440,11 @@ msgstr ""
 #: src/shared/components/ToastifyDebug/ToastifyDebug.tsx
 msgid "Hide error"
 msgstr "오류 숨기기"
+
+#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+msgid "Placing order…"
+msgstr ""
 
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Order amount is below the minimum size for this market."
@@ -630,6 +651,10 @@ msgstr "차용 수수료"
 msgid "Slippage"
 msgstr ""
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "You're all set 🚀"
+msgstr ""
+
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/shared/components/SideNav/SideNav.tsx
 msgid "Points"
@@ -665,6 +690,8 @@ msgstr "크기"
 msgid "Market - Short Inc."
 msgstr "시장 - 숏 증가"
 
+#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
 #: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
@@ -1180,6 +1207,10 @@ msgstr "입금 실패"
 msgid "Request Market Swap"
 msgstr "마켓 스왑 요청"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Live TradingView chart with full history. Switch timeframes (1m to 1w) and add indicators from the toolbar."
+msgstr ""
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "This market is currently closed."
 msgstr ""
@@ -1259,6 +1290,10 @@ msgstr "수수료"
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "Open Interest"
 msgstr "미결제 약정"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Choose Buy / Long or Sell / Short, set your amount and leverage (up to 100x), then submit. Market or limit — your call."
+msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Funding Rate History"
@@ -1476,6 +1511,10 @@ msgstr "순 가격 영향"
 msgid "Details"
 msgstr "상세"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Switch between BTC, ETH and CC. Click the symbol to open the full market list with live price, 24h change and volume."
+msgstr ""
+
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Market - Short Dec."
 msgstr "시장 - 숏 감소"
@@ -1510,6 +1549,10 @@ msgstr "손절 생성"
 msgid "Connect wallet"
 msgstr "지갑 연결"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "4 · Order book & trades"
+msgstr ""
+
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Loading markets..."
 msgstr ""
@@ -1529,6 +1572,10 @@ msgstr "외부 스왑이 일시적으로 비활성화되었습니다. 다시 시
 #: src/shared/components/NetworkDropdown/NetworkDropdown.tsx
 msgid "Networks"
 msgstr "네트워크"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Start trading"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Decrease"
@@ -1567,6 +1614,10 @@ msgstr ""
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Market"
 msgstr "스톱 마켓 생성"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "2 · Pick a market"
+msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Target party"
@@ -1948,6 +1999,10 @@ msgstr ""
 msgid "Referral storage is not configured. Contact support."
 msgstr ""
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Connect your Canton wallet to deposit USDC and start trading. Your funds stay in your wallet — no custodial account."
+msgstr ""
+
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Order error. Prices are currently volatile for this market, try again by <0>increasing the allowed slippage</0> under the execution details section."
 msgstr "주문 오류. 이 시장의 가격이 현재 변동적입니다. 실행 세부 섹션에서 <0>허용 슬리피지 증가</0>로 다시 시도하세요."
@@ -1968,6 +2023,10 @@ msgstr "지정가 스왑 실행"
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
 msgid "Submit"
 msgstr "제출"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Next"
+msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "Create"
@@ -2008,6 +2067,10 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "TP Trigger Price"
+msgstr ""
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Back"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPaneErrorBoundary.tsx
@@ -2324,6 +2387,10 @@ msgstr ""
 msgid "Long"
 msgstr "롱"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "6 · Manage positions"
+msgstr ""
+
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
@@ -2413,6 +2480,10 @@ msgstr "주문 크기가 포지션보다 큽니다. 포지션 증가 시에만 �
 msgid "Transaction failed due to execution fee validation.<0/><1/>{suggestText}<2/><3/><4>View transaction details.</4>"
 msgstr ""
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Live bids and asks, plus the recent-trades tape, so you can see where liquidity sits."
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Fees exceed Pay amount"
 msgstr "수수료가 지불 금액 초과"
@@ -2493,6 +2564,10 @@ msgstr "트리거 가격 입력"
 msgid "Entry Price"
 msgstr "진입 가격"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "5 · Place an order"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Loss"
 msgstr "스탑 로스 취소"
@@ -2552,6 +2627,10 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Trade BTC, ETH and CC perpetuals with up to 100x leverage, settled on the Canton Network. Here's a 30-second tour of the interface."
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "Current Maximum Leverage: {maxLeverage}x"
@@ -2568,6 +2647,10 @@ msgstr ""
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Limit - Long Inc."
 msgstr "지정가 - 롱 증가"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "3 · Read the chart"
+msgstr ""
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx

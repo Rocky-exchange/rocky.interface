@@ -46,6 +46,10 @@ msgstr "Execute Stop Loss"
 msgid "Create TWAP Swap"
 msgstr "Create TWAP Swap"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "That's it. Connect your wallet, pick a market and place your first order. You can replay this tour anytime from the \"?\" button."
+msgstr "That's it. Connect your wallet, pick a market and place your first order. You can replay this tour anytime from the \"?\" button."
+
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "stop loss"
 msgstr "stop loss"
@@ -65,6 +69,10 @@ msgstr "/+Z5u4"
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Request failed"
 msgstr "Request failed"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Your open positions, orders and history live here. Close any position with one click — Rocky places the closing order for you."
+msgstr "Your open positions, orders and history live here. Close any position with one click — Rocky places the closing order for you."
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Limit"
@@ -208,6 +216,10 @@ msgstr "Enter TP limit price"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Maximum Order Value"
 msgstr "Maximum Order Value"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Welcome to Rocky 👋"
+msgstr "Welcome to Rocky 👋"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Market Swap"
@@ -373,6 +385,10 @@ msgstr "Cancel Stop Market"
 msgid "Execute Limit"
 msgstr "Execute Limit"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "1 · Connect your wallet"
+msgstr "1 · Connect your wallet"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Withdraw"
 msgstr "Request Withdraw"
@@ -424,6 +440,11 @@ msgstr "Confirm"
 #: src/shared/components/ToastifyDebug/ToastifyDebug.tsx
 msgid "Hide error"
 msgstr "Hide error"
+
+#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+msgid "Placing order…"
+msgstr "Placing order…"
 
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Order amount is below the minimum size for this market."
@@ -630,6 +651,10 @@ msgstr "Borrow Fee"
 msgid "Slippage"
 msgstr "Slippage"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "You're all set 🚀"
+msgstr "You're all set 🚀"
+
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/shared/components/SideNav/SideNav.tsx
 msgid "Points"
@@ -665,6 +690,8 @@ msgstr "Size"
 msgid "Market - Short Inc."
 msgstr "Market - Short Inc."
 
+#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
 #: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
@@ -1180,6 +1207,10 @@ msgstr "Failed Deposit"
 msgid "Request Market Swap"
 msgstr "Request Market Swap"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Live TradingView chart with full history. Switch timeframes (1m to 1w) and add indicators from the toolbar."
+msgstr "Live TradingView chart with full history. Switch timeframes (1m to 1w) and add indicators from the toolbar."
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "This market is currently closed."
 msgstr "This market is currently closed."
@@ -1259,6 +1290,10 @@ msgstr "Fee"
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "Open Interest"
 msgstr "Open Interest"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Choose Buy / Long or Sell / Short, set your amount and leverage (up to 100x), then submit. Market or limit — your call."
+msgstr "Choose Buy / Long or Sell / Short, set your amount and leverage (up to 100x), then submit. Market or limit — your call."
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Funding Rate History"
@@ -1476,6 +1511,10 @@ msgstr "Net Price Impact"
 msgid "Details"
 msgstr "Details"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Switch between BTC, ETH and CC. Click the symbol to open the full market list with live price, 24h change and volume."
+msgstr "Switch between BTC, ETH and CC. Click the symbol to open the full market list with live price, 24h change and volume."
+
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Market - Short Dec."
 msgstr "Market - Short Dec."
@@ -1510,6 +1549,10 @@ msgstr "Create Stop Loss"
 msgid "Connect wallet"
 msgstr "Connect wallet"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "4 · Order book & trades"
+msgstr "4 · Order book & trades"
+
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Loading markets..."
 msgstr "Loading markets..."
@@ -1529,6 +1572,10 @@ msgstr "External swap is temporarily disabled. Please try again."
 #: src/shared/components/NetworkDropdown/NetworkDropdown.tsx
 msgid "Networks"
 msgstr "Networks"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Start trading"
+msgstr "Start trading"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Decrease"
@@ -1567,6 +1614,10 @@ msgstr "Market Cap:"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Market"
 msgstr "Create Stop Market"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "2 · Pick a market"
+msgstr "2 · Pick a market"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Target party"
@@ -1948,6 +1999,10 @@ msgstr "All cross positions share the same cross margin as collateral. In the ev
 msgid "Referral storage is not configured. Contact support."
 msgstr "Referral storage is not configured. Contact support."
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Connect your Canton wallet to deposit USDC and start trading. Your funds stay in your wallet — no custodial account."
+msgstr "Connect your Canton wallet to deposit USDC and start trading. Your funds stay in your wallet — no custodial account."
+
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Order error. Prices are currently volatile for this market, try again by <0>increasing the allowed slippage</0> under the execution details section."
 msgstr "Order error. Prices are currently volatile for this market, try again by <0>increasing the allowed slippage</0> under the execution details section."
@@ -1968,6 +2023,10 @@ msgstr "Execute Limit Swap"
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
 msgid "Submit"
 msgstr "Submit"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Next"
+msgstr "Next"
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "Create"
@@ -2009,6 +2068,10 @@ msgstr "Home"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "TP Trigger Price"
 msgstr "TP Trigger Price"
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Back"
+msgstr "Back"
 
 #: src/modules/lighter/components/ChartPanel/ChartPaneErrorBoundary.tsx
 msgid "Chart unavailable"
@@ -2324,6 +2387,10 @@ msgstr "Area"
 msgid "Long"
 msgstr "Long"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "6 · Manage positions"
+msgstr "6 · Manage positions"
+
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
@@ -2413,6 +2480,10 @@ msgstr "Order size is bigger than position, will only be executable if position 
 msgid "Transaction failed due to execution fee validation.<0/><1/>{suggestText}<2/><3/><4>View transaction details.</4>"
 msgstr "Transaction failed due to execution fee validation.<0/><1/>{suggestText}<2/><3/><4>View transaction details.</4>"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Live bids and asks, plus the recent-trades tape, so you can see where liquidity sits."
+msgstr "Live bids and asks, plus the recent-trades tape, so you can see where liquidity sits."
+
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Fees exceed Pay amount"
 msgstr "Fees exceed Pay amount"
@@ -2493,6 +2564,10 @@ msgstr "Enter a trigger price"
 msgid "Entry Price"
 msgstr "Entry Price"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "5 · Place an order"
+msgstr "5 · Place an order"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Loss"
 msgstr "Cancel Stop Loss"
@@ -2552,6 +2627,10 @@ msgstr "Depositing..."
 msgid "Status"
 msgstr "Status"
 
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "Trade BTC, ETH and CC perpetuals with up to 100x leverage, settled on the Canton Network. Here's a 30-second tour of the interface."
+msgstr "Trade BTC, ETH and CC perpetuals with up to 100x leverage, settled on the Canton Network. Here's a 30-second tour of the interface."
+
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "Current Maximum Leverage: {maxLeverage}x"
@@ -2568,6 +2647,10 @@ msgstr "Minimum claim amount is 10 USDT"
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Limit - Long Inc."
 msgstr "Limit - Long Inc."
+
+#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
+msgid "3 · Read the chart"
+msgstr "3 · Read the chart"
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx

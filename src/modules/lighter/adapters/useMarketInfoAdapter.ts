@@ -94,7 +94,11 @@ export function useMarketInfoAdapter(): LighterMarketInfo {
 
     const change24hPct = safeNumber(ticker?.price_change_percent_24h);
     const volume24hUsd = safeNumber(ticker?.volume_24h);
-    const nextFundingTs = normalizeTimestamp(safeNumber(ticker?.next_funding_time));
+    // next-funding time comes from the funding-rate endpoint (next_funding_time,
+    // ms epoch), not the ticker.
+    const nextFundingTs = normalizeTimestamp(
+      safeNumber(fundingRateData?.next_funding_time) ?? safeNumber(ticker?.next_funding_time)
+    );
 
     return {
       symbol: symbol ?? "BTC",

@@ -823,7 +823,21 @@ export async function getAllFundingRates(_chainId: number): Promise<FundingRates
 
 export async function getFundingRate(chainId: number, symbol: string): Promise<FundingRate> {
   const rockySymbol = convertSymbolToRockySymbol(symbol);
-  return apiFetch<FundingRate>(chainId, `/v1/markets/${rockySymbol}/funding-rate`);
+  // rocky-backend returns { rate, settled_rate, mark_price, last_funding_ts_ms,
+  // next_funding_ts_ms } — map to the UI FundingRate shape (funding_rate /
+  // funding_rate_per_hour / next_funding_time) or the SymbolBar shows 0.0000%
+  // and 00:00.
+  const raw = await apiFetch<Record<string, unknown>>(chainId, `/v1/markets/${rockySymbol}/funding-rate`);
+  const s = (v: unknown, d = "0") => (v == null ? d : String(v));
+  const rate = s(raw.rate ?? raw.funding_rate);
+  return {
+    symbol: s(raw.symbol, rockySymbol),
+    funding_rate: rate,
+    funding_rate_per_hour: rate,
+    mark_price: s(raw.mark_price),
+    index_price: s(raw.index_price ?? raw.mark_price),
+    next_funding_time: Number(raw.next_funding_ts_ms ?? raw.next_funding_time ?? 0),
+  };
 }
 
 // NOT SUPPORTED by rocky-backend -- funding rate history is documented as
