@@ -14,6 +14,7 @@ import { ChartPanel } from "../components/ChartPanel/ChartPanel";
 import { OrderBookPanel, type OrderBookLayout } from "../components/OrderBookPanel/OrderBookPanel";
 import { SymbolBar } from "../components/SymbolBar/SymbolBar";
 import { TopNav } from "../components/TopNav/TopNav";
+import { OnboardingTour } from "../components/Onboarding/OnboardingTour";
 import { useBreakpoints } from "@/shared/lib/useBreakpoints";
 import { TradePageMobile } from "@/modules/lighter/mobile/TradePage/TradePageMobile";
 import { useSettings } from "@/modules/lighter/context/SettingsContext";
@@ -67,7 +68,9 @@ export default function LighterTradePage() {
       </div> */}
       <div className={`${styles.main} ${orderBookLayout === "Large" ? styles.mainLarge : ""}`}>
         <div className={styles.chartCol}>
-          <SymbolBar />
+          <div data-tour="market">
+            <SymbolBar />
+          </div>
           <div className={styles.favoritesBar}>
             <button
               type="button"
@@ -94,18 +97,24 @@ export default function LighterTradePage() {
               </svg>
             </button>
           </div>
-          <div className={styles.chart}>
+          <div className={styles.chart} data-tour="chart">
             <ChartPanel />
           </div>
         </div>
-        <div className={`${styles.orderbook} ${orderBookLayout === "Large" ? styles.orderbookLarge : ""}`}>
+        <div
+          className={`${styles.orderbook} ${orderBookLayout === "Large" ? styles.orderbookLarge : ""}`}
+          data-tour="orderbook"
+        >
           <OrderBookPanel layout={orderBookLayout} onLayoutChange={setOrderBookLayout} />
         </div>
-        <div className={styles.orderform}>
+        <div className={styles.orderform} data-tour="orderform">
           <OrderFormPanel />
         </div>
       </div>
-      <div className={`${styles.bottom} ${orderBookLayout === "Large" ? styles.bottomLarge : ""}`}>
+      <div
+        className={`${styles.bottom} ${orderBookLayout === "Large" ? styles.bottomLarge : ""}`}
+        data-tour="positions"
+      >
         <div className={`${styles.tabs} ${orderBookLayout === "Large" ? styles.tabsLarge : ""}`}>
           <BottomTabs />
         </div>
@@ -113,6 +122,7 @@ export default function LighterTradePage() {
           <AccountsPanel />
         </div>
       </div>
+      <OnboardingTour />
     </div>
   );
 }

@@ -36,11 +36,12 @@ const RESOLUTION_TO_PERIOD: Record<string, KlinePeriod> = {
   "1": "1m",
   "5": "5m",
   "15": "15m",
+  "30": "30m",
   "60": "1h",
   "240": "4h",
   "1D": "1d",
-  "1W": "1d", // Fallback to daily for weekly (backend doesn't support weekly)
-  "1M": "1d", // Fallback to daily for monthly (backend doesn't support monthly)
+  "1W": "1w",
+  "1M": "1d", // backend has no monthly bucket; fall back to daily
 };
 
 // Resolution to seconds for time calculations
@@ -195,7 +196,7 @@ export class TradingKlineDataFeed extends EventTarget implements IBasicDataFeed 
 
   constructor(
     chainId: number,
-    private brandName = "Primit",
+    private brandName = "Rocky",
     private visiblePlotsSet: VisiblePlotsSet = "ohlcv",
     private volumeMetric: VolumeMetric = "base"
   ) {

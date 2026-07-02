@@ -9,6 +9,7 @@ import { useAvailableBalanceAdapter } from "../../../adapters/useAvailableBalanc
 import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
 import { useOrderGate } from "./useOrderGate";
 import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
@@ -319,7 +320,13 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
             disabled={submitting || bonusGate.checking}
             className={`ltr-form__submit ltr-form__submit--${side}`}
           >
-            {side === "buy" ? <Trans>Buy / Long</Trans> : <Trans>Sell / Short</Trans>}
+            {submitting ? (
+              <Trans>Placing order…</Trans>
+            ) : side === "buy" ? (
+              <Trans>Buy / Long</Trans>
+            ) : (
+              <Trans>Sell / Short</Trans>
+            )}
           </button>
           {bonusGate.rejection && (
             <div role="alert" className="ltr-form__note ltr-form__note--error" onClick={bonusGate.clearRejection}>
@@ -327,6 +334,11 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
             </div>
           )}
         </>
+      )}
+      {!isConnected && (
+        <button type="button" onClick={openCantonConnect} className="ltr-form__submit ltr-form__submit--connect">
+          <Trans>Connect Wallet</Trans>
+        </button>
       )}
     </div>
   );

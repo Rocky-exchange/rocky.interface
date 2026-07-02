@@ -301,6 +301,12 @@
   .ltr-form__submit--sell {
     background: linear-gradient(180deg, var(--ltr-trade-sell-bright) 0%, var(--ltr-trade-sell-gradient-end) 100%);
   }
+  /* Connect-wallet CTA shown in the order form when disconnected (Rocky accent). */
+  .ltr-form__submit--connect {
+    background: linear-gradient(180deg, #d9a441 0%, #b9862c 100%);
+    color: #17110a;
+    font-weight: 600;
+  }
 }
 
 body.lighter-active {

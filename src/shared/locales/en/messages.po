@@ -365,10 +365,6 @@ msgstr "LEVERAGE"
 msgid "Payment"
 msgstr "Payment"
 
-#: src/modules/lighter/api/useClosePositionHandler.ts
-msgid "Position was already closed by your take-profit / stop-loss order"
-msgstr "Position was already closed by your take-profit / stop-loss order"
-
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Market"
 msgstr "Cancel Stop Market"
@@ -432,10 +428,6 @@ msgstr "Hide error"
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Order amount is below the minimum size for this market."
 msgstr "Order amount is below the minimum size for this market."
-
-#: src/modules/lighter/api/useClosePositionHandler.ts
-msgid "Position has already been closed"
-msgstr "Position has already been closed"
 
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
 msgid "What issues did you encounter that led to your rating?"
@@ -1695,10 +1687,6 @@ msgstr "Provider"
 msgid "Manage API keys for programmatic trading access."
 msgstr "Manage API keys for programmatic trading access."
 
-#: src/modules/lighter/api/useClosePositionHandler.ts
-msgid "Position was liquidated"
-msgstr "Position was liquidated"
-
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "There may not be sufficient liquidity to execute your order when the price conditions are met."
 msgstr "There may not be sufficient liquidity to execute your order when the price conditions are met."
@@ -2639,6 +2627,10 @@ msgstr "Perpetuals Equity"
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "market order"
 msgstr "market order"
+
+#: src/modules/lighter/components/BottomTabs/PositionsTab.tsx
+msgid "Unable to close position: missing symbol, side, size, or mark price"
+msgstr "Unable to close position: missing symbol, side, size, or mark price"
 
 #: src/shared/components/AddressDropdown/AddressDropdownWithoutMultichain.tsx
 msgid "Address copied to your clipboard."

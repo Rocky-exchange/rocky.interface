@@ -365,10 +365,6 @@ msgstr "槓桿"
 msgid "Payment"
 msgstr "付款"
 
-#: src/modules/lighter/api/useClosePositionHandler.ts
-msgid "Position was already closed by your take-profit / stop-loss order"
-msgstr "倉位已被您的止盈／止損訂單平倉"
-
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Market"
 msgstr "取消止損市場"
@@ -432,10 +428,6 @@ msgstr "隱藏錯誤"
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Order amount is below the minimum size for this market."
 msgstr "訂單數量低於此市場的最小下單量。"
-
-#: src/modules/lighter/api/useClosePositionHandler.ts
-msgid "Position has already been closed"
-msgstr "倉位已平倉"
 
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
 msgid "What issues did you encounter that led to your rating?"
@@ -1695,10 +1687,6 @@ msgstr "提供方"
 msgid "Manage API keys for programmatic trading access."
 msgstr "管理用於程式化交易存取的 API 金鑰。"
 
-#: src/modules/lighter/api/useClosePositionHandler.ts
-msgid "Position was liquidated"
-msgstr "倉位已被強平"
-
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "There may not be sufficient liquidity to execute your order when the price conditions are met."
 msgstr "當滿足價格條件時，可能沒有足夠的流動性來執行您的訂單。"
@@ -2639,6 +2627,10 @@ msgstr "永續合約權益"
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "market order"
 msgstr "市價單"
+
+#: src/modules/lighter/components/BottomTabs/PositionsTab.tsx
+msgid "Unable to close position: missing symbol, side, size, or mark price"
+msgstr ""
 
 #: src/shared/components/AddressDropdown/AddressDropdownWithoutMultichain.tsx
 msgid "Address copied to your clipboard."

@@ -9,6 +9,7 @@ import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useOrderGate } from "./useOrderGate";
 import { Checkbox } from "../../../components/Checkbox/Checkbox";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
@@ -372,7 +373,13 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
             disabled={submitting || bonusGate.checking || !amountReady}
             className={`ltr-form__submit ltr-form__submit--${side}`}
           >
-            {side === "buy" ? <Trans>Buy / Long</Trans> : <Trans>Sell / Short</Trans>}
+            {submitting ? (
+              <Trans>Placing order…</Trans>
+            ) : side === "buy" ? (
+              <Trans>Buy / Long</Trans>
+            ) : (
+              <Trans>Sell / Short</Trans>
+            )}
           </button>
           {bonusGate.rejection && (
             <div role="alert" className="ltr-form__note ltr-form__note--error" onClick={bonusGate.clearRejection}>
@@ -380,6 +387,11 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
             </div>
           )}
         </>
+      )}
+      {!isConnected && (
+        <button type="button" onClick={openCantonConnect} className="ltr-form__submit ltr-form__submit--connect">
+          <Trans>Connect Wallet</Trans>
+        </button>
       )}
     </div>
   );

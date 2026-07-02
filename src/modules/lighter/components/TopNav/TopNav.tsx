@@ -187,7 +187,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
             <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3.9a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 2a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 1.7 1l.4 2.5h5l.4-2.5a7 7 0 0 0 1.7-1l2.3.9 2-3.4-2-1.5c.07-.3.1-.6.1-1Z" />
           </svg>
         </button>
-        <button type="button" className={styles.connect} onClick={handleWalletClick}>
+        <button type="button" className={styles.connect} onClick={handleWalletClick} data-tour="connect">
           {walletLabel || <Trans>Connect wallet</Trans>}
         </button>
       </div>
