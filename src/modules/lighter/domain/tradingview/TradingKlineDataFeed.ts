@@ -5,7 +5,7 @@
  * and subscribes to real-time K-line updates via WebSocket.
  */
 
-import { getCandles, type Candle, type KlinePeriod } from "@/modules/lighter/api/custom/client";
+import { getCandles, getTicker, type Candle, type KlinePeriod } from "@/modules/lighter/api/custom/client";
 import {
   getWebSocketService,
   normalizeMarketSymbolToApiFormat,
@@ -186,6 +186,7 @@ interface Subscription {
   callback: SubscribeBarsCallback;
   lastBar: Bar | null;
   unsubscribeWs: (() => void) | null;
+  pollId: ReturnType<typeof setInterval> | null;
 }
 
 export class TradingKlineDataFeed extends EventTarget implements IBasicDataFeed {
@@ -478,6 +479,7 @@ export class TradingKlineDataFeed extends EventTarget implements IBasicDataFeed 
       callback: onTick,
       lastBar: this.getCachedLastBar(backendSymbol, period),
       unsubscribeWs: null,
+      pollId: null,
     };
 
     this.subscriptions.set(listenerGuid, subscription);
@@ -488,6 +490,24 @@ export class TradingKlineDataFeed extends EventTarget implements IBasicDataFeed 
       ws.subscribeKline(backendSymbol, period);
       ws.subscribeTicker(backendSymbol);
     }
+
+    // rocky-backend has no WebSocket, so poll the ticker and drive the live bar
+    // through the same handleTickerUpdate path the WS would use. This is what
+    // makes the current candle tick in real time (~1s) instead of only moving
+    // on scroll/refresh.
+    const poll = async () => {
+      try {
+        const ticker = await getTicker(this.chainId, symbolInfo.name);
+        const price = ticker.mark_price || ticker.last_price;
+        if (price) {
+          this.handleTickerUpdate({ symbol: backendSymbol, last_price: ticker.last_price, mark_price: ticker.mark_price } as never);
+        }
+      } catch {
+        // transient — next tick retries
+      }
+    };
+    void poll();
+    subscription.pollId = setInterval(poll, 1000);
   }
 
   unsubscribeBars(listenerGuid: string): void {
@@ -502,6 +522,11 @@ export class TradingKlineDataFeed extends EventTarget implements IBasicDataFeed 
     // Clean up WebSocket handler
     if (subscription.unsubscribeWs) {
       subscription.unsubscribeWs();
+    }
+    // Stop the REST live-update poll.
+    if (subscription.pollId) {
+      clearInterval(subscription.pollId);
+      subscription.pollId = null;
     }
 
     this.subscriptions.delete(listenerGuid);

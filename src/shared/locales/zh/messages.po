@@ -46,10 +46,6 @@ msgstr "執行止損"
 msgid "Create TWAP Swap"
 msgstr "建立 TWAP 交換"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "That's it. Connect your wallet, pick a market and place your first order. You can replay this tour anytime from the \"?\" button."
-msgstr "就是这样。连接钱包、选择交易对、下第一单吧。你可以随时点击\"?\"按钮重看本导览。"
-
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "stop loss"
 msgstr "止損"
@@ -69,10 +65,6 @@ msgstr ""
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Request failed"
 msgstr "請求失敗"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Your open positions, orders and history live here. Close any position with one click — Rocky places the closing order for you."
-msgstr "你的持仓、订单与历史都在这里。一键平仓——Rocky 会自动为你下平仓单。"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Limit"
@@ -216,10 +208,6 @@ msgstr "輸入止盈限價"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Maximum Order Value"
 msgstr "最大訂單價值"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Welcome to Rocky 👋"
-msgstr "欢迎来到 Rocky 👋"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Market Swap"
@@ -384,10 +372,6 @@ msgstr "取消止損市場"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Execute Limit"
 msgstr "執行限價"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "1 · Connect your wallet"
-msgstr "1 · 连接钱包"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Withdraw"
@@ -650,10 +634,6 @@ msgstr "借款費用"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderInfoRows.tsx
 msgid "Slippage"
 msgstr "滑點"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "You're all set 🚀"
-msgstr "一切就绪 🚀"
 
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/shared/components/SideNav/SideNav.tsx
@@ -1207,10 +1187,6 @@ msgstr "存入失敗"
 msgid "Request Market Swap"
 msgstr "請求市場交換"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Live TradingView chart with full history. Switch timeframes (1m to 1w) and add indicators from the toolbar."
-msgstr "实时 TradingView 图表，历史完整。可切换周期（1 分钟到 1 周）并从工具栏添加指标。"
-
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "This market is currently closed."
 msgstr "此市場目前已關閉。"
@@ -1290,10 +1266,6 @@ msgstr "費用"
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "Open Interest"
 msgstr "開倉利息"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Choose Buy / Long or Sell / Short, set your amount and leverage (up to 100x), then submit. Market or limit — your call."
-msgstr "选择买入/做多或卖出/做空，设置数量与杠杆（最高 100 倍），然后提交。市价或限价，由你决定。"
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Funding Rate History"
@@ -1511,10 +1483,6 @@ msgstr "淨價格影響"
 msgid "Details"
 msgstr "詳情"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Switch between BTC, ETH and CC. Click the symbol to open the full market list with live price, 24h change and volume."
-msgstr "在 BTC、ETH、CC 之间切换。点击交易对可打开完整市场列表，查看实时价格、24 小时涨跌与成交量。"
-
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Market - Short Dec."
 msgstr "市價單 - 做空減少"
@@ -1549,10 +1517,6 @@ msgstr "建立止損"
 msgid "Connect wallet"
 msgstr "连接钱包"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "4 · Order book & trades"
-msgstr "4 · 订单簿与成交"
-
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Loading markets..."
 msgstr "載入市場中..."
@@ -1572,10 +1536,6 @@ msgstr "外部交換暫時禁用。請重試。"
 #: src/shared/components/NetworkDropdown/NetworkDropdown.tsx
 msgid "Networks"
 msgstr "網路"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Start trading"
-msgstr "开始交易"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Decrease"
@@ -1614,10 +1574,6 @@ msgstr "市值："
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Market"
 msgstr "建立止損市價單"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "2 · Pick a market"
-msgstr "2 · 选择交易对"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Target party"
@@ -1999,10 +1955,6 @@ msgstr "所有全倉倉位共用相同的全倉保證金作為抵押。一旦發
 msgid "Referral storage is not configured. Contact support."
 msgstr "推薦儲存尚未設定。請聯絡客服。"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Connect your Canton wallet to deposit USDC and start trading. Your funds stay in your wallet — no custodial account."
-msgstr "连接你的 Canton 钱包以充值 USDC 并开始交易。资金始终留在你的钱包中——无需托管账户。"
-
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Order error. Prices are currently volatile for this market, try again by <0>increasing the allowed slippage</0> under the execution details section."
 msgstr "訂單錯誤。此市場價格當前波動，請在執行詳情部分 <0>增加允許滑點</0> 後重試。"
@@ -2023,10 +1975,6 @@ msgstr "執行限價交換"
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
 msgid "Submit"
 msgstr "提交"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Next"
-msgstr "下一步"
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "Create"
@@ -2068,10 +2016,6 @@ msgstr "首頁"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "TP Trigger Price"
 msgstr "止盈觸發價"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Back"
-msgstr "上一步"
 
 #: src/modules/lighter/components/ChartPanel/ChartPaneErrorBoundary.tsx
 msgid "Chart unavailable"
@@ -2130,10 +2074,6 @@ msgstr "此網路不支援智能錢包。"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Update Take Profit"
 msgstr "更新止盈"
-
-#: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
-msgid "1hr Funding"
-msgstr "1 小時資金費"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Pending USDCx offers are accepted through the backend. Auto-accept is {autoAcceptStateLabel}."
@@ -2387,10 +2327,6 @@ msgstr "面積圖"
 msgid "Long"
 msgstr "做多"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "6 · Manage positions"
-msgstr "6 · 管理持仓"
-
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
@@ -2468,6 +2404,10 @@ msgstr "<0>您的錢包未連線到 {0}。</0><1/><2>切換到 {1}</2>"
 msgid "Transaction was cancelled."
 msgstr "交易已取消。"
 
+#: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
+msgid "8h Funding"
+msgstr "8 小時資金費"
+
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Yearly Funding Rate"
 msgstr "年度資金費率"
@@ -2479,10 +2419,6 @@ msgstr "訂單規模大於倉位，只有在倉位增加時才可執行"
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to execution fee validation.<0/><1/>{suggestText}<2/><3/><4>View transaction details.</4>"
 msgstr "交易因執行費驗證失敗。<0/><1/>{suggestText}<2/><3/><4>查看交易詳情。</4>"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Live bids and asks, plus the recent-trades tape, so you can see where liquidity sits."
-msgstr "实时买卖盘口与最新成交记录，让你看清流动性所在。"
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Fees exceed Pay amount"
@@ -2564,10 +2500,6 @@ msgstr "輸入觸發價格"
 msgid "Entry Price"
 msgstr "入場價格"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "5 · Place an order"
-msgstr "5 · 下单"
-
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Loss"
 msgstr "取消止損"
@@ -2627,10 +2559,6 @@ msgstr "存入中..."
 msgid "Status"
 msgstr "狀態"
 
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "Trade BTC, ETH and CC perpetuals with up to 100x leverage, settled on the Canton Network. Here's a 30-second tour of the interface."
-msgstr "交易 BTC、ETH、CC 永续合约，最高 100 倍杠杆，由 Canton 网络结算。下面是 30 秒的界面导览。"
-
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "Current Maximum Leverage: {maxLeverage}x"
@@ -2647,10 +2575,6 @@ msgstr "最低領取金額為 10 USDT"
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Limit - Long Inc."
 msgstr "限價 - 多頭增加"
-
-#: src/modules/lighter/components/Onboarding/OnboardingTour.tsx
-msgid "3 · Read the chart"
-msgstr "3 · 看懂图表"
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx

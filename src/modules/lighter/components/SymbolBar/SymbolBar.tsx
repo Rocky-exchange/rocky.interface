@@ -104,7 +104,7 @@ export function SymbolBar() {
             <span className={`${styles.corner} ${styles.cornerTR}`} />
             <span className={`${styles.corner} ${styles.cornerBL}`} />
             <span className={`${styles.corner} ${styles.cornerBR}`} />
-            <Stat label={<Trans>1hr Funding</Trans>} value={formatFundingPct(m.funding1hPct, 4)} clickable />
+            <Stat label={<Trans>8h Funding</Trans>} value={formatFundingPct(m.funding1hPct, 4)} clickable />
             <Stat label={<Trans>Next Funding</Trans>} value={fmtCountdown(m.nextFundingTs)} />
           </div>
         </div>

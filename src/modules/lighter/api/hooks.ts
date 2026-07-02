@@ -71,7 +71,8 @@ export function usePrimitOrderbook(chainId: number | undefined, symbol: string |
   return useSWR<Orderbook>(
     chainId && symbol ? [`primit-orderbook`, chainId, symbol] : null,
     () => getOrderbook(chainId!, symbol!),
-    { ...defaultConfig, refreshInterval: 1000, ...config }
+    // Fast poll so the book churns in near-real-time (backend has no WS).
+    { ...defaultConfig, refreshInterval: 500, dedupingInterval: 250, ...config }
   );
 }
 
@@ -79,7 +80,7 @@ export function usePrimitTicker(chainId: number | undefined, symbol: string | un
   return useSWR<Ticker>(
     chainId && symbol ? [`primit-ticker`, chainId, symbol] : null,
     () => getTicker(chainId!, symbol!),
-    { ...defaultConfig, refreshInterval: 2000, dedupingInterval: 1000, ...config }
+    { ...defaultConfig, refreshInterval: 1000, dedupingInterval: 500, ...config }
   );
 }
 
@@ -99,7 +100,7 @@ export function usePrimitTrades(chainId: number | undefined, symbol: string | un
   return useSWR<{ symbol: string; trades: Trade[] }>(
     chainId && symbol ? [`primit-trades`, chainId, symbol] : null,
     () => getTrades(chainId!, symbol!),
-    { ...defaultConfig, refreshInterval: 1000, ...config }
+    { ...defaultConfig, refreshInterval: 800, dedupingInterval: 400, ...config }
   );
 }
 
