@@ -41,6 +41,14 @@ function formatAmount(value: string | null | undefined, fractionDigits = 6) {
   });
 }
 
+// Show the tick / price step at its own precision (e.g. "0.01"), not forced to a
+// fixed number of decimals (which would round 0.01 down to "0.0").
+function formatTick(value: string | null | undefined): string {
+  const parsed = value == null ? Number.NaN : Number(value);
+  if (!Number.isFinite(parsed)) return "-";
+  return String(parsed);
+}
+
 function formatPercentFromFraction(value: string | null | undefined): string {
   const parsed = value == null ? Number.NaN : Number(value);
   if (!Number.isFinite(parsed)) return "-";
@@ -74,7 +82,7 @@ export function buildDetailsViewModel(details: MarketDetailsResponse | null | un
       marketName: details.market_name ?? "-",
       minBtcAmount: formatAmount(details.min_base_amount, 5),
       minUsdAmount: formatAmount(details.min_usd_amount, 6),
-      priceSteps: formatAmount(details.price_step, 1),
+      priceSteps: formatTick(details.price_step),
       maxLeverage: details.max_leverage != null ? `${details.max_leverage}x` : "-",
       initialMarginFraction: formatPercentFromFraction(details.initial_margin_fraction),
       maintenanceMarginFraction: formatPercentFromFraction(details.maintenance_margin_fraction),

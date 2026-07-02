@@ -6,6 +6,8 @@
  */
 
 // 使用统一的后端 URL 配置
+import { i18n } from "@lingui/core";
+
 import { getTradingBackendUrl } from "config/backend";
 import { isDevelopment } from "config/env";
 import { getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
@@ -693,6 +695,8 @@ function normalizeMarketRow(r: RawMarketRow, rank: number): Market {
     leverage: r.max_leverage ?? 100,
     price_decimals: decimalsOf(r.tick_size),
     size_decimals: decimalsOf(r.min_qty),
+    tick_size: r.tick_size,
+    min_qty: r.min_qty,
     status: "active",
   };
 }
@@ -711,31 +715,61 @@ export async function getMarkets(chainId: number, limit?: number): Promise<Marke
 // spams the console. Synthesize the response from the real /v1/markets row
 // instead (the only field any caller actually consumes is `max_leverage`;
 // prices come from getTicker). No network call to a nonexistent route.
+// Per-asset descriptions for the market Details panel (backend exposes no
+// description). Bilingual — picked by the active locale, like the onboarding tour.
+const MARKET_DESCRIPTIONS: Record<string, { en: string; zh: string }> = {
+  BTC: {
+    en: "Bitcoin (BTC) is the first and largest cryptocurrency, a decentralized digital store of value secured by proof-of-work. BTC-PERP is a perpetual futures contract with up to 100x leverage, settled in USDC on the Canton Network.",
+    zh: "比特币（BTC）是第一个也是市值最大的加密货币，采用工作量证明保护的去中心化数字价值存储。BTC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDC 结算。",
+  },
+  ETH: {
+    en: "Ethereum (ETH) is the leading smart-contract platform, powering DeFi, NFTs and thousands of applications. ETH-PERP is a perpetual futures contract with up to 100x leverage, settled in USDC on the Canton Network.",
+    zh: "以太坊（ETH）是领先的智能合约平台，支撑 DeFi、NFT 及数千种应用。ETH-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDC 结算。",
+  },
+  CC: {
+    en: "Canton Coin (CC) is the native utility token of the Canton Network, a privacy-enabled public blockchain for institutional finance. CC-PERP is a perpetual futures contract with up to 100x leverage, settled in USDC on the Canton Network.",
+    zh: "Canton Coin（CC）是 Canton 网络的原生功能代币；Canton 是面向机构金融、支持隐私的公有链。CC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDC 结算。",
+  },
+};
+
 export async function getMarketDetails(chainId: number, symbol: string): Promise<MarketDetailsResponse> {
   const rockySymbol = convertSymbolToRockySymbol(symbol);
   const base = rockySymbol.replace(/-PERP$/i, "");
-  const markets = await getMarkets(chainId);
+  const [markets, ticker] = await Promise.all([
+    getMarkets(chainId),
+    getTicker(chainId, symbol).catch(() => null),
+  ]);
   const m = (markets.markets ?? []).find((x) => (x.base_asset ?? "").toUpperCase() === base.toUpperCase());
   const maxLev = (m && m.leverage) || 100;
+  const tick = m?.tick_size ?? "0.01";
+  const minQty = m?.min_qty ?? "0.001";
+  const price = Number(ticker?.mark_price ?? ticker?.last_price ?? m?.last_price ?? 0);
+  const minUsd = Number.isFinite(price) && price > 0 ? (Number(minQty) * price).toFixed(2) : "0";
+  // Margin fractions derive from max leverage: initial = 1/lev, maintenance =
+  // half of that (a common perp convention), close-out = maintenance.
+  const imf = maxLev > 0 ? 1 / maxLev : 0;
+  const mmf = imf / 2;
+  const locale = (i18n.locale || "en").toLowerCase().startsWith("zh") ? "zh" : "en";
+  const desc = MARKET_DESCRIPTIONS[base.toUpperCase()];
   return {
     symbol: rockySymbol,
     market_name: rockySymbol,
     base_asset: m?.base_asset ?? base,
     quote_asset: m?.quote_asset ?? "USDC",
-    description: null,
-    min_base_amount: "0",
-    min_usd_amount: "0",
-    price_step: "0",
-    lot_size: "0",
+    description: desc ? desc[locale] : null,
+    min_base_amount: minQty,
+    min_usd_amount: minUsd,
+    price_step: tick,
+    lot_size: minQty,
     max_leverage: maxLev,
-    initial_margin_fraction: "0",
-    maintenance_margin_fraction: "0",
-    close_out_margin_fraction: "0",
+    initial_margin_fraction: String(imf),
+    maintenance_margin_fraction: String(mmf),
+    close_out_margin_fraction: String(mmf),
     market_cap: null,
     fully_diluted_valuation: null,
     market_cap_updated_at: null,
-    mark_price: m?.last_price ?? null,
-    last_price: m?.last_price ?? null,
+    mark_price: ticker?.mark_price ?? m?.last_price ?? null,
+    last_price: ticker?.last_price ?? m?.last_price ?? null,
     funding_rate: null,
     next_funding_time: null,
     listing_phase: null,

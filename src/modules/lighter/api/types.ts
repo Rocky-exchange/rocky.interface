@@ -53,6 +53,9 @@ export interface Market {
   leverage: number;
   price_decimals: number;
   size_decimals: number;
+  /** Raw tick size / min order qty from the backend, kept for the details panel. */
+  tick_size?: string;
+  min_qty?: string;
   status: "active" | "inactive" | "suspended";
 }
 
