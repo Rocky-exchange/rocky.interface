@@ -35,6 +35,8 @@ export type CantonDepositResult = Partial<CantonDepositReference> & {
   asset?: CantonFundsApiAsset | string;
   amount?: string;
   available?: string;
+  platform_credit_status?: "confirmed" | "pending";
+  platform_available?: string;
   wallet_symbol?: string;
   wallet_transfer?: CantonWalletTransferStatus | string;
   transfer_kind?: string;
@@ -83,6 +85,9 @@ export class CantonFundsError extends Error {
   }
 }
 
+const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
+const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
+
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
   return asset === "USDCx" ? "USDC" : "CC";
 }
@@ -122,6 +127,7 @@ export async function submitCantonWalletDeposit(input: {
   const amount = positiveAmount(input.amount);
 
   if (input.provider === "rocky" || input.provider === "console" || input.provider === "loop") {
+    const previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
     const reference = await requestDepositReference({ asset: input.asset, amount });
     await submitWalletTransfer({
       provider: input.provider,
@@ -131,9 +137,12 @@ export async function submitCantonWalletDeposit(input: {
       amount,
       memo: reference.deposit_ref,
     });
+    const creditedBalance = await waitForPlatformDepositCredit(input.asset, amount, previousPlatformBalance);
     return {
       ...reference,
       wallet_transfer: `${input.provider}_wallet_submitted`,
+      platform_credit_status: creditedBalance === null ? "pending" : "confirmed",
+      platform_available: creditedBalance === null ? undefined : String(creditedBalance),
     };
   }
 
@@ -164,7 +173,7 @@ export async function submitPlatformWithdrawal(input: {
 }
 
 export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Promise<number | null> {
-  const response = await fetch(`/api/perp/account/${platformDepositApiAsset(asset)}`, {
+  const response = await fetch(`/v1/account/me/${platformDepositApiAsset(asset)}`, {
     headers: exchangeSessionHeaders(),
   });
   if (!response.ok) return null;
@@ -173,6 +182,42 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
     ? Number(data.available)
     : NaN;
   return Number.isFinite(available) ? available : null;
+}
+
+async function waitForPlatformDepositCredit(
+  asset: CantonFundsAsset,
+  amount: string,
+  previousBalance: number | null,
+): Promise<number | null> {
+  const expectedDelta = Number(amount);
+  if (!Number.isFinite(expectedDelta) || expectedDelta <= 0) return null;
+
+  for (let attempt = 0; attempt < PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS; attempt += 1) {
+    const currentBalance = await fetchPlatformAccountBalance(asset);
+    if (currentBalance !== null && hasExpectedDepositCredit(currentBalance, previousBalance, expectedDelta)) {
+      return currentBalance;
+    }
+    if (attempt < PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS - 1) {
+      await delay(PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS);
+    }
+  }
+  return null;
+}
+
+function hasExpectedDepositCredit(
+  currentBalance: number,
+  previousBalance: number | null,
+  expectedDelta: number,
+): boolean {
+  const epsilon = 0.000000001;
+  if (previousBalance !== null) {
+    return currentBalance + epsilon >= previousBalance + expectedDelta;
+  }
+  return currentBalance + epsilon >= expectedDelta;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
 export async function authorizeUsdcxWallet(): Promise<UsdcxAuthorizationResult> {
@@ -302,17 +347,64 @@ async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
       ...(init.headers || {}),
     },
   });
-  const data = await response.json().catch(() => ({}));
+  const data = await readResponseBody(response);
   if (!response.ok) {
-    const record = isRecord(data) ? data : {};
-    const code = typeof record.error === "string" ? record.error : undefined;
-    throw new CantonFundsError(code || `Request failed: ${response.status}`, {
+    const { code, message } = parseFundsError(data, response.status, url);
+    throw new CantonFundsError(message, {
       status: response.status,
       code,
       data,
     });
   }
   return data as T;
+}
+
+async function readResponseBody(response: Response): Promise<unknown> {
+  const text = await response.text().catch(() => "");
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text);
+  } catch (_error) {
+    return text;
+  }
+}
+
+function parseFundsError(data: unknown, status: number, url: string): { code?: string; message: string } {
+  if (typeof data === "string") {
+    const message = data.trim();
+    return { message: message || fallbackErrorMessage(status, url) };
+  }
+
+  const record = isRecord(data) ? data : {};
+  const nestedError = isRecord(record.error) ? record.error : {};
+  const errorText = typeof record.error === "string" ? record.error : undefined;
+  const code =
+    stringField(record.code) ||
+    stringField(record.error_code) ||
+    stringField(nestedError.code) ||
+    stringField(errorText);
+  const message =
+    stringField(record.message) ||
+    stringField(record.detail) ||
+    stringField(record.reason) ||
+    stringField(record.error_description) ||
+    stringField(nestedError.message) ||
+    stringField(nestedError.detail) ||
+    stringField(errorText) ||
+    fallbackErrorMessage(status, url);
+
+  return { code, message };
+}
+
+function fallbackErrorMessage(status: number, url: string): string {
+  if (status === 409 && url === "/v1/withdrawals") {
+    return "Withdrawal could not be submitted. Check available platform balance and retry.";
+  }
+  return `Request failed: ${status}`;
+}
+
+function stringField(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

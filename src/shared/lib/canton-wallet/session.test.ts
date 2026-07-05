@@ -21,13 +21,13 @@ describe("canton-wallet session", () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body || "{}"));
       requests.push({ url, body });
-      if (url === "/api/wallet/challenge") {
+      if (url === "/v1/wallet/challenge") {
         return jsonResponse({
           challenge_id: "challenge-1",
           message: "Rocky Exchange login challenge",
         });
       }
-      if (url === "/api/wallet/verify") {
+      if (url === "/v1/wallet/verify") {
         return jsonResponse({
           user_id: "user-1",
           binding_id: "binding-1",
@@ -52,8 +52,8 @@ describe("canton-wallet session", () => {
 
     expect(session.session_token).toBe("exchange-token");
     expect(requests.map((request) => request.url)).toEqual([
-      "/api/wallet/challenge",
-      "/api/wallet/verify",
+      "/v1/wallet/challenge",
+      "/v1/wallet/verify",
     ]);
     expect(requests[0].body).toMatchObject({
       provider: "rocky",

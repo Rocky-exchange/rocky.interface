@@ -120,6 +120,14 @@ export type BuildTransferResponse = {
   resolved_to_party?: string;
   asset_symbol?: string;
   amount?: string;
+  fee_asset_symbol?: string;
+  feeAssetSymbol?: string;
+  fee_amount?: string;
+  feeAmount?: string;
+  fee_to_party?: string;
+  feeToParty?: string;
+  total_debit_amount?: string;
+  totalDebitAmount?: string;
   [key: string]: unknown;
 };
 

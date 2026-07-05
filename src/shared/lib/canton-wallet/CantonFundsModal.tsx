@@ -13,6 +13,7 @@ import type { ConsoleWalletPendingOffer } from "./console";
 import {
   acceptUsdcxWalletTransfers,
   authorizeUsdcxWallet,
+  fetchPlatformAccountBalance,
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
   setUsdcxAutoAccept,
@@ -132,6 +133,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [depositBusy, setDepositBusy] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawAvailable, setWithdrawAvailable] = useState<number | null>(null);
+  const [withdrawAvailableLoading, setWithdrawAvailableLoading] = useState(false);
   const [authorizationBusy, setAuthorizationBusy] = useState(false);
   const [acceptBusy, setAcceptBusy] = useState(false);
   const [offersLoading, setOffersLoading] = useState(false);
@@ -150,6 +153,20 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const walletProvider = snapshot?.provider || provider;
   const walletLabel = snapshot?.label || getWalletProviderLabel(provider);
   const walletRows = snapshot?.balances ?? emptyWalletBalanceRows();
+  const withdrawAmountNumber = Number(withdrawAmount.trim());
+  const withdrawAmountIsPositive = Number.isFinite(withdrawAmountNumber) && withdrawAmountNumber > 0;
+  const withdrawExceedsAvailable =
+    withdrawAvailable !== null && withdrawAmountIsPositive && withdrawAmountNumber > withdrawAvailable;
+  const withdrawAvailableText =
+    withdrawAvailable === null
+      ? i18n._(t`Unavailable`)
+      : `${formatDisplayAmount(withdrawAvailable)} ${withdrawAsset}`;
+  const withdrawAvailableError =
+    withdrawExceedsAvailable && withdrawAvailable !== null
+      ? i18n._(
+          t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(withdrawAvailable)} ${withdrawAsset}`,
+        )
+      : "";
 
   const refreshBalances = useCallback(async () => {
     if (!connected) return;
@@ -160,6 +177,21 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setBalanceLoading(false);
     }
   }, [connected]);
+
+  const refreshWithdrawAvailable = useCallback(async () => {
+    if (!connected) {
+      setWithdrawAvailable(null);
+      return null;
+    }
+    setWithdrawAvailableLoading(true);
+    try {
+      const available = await fetchPlatformAccountBalance(withdrawAsset);
+      setWithdrawAvailable(available);
+      return available;
+    } finally {
+      setWithdrawAvailableLoading(false);
+    }
+  }, [connected, withdrawAsset]);
 
   const refreshPendingOffers = useCallback(async () => {
     if (!connected || !walletParty) return;
@@ -190,14 +222,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open || !connected) return;
     void refreshBalances();
+    void refreshWithdrawAvailable();
     void refreshPendingOffers();
     void refreshAutoAccept();
     const id = window.setInterval(() => {
       void refreshBalances();
+      void refreshWithdrawAvailable();
       void refreshPendingOffers();
     }, 15000);
     return () => window.clearInterval(id);
-  }, [connected, open, refreshAutoAccept, refreshBalances, refreshPendingOffers]);
+  }, [connected, open, refreshAutoAccept, refreshBalances, refreshPendingOffers, refreshWithdrawAvailable]);
 
   useEffect(() => {
     if (!copiedKey) return;
@@ -223,7 +257,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setDepositResult(result);
       setDepositAmount("");
       setNotice(depositNotice(result));
-      await Promise.all([refreshBalances(), refreshPendingOffers()]);
+      await Promise.all([refreshBalances(), refreshWithdrawAvailable(), refreshPendingOffers()]);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -237,6 +271,17 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setError("");
     setNotice("");
     try {
+      const latestAvailable = await refreshWithdrawAvailable();
+      const latestAvailableError =
+        latestAvailable !== null && withdrawAmountIsPositive && withdrawAmountNumber > latestAvailable
+          ? i18n._(
+              t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(latestAvailable)} ${withdrawAsset}`,
+            )
+          : "";
+      if (latestAvailableError) {
+        setError(latestAvailableError);
+        return;
+      }
       const result = await submitPlatformWithdrawal({
         asset: withdrawAsset,
         amount: withdrawAmount,
@@ -247,7 +292,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setNotice(
         withdrawalRef ? i18n._(t`Withdrawal submitted: ${withdrawalRef}`) : i18n._(t`Withdrawal submitted`),
       );
-      await Promise.all([refreshBalances(), refreshPendingOffers()]);
+      await Promise.all([refreshBalances(), refreshWithdrawAvailable(), refreshPendingOffers()]);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -376,6 +421,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
           >
             {balanceLoading ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
           </button>
+          <div style={muted}>
+            <Trans>Wallet balances above are on-chain balances. Withdrawals use your platform available balance.</Trans>
+          </div>
           {snapshot?.message ? <div style={muted}>{snapshot.message}</div> : null}
         </div>
 
@@ -444,7 +492,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <div style={muted}>
             <Trans>Destination: connected wallet party</Trans>
           </div>
-          <button type="submit" style={button} disabled={withdrawBusy || !withdrawAmount.trim() || !walletParty}>
+          <div style={withdrawExceedsAvailable ? errorStyle : muted}>
+            <Trans>Available to withdraw</Trans>:{" "}
+            {withdrawAvailableLoading ? i18n._(t`Loading...`) : withdrawAvailableText}
+          </div>
+          {withdrawAvailableError ? <div style={errorStyle}>{withdrawAvailableError}</div> : null}
+          <button
+            type="submit"
+            style={button}
+            disabled={withdrawBusy || !withdrawAmount.trim() || !walletParty || withdrawExceedsAvailable}
+          >
             {withdrawBusy ? i18n._(t`Withdrawing...`) : i18n._(t`Withdraw`)}
           </button>
         </form>
@@ -623,6 +680,9 @@ function PendingOffersList({
 }
 
 function depositNotice(result: CantonDepositResult): string {
+  if (result.platform_credit_status === "pending") {
+    return i18n._(t`Wallet transfer submitted. Waiting for platform credit.`);
+  }
   if (result.wallet_transfer === "rocky_wallet_submitted") return i18n._(t`Rocky Wallet transfer submitted`);
   if (result.wallet_transfer === "console_wallet_submitted") return i18n._(t`Console Wallet transfer submitted`);
   if (result.wallet_transfer === "loop_wallet_submitted") return i18n._(t`Loop Wallet transfer submitted`);
@@ -654,6 +714,12 @@ function trimTrailingZeroes(value: string): string {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return value;
   return numeric.toLocaleString("en-US", {
+    maximumFractionDigits: 6,
+  });
+}
+
+function formatDisplayAmount(value: number): string {
+  return value.toLocaleString("en-US", {
     maximumFractionDigits: 6,
   });
 }

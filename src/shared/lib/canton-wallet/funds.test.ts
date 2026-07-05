@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CantonFundsError,
+  fetchPlatformAccountBalance,
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
   requestDepositReference,
@@ -52,6 +53,9 @@ describe("canton wallet funds", () => {
     const provider = createRockyWalletProvider();
     window.rockyWallet = provider;
     const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/v1/account/me/CC") {
+        return jsonResponse({ asset: "CC", available: fetchMock.mock.calls.length > 1 ? "1.5" : "0", locked: "0" });
+      }
       if (String(url) === "/v1/deposits/reference") {
         return jsonResponse({
           asset: "CC",
@@ -86,6 +90,8 @@ describe("canton wallet funds", () => {
       waitForFinalization: 5000,
     });
     expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
+    expect(result.platform_credit_status).toBe("confirmed");
+    expect(result.platform_available).toBe("1.5");
   });
 
   it("submits withdrawals to the connected wallet party", async () => {
@@ -115,6 +121,68 @@ describe("canton wallet funds", () => {
       amount: "5",
       dest_user_handle_party: "party-1",
       idempotency_key: "idempotency-1",
+    });
+  });
+
+  it("reads the platform balance used for withdrawals", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ available: "0.4" }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalance("CC")).resolves.toBe(0.4);
+    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/CC", {
+      headers: { Authorization: "Bearer exchange-token" },
+    });
+  });
+
+  it("maps USDCx platform balances to the USDC backend account", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ available: "0.1" }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalance("USDCx")).resolves.toBe(0.1);
+    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
+      headers: { Authorization: "Bearer exchange-token" },
+    });
+  });
+
+  it("surfaces withdrawal API error messages from non-error fields", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ message: "Insufficient balance for this withdraw." }, 409),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "CC",
+        amount: "5",
+        destinationParty: "party-1",
+        idempotencyKey: "idempotency-1",
+      }),
+    ).rejects.toMatchObject({
+      message: "Insufficient balance for this withdraw.",
+      status: 409,
+    });
+  });
+
+  it("uses a withdrawal-specific fallback for empty 409 responses", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      new Response("", { status: 409 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "CC",
+        amount: "5",
+        destinationParty: "party-1",
+        idempotencyKey: "idempotency-1",
+      }),
+    ).rejects.toMatchObject({
+      message: "Withdrawal could not be submitted. Check available platform balance and retry.",
+      status: 409,
     });
   });
 
