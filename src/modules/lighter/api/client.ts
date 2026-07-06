@@ -6,6 +6,7 @@ import {
   mapReferralDashboardToOnChainDashboard,
   normalizeReferralDashboardResponse,
 } from "./custom/referralDashboard.normalize";
+import { marketDataRequest } from "./marketRequests";
 import type {
   ApiError,
   NonceResponse,
@@ -367,7 +368,9 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
 
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
   const rockySymbol = convertSymbolToRockySymbol(symbol);
-  return apiFetch<Orderbook>(chainId, `/v1/markets/${rockySymbol}/orderbook`);
+  return marketDataRequest(`orderbook:${chainId}:${rockySymbol}`, (signal) =>
+    apiFetch<Orderbook>(chainId, `/v1/markets/${rockySymbol}/orderbook`, { signal })
+  );
 }
 
 export interface TradesResponse {
@@ -429,24 +432,26 @@ function convertSymbolToRockySymbol(symbol: string): string {
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
   const rockySymbol = convertSymbolToRockySymbol(symbol);
-  // Map rocky-backend's ticker (`price_change_pct_24h`, no index/funding) to
-  // the UI Ticker shape so 24h-change renders. See custom/client.ts getTicker.
-  const raw = await apiFetch<Record<string, unknown>>(chainId, `/v1/markets/${rockySymbol}/ticker`);
-  const s = (v: unknown, d = "0") => (v == null ? d : String(v));
-  return {
-    symbol: s(raw.symbol, rockySymbol),
-    last_price: s(raw.last_price),
-    mark_price: raw.mark_price == null ? undefined : String(raw.mark_price),
-    index_price: raw.index_price == null ? undefined : String(raw.index_price),
-    price_change_24h: s(raw.price_change_24h),
-    price_change_percent_24h: s(raw.price_change_percent_24h ?? raw.price_change_pct_24h),
-    high_24h: s(raw.high_24h),
-    low_24h: s(raw.low_24h),
-    volume_24h: s(raw.volume_24h),
-    open_interest: s(raw.open_interest),
-    funding_rate: s(raw.funding_rate),
-    next_funding_time: Number(raw.next_funding_time ?? 0),
-  };
+  return marketDataRequest(`ticker:${chainId}:${rockySymbol}`, async (signal) => {
+    // Map rocky-backend's ticker (`price_change_pct_24h`, no index/funding) to
+    // the UI Ticker shape so 24h-change renders. See custom/client.ts getTicker.
+    const raw = await apiFetch<Record<string, unknown>>(chainId, `/v1/markets/${rockySymbol}/ticker`, { signal });
+    const s = (v: unknown, d = "0") => (v == null ? d : String(v));
+    return {
+      symbol: s(raw.symbol, rockySymbol),
+      last_price: s(raw.last_price),
+      mark_price: raw.mark_price == null ? undefined : String(raw.mark_price),
+      index_price: raw.index_price == null ? undefined : String(raw.index_price),
+      price_change_24h: s(raw.price_change_24h),
+      price_change_percent_24h: s(raw.price_change_percent_24h ?? raw.price_change_pct_24h),
+      high_24h: s(raw.high_24h),
+      low_24h: s(raw.low_24h),
+      volume_24h: s(raw.volume_24h),
+      open_interest: s(raw.open_interest),
+      funding_rate: s(raw.funding_rate),
+      next_funding_time: Number(raw.next_funding_time ?? 0),
+    };
+  });
 }
 
 // NOT SUPPORTED by rocky-backend -- see custom/client.ts's getPrice.

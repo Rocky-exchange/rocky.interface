@@ -316,9 +316,11 @@
 .modifyOrderField {
   position: relative;
   height: 32px;
-  border: 1px solid #363640;
+  border: 1px solid transparent;
   border-radius: 4px;
-  background: #24242a;
+  background:
+    linear-gradient(#24242a, #24242a) padding-box,
+    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
   padding: 0 8px;
   display: flex;
   align-items: center;

@@ -47,7 +47,7 @@ html[data-ui-theme="primit"].dark [data-tabs-type="block"] .tab-underline-indica
   height: 2px;
   bottom: 0;
   border-radius: 0;
-  background: var(--primit-primary-1);
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
   box-shadow: none;
 }
 
@@ -94,7 +94,7 @@ html[data-ui-theme="primit"]:not(.dark) [data-tabs-type="block"] .tab-underline-
   height: 2px;
   bottom: 0;
   border-radius: 0;
-  background: var(--primit-primary-1);
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
   box-shadow: none;
 }
 

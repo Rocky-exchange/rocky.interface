@@ -426,7 +426,7 @@
   line-height: 1.4;
   letter-spacing: 0.5px;
   color: var(--primit-secondary-1, #e2e7ed);
-  caret-color: var(--primit-primary-1, #87d7ea);
+  caret-color: var(--primit-primary-1, #f5a85f);
   outline: none;
 }
 

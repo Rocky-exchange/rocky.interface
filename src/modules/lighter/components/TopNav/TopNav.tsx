@@ -4,7 +4,6 @@ import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 
-import { useSettings } from "@/modules/lighter/context/SettingsContext";
 import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
@@ -20,17 +19,12 @@ const LANGUAGE_OPTIONS = [
 export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
   const { i18n } = useLingui();
   const { connected, username, party } = useCantonSession();
-  const { setIsSettingsVisible } = useSettings();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
   const [fundsOpen, setFundsOpen] = useState(false);
   const languageRef = useRef<HTMLDivElement>(null);
 
   const walletLabel = connected ? username || `${party.slice(0, 8)}...` : null;
-
-  const handleSettingsClick = useCallback(() => {
-    setIsSettingsVisible(true);
-  }, [setIsSettingsVisible]);
 
   const handleWalletClick = useCallback(() => {
     if (connected) {
@@ -183,12 +177,6 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
             </div>
           ) : null}
         </div>
-        <button type="button" className={styles.iconBtn} aria-label="settings" onClick={handleSettingsClick}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3.9a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 2a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 1.7 1l.4 2.5h5l.4-2.5a7 7 0 0 0 1.7-1l2.3.9 2-3.4-2-1.5c.07-.3.1-.6.1-1Z" />
-          </svg>
-        </button>
         <button type="button" className={styles.connect} onClick={handleWalletClick} data-tour="connect">
           {walletLabel || <Trans>Connect wallet</Trans>}
         </button>

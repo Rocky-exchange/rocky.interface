@@ -14,7 +14,7 @@
   margin: 0 auto;
   background: linear-gradient(90deg, #191919 0%, #2d3a47 50%, #191919 100%);
   border: 0.5px solid rgba(226, 231, 237, 0.14);
-  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--primit-primary-1, #87d7ea) 18%, transparent);
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--rocky-theme-accent, #f5a85f) 18%, transparent);
 }
 
 .primit-section-label__cap {

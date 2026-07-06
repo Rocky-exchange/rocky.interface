@@ -10,7 +10,7 @@ html[data-ui-theme="primit"] .TableFilterBase-filter-popover {
   border: 0.5px solid
     color-mix(
       in srgb,
-      var(--primit-primary-1, #87d7ea) 22%,
+      var(--primit-primary-1, #f5a85f) 22%,
       var(--primit-trade-divider, rgba(226, 231, 237, 0.12))
     ) !important;
 }
@@ -19,7 +19,7 @@ html[data-ui-theme="primit"] .TableOptionsFilter-options {
   border-top: 1px solid
     color-mix(
       in srgb,
-      var(--primit-primary-1, #87d7ea) 14%,
+      var(--primit-primary-1, #f5a85f) 14%,
       var(--primit-trade-divider, rgba(226, 231, 237, 0.12))
     );
 }
@@ -37,9 +37,9 @@ html[data-ui-theme="primit"] .TableFilterBase-filter:not(.active):hover {
 }
 
 html[data-ui-theme="primit"] .TableFilterBase-filter.active {
-  color: var(--primit-primary-1, #87d7ea);
+  color: var(--primit-primary-1, #f5a85f);
 }
 
 html[data-ui-theme="primit"] .TableFilterBase-filter.active:hover {
-  color: color-mix(in srgb, var(--primit-primary-1, #87d7ea) 88%, #ffffff 12%);
+  color: color-mix(in srgb, var(--primit-primary-1, #f5a85f) 88%, #ffffff 12%);
 }

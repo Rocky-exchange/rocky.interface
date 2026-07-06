@@ -12,6 +12,7 @@ import { getTradingBackendUrl } from "config/backend";
 import { isDevelopment } from "config/env";
 import { getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
 
+import { marketDataRequest } from "../marketRequests";
 import {
   mapReferralDashboardToOnChainResponse,
   normalizeReferralDashboardResponse,
@@ -779,7 +780,9 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
 
 export async function getOrderbook(chainId: number, symbol: string): Promise<Orderbook> {
   const rockySymbol = convertSymbolToRockySymbol(symbol);
-  return apiFetch<Orderbook>(chainId, `/v1/markets/${rockySymbol}/orderbook`);
+  return marketDataRequest(`orderbook:${chainId}:${rockySymbol}`, (signal) =>
+    apiFetch<Orderbook>(chainId, `/v1/markets/${rockySymbol}/orderbook`, { signal })
+  );
 }
 
 export interface TradesResponse {
@@ -811,25 +814,27 @@ export async function getTrades(chainId: number, symbol: string): Promise<Trades
 
 export async function getTicker(chainId: number, symbol: string): Promise<Ticker> {
   const rockySymbol = convertSymbolToRockySymbol(symbol);
-  // rocky-backend's ticker uses `price_change_pct_24h` (not the UI's
-  // `price_change_percent_24h`) and omits index_price/funding fields. Map to
-  // the Ticker shape so 24h-change etc. render instead of showing "-".
-  const raw = await apiFetch<Record<string, unknown>>(chainId, `/v1/markets/${rockySymbol}/ticker`);
-  const s = (v: unknown, d = "0") => (v == null ? d : String(v));
-  return {
-    symbol: s(raw.symbol, rockySymbol),
-    last_price: s(raw.last_price),
-    mark_price: raw.mark_price == null ? undefined : String(raw.mark_price),
-    index_price: raw.index_price == null ? undefined : String(raw.index_price),
-    price_change_24h: s(raw.price_change_24h),
-    price_change_percent_24h: s(raw.price_change_percent_24h ?? raw.price_change_pct_24h),
-    high_24h: s(raw.high_24h),
-    low_24h: s(raw.low_24h),
-    volume_24h: s(raw.volume_24h),
-    open_interest: s(raw.open_interest),
-    funding_rate: s(raw.funding_rate),
-    next_funding_time: Number(raw.next_funding_time ?? 0),
-  };
+  return marketDataRequest(`ticker:${chainId}:${rockySymbol}`, async (signal) => {
+    // rocky-backend's ticker uses `price_change_pct_24h` (not the UI's
+    // `price_change_percent_24h`) and omits index_price/funding fields. Map to
+    // the Ticker shape so 24h-change etc. render instead of showing "-".
+    const raw = await apiFetch<Record<string, unknown>>(chainId, `/v1/markets/${rockySymbol}/ticker`, { signal });
+    const s = (v: unknown, d = "0") => (v == null ? d : String(v));
+    return {
+      symbol: s(raw.symbol, rockySymbol),
+      last_price: s(raw.last_price),
+      mark_price: raw.mark_price == null ? undefined : String(raw.mark_price),
+      index_price: raw.index_price == null ? undefined : String(raw.index_price),
+      price_change_24h: s(raw.price_change_24h),
+      price_change_percent_24h: s(raw.price_change_percent_24h ?? raw.price_change_pct_24h),
+      high_24h: s(raw.high_24h),
+      low_24h: s(raw.low_24h),
+      volume_24h: s(raw.volume_24h),
+      open_interest: s(raw.open_interest),
+      funding_rate: s(raw.funding_rate),
+      next_funding_time: Number(raw.next_funding_time ?? 0),
+    };
+  });
 }
 
 // NOT SUPPORTED by rocky-backend as a dedicated endpoint -- price is part of

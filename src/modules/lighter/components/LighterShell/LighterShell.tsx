@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import "../../styles/global.scss";
-import { useSettings } from "@/modules/lighter/context/SettingsContext/SettingsContextProvider";
 import { MobilePageShell } from "@/modules/lighter/mobile/shared/MobilePageShell";
 import { MobileTopNav } from "@/modules/lighter/mobile/shared/MobileTopNav";
 import { useBreakpoints } from "@/shared/lib/useBreakpoints";
@@ -13,17 +12,10 @@ interface LighterShellProps {
 
 export function LighterShell({ children }: LighterShellProps) {
   const { isMobile } = useBreakpoints();
-  const { setIsSettingsVisible } = useSettings();
 
   if (isMobile) {
     return (
-      <MobilePageShell
-        topNav={
-          <MobileTopNav
-            onOpenSettings={() => setIsSettingsVisible(true)}
-          />
-        }
-      >
+      <MobilePageShell topNav={<MobileTopNav />}>
         <div className="lighter-root">{children}</div>
       </MobilePageShell>
     );

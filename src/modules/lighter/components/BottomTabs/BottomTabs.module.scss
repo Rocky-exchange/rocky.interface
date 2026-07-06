@@ -35,7 +35,7 @@
   left: 0; right: 0; bottom: 1px; margin: 0 auto;
   width: 60%; max-width: 64px;
   height: 2px; border-radius: 999px;
-  background: var(--primit-primary-1, #87d7ea);
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
   transform: scaleX(0); opacity: 0;
   transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
 }
@@ -241,8 +241,10 @@
   margin: 0 auto;
   padding: 0 6px;
   box-sizing: border-box;
-  background: #18191f;
-  border: 1px solid #2f3138;
+  background:
+    linear-gradient(#18191f, #18191f) padding-box,
+    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
+  border: 1px solid transparent;
   border-radius: 6px;
 }
 
@@ -347,6 +349,6 @@
   font-size: 12px; font-weight: 400;
   padding: 8px 12px;
   /** 主题色 1px · 50% alpha */
-  border-bottom: 1px solid color-mix(in srgb, var(--primit-primary-1, #87d7ea) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--rocky-theme-accent, #f5a85f) 50%, transparent);
 }
 .td { padding: 8px 12px; height: var(--ltr-row-h); font-size: 12px; }

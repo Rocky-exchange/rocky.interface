@@ -106,12 +106,18 @@
   padding: 0 4px;
   font-size: 12px;
   color: var(--ltr-text-primary);
-  background: var(--ltr-bg-panel);
-  border: 1px solid #2b2b30;
+  background:
+    linear-gradient(var(--ltr-bg-panel), var(--ltr-bg-panel)) padding-box,
+    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
+  border: 1px solid transparent;
   border-radius: 2px;
-  transition: background 150ms, border-color 150ms;
+  transition: background 150ms, box-shadow 150ms;
   flex-shrink: 0;
-  &:hover { background: #2b2b30; border-color: #26262c; }
+  &:hover {
+    background:
+      linear-gradient(#2b2b30, #2b2b30) padding-box,
+      var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
+  }
 }
 .input {
   width: 100%;

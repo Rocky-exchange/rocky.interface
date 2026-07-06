@@ -14,22 +14,19 @@ import {
   type WalletBalanceSnapshot,
 } from "./balances";
 import styles from "./CantonFundsModal.module.scss";
-import type { ConsoleWalletPendingOffer } from "./console";
 import {
-  acceptUsdcxWalletTransfers,
-  authorizeUsdcxWallet,
+  fetchCantonFundsHistory,
   fetchPlatformAccountBalance,
-  fetchPendingUsdcxOffers,
-  fetchUsdcxAutoAccept,
-  setUsdcxAutoAccept,
   submitCantonWalletDeposit,
   submitPlatformWithdrawal,
+  waitForPlatformDepositCredit,
   type CantonDepositResult,
+  type CantonFundsHistory,
   type CantonFundsAsset,
-  type UsdcxPendingOffersResult,
 } from "./funds";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
+import { getWalletProviderLogo } from "./walletLogos";
 
 type Props = {
   open: boolean;
@@ -44,6 +41,7 @@ type LocalHistoryRow = {
   time: string;
   asset: CantonFundsAsset;
   amount: string;
+  networkFee?: string;
   status: string;
   reference?: string;
   explorerUrl?: string;
@@ -52,6 +50,8 @@ type LocalHistoryRow = {
 const FIXED_FUNDS_ASSET: CantonFundsAsset = "USDCx";
 const FIXED_WITHDRAWAL_FEE_AMOUNT = 1;
 const FIXED_WITHDRAWAL_FEE_LABEL = "1USDCx";
+const PENDING_DEPOSIT_CONFIRM_ATTEMPTS = 36;
+const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
@@ -63,29 +63,25 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [activeAction, setActiveAction] = useState<FundsAction | "">("");
   const [historyTab, setHistoryTab] = useState<HistoryTab>("deposit");
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const [localHistory, setLocalHistory] = useState<LocalHistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [depositBusy, setDepositBusy] = useState(false);
+  const [depositConfirming, setDepositConfirming] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawAvailable, setWithdrawAvailable] = useState<number | null>(null);
   const [withdrawAvailableLoading, setWithdrawAvailableLoading] = useState(false);
-  const [authorizationBusy, setAuthorizationBusy] = useState(false);
-  const [acceptBusy, setAcceptBusy] = useState(false);
-  const [offersLoading, setOffersLoading] = useState(false);
-  const [autoAcceptBusy, setAutoAcceptBusy] = useState(false);
-  const [autoAcceptEnabled, setAutoAcceptEnabled] = useState(false);
-  const [pendingOffers, setPendingOffers] = useState<UsdcxPendingOffersResult>({
-    offers: [],
-    listingAvailable: false,
-  });
   const [depositResult, setDepositResult] = useState<CantonDepositResult | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const didRefreshOnOpenRef = useRef(false);
+  const depositConfirmationIdRef = useRef(0);
 
   const walletParty = snapshot?.party || party;
   const walletProvider = snapshot?.provider || provider;
   const walletLabel = snapshot?.label || getWalletProviderLabel(provider);
+  const walletLogo = getWalletProviderLogo(walletProvider);
   const walletRows = snapshot?.balances ?? emptyWalletBalanceRows();
   const usdcxBalance = getBalanceAmount(walletRows, "USDCx");
   const withdrawAmountNumber = Number(withdrawAmount.trim());
@@ -99,11 +95,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
           t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(withdrawAvailable)} ${FIXED_FUNDS_ASSET}. Required: ${formatDisplayAmount(withdrawRequiredAmount)} ${FIXED_FUNDS_ASSET} including fee.`
         )
       : "";
-  const dashboardRefreshing = balanceLoading || offersLoading || withdrawAvailableLoading;
-  const visibleHistory = useMemo(
-    () => localHistory.filter((item) => item.type === historyTab).slice(0, 5),
+  const dashboardRefreshing = balanceLoading || withdrawAvailableLoading || depositConfirming || historyLoading;
+  const historyItems = useMemo(
+    () => localHistory.filter((item) => item.type === historyTab),
     [historyTab, localHistory]
   );
+  const visibleHistory = useMemo(
+    () => (showAllHistory ? historyItems : historyItems.slice(0, 5)),
+    [historyItems, showAllHistory]
+  );
+  const canToggleHistory = historyItems.length > 5;
   const walletExplorerUrl = getCantonScanPartyUrl(walletParty);
 
   const refreshBalances = useCallback(async () => {
@@ -131,35 +132,23 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }, [connected]);
 
-  const refreshPendingOffers = useCallback(async () => {
-    if (!connected || !walletParty) return;
-    setOffersLoading(true);
+  const refreshFundsHistory = useCallback(async () => {
+    if (!connected) return;
+    setHistoryLoading(true);
     try {
-      setPendingOffers(await fetchPendingUsdcxOffers({ provider: walletProvider, party: walletParty }));
+      const history = await fetchCantonFundsHistory();
+      const serverRows = mapFundsHistoryToLocalRows(history);
+      setLocalHistory((currentRows) => mergeHistoryRows(serverRows, currentRows));
     } catch (err) {
-      setPendingOffers({ offers: [], listingAvailable: walletProvider === "console" });
       setError(errorMessage(err));
     } finally {
-      setOffersLoading(false);
+      setHistoryLoading(false);
     }
-  }, [connected, walletParty, walletProvider]);
-
-  const refreshAutoAccept = useCallback(async () => {
-    if (!connected || walletProvider !== "rocky") {
-      setAutoAcceptEnabled(false);
-      return;
-    }
-    try {
-      const result = await fetchUsdcxAutoAccept();
-      setAutoAcceptEnabled(result.enabled);
-    } catch (_error) {
-      setAutoAcceptEnabled(false);
-    }
-  }, [connected, walletProvider]);
+  }, [connected]);
 
   const refreshWalletDashboard = useCallback(async () => {
-    await Promise.all([refreshBalances(), refreshWithdrawAvailable(), refreshPendingOffers(), refreshAutoAccept()]);
-  }, [refreshAutoAccept, refreshBalances, refreshPendingOffers, refreshWithdrawAvailable]);
+    await Promise.all([refreshBalances(), refreshWithdrawAvailable(), refreshFundsHistory()]);
+  }, [refreshBalances, refreshFundsHistory, refreshWithdrawAvailable]);
 
   useEffect(() => {
     if (!open || !connected) {
@@ -176,6 +165,12 @@ export function CantonFundsModal({ open, onClose }: Props) {
     const id = window.setTimeout(() => setCopiedKey(""), 1500);
     return () => window.clearTimeout(id);
   }, [copiedKey]);
+
+  useEffect(() => {
+    if (open) return;
+    depositConfirmationIdRef.current += 1;
+    setDepositConfirming(false);
+  }, [open]);
 
   if (!open) return null;
 
@@ -198,6 +193,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setDepositAmount("");
       setNotice(depositNotice(result));
       setHistoryTab("deposit");
+      setShowAllHistory(false);
       const depositUpdateId = result.canton_update_id || result.accept_update_id;
       prependHistory({
         type: "deposit",
@@ -208,10 +204,53 @@ export function CantonFundsModal({ open, onClose }: Props) {
         explorerUrl: getCantonScanUpdateUrl(depositUpdateId),
       });
       await refreshWalletDashboard();
+      if (result.platform_credit_status === "pending") {
+        void confirmPendingDepositCredit(result, asset, amount, depositUpdateId || result.deposit_ref);
+      }
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setDepositBusy(false);
+    }
+  }
+
+  async function confirmPendingDepositCredit(
+    result: CantonDepositResult,
+    asset: CantonFundsAsset,
+    amount: string,
+    historyReference: string | undefined
+  ) {
+    const confirmationId = ++depositConfirmationIdRef.current;
+    setDepositConfirming(true);
+    setNotice(i18n._(t`Chain transfer submitted. Exchange balance is confirming.`));
+    try {
+      const creditedBalance = await waitForPlatformDepositCredit({
+        asset,
+        amount,
+        previousBalance: result.platform_previous_balance,
+        attempts: PENDING_DEPOSIT_CONFIRM_ATTEMPTS,
+        delayMs: PENDING_DEPOSIT_CONFIRM_DELAY_MS,
+      });
+      if (confirmationId !== depositConfirmationIdRef.current) return;
+      if (creditedBalance !== null) {
+        setNotice(i18n._(t`Deposit credited to exchange balance.`));
+        if (historyReference) {
+          setLocalHistory((items) =>
+            items.map((item) => (item.reference === historyReference ? { ...item, status: "Completed" } : item))
+          );
+        }
+      } else {
+        setNotice(i18n._(t`Chain transfer submitted. Exchange balance is still confirming.`));
+      }
+      await refreshWalletDashboard();
+    } catch (err) {
+      if (confirmationId === depositConfirmationIdRef.current) {
+        setError(errorMessage(err));
+      }
+    } finally {
+      if (confirmationId === depositConfirmationIdRef.current) {
+        setDepositConfirming(false);
+      }
     }
   }
 
@@ -246,10 +285,12 @@ export function CantonFundsModal({ open, onClose }: Props) {
         stringField(result, "canton_update_id") || stringField(result, "update_id") || stringField(result, "tx_hash");
       setNotice(withdrawalRef ? i18n._(t`Withdrawal submitted: ${withdrawalRef}`) : i18n._(t`Withdrawal submitted`));
       setHistoryTab("withdraw");
+      setShowAllHistory(false);
       prependHistory({
         type: "withdraw",
         asset,
         amount: `-${formatEnteredAmount(amount)} ${asset}`,
+        networkFee: FIXED_WITHDRAWAL_FEE_LABEL,
         status: result.status ? String(result.status) : "Submitted",
         reference: withdrawalUpdateId || withdrawalRef,
         explorerUrl: getCantonScanUpdateUrl(withdrawalUpdateId),
@@ -273,66 +314,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
     ]);
   }
 
-  async function handleUsdcxAuthorization() {
-    setAuthorizationBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const result = await authorizeUsdcxWallet();
-      setNotice(
-        result.status === "confirmed"
-          ? i18n._(t`USDCx authorization confirmed`)
-          : i18n._(t`USDCx authorization submitted`)
-      );
-      await refreshWalletDashboard();
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setAuthorizationBusy(false);
-    }
-  }
-
-  async function handleAcceptUsdcxOffers() {
-    setAcceptBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const result = await acceptUsdcxWalletTransfers({ provider: walletProvider, party: walletParty });
-      setNotice(
-        result.acceptedCount > 0
-          ? i18n._(t`Accepted ${result.acceptedCount} USDCx offer(s)`)
-          : i18n._(t`No pending USDCx offers`)
-      );
-      await refreshWalletDashboard();
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setAcceptBusy(false);
-    }
-  }
-
   async function handleDisconnect() {
     await disconnect();
     onClose();
-  }
-
-  async function handleToggleAutoAccept() {
-    const next = !autoAcceptEnabled;
-    setAutoAcceptBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const result = await setUsdcxAutoAccept(next);
-      setAutoAcceptEnabled(result.enabled);
-      setNotice(result.enabled ? i18n._(t`USDCx auto-accept enabled`) : i18n._(t`USDCx auto-accept disabled`));
-      if (result.enabled) {
-        await handleAcceptUsdcxOffers();
-      }
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setAutoAcceptBusy(false);
-    }
   }
 
   async function copyValue(value: string | undefined, key: string) {
@@ -342,7 +326,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }
 
-  const autoAcceptStateLabel = autoAcceptEnabled ? i18n._(t`enabled`) : i18n._(t`disabled`);
+  function selectHistoryTab(nextTab: HistoryTab) {
+    setHistoryTab(nextTab);
+    setShowAllHistory(false);
+  }
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -355,8 +342,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
       >
         <header className={styles.header}>
           <div className={styles.brand}>
-            <span className={styles.brandMark}>
-              <RockyGlyph />
+            <span className={cx(styles.brandMark, logoFitClass(styles, walletLogo.fit))}>
+              <img src={walletLogo.src} alt="" className={styles.providerLogo} />
             </span>
             <div className={styles.brandText}>
               <span className={styles.brandTitle}>{walletLabel}</span>
@@ -431,8 +418,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 </div>
               </div>
               <div className={styles.balanceItem}>
-                <div className={styles.exchangeIcon}>
-                  <img src="/favicon.svg" alt="" />
+                <div className={cx(styles.exchangeIcon, logoFitClass(styles, walletLogo.fit))}>
+                  <img src={walletLogo.src} alt="" className={styles.providerLogo} />
                 </div>
                 <div>
                   <div className={styles.balanceLabel}>Exchange Balance</div>
@@ -569,46 +556,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
             </section>
           ) : null}
 
-          {walletProvider === "rocky" || walletProvider === "console" ? (
-            <section className={styles.utilityPanel}>
-              <div>
-                <h3>USDCx Controls</h3>
-                <p>
-                  {walletProvider === "rocky"
-                    ? `Pending USDCx offers are accepted through the backend. Auto-accept is ${autoAcceptStateLabel}.`
-                    : "Accept pending Console Wallet USDCx offers from the connected wallet."}
-                </p>
-              </div>
-              <div className={styles.utilityActions}>
-                {walletProvider === "rocky" ? (
-                  <button type="button" onClick={handleUsdcxAuthorization} disabled={authorizationBusy}>
-                    {authorizationBusy ? i18n._(t`Authorizing...`) : i18n._(t`Authorize USDCx`)}
-                  </button>
-                ) : null}
-                {walletProvider === "rocky" ? (
-                  <button type="button" onClick={handleToggleAutoAccept} disabled={autoAcceptBusy}>
-                    {autoAcceptBusy
-                      ? i18n._(t`Updating auto-accept...`)
-                      : autoAcceptEnabled
-                        ? i18n._(t`Disable auto-accept`)
-                        : i18n._(t`Enable auto-accept`)}
-                  </button>
-                ) : null}
-                <button type="button" onClick={handleAcceptUsdcxOffers} disabled={acceptBusy}>
-                  {acceptBusy ? i18n._(t`Checking offers...`) : i18n._(t`Accept USDCx offers`)}
-                </button>
-              </div>
-              {walletProvider === "console" ? (
-                <PendingOffersList
-                  offers={pendingOffers.offers}
-                  loading={offersLoading}
-                  copiedKey={copiedKey}
-                  onCopy={copyValue}
-                />
-              ) : null}
-            </section>
-          ) : null}
-
           {notice || error ? (
             <div className={styles.messageStack}>
               {notice ? <div className={styles.noticeText}>{notice}</div> : null}
@@ -621,29 +568,33 @@ export function CantonFundsModal({ open, onClose }: Props) {
               <button
                 type="button"
                 className={cx(historyTab === "deposit" && styles.historyTabActive)}
-                onClick={() => setHistoryTab("deposit")}
+                onClick={() => selectHistoryTab("deposit")}
               >
                 Deposit History
               </button>
               <button
                 type="button"
                 className={cx(historyTab === "withdraw" && styles.historyTabActive)}
-                onClick={() => setHistoryTab("withdraw")}
+                onClick={() => selectHistoryTab("withdraw")}
               >
                 Withdraw History
               </button>
             </div>
             <div className={styles.historyTable}>
-              <div className={styles.historyHead}>
+              <div className={cx(styles.historyHead, historyTab === "withdraw" && styles.historyRowWithFee)}>
                 <span>Time</span>
                 <span>Asset</span>
                 <span>Amount</span>
+                {historyTab === "withdraw" ? <span>Network Fee</span> : null}
                 <span>Status</span>
                 <span>Tx Hash</span>
               </div>
               {visibleHistory.length > 0 ? (
                 visibleHistory.map((item) => (
-                  <div key={item.id} className={styles.historyRow}>
+                  <div
+                    key={item.id}
+                    className={cx(styles.historyRow, historyTab === "withdraw" && styles.historyRowWithFee)}
+                  >
                     <span>{formatHistoryTime(item.time)}</span>
                     <span className={styles.assetCell}>
                       <TokenIcon symbol={item.asset === "USDCx" ? "USDC" : item.asset} displaySize={24} />
@@ -657,13 +608,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     >
                       {item.amount}
                     </span>
+                    {historyTab === "withdraw" ? (
+                      <span className={styles.feeCell}>{item.networkFee || "-"}</span>
+                    ) : null}
                     <span>
                       <em>{item.status}</em>
                     </span>
                     <span>
                       {item.reference && item.explorerUrl ? (
                         <a className={styles.referenceButton} href={item.explorerUrl} target="_blank" rel="noreferrer">
-                          {abbreviateMiddle(item.reference, 14)}
+                          {abbreviateMiddle(item.reference, 22)}
                           <ExternalIcon />
                         </a>
                       ) : item.reference ? (
@@ -672,7 +626,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                           className={styles.referenceButton}
                           onClick={() => copyValue(item.reference, `history-${item.id}`)}
                         >
-                          {copiedKey === `history-${item.id}` ? "Copied" : abbreviateMiddle(item.reference, 14)}
+                          {copiedKey === `history-${item.id}` ? "Copied" : abbreviateMiddle(item.reference, 22)}
                           <CopyIcon />
                         </button>
                       ) : (
@@ -685,8 +639,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <div className={styles.historyEmpty}>No {historyTab} history yet</div>
               )}
             </div>
-            <button type="button" className={styles.viewAllButton} disabled>
-              View All {historyTab === "deposit" ? "Deposits" : "Withdrawals"}
+            <button
+              type="button"
+              className={styles.viewAllButton}
+              disabled={!canToggleHistory}
+              onClick={() => setShowAllHistory((value) => !value)}
+            >
+              {showAllHistory ? "Show Fewer" : "View All"} {historyTab === "deposit" ? "Deposits" : "Withdrawals"}
               <ChevronDownIcon />
             </button>
           </section>
@@ -756,77 +715,9 @@ function ReferenceLine({
   );
 }
 
-function PendingOffersList({
-  offers,
-  loading,
-  copiedKey,
-  onCopy,
-}: {
-  offers: ConsoleWalletPendingOffer[];
-  loading: boolean;
-  copiedKey: string;
-  onCopy: (value: string | undefined, key: string) => void;
-}) {
-  const { i18n } = useLingui();
-  if (loading && offers.length === 0) {
-    return (
-      <div className={styles.pendingEmpty}>
-        <Trans>Loading pending USDCx offers...</Trans>
-      </div>
-    );
-  }
-  if (offers.length === 0) {
-    return (
-      <div className={styles.pendingEmpty}>
-        <Trans>No pending Console Wallet USDCx offers.</Trans>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.pendingList}>
-      {offers.slice(0, 5).map((offer) => {
-        const key = offer.transferCid || `${offer.sender}-${offer.amount}`;
-        return (
-          <div key={key} className={styles.pendingOffer}>
-            <div>
-              <span>
-                <Trans>Amount</Trans>
-              </span>
-              <strong>{formatOfferAmount(offer)}</strong>
-            </div>
-            <div>
-              <span>
-                <Trans>Sender</Trans>
-              </span>
-              <strong title={offer.sender || ""}>{abbreviateMiddle(offer.sender, 32) || "-"}</strong>
-              {offer.sender ? (
-                <button type="button" onClick={() => onCopy(offer.sender, `sender-${key}`)}>
-                  {copiedKey === `sender-${key}` ? i18n._(t`Copied`) : i18n._(t`Copy`)}
-                </button>
-              ) : null}
-            </div>
-            <div>
-              <span>
-                <Trans>Expires</Trans>
-              </span>
-              <strong>{formatOfferTimestamp(offer.expiredAt)}</strong>
-            </div>
-          </div>
-        );
-      })}
-      {offers.length > 5 ? (
-        <div className={styles.pendingEmpty}>
-          <Trans>{offers.length - 5} more pending offer(s)</Trans>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function depositNotice(result: CantonDepositResult): string {
   if (result.platform_credit_status === "pending") {
-    return i18n._(t`Wallet transfer submitted. Waiting for platform credit.`);
+    return i18n._(t`Chain transfer submitted. Exchange balance is confirming.`);
   }
   if (result.wallet_transfer === "rocky_wallet_submitted") return i18n._(t`Rocky Wallet transfer submitted`);
   if (result.wallet_transfer === "console_wallet_submitted") return i18n._(t`Console Wallet transfer submitted`);
@@ -845,18 +736,6 @@ function errorMessage(err: unknown): string {
 
 function getBalanceAmount(rows: WalletBalanceRow[], symbol: CantonFundsAsset): string | null {
   return rows.find((item) => item.symbol === symbol)?.amount ?? null;
-}
-
-function formatOfferAmount(offer: ConsoleWalletPendingOffer): string {
-  const amount = offer.amount ? trimTrailingZeroes(offer.amount) : "-";
-  return `${amount} ${offer.coin || "USDCx"}`;
-}
-
-function formatOfferTimestamp(value?: string): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
 }
 
 function formatHistoryTime(value: string): string {
@@ -921,6 +800,103 @@ function getCantonScanUpdateUrl(updateId: string | undefined): string {
 function stringField(value: Record<string, unknown>, key: string): string | undefined {
   const field = value[key];
   return typeof field === "string" && field.trim() ? field.trim() : undefined;
+}
+
+function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRow[] {
+  const depositRows: LocalHistoryRow[] = history.deposits.map((item, index) => {
+    const asset = walletFacingHistoryAsset(item.asset);
+    const reference = item.chain_tx_id || item.deposit_ref || item.deposit_id;
+    return {
+      id: `deposit-${reference || index}`,
+      type: "deposit",
+      time: item.credited_at || item.created_at || new Date(0).toISOString(),
+      asset,
+      amount: formatHistoryAmount("+", item.amount_expected, asset),
+      status: formatFundsHistoryStatus(item.status, "Submitted"),
+      reference,
+      explorerUrl: getCantonScanUpdateUrl(item.chain_tx_id),
+    };
+  });
+
+  const withdrawalRows: LocalHistoryRow[] = history.withdrawals.map((item, index) => {
+    const asset = walletFacingHistoryAsset(item.asset);
+    const reference = item.canton_update_id || item.withdrawal_id || item.withdrawal_request_id;
+    return {
+      id: `withdraw-${reference || index}`,
+      type: "withdraw",
+      time: item.settled_at || item.submitted_at || item.requested_at || new Date(0).toISOString(),
+      asset,
+      amount: formatHistoryAmount("-", item.amount, asset),
+      networkFee: formatNetworkFee(item.fee_amount, item.fee_wallet_symbol || item.fee_asset),
+      status: formatFundsHistoryStatus(item.status, "Submitted"),
+      reference,
+      explorerUrl: getCantonScanUpdateUrl(item.canton_update_id),
+    };
+  });
+
+  return [...depositRows, ...withdrawalRows].sort(compareHistoryRowsDesc);
+}
+
+function mergeHistoryRows(serverRows: LocalHistoryRow[], currentRows: LocalHistoryRow[]): LocalHistoryRow[] {
+  const merged = [...serverRows];
+  const seen = new Set(serverRows.map(historyRowKey));
+  for (const row of currentRows) {
+    const key = historyRowKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(row);
+  }
+  return merged.sort(compareHistoryRowsDesc).slice(0, 200);
+}
+
+function historyRowKey(row: LocalHistoryRow): string {
+  return `${row.type}:${row.reference || row.id}`;
+}
+
+function compareHistoryRowsDesc(a: LocalHistoryRow, b: LocalHistoryRow): number {
+  return historyTimeValue(b.time) - historyTimeValue(a.time);
+}
+
+function historyTimeValue(value: string): number {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function walletFacingHistoryAsset(asset: string | undefined): CantonFundsAsset {
+  const symbol = (asset || "").trim().toUpperCase();
+  return symbol === "USDC" || symbol === "USDCX" || symbol === "USDC-X" ? "USDCx" : "CC";
+}
+
+function formatHistoryAmount(
+  sign: "+" | "-",
+  amount: string | number | null | undefined,
+  asset: CantonFundsAsset
+): string {
+  const formattedAmount = formatOptionalAmount(amount);
+  return formattedAmount ? `${sign}${formattedAmount} ${asset}` : "-";
+}
+
+function formatNetworkFee(amount: string | number | null | undefined, asset: string | undefined): string | undefined {
+  const formattedAmount = formatOptionalAmount(amount);
+  if (!formattedAmount) return undefined;
+  return `${formattedAmount}${walletFacingHistoryAsset(asset)}`;
+}
+
+function formatOptionalAmount(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "";
+  return trimTrailingZeroes(String(value));
+}
+
+function formatFundsHistoryStatus(status: string | undefined, fallback: string): string {
+  const value = status?.trim();
+  if (!value) return fallback;
+  const normalized = value.toLowerCase();
+  if (["credited", "settled", "completed", "complete"].includes(normalized)) return "Completed";
+  if (["created", "requested", "submitted", "pending"].includes(normalized)) return "Submitted";
+  if (normalized === "expired") return "Expired";
+  if (normalized === "failed") return "Failed";
+  if (normalized === "cancelled" || normalized === "canceled") return "Cancelled";
+  return value;
 }
 
 async function writeClipboardText(value: string): Promise<boolean> {
@@ -1087,15 +1063,7 @@ function UsdcxIcon({ className }: { className?: string }) {
   );
 }
 
-function RockyGlyph() {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M26.1453 16.3457C26.5547 16.0129 27.11 15.9136 27.6112 16.0781L42.6854 21.0401C43.2555 21.2275 43.6694 21.7253 43.7459 22.3184L45.6776 37.1397C45.7503 37.683 45.5319 38.2191 45.1073 38.5596L34.3944 47.1494C34.1382 47.3519 33.8247 47.4739 33.4998 47.4893L23.7127 47.9981C23.2614 48.021 22.8175 47.8454 22.5037 47.5166L14.4305 39.0264C14.09 38.6706 13.941 38.1764 14.0213 37.6944L16.1483 24.9278C16.2133 24.5528 16.4084 24.2118 16.7069 23.9707L26.1414 16.3496L26.1453 16.3457ZM31.9364 24.5996C31.455 24.5996 31.0464 25.1647 31.2616 25.5293L34.6922 31.3448C34.9584 31.713 34.8418 32.2385 34.3787 32.6104L30.4627 35.7715C29.832 36.282 29.6939 37.0548 30.0184 37.5215L30.8602 38.7285C31.1592 39.1551 31.5968 39.4148 32.2166 39.4112L38.8641 39.4033C39.1374 39.4033 39.5382 39.2431 39.6951 38.999C39.8483 38.7584 39.7898 38.4264 39.6512 38.2295L39.6483 38.2364L35.6551 32.6543C35.378 32.2642 35.5239 31.7425 35.9979 31.3633L39.9032 28.2383C40.512 27.7497 40.7304 27.0497 40.4168 26.5684L39.7313 25.5254C39.3048 24.8767 38.7363 24.5997 37.8543 24.5996H31.9364ZM23.9432 24.6065C23.3818 24.6066 22.911 25.0037 22.7616 25.5615L19.3231 38.3858C19.1591 38.9946 19.4476 39.4033 20.0418 39.4033H25.4129C25.9926 39.4033 26.5102 38.9766 26.6707 38.3897L28.1727 32.8106L30.1317 25.5948C30.2812 25.0478 29.956 24.6065 29.409 24.6065H23.9432Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
+function logoFitClass(styles: Record<string, string>, fit: "cover" | "contain"): string | undefined {
+  if (fit === "contain") return styles.logoContain;
+  return undefined;
 }

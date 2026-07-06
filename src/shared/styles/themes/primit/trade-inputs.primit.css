@@ -83,7 +83,7 @@ html[data-ui-theme="primit"] .BuyInputSection-box input[type="text"] {
   line-height: 1.4;
   letter-spacing: 0.5px;
   color: var(--primit-secondary-1, #e2e7ed);
-  caret-color: var(--primit-primary-1, #87d7ea);
+  caret-color: var(--primit-primary-1, #f5a85f);
   background: transparent !important;
 }
 
@@ -199,7 +199,7 @@ html[data-ui-theme="primit"] .Suggestion-input-wrapper .Suggestion-input input[t
   line-height: 1.4;
   letter-spacing: 0.5px;
   color: var(--primit-secondary-1, #e2e7ed) !important;
-  caret-color: var(--primit-primary-1, #87d7ea);
+  caret-color: var(--primit-primary-1, #f5a85f);
   background: transparent !important;
 }
 

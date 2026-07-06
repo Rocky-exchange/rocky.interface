@@ -135,10 +135,10 @@ html[data-ui-theme="primit"] .OrderBookx10000-primitMenuPanel {
   /** 小选择框：紧凑内边距 */
   padding: 8px;
   border: 0.5px solid
-    color-mix(in srgb, var(--primit-primary-1, #87d7ea) 42%, transparent);
+    color-mix(in srgb, var(--primit-primary-1, #f5a85f) 42%, transparent);
   background: var(--primit-secondary-3, #191919);
   box-shadow:
-    0 0 0 0.5px color-mix(in srgb, var(--primit-primary-1, #87d7ea) 22%, transparent),
+    0 0 0 0.5px color-mix(in srgb, var(--primit-primary-1, #f5a85f) 22%, transparent),
     0 12px 28px rgba(0, 0, 0, 0.5);
 }
 

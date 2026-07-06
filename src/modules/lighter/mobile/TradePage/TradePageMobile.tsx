@@ -19,11 +19,7 @@ import { PriceChartPanel } from "./panels/PriceChartPanel";
 import { RecentTradesPanel } from "./panels/RecentTradesPanel";
 import styles from "./TradePageMobile.module.scss";
 
-type Props = {
-  onOpenSettings: () => void;
-};
-
-export function TradePageMobile({ onOpenSettings }: Props) {
+export function TradePageMobile() {
   const [tab, setTab] = useState<MobileTradeTabKey>("Price");
   const [marketSelectorOpen, setMarketSelectorOpen] = useState(false);
   const [sheetSide, setSheetSide] = useState<Side | null>(null);
@@ -52,7 +48,7 @@ export function TradePageMobile({ onOpenSettings }: Props) {
 
   return (
     <div className={styles.page}>
-      <MobileTopNav onOpenSettings={onOpenSettings} />
+      <MobileTopNav />
       <MarketHeaderRow onOpenMarketSelector={() => setMarketSelectorOpen(true)} />
       <MobileTradeTabs active={tab} onChange={setTab} />
       <div
@@ -61,17 +57,14 @@ export function TradePageMobile({ onOpenSettings }: Props) {
         aria-labelledby={`mobile-tradetab-${tab}`}
         className={styles.body}
       >
-        {tab === "Price"     && <PriceChartPanel />}
+        {tab === "Price" && <PriceChartPanel />}
         {tab === "OrderBook" && <OrderBookPanel />}
-        {tab === "Trades"    && <RecentTradesPanel />}
-        {tab === "Depth"     && <DepthPanel />}
-        {tab === "Funding"   && <FundingPanel />}
-        {tab === "Details"   && <DetailsPanel />}
+        {tab === "Trades" && <RecentTradesPanel />}
+        {tab === "Depth" && <DepthPanel />}
+        {tab === "Funding" && <FundingPanel />}
+        {tab === "Details" && <DetailsPanel />}
       </div>
-      <MobileTradeCTA
-        onBuy={() => setSheetSide("buy")}
-        onSell={() => setSheetSide("sell")}
-      />
+      <MobileTradeCTA onBuy={() => setSheetSide("buy")} onSell={() => setSheetSide("sell")} />
       <OrderBottomSheet
         open={sheetSide !== null}
         side={sheetSide ?? "buy"}

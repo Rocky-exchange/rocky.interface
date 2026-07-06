@@ -86,7 +86,7 @@
   left: 0; right: 0; bottom: 1px; margin: 0 auto;
   width: 52%; max-width: 52px;
   height: 2px; border-radius: 999px;
-  background: var(--ltr-accent-cyan);
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
   transform: scaleX(0); opacity: 0;
   transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
 }
@@ -313,8 +313,10 @@
   justify-content: end;
   gap: 1px;
   border-radius: 2px;
-  border: 1px solid #31323a;
-  background: #2d2e36;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#2d2e36, #2d2e36) padding-box,
+    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
   color: #f3f3f3;
   font-size: 12px;
   font-weight: 400;

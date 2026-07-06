@@ -4,6 +4,7 @@
  */
 
 html[data-ui-theme="primit"] .BigTab {
+  position: relative;
   box-sizing: border-box;
   height: 40px;
   min-height: 40px;
@@ -35,8 +36,19 @@ html[data-ui-theme="primit"] .BigTab:hover:not(:disabled):not(.BigTab--selected)
 }
 
 html[data-ui-theme="primit"] .BigTab--selected {
-  color: var(--primit-primary-1, #87d7ea);
-  border-bottom-color: var(--primit-primary-1, #87d7ea);
+  color: var(--primit-primary-1, #f5a85f);
+  border-bottom-color: transparent;
+}
+
+html[data-ui-theme="primit"] .BigTab--selected:not(.BigTab--tone-long):not(.BigTab--tone-short)::after {
+  position: absolute;
+  right: 8px;
+  bottom: -2px;
+  left: 8px;
+  height: 2px;
+  border-radius: 999px;
+  content: "";
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
 }
 
 /* 交易方向 · 选中：做多绿 / 做空红 */
@@ -64,7 +76,7 @@ html[data-ui-theme="primit"] .BigTab:disabled {
 }
 
 html[data-ui-theme="primit"] .BigTab:focus-visible {
-  outline: 2px solid var(--primit-primary-1, #87d7ea);
+  outline: 2px solid var(--primit-primary-1, #f5a85f);
   outline-offset: 2px;
 }
 

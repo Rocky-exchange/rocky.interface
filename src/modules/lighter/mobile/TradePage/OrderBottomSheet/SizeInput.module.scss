@@ -16,7 +16,10 @@
   gap: 8px;
   height: 48px;
   padding: 0 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)) padding-box,
+    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
+  border: 1px solid transparent;
   border-radius: 8px;
 }
 

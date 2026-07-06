@@ -13,7 +13,7 @@ html[data-ui-theme="primit"] .LeverageSlider .rc-slider-rail {
 html[data-ui-theme="primit"] .LeverageSlider .rc-slider-track {
   height: 4px;
   border-radius: 0;
-  background-color: var(--primit-primary-1, #87d7ea);
+  background-color: var(--primit-primary-1, #f5a85f);
 }
 
 html[data-ui-theme="primit"] .LeverageSlider .rc-slider-dot {
@@ -30,7 +30,7 @@ html[data-ui-theme="primit"] .LeverageSlider .rc-slider-dot {
 }
 
 html[data-ui-theme="primit"] .LeverageSlider .rc-slider-dot-active {
-  border-color: var(--primit-primary-1, #87d7ea);
+  border-color: var(--primit-primary-1, #f5a85f);
   background: var(--ui-btn-surface-charcoal, var(--primit-surface-mainbtn));
 }
 
@@ -38,7 +38,7 @@ html[data-ui-theme="primit"] .LeverageSlider .rc-slider-handle {
   width: 8px;
   height: 8px;
   box-sizing: content-box;
-  border: 2px solid var(--primit-primary-1, #87d7ea);
+  border: 2px solid var(--primit-primary-1, #f5a85f);
   border-radius: 50%;
   background-color: var(--ui-btn-surface-charcoal, var(--primit-surface-mainbtn));
   box-shadow: var(
@@ -60,7 +60,7 @@ html[data-ui-theme="primit"] .LeverageSlider .rc-slider-handle:active {
 }
 
 html[data-ui-theme="primit"] .LeverageSlider .rc-slider-handle:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--primit-primary-1, #87d7ea) 65%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--primit-primary-1, #f5a85f) 65%, transparent);
   outline-offset: 2px;
 }
 
@@ -121,7 +121,7 @@ html[data-ui-theme="primit"] .LeverageSlider.negative .rc-slider-handle:focus-vi
 html[data-ui-theme="primit"] .LeverageSlider .rc-slider-tooltip-inner {
   padding: 6px 10px;
   border-radius: 0;
-  border: 0.5px solid var(--primit-primary-1, #87d7ea);
+  border: 0.5px solid var(--primit-primary-1, #f5a85f);
   background: var(--ui-btn-surface-charcoal, var(--primit-surface-mainbtn));
   color: var(--primit-fg-on-mainbtn, #e2e7ed);
   font-family: var(--primit-font-body, "Messina Sans", system-ui, sans-serif);
@@ -138,7 +138,7 @@ html[data-ui-theme="primit"] .LeverageSlider .rc-slider-tooltip {
 }
 
 html[data-ui-theme="primit"] .LeverageSlider .rc-slider-tooltip-placement-top .rc-slider-tooltip-arrow {
-  border-top-color: var(--primit-primary-1, #87d7ea);
+  border-top-color: var(--primit-primary-1, #f5a85f);
 }
 
 html[data-ui-theme="primit"] .LeverageSlider.positive .rc-slider-tooltip-inner {

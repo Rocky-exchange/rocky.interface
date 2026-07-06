@@ -54,26 +54,34 @@
     font-weight: 500;
   }
   .ltr-form__row-link {
-    color: var(--ltr-accent-cyan);
+    color: var(--rocky-theme-accent);
     cursor: pointer;
     &:hover {
-      color: color-mix(in srgb, var(--ltr-accent-cyan) 72%, #ffffff);
+      color: color-mix(in srgb, var(--rocky-theme-accent-end) 74%, #ffffff);
     }
   }
   .ltr-form__field {
     display: flex; align-items: center; gap: 4px;
     height: 32px; min-height: 32px; padding: 0 8px;
-    /** 主题色 input 边框 · 20% alpha（与 3013 trade 输入框一致） */
-    border: 1px solid color-mix(in srgb, var(--primit-primary-1, #87d7ea) 20%, transparent);
-    background: #1f1f24;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--rocky-input-surface), var(--rocky-input-surface)) padding-box,
+      var(--rocky-input-border-gradient) border-box;
     border-radius: 4px;
     color: var(--ltr-text-primary);
     font-size: 12px;
     line-height: 16px;
-    transition: background 150ms, border-color 150ms;
+    transition: background 150ms, box-shadow 150ms;
     &:hover {
-      border-color: color-mix(in srgb, var(--primit-primary-1, #87d7ea) 40%, transparent);
-      background: #26262c;
+      background:
+        linear-gradient(var(--rocky-input-surface-hover), var(--rocky-input-surface-hover)) padding-box,
+        var(--rocky-input-border-gradient) border-box;
+    }
+    &:focus-within {
+      background:
+        linear-gradient(var(--rocky-input-surface-hover), var(--rocky-input-surface-hover)) padding-box,
+        var(--rocky-input-border-gradient) border-box;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--rocky-theme-accent-end) 28%, transparent);
     }
   }
   .ltr-form__label {
@@ -110,9 +118,9 @@
     svg { opacity: 0.85; }
   }
   .ltr-form__trailing--link {
-    color: var(--ltr-accent-cyan);
+    color: var(--rocky-theme-accent);
     &:hover {
-      color: color-mix(in srgb, var(--ltr-accent-cyan) 72%, #ffffff);
+      color: color-mix(in srgb, var(--rocky-theme-accent-end) 74%, #ffffff);
     }
   }
   .ltr-form__trailing--plain {
@@ -197,14 +205,20 @@
     gap: 8px;
     width: 100%;
     height: 32px; padding: 0 8px;
-    background: #2b2b30; // gray-10
-    border: 1px solid #26262c; // gray-9
+    background:
+      linear-gradient(#2b2b30, #2b2b30) padding-box,
+      var(--rocky-input-border-gradient) border-box;
+    border: 1px solid transparent;
     border-radius: 4px;
     color: #f5f5f5;
     font-size: 12px;
     cursor: pointer;
-    transition: background 150ms, border-color 150ms;
-    &:hover { background: #1c1c24; border-color: #3a3a42; }
+    transition: background 150ms, box-shadow 150ms;
+    &:hover {
+      background:
+        linear-gradient(#1c1c24, #1c1c24) padding-box,
+        var(--rocky-input-border-gradient) border-box;
+    }
     > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     svg { opacity: 0.85; flex-shrink: 0; }
   }

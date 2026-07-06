@@ -17,12 +17,10 @@ import { TopNav } from "../components/TopNav/TopNav";
 import { OnboardingTour } from "../components/Onboarding/OnboardingTour";
 import { useBreakpoints } from "@/shared/lib/useBreakpoints";
 import { TradePageMobile } from "@/modules/lighter/mobile/TradePage/TradePageMobile";
-import { useSettings } from "@/modules/lighter/context/SettingsContext";
 
 export default function LighterTradePage() {
   const [orderBookLayout, setOrderBookLayout] = useState<OrderBookLayout>("Tab");
   const { isMobile } = useBreakpoints();
-  const { setIsSettingsVisible } = useSettings();
 
   useEffect(() => {
     document.body.classList.add("lighter-active");
@@ -49,17 +47,13 @@ export default function LighterTradePage() {
   }, [currentMarketKey, toggleFavoriteToken]);
 
   if (isMobile) {
-    return (
-      <TradePageMobile
-        onOpenSettings={() => setIsSettingsVisible(true)}
-      />
-    );
+    return <TradePageMobile />;
   }
 
   return (
     <div className={`lighter-root ${styles.page}`}>
       <div className={styles.topnav}>
-        <TopNav rightExtra={<MiningRateIndicator />} />
+        <TopNav />
       </div>
       {/* <div className={styles.banner}>
         You're accessing Lighter from a restricted jurisdiction. Only withdrawals are available. For more details, see
@@ -123,15 +117,6 @@ export default function LighterTradePage() {
         </div>
       </div>
       <OnboardingTour />
-    </div>
-  );
-}
-
-function MiningRateIndicator() {
-  return (
-    <div className={styles.miningRate}>
-      <span className={styles.miningRateIcon}>⚡</span>
-      Mining rate <strong>2.5 ROCKY/USDT</strong>
     </div>
   );
 }

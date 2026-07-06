@@ -56,7 +56,7 @@ html[data-ui-theme="legacy"] .tab-active-green {
 }
 
 html[data-ui-theme="legacy"] .tab-underline-indicator {
-  background: var(--sb-accent, #00ffb2);
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
 }
 
 /* ========== NestedTab（More）荧光 ========== */

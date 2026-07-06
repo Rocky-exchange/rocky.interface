@@ -7,6 +7,6 @@ html[data-ui-theme="primit"] .menu-items,
 html[data-ui-theme="primit"] .nested-tab-dropdown,
 html[data-ui-theme="primit"] .primit-dropdown-panel,
 html[data-ui-theme="primit"] .ui-dropdown-filter__menu {
-  border: 0.5px solid var(--Brand-color-Primary-1, #87d7ea) !important;
+  border: 0.5px solid var(--Brand-color-Primary-1, #f5a85f) !important;
   border-radius: 0 !important;
 }

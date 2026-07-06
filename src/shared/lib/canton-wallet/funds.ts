@@ -38,6 +38,7 @@ export type CantonDepositResult = Partial<CantonDepositReference> & {
   available?: string;
   platform_credit_status?: "confirmed" | "pending";
   platform_available?: string;
+  platform_previous_balance?: string;
   wallet_symbol?: string;
   wallet_transfer?: CantonWalletTransferStatus | string;
   transfer_kind?: string;
@@ -54,6 +55,39 @@ export type CantonWithdrawalResult = {
   fee_wallet_symbol?: string;
   total_debit_amount?: string;
   [key: string]: unknown;
+};
+
+export type CantonDepositHistoryItem = {
+  deposit_id?: string;
+  asset?: string;
+  amount_expected?: string | number | null;
+  status?: string;
+  deposit_ref?: string;
+  chain_tx_id?: string;
+  created_at?: string;
+  expires_at?: string;
+  credited_at?: string;
+};
+
+export type CantonWithdrawalHistoryItem = {
+  withdrawal_request_id?: string;
+  withdrawal_id?: string;
+  status?: string;
+  asset?: string;
+  amount?: string | number | null;
+  fee_asset?: string;
+  fee_wallet_symbol?: string;
+  fee_amount?: string | number | null;
+  destination_party?: string;
+  requested_at?: string;
+  submitted_at?: string;
+  settled_at?: string;
+  canton_update_id?: string;
+};
+
+export type CantonFundsHistory = {
+  deposits: CantonDepositHistoryItem[];
+  withdrawals: CantonWithdrawalHistoryItem[];
 };
 
 export type UsdcxAuthorizationResult = {
@@ -74,6 +108,14 @@ export type UsdcxPendingOffersResult = {
 export type UsdcxAutoAcceptResult = {
   enabled: boolean;
   raw?: unknown;
+};
+
+export type PlatformDepositCreditWaitInput = {
+  asset: CantonFundsAsset;
+  amount: string;
+  previousBalance?: number | string | null;
+  attempts?: number;
+  delayMs?: number;
 };
 
 export class CantonFundsError extends Error {
@@ -150,12 +192,17 @@ export async function submitCantonWalletDeposit(input: {
       amount,
       memo: reference.deposit_ref,
     });
-    const creditedBalance = await waitForPlatformDepositCredit(input.asset, amount, previousPlatformBalance);
+    const creditedBalance = await waitForPlatformDepositCredit({
+      asset: input.asset,
+      amount,
+      previousBalance: previousPlatformBalance,
+    });
     return {
       ...reference,
       wallet_transfer: `${input.provider}_wallet_submitted`,
       platform_credit_status: creditedBalance === null ? "pending" : "confirmed",
       platform_available: creditedBalance === null ? undefined : String(creditedBalance),
+      platform_previous_balance: previousPlatformBalance === null ? undefined : String(previousPlatformBalance),
     };
   }
 
@@ -185,6 +232,25 @@ export async function submitPlatformWithdrawal(input: {
   });
 }
 
+export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
+  ensureExchangeSession();
+  const [depositData, withdrawalData] = await Promise.all([
+    requestJson<{ deposits?: CantonDepositHistoryItem[] }>("/v1/deposits", {
+      method: "GET",
+      headers: exchangeSessionHeaders(),
+    }),
+    requestJson<{ withdrawals?: CantonWithdrawalHistoryItem[] }>("/v1/withdrawals", {
+      method: "GET",
+      headers: exchangeSessionHeaders(),
+    }),
+  ]);
+
+  return {
+    deposits: Array.isArray(depositData.deposits) ? depositData.deposits : [],
+    withdrawals: Array.isArray(withdrawalData.withdrawals) ? withdrawalData.withdrawals : [],
+  };
+}
+
 export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Promise<number | null> {
   const response = await fetch(`/v1/account/me/${platformDepositApiAsset(asset)}`, {
     headers: exchangeSessionHeaders(),
@@ -196,24 +262,33 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
   return Number.isFinite(available) ? available : null;
 }
 
-async function waitForPlatformDepositCredit(
-  asset: CantonFundsAsset,
-  amount: string,
-  previousBalance: number | null
-): Promise<number | null> {
+export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {
+  const {
+    asset,
+    amount,
+    attempts = PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS,
+    delayMs = PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS,
+  } = input;
+  const previousBalance = parseOptionalBalance(input.previousBalance);
   const expectedDelta = Number(amount);
   if (!Number.isFinite(expectedDelta) || expectedDelta <= 0) return null;
 
-  for (let attempt = 0; attempt < PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     const currentBalance = await fetchPlatformAccountBalance(asset);
     if (currentBalance !== null && hasExpectedDepositCredit(currentBalance, previousBalance, expectedDelta)) {
       return currentBalance;
     }
-    if (attempt < PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS - 1) {
-      await delay(PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS);
+    if (attempt < attempts - 1) {
+      await delay(delayMs);
     }
   }
   return null;
+}
+
+function parseOptionalBalance(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function hasExpectedDepositCredit(

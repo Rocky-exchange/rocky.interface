@@ -21,6 +21,17 @@
   --ltr-up-bg: rgba(27, 210, 137, 0.10);
   --ltr-down-bg: rgba(255, 56, 79, 0.10);
   --ltr-warn-bg: #3A1212;
+  --rocky-theme-accent-start: #f5a85f;
+  --rocky-theme-accent-end: #b0d6ea;
+  --rocky-theme-accent: var(--rocky-theme-accent-start);
+  --rocky-theme-gradient: linear-gradient(
+    90deg,
+    var(--rocky-theme-accent-start) 0%,
+    var(--rocky-theme-accent-end) 100%
+  );
+  --rocky-input-surface: #1f1f24;
+  --rocky-input-surface-hover: #26262c;
+  --rocky-input-border-gradient: var(--rocky-theme-gradient);
 
   --ltr-font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --ltr-row-h: 18px;
@@ -38,7 +49,8 @@
   --ltr-cell-pad-x: 8px;
 
   /** Lighter 交易页强调色（默认稿）；Primit 下由下方块覆写 */
-  --ltr-accent-cyan: #4ea7ff;
+  --ltr-accent-cyan: var(--rocky-theme-accent);
+  --rocky-tab-active-gradient: var(--rocky-theme-gradient);
   --ltr-trade-buy-solid: #159564;
   --ltr-trade-buy-bright: #19be7d;
   --ltr-trade-buy-mid: #1bd289;
@@ -67,7 +79,7 @@ html[data-ui-theme="primit"] {
   --ltr-font-family: var(--primit-font-body);
   --ltr-radius: var(--layout-radius-small-container, 8px);
 
-  --ltr-accent-cyan: var(--primit-primary-1);
+  --ltr-accent-cyan: var(--rocky-theme-accent);
   --ltr-trade-buy-solid: color-mix(in srgb, var(--primit-others-green) 78%, #000000);
   --ltr-trade-buy-bright: color-mix(in srgb, var(--primit-others-green) 88%, #ffffff);
   --ltr-trade-buy-mid: var(--primit-others-green);

@@ -27,8 +27,10 @@
   width: 100%;
   height: 48px;
   padding: 0 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)) padding-box,
+    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
+  border: 1px solid transparent;
   outline: none;
   border-radius: 8px;
   color: var(--ltr-text-primary, #F3F3F3);

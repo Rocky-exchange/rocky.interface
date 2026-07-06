@@ -11,8 +11,17 @@
 
 /* ========== 浅色主题（Light） ========== */
 :root {
+  --rocky-theme-accent-start: #f5a85f;
+  --rocky-theme-accent-end: #b0d6ea;
+  --rocky-theme-accent: var(--rocky-theme-accent-start);
+  --rocky-theme-gradient: linear-gradient(
+    90deg,
+    var(--rocky-theme-accent-start) 0%,
+    var(--rocky-theme-accent-end) 100%
+  );
+
   /* Brand */
-  --primit-primary-1: #037788;
+  --primit-primary-1: var(--rocky-theme-accent);
   --primit-primary-2: #56bbc9;
   --primit-primary-3: #325569;
 
@@ -135,7 +144,7 @@
 
 /* ========== 深色主题（Dark） ========== */
 html.dark {
-  --primit-primary-1: #87d7ea;
+  --primit-primary-1: var(--rocky-theme-accent);
   --primit-primary-2: #0793a8;
   --primit-primary-3: #325569;
 

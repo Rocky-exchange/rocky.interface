@@ -24,26 +24,6 @@
   border-bottom: 1px solid var(--ltr-border);
 }
 
-.miningRate {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(247, 164, 59, 0.3);
-  background: rgba(247, 164, 59, 0.08);
-  color: #f7a43b;
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.miningRateIcon {
-  font-size: 13px;
-}
-
 .banner {
   background: #5a1820;
   color: #f3f3f3;
@@ -252,10 +232,6 @@
     width: calc(100dvw - 4px);
     max-width: calc(100dvw - 4px);
     border-bottom: 0;
-  }
-
-  .miningRate {
-    display: none;
   }
 
   .chartCol {

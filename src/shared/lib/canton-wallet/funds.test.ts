@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CantonFundsError,
+  fetchCantonFundsHistory,
   fetchPlatformAccountBalance,
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
@@ -185,6 +186,41 @@ describe("canton wallet funds", () => {
     expect(result.platform_available).toBe("0.2");
   });
 
+  it("returns pending deposit metadata when platform credit is delayed", async () => {
+    vi.useFakeTimers();
+    const provider = createRockyWalletProvider();
+    window.rockyWallet = provider;
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/v1/account/me/USDC") {
+        return jsonResponse({ asset: "USDC", available: "0", locked: "0" });
+      }
+      if (String(url) === "/v1/deposits/reference") {
+        return jsonResponse({
+          asset: "USDC",
+          target_party_id: "target-party",
+          deposit_ref: "dep-delayed",
+          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
+          expires_at: "2030-01-01T00:00:00Z",
+        });
+      }
+      return jsonResponse({ error: "unexpected" }, 500);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = submitCantonWalletDeposit({
+      provider: "rocky",
+      walletParty: "party-1",
+      asset: "USDCx",
+      amount: "0.2",
+    });
+    await vi.runAllTimersAsync();
+    const result = await pending;
+
+    expect(result.platform_credit_status).toBe("pending");
+    expect(result.platform_previous_balance).toBe("0");
+    expect(result.deposit_ref).toBe("dep-delayed");
+  });
+
   it("submits withdrawals to the connected wallet party", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
@@ -230,6 +266,64 @@ describe("canton wallet funds", () => {
     expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
       headers: { Authorization: "Bearer exchange-token" },
     });
+  });
+
+  it("loads deposit and withdrawal history with exchange session auth", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
+      if (String(url) === "/v1/deposits") {
+        return jsonResponse({
+          deposits: [
+            {
+              deposit_id: "deposit-1",
+              asset: "USDC",
+              amount_expected: "0.2",
+              status: "credited",
+            },
+          ],
+        });
+      }
+      if (String(url) === "/v1/withdrawals") {
+        return jsonResponse({
+          withdrawals: [
+            {
+              withdrawal_id: "withdrawal-1",
+              asset: "USDC",
+              amount: "0.1",
+              status: "settled",
+              fee_amount: "1",
+              fee_wallet_symbol: "USDCx",
+            },
+          ],
+        });
+      }
+      return jsonResponse({ error: "unexpected" }, 500);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchCantonFundsHistory()).resolves.toEqual({
+      deposits: [
+        {
+          deposit_id: "deposit-1",
+          asset: "USDC",
+          amount_expected: "0.2",
+          status: "credited",
+        },
+      ],
+      withdrawals: [
+        {
+          withdrawal_id: "withdrawal-1",
+          asset: "USDC",
+          amount: "0.1",
+          status: "settled",
+          fee_amount: "1",
+          fee_wallet_symbol: "USDCx",
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/v1/deposits", expect.objectContaining({ method: "GET" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/v1/withdrawals", expect.objectContaining({ method: "GET" }));
+    expect(headerValue(fetchMock.mock.calls[0][1]?.headers, "Authorization")).toBe("Bearer exchange-token");
+    expect(headerValue(fetchMock.mock.calls[1][1]?.headers, "Authorization")).toBe("Bearer exchange-token");
   });
 
   it("surfaces withdrawal API error messages from non-error fields", async () => {
