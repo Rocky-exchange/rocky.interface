@@ -5,9 +5,10 @@ import {
   type ConsoleWalletPendingOffer,
 } from "./console";
 import { submitLoopWalletTransfer } from "./loop";
-import { submitRockyWalletTransfer } from "./rocky";
-import { exchangeSessionHeaders, getExchangeSessionToken } from "./session";
+import { connectRockyWallet, submitRockyWalletTransfer } from "./rocky";
+import { createExchangeSession, exchangeSessionHeaders, getExchangeSessionToken } from "./session";
 import type { WalletProviderId } from "./types";
+import { notifyCantonSessionChange } from "./useCantonSession";
 
 export type CantonFundsAsset = "CC" | "USDCx";
 export type CantonFundsApiAsset = "CC" | "USDC";
@@ -48,6 +49,10 @@ export type CantonWithdrawalResult = {
   withdrawal_id?: string;
   withdrawal_request_id?: string;
   status?: string;
+  fee_amount?: string;
+  fee_asset?: string;
+  fee_wallet_symbol?: string;
+  total_debit_amount?: string;
   [key: string]: unknown;
 };
 
@@ -127,8 +132,16 @@ export async function submitCantonWalletDeposit(input: {
   const amount = positiveAmount(input.amount);
 
   if (input.provider === "rocky" || input.provider === "console" || input.provider === "loop") {
-    const previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
-    const reference = await requestDepositReference({ asset: input.asset, amount });
+    let previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
+    const { reference, refreshedSession } = await requestWalletDepositReference({
+      provider: input.provider,
+      walletParty: input.walletParty,
+      asset: input.asset,
+      amount,
+    });
+    if (refreshedSession) {
+      previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
+    }
     await submitWalletTransfer({
       provider: input.provider,
       from: input.walletParty,
@@ -178,16 +191,15 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
   });
   if (!response.ok) return null;
   const data = (await response.json().catch(() => ({}))) as { available?: unknown };
-  const available = typeof data.available === "string" || typeof data.available === "number"
-    ? Number(data.available)
-    : NaN;
+  const available =
+    typeof data.available === "string" || typeof data.available === "number" ? Number(data.available) : NaN;
   return Number.isFinite(available) ? available : null;
 }
 
 async function waitForPlatformDepositCredit(
   asset: CantonFundsAsset,
   amount: string,
-  previousBalance: number | null,
+  previousBalance: number | null
 ): Promise<number | null> {
   const expectedDelta = Number(amount);
   if (!Number.isFinite(expectedDelta) || expectedDelta <= 0) return null;
@@ -207,7 +219,7 @@ async function waitForPlatformDepositCredit(
 function hasExpectedDepositCredit(
   currentBalance: number,
   previousBalance: number | null,
-  expectedDelta: number,
+  expectedDelta: number
 ): boolean {
   const epsilon = 0.000000001;
   if (previousBalance !== null) {
@@ -298,6 +310,56 @@ function positiveAmount(value: string): string {
     throw new CantonFundsError("Amount must be positive", { code: "amount_must_be_positive" });
   }
   return amount;
+}
+
+async function requestWalletDepositReference(input: {
+  provider: "rocky" | "console" | "loop";
+  walletParty: string;
+  asset: CantonFundsAsset;
+  amount: string;
+}): Promise<{ reference: CantonDepositReference; refreshedSession: boolean }> {
+  try {
+    return {
+      reference: await requestDepositReference({ asset: input.asset, amount: input.amount }),
+      refreshedSession: false,
+    };
+  } catch (err) {
+    if (input.provider !== "rocky" || !isInvalidExchangeSessionError(err)) {
+      throw err;
+    }
+    await refreshRockyExchangeSession(input.walletParty);
+    return {
+      reference: await requestDepositReference({ asset: input.asset, amount: input.amount }),
+      refreshedSession: true,
+    };
+  }
+}
+
+async function refreshRockyExchangeSession(expectedParty: string) {
+  const wallet = await connectRockyWallet();
+  const connectedParty = wallet.connection.partyId || "";
+  if (expectedParty && connectedParty && connectedParty !== expectedParty) {
+    throw new CantonFundsError("Rocky Wallet active account does not match the logged-in party", {
+      code: "wallet_party_mismatch",
+    });
+  }
+  await createExchangeSession(wallet.connection, wallet.signMessage);
+  notifyCantonSessionChange();
+}
+
+function isInvalidExchangeSessionError(err: unknown): boolean {
+  if (!(err instanceof CantonFundsError)) return false;
+  if (err.code === "not_logged_in") return true;
+
+  const code = (err.code || "").toLowerCase();
+  const message = err.message.toLowerCase();
+  if (err.status !== 401) return false;
+  return (
+    code.includes("invalid session") ||
+    code.includes("missing bearer") ||
+    message.includes("invalid session") ||
+    message.includes("missing bearer")
+  );
 }
 
 async function submitWalletTransfer(input: {
