@@ -353,9 +353,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={() => copyValue(walletParty, "header-party")}
-                    aria-label="Copy wallet party id"
+                    aria-label={i18n._(t`Copy wallet party id`)}
                   >
-                    {copiedKey === "header-party" ? "Copied" : <CopyIcon />}
+                    {copiedKey === "header-party" ? i18n._(t`Copied`) : <CopyIcon />}
                   </button>
                 </div>
               ) : null}
@@ -372,15 +372,20 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 if (!walletExplorerUrl) event.preventDefault();
               }}
             >
-              <span>Explorer</span>
+              <span>{i18n._(t`Explorer`)}</span>
               <ExternalIcon />
             </a>
             <span className={styles.headerDivider} />
             <button type="button" className={styles.disconnectButton} onClick={handleDisconnect}>
-              <span>Disconnect</span>
+              <span>{i18n._(t`Disconnect`)}</span>
               <LogoutIcon />
             </button>
-            <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close wallet dashboard">
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label={i18n._(t`Close wallet dashboard`)}
+            >
               <CloseIcon />
             </button>
           </div>
@@ -390,7 +395,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <section className={styles.balanceCard}>
             <div className={styles.sectionHeader}>
               <h3>
-                USDCx Balances
+                {i18n._(t`USDCx Balances`)}
                 <button
                   type="button"
                   className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
@@ -410,11 +415,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
               <div className={styles.balanceItem}>
                 <UsdcxIcon className={styles.tokenIcon} />
                 <div>
-                  <div className={styles.balanceLabel}>Wallet Balance</div>
+                  <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
                   <div className={styles.balanceValue}>
                     {formatFixedBalance(usdcxBalance)} <span>USDCx</span>
                   </div>
-                  <div className={styles.balanceCaption}>On-chain balance</div>
+                  <div className={styles.balanceCaption}>{i18n._(t`On-chain balance`)}</div>
                 </div>
               </div>
               <div className={styles.balanceItem}>
@@ -422,12 +427,12 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   <img src="/favicon.svg" alt="" className={styles.providerLogo} />
                 </div>
                 <div>
-                  <div className={styles.balanceLabel}>Exchange Balance</div>
+                  <div className={styles.balanceLabel}>{i18n._(t`Exchange Balance`)}</div>
                   <div className={styles.balanceValue}>
                     {withdrawAvailable === null ? "-" : formatFixedAmount(withdrawAvailable)}{" "}
                     <span>{FIXED_FUNDS_ASSET}</span>
                   </div>
-                  <div className={styles.balanceCaption}>On connected exchange</div>
+                  <div className={styles.balanceCaption}>{i18n._(t`On connected exchange`)}</div>
                 </div>
               </div>
             </div>
@@ -445,8 +450,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <DepositIcon />
               </span>
               <span>
-                <strong>Deposit</strong>
-                <small>Deposit USDCx to Rocky Exchange</small>
+                <strong>{i18n._(t`Deposit`)}</strong>
+                <small>{i18n._(t`Deposit USDCx to Rocky Exchange`)}</small>
               </span>
               <span className={styles.actionChevron}>
                 {activeAction === "deposit" ? <ChevronDownIcon /> : <ChevronIcon />}
@@ -465,8 +470,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <WithdrawIcon />
               </span>
               <span>
-                <strong>Withdraw</strong>
-                <small>Withdraw USDCx to your Wallet</small>
+                <strong>{i18n._(t`Withdraw`)}</strong>
+                <small>{i18n._(t`Withdraw USDCx to your Wallet`)}</small>
               </span>
               <span className={styles.actionChevron}>
                 {activeAction === "withdraw" ? <ChevronDownIcon /> : <ChevronIcon />}
@@ -480,20 +485,20 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <form className={styles.operationForm} onSubmit={handleDeposit}>
                   <div className={styles.operationHeader}>
                     <div>
-                      <h3>Deposit</h3>
-                      <p>Transfer funds from the connected wallet to the exchange account.</p>
+                      <h3>{i18n._(t`Deposit`)}</h3>
+                      <p>{i18n._(t`Transfer funds from the connected wallet to the exchange account.`)}</p>
                     </div>
                   </div>
                   <div className={styles.formGrid}>
                     <div className={styles.field}>
-                      <span>Asset</span>
+                      <span>{i18n._(t`Asset`)}</span>
                       <div className={styles.fixedAssetValue}>
                         <UsdcxIcon />
                         <strong>{FIXED_FUNDS_ASSET}</strong>
                       </div>
                     </div>
                     <label className={styles.field}>
-                      <span>Amount</span>
+                      <span>{i18n._(t`Amount`)}</span>
                       <input
                         value={depositAmount}
                         onChange={(event) => setDepositAmount(event.target.value)}
@@ -517,20 +522,20 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <form className={styles.operationForm} onSubmit={handleWithdraw}>
                   <div className={styles.operationHeader}>
                     <div>
-                      <h3>Withdraw</h3>
-                      <p>Move platform available balance back to the connected wallet party.</p>
+                      <h3>{i18n._(t`Withdraw`)}</h3>
+                      <p>{i18n._(t`Move platform available balance back to the connected wallet party.`)}</p>
                     </div>
                   </div>
                   <div className={styles.formGrid}>
                     <div className={styles.field}>
-                      <span>Asset</span>
+                      <span>{i18n._(t`Asset`)}</span>
                       <div className={styles.fixedAssetValue}>
                         <UsdcxIcon />
                         <strong>{FIXED_FUNDS_ASSET}</strong>
                       </div>
                     </div>
                     <label className={styles.field}>
-                      <span>Amount</span>
+                      <span>{i18n._(t`Amount`)}</span>
                       <input
                         value={withdrawAmount}
                         onChange={(event) => setWithdrawAmount(event.target.value)}
@@ -540,11 +545,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </label>
                   </div>
                   <div className={styles.destinationLine}>
-                    <span>Destination</span>
+                    <span>{i18n._(t`Destination`)}</span>
                     <strong title={walletParty || ""}>{abbreviateMiddle(walletParty, 42)}</strong>
                   </div>
                   <div className={styles.destinationLine}>
-                    <span>Fee</span>
+                    <span>{i18n._(t`Fee`)}</span>
                     <strong>{FIXED_WITHDRAWAL_FEE_LABEL}</strong>
                   </div>
                   {withdrawAvailableError ? <div className={styles.errorText}>{withdrawAvailableError}</div> : null}
@@ -574,24 +579,24 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 className={cx(historyTab === "deposit" && styles.historyTabActive)}
                 onClick={() => selectHistoryTab("deposit")}
               >
-                Deposit History
+                {i18n._(t`Deposit History`)}
               </button>
               <button
                 type="button"
                 className={cx(historyTab === "withdraw" && styles.historyTabActive)}
                 onClick={() => selectHistoryTab("withdraw")}
               >
-                Withdraw History
+                {i18n._(t`Withdraw History`)}
               </button>
             </div>
             <div className={styles.historyTable}>
               <div className={cx(styles.historyHead, historyTab === "withdraw" && styles.historyRowWithFee)}>
-                <span>Time</span>
-                <span>Asset</span>
-                <span>Amount</span>
-                {historyTab === "withdraw" ? <span>Network Fee</span> : null}
-                <span>Status</span>
-                <span>Tx Hash</span>
+                <span>{i18n._(t`Time`)}</span>
+                <span>{i18n._(t`Asset`)}</span>
+                <span>{i18n._(t`Amount`)}</span>
+                {historyTab === "withdraw" ? <span>{i18n._(t`Network Fee`)}</span> : null}
+                <span>{i18n._(t`Status`)}</span>
+                <span>{i18n._(t`Tx Hash`)}</span>
               </div>
               {visibleHistory.length > 0 ? (
                 visibleHistory.map((item) => (
@@ -616,7 +621,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       <span className={styles.feeCell}>{item.networkFee || "-"}</span>
                     ) : null}
                     <span>
-                      <em>{item.status}</em>
+                      <em>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</em>
                     </span>
                     <span>
                       {item.reference && item.explorerUrl ? (
@@ -631,7 +636,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                           onClick={() => copyValue(item.reference, `history-${item.id}`)}
                         >
                           <span className={styles.referenceText}>
-                            {copiedKey === `history-${item.id}` ? "Copied" : abbreviateMiddle(item.reference, 22)}
+                            {copiedKey === `history-${item.id}`
+                              ? i18n._(t`Copied`)
+                              : abbreviateMiddle(item.reference, 22)}
                           </span>
                           <CopyIcon />
                         </button>
@@ -642,7 +649,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   </div>
                 ))
               ) : (
-                <div className={styles.historyEmpty}>No {historyTab} history yet</div>
+                <div className={styles.historyEmpty}>
+                  {historyTab === "deposit" ? i18n._(t`No deposit history yet`) : i18n._(t`No withdrawal history yet`)}
+                </div>
               )}
             </div>
             <button
@@ -651,7 +660,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
               disabled={!canToggleHistory}
               onClick={() => setShowAllHistory((value) => !value)}
             >
-              {showAllHistory ? "Show Fewer" : "View All"} {historyTab === "deposit" ? "Deposits" : "Withdrawals"}
+              {historyTab === "deposit"
+                ? showAllHistory
+                  ? i18n._(t`Show Fewer Deposits`)
+                  : i18n._(t`View All Deposits`)
+                : showAllHistory
+                  ? i18n._(t`Show Fewer Withdrawals`)
+                  : i18n._(t`View All Withdrawals`)}
               <ChevronDownIcon />
             </button>
           </section>
@@ -921,6 +936,23 @@ function formatFundsHistoryStatus(status: string | undefined, fallback: string):
   if (normalized === "failed") return "Failed";
   if (normalized === "cancelled" || normalized === "canceled") return "Cancelled";
   return value;
+}
+
+function localizedHistoryStatus(status: string, translate: (message: string) => string): string {
+  switch (status) {
+    case "Completed":
+      return translate(t`Completed`);
+    case "Submitted":
+      return translate(t`Submitted`);
+    case "Expired":
+      return translate(t`Expired`);
+    case "Failed":
+      return translate(t`Failed`);
+    case "Cancelled":
+      return translate(t`Cancelled`);
+    default:
+      return status;
+  }
 }
 
 async function writeClipboardText(value: string): Promise<boolean> {

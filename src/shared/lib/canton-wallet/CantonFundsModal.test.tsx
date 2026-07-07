@@ -15,6 +15,10 @@ const mocks = vi.hoisted(() => ({
   waitForPlatformDepositCredit: vi.fn(),
 }));
 
+const i18nMock = vi.hoisted(() => ({
+  translations: {} as Record<string, string>,
+}));
+
 vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
   default: ({ symbol }: { symbol: string }) => <span>{symbol}</span>,
 }));
@@ -22,7 +26,15 @@ vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
 vi.mock("@lingui/react", () => ({
   useLingui: () => ({
     i18n: {
-      _: (message: unknown) => (typeof message === "string" ? message : String(message)),
+      _: (message: unknown) => {
+        const descriptor =
+          typeof message === "object" && message !== null
+            ? (message as { id?: string; message?: string })
+            : undefined;
+        const id = typeof message === "string" ? message : descriptor?.id || String(message);
+        const defaultMessage = descriptor?.message || id;
+        return i18nMock.translations[defaultMessage] || i18nMock.translations[id] || defaultMessage;
+      },
     },
   }),
 }));
@@ -65,6 +77,7 @@ describe("CantonFundsModal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    i18nMock.translations = {};
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
     mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
@@ -94,6 +107,62 @@ describe("CantonFundsModal", () => {
 
     expect(screen.getByText("Network Fee")).toBeTruthy();
     expect(screen.getAllByText("1 USDCx").length).toBeGreaterThan(1);
+  });
+
+  it("renders wallet dashboard labels through the active locale", async () => {
+    i18nMock.translations = {
+      Explorer: "瀏覽器",
+      Disconnect: "斷開連線",
+      "USDCx Balances": "USDCx 餘額",
+      "Wallet Balance": "錢包餘額",
+      "Exchange Balance": "交易所餘額",
+      "On-chain balance": "鏈上餘額",
+      "On connected exchange": "已連接交易所餘額",
+      Deposit: "存入",
+      "Deposit USDCx to Rocky Exchange": "存入 USDCx 至 Rocky Exchange",
+      "Transfer funds from the connected wallet to the exchange account.": "從已連接錢包轉入資金至交易所帳戶。",
+      Asset: "資產",
+      Amount: "金額",
+      "Deposit History": "存入歷史",
+      "Withdraw History": "提領歷史",
+      "Network Fee": "網路費",
+      Time: "時間",
+      Status: "狀態",
+      "Tx Hash": "交易雜湊",
+      Completed: "已完成",
+      "View All Withdrawals": "查看全部提領",
+    };
+    mocks.fetchCantonFundsHistory.mockResolvedValue({
+      deposits: [],
+      withdrawals: [
+        {
+          withdrawal_id: "withdrawal-server-1",
+          asset: "USDC",
+          amount: "0.1",
+          status: "settled",
+          fee_asset: "USDC",
+          fee_wallet_symbol: "USDCx",
+          fee_amount: "1",
+          requested_at: "2026-07-06T09:01:00Z",
+        },
+      ],
+    });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    expect(await screen.findByText("USDCx 餘額")).toBeTruthy();
+    expect(screen.getByText("錢包餘額")).toBeTruthy();
+    expect(screen.getByText("交易所餘額")).toBeTruthy();
+    expect(screen.getByText("存入 USDCx 至 Rocky Exchange")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("提領歷史"));
+
+    expect(screen.getByText("網路費")).toBeTruthy();
+    expect(screen.getByText("已完成")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /查看全部提領/i })).toBeTruthy();
+    expect(screen.queryByText("USDCx Balances")).toBeNull();
+    expect(screen.queryByText("Wallet Balance")).toBeNull();
+    expect(screen.queryByText("Withdraw History")).toBeNull();
   });
 
   it("loads persisted deposit and withdrawal history when the modal opens", async () => {

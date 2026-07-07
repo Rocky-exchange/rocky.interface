@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/macro";
-import React, { useSyncExternalStore } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 
 import { useCantonWallet } from "./useCantonWallet";
 import type { WalletProviderId } from "./types";
@@ -65,6 +65,14 @@ const option: React.CSSProperties = {
   fontSize: 15,
   textAlign: "left",
 };
+const optionPending: React.CSSProperties = {
+  borderColor: "#4b5563",
+  background: "#282832",
+};
+const optionDisabled: React.CSSProperties = {
+  cursor: "wait",
+  opacity: 0.62,
+};
 const optionLogoFrame: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
@@ -76,6 +84,24 @@ const optionLogoFrame: React.CSSProperties = {
   background: "transparent",
 };
 const optionText: React.CSSProperties = { flex: "1 1 auto" };
+const optionTextStack: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  flex: "1 1 auto",
+};
+const optionSubText: React.CSSProperties = {
+  color: "#aeb7c8",
+  fontSize: 12,
+  lineHeight: 1.2,
+};
+const optionSpinnerFrame: React.CSSProperties = {
+  display: "grid",
+  placeItems: "center",
+  flex: "0 0 auto",
+  width: 22,
+  height: 22,
+  color: "#aeb7c8",
+};
 const title: React.CSSProperties = { fontSize: 16, fontWeight: 600, color: "#fff" };
 const errorText: React.CSSProperties = { color: "#ff6b6b", fontSize: 13 };
 
@@ -88,13 +114,17 @@ const WALLET_OPTIONS: Array<{ provider: Exclude<WalletProviderId, "other">; labe
 export function CantonConnectModal() {
   const open = useOpen();
   const { connect, connecting, error } = useCantonWallet();
+  const [connectingProvider, setConnectingProvider] = useState<Exclude<WalletProviderId, "other"> | null>(null);
   if (!open) return null;
   const pick = async (p: "rocky" | "loop" | "console") => {
     try {
+      setConnectingProvider(p);
       await connect(p);
       closeCantonConnect();
     } catch (_error) {
       /* error shown */
+    } finally {
+      setConnectingProvider(null);
     }
   };
 
@@ -106,24 +136,59 @@ export function CantonConnectModal() {
         </div>
         {WALLET_OPTIONS.map((item) => {
           const logo = getWalletProviderLogo(item.provider);
+          const isPending = connecting && connectingProvider === item.provider;
           return (
             <button
               key={item.provider}
               type="button"
-              style={option}
+              style={{
+                ...option,
+                ...(connecting ? optionDisabled : null),
+                ...(isPending ? optionPending : null),
+              }}
               disabled={connecting}
               onClick={() => pick(item.provider)}
             >
               <span style={optionLogoFrame}>
                 <img src={logo.src} alt="" style={logoImageStyle(logo)} />
               </span>
-              <span style={optionText}>{item.label}</span>
+              <span style={isPending ? optionTextStack : optionText}>
+                <span>{item.label}</span>
+                {isPending ? (
+                  <span style={optionSubText}>
+                    <Trans>Connecting...</Trans>
+                  </span>
+                ) : null}
+              </span>
+              {isPending ? (
+                <span style={optionSpinnerFrame}>
+                  <ConnectingSpinner />
+                </span>
+              ) : null}
             </button>
           );
         })}
         {error ? <div style={errorText}>{error}</div> : null}
       </div>
     </div>
+  );
+}
+
+function ConnectingSpinner() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeOpacity="0.28" strokeWidth="2.4" />
+      <path d="M20 12a8 8 0 0 0-8-8" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+        <animateTransform
+          attributeName="transform"
+          dur="0.85s"
+          from="0 12 12"
+          repeatCount="indefinite"
+          to="360 12 12"
+          type="rotate"
+        />
+      </path>
+    </svg>
   );
 }
 
