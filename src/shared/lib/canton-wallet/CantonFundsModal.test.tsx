@@ -93,10 +93,11 @@ describe("CantonFundsModal", () => {
     await submitWithdrawal("0.1", 1);
 
     expect(screen.getByText("Network Fee")).toBeTruthy();
-    expect(screen.getAllByText("1USDCx").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("1 USDCx").length).toBeGreaterThan(1);
   });
 
   it("loads persisted deposit and withdrawal history when the modal opens", async () => {
+    const depositUpdateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
     mocks.fetchCantonFundsHistory.mockResolvedValue({
       deposits: [
         {
@@ -105,7 +106,8 @@ describe("CantonFundsModal", () => {
           amount_expected: "0.2",
           status: "credited",
           deposit_ref: "rocky:deposit:1",
-          chain_tx_id: "deposit-update-1",
+          chain_tx_id: "token-standard:1220f8067c8741629dbe93b661497df6cc17bf5f39aa68429a02f7bf6a5a1b6c2dbf:0",
+          canton_update_id: depositUpdateId,
           created_at: "2026-07-06T09:00:00Z",
         },
       ],
@@ -127,11 +129,49 @@ describe("CantonFundsModal", () => {
 
     await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1));
     expect(screen.getByText("+0.2 USDCx")).toBeTruthy();
+    expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${depositUpdateId}"]`)).toBeTruthy();
 
     fireEvent.click(screen.getByText("Withdraw History"));
 
     expect(screen.getByText("-0.1 USDCx")).toBeTruthy();
     expect(screen.getByText("withdrawal-server-1")).toBeTruthy();
+  });
+
+  it("extracts update hashes from chain ids and rejects withdrawal ids as transaction hashes", async () => {
+    const depositUpdateId = "1220f8067c8741629dbe93b661497df6cc17bf5f39aa68429a02f7bf6a5a1b6c2dbf";
+    mocks.fetchCantonFundsHistory.mockResolvedValue({
+      deposits: [
+        {
+          deposit_id: "deposit-1",
+          asset: "USDC",
+          amount_expected: "0.2",
+          status: "credited",
+          chain_tx_id:
+            `token-standard:${depositUpdateId}:0`,
+          created_at: "2026-07-06T09:00:00Z",
+        },
+      ],
+      withdrawals: [
+        {
+          withdrawal_id: "withdrawal-server-1",
+          asset: "USDC",
+          amount: "0.1",
+          status: "settled",
+          requested_at: "2026-07-06T09:01:00Z",
+          canton_update_id: "019f36c038877bc28f4701bbeb1fe955",
+        },
+      ],
+    });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1));
+    expect(document.querySelector('a[href*="token-standard"]')).toBeNull();
+    expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${depositUpdateId}"]`)).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Withdraw History"));
+
+    expect(document.querySelector('a[href*="019f36c038877bc28f4701bbeb1fe955"]')).toBeNull();
   });
 
   it("expands all withdrawal history rows from the view all control", async () => {

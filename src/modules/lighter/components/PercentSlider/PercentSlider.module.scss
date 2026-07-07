@@ -110,7 +110,7 @@
     linear-gradient(var(--ltr-bg-panel), var(--ltr-bg-panel)) padding-box,
     var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: 4px;
   transition: background 150ms, box-shadow 150ms;
   flex-shrink: 0;
   &:hover {

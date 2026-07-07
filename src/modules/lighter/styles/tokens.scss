@@ -5,22 +5,22 @@
 // is on. Structural sizes (row height, nav height, font-size) stay the same so
 // the trading grid keeps its Lighter-style compact density.
 :root {
-  --ltr-bg-root: #06060C;
+  --ltr-bg-root: #06060c;
   --ltr-bg-panel: #121218;
-  --ltr-bg-panel-2: #0E0E14;
-  --ltr-bg-hover: #15151B;
-  --ltr-border: #2B2B30;
+  --ltr-bg-panel-2: #0e0e14;
+  --ltr-bg-hover: #15151b;
+  --ltr-border: #2b2b30;
   --ltr-border-strong: #515155;
   --ltr-overlay-faint: rgba(255, 255, 255, 0.02);
   --ltr-overlay-soft: rgba(255, 255, 255, 0.06);
-  --ltr-text-primary: #F3F3F3;
-  --ltr-text-secondary: #B4B4B6;
-  --ltr-text-muted: #6E6E72;
-  --ltr-up: #1BD289;
-  --ltr-down: #FF384F;
-  --ltr-up-bg: rgba(27, 210, 137, 0.10);
-  --ltr-down-bg: rgba(255, 56, 79, 0.10);
-  --ltr-warn-bg: #3A1212;
+  --ltr-text-primary: #f3f3f3;
+  --ltr-text-secondary: #b4b4b6;
+  --ltr-text-muted: #6e6e72;
+  --ltr-up: #1bd289;
+  --ltr-down: #ff384f;
+  --ltr-up-bg: rgba(27, 210, 137, 0.1);
+  --ltr-down-bg: rgba(255, 56, 79, 0.1);
+  --ltr-warn-bg: #3a1212;
   --rocky-theme-accent-start: #f5a85f;
   --rocky-theme-accent-end: #b0d6ea;
   --rocky-theme-accent: var(--rocky-theme-accent-start);
@@ -31,7 +31,8 @@
   );
   --rocky-input-surface: #1f1f24;
   --rocky-input-surface-hover: #26262c;
-  --rocky-input-border-gradient: var(--rocky-theme-gradient);
+  --rocky-input-border: #8b95a5;
+  --rocky-input-border-gradient: linear-gradient(90deg, var(--rocky-input-border) 0%, var(--rocky-input-border) 100%);
 
   --ltr-font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --ltr-row-h: 18px;

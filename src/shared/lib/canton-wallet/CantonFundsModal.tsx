@@ -49,7 +49,7 @@ type LocalHistoryRow = {
 
 const FIXED_FUNDS_ASSET: CantonFundsAsset = "USDCx";
 const FIXED_WITHDRAWAL_FEE_AMOUNT = 1;
-const FIXED_WITHDRAWAL_FEE_LABEL = "1USDCx";
+const FIXED_WITHDRAWAL_FEE_LABEL = "1 USDCx";
 const PENDING_DEPOSIT_CONFIRM_ATTEMPTS = 36;
 const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
@@ -419,7 +419,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </div>
               <div className={styles.balanceItem}>
                 <div className={cx(styles.exchangeIcon, logoFitClass(styles, walletLogo.fit))}>
-                  <img src={walletLogo.src} alt="" className={styles.providerLogo} />
+                  <img src="/favicon.svg" alt="" className={styles.providerLogo} />
                 </div>
                 <div>
                   <div className={styles.balanceLabel}>Exchange Balance</div>
@@ -448,7 +448,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <strong>Deposit</strong>
                 <small>Deposit USDCx to Rocky Exchange</small>
               </span>
-              <ChevronIcon />
+              <span className={styles.actionChevron}>
+                {activeAction === "deposit" ? <ChevronDownIcon /> : <ChevronIcon />}
+              </span>
             </button>
             <button
               type="button"
@@ -466,7 +468,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <strong>Withdraw</strong>
                 <small>Withdraw USDCx to your Wallet</small>
               </span>
-              <ChevronIcon />
+              <span className={styles.actionChevron}>
+                {activeAction === "withdraw" ? <ChevronDownIcon /> : <ChevronIcon />}
+              </span>
             </button>
           </section>
 
@@ -617,7 +621,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <span>
                       {item.reference && item.explorerUrl ? (
                         <a className={styles.referenceButton} href={item.explorerUrl} target="_blank" rel="noreferrer">
-                          {abbreviateMiddle(item.reference, 22)}
+                          <span className={styles.referenceText}>{abbreviateMiddle(item.reference, 22)}</span>
                           <ExternalIcon />
                         </a>
                       ) : item.reference ? (
@@ -626,7 +630,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                           className={styles.referenceButton}
                           onClick={() => copyValue(item.reference, `history-${item.id}`)}
                         >
-                          {copiedKey === `history-${item.id}` ? "Copied" : abbreviateMiddle(item.reference, 22)}
+                          <span className={styles.referenceText}>
+                            {copiedKey === `history-${item.id}` ? "Copied" : abbreviateMiddle(item.reference, 22)}
+                          </span>
                           <CopyIcon />
                         </button>
                       ) : (
@@ -794,7 +800,21 @@ function getCantonScanPartyUrl(party: string | undefined): string {
 }
 
 function getCantonScanUpdateUrl(updateId: string | undefined): string {
-  return updateId ? `https://www.cantonscan.com/update/${encodeURIComponent(updateId)}` : "";
+  return updateId && isCantonScanUpdateId(updateId)
+    ? `https://www.cantonscan.com/update/${encodeURIComponent(updateId)}`
+    : "";
+}
+
+function isCantonScanUpdateId(value: string | undefined): boolean {
+  return typeof value === "string" && /^1220[0-9a-fA-F]{64}$/.test(value.trim());
+}
+
+function cantonUpdateIdFromChainId(chainId: string | undefined): string | undefined {
+  if (!chainId) return undefined;
+  const [prefix, updateId, nodeId, extra] = chainId.trim().split(":");
+  if (extra !== undefined || !nodeId) return undefined;
+  if (prefix !== "token-standard" && prefix !== "transfer-preapproval") return undefined;
+  return isCantonScanUpdateId(updateId) ? updateId : undefined;
 }
 
 function stringField(value: Record<string, unknown>, key: string): string | undefined {
@@ -805,7 +825,10 @@ function stringField(value: Record<string, unknown>, key: string): string | unde
 function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRow[] {
   const depositRows: LocalHistoryRow[] = history.deposits.map((item, index) => {
     const asset = walletFacingHistoryAsset(item.asset);
-    const reference = item.chain_tx_id || item.deposit_ref || item.deposit_id;
+    const updateId = isCantonScanUpdateId(item.canton_update_id)
+      ? item.canton_update_id
+      : cantonUpdateIdFromChainId(item.chain_tx_id);
+    const reference = updateId || item.deposit_ref || item.deposit_id;
     return {
       id: `deposit-${reference || index}`,
       type: "deposit",
@@ -814,13 +837,14 @@ function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRo
       amount: formatHistoryAmount("+", item.amount_expected, asset),
       status: formatFundsHistoryStatus(item.status, "Submitted"),
       reference,
-      explorerUrl: getCantonScanUpdateUrl(item.chain_tx_id),
+      explorerUrl: getCantonScanUpdateUrl(updateId),
     };
   });
 
   const withdrawalRows: LocalHistoryRow[] = history.withdrawals.map((item, index) => {
     const asset = walletFacingHistoryAsset(item.asset);
-    const reference = item.canton_update_id || item.withdrawal_id || item.withdrawal_request_id;
+    const updateId = isCantonScanUpdateId(item.canton_update_id) ? item.canton_update_id : undefined;
+    const reference = updateId || item.withdrawal_id || item.withdrawal_request_id;
     return {
       id: `withdraw-${reference || index}`,
       type: "withdraw",
@@ -830,7 +854,7 @@ function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRo
       networkFee: formatNetworkFee(item.fee_amount, item.fee_wallet_symbol || item.fee_asset),
       status: formatFundsHistoryStatus(item.status, "Submitted"),
       reference,
-      explorerUrl: getCantonScanUpdateUrl(item.canton_update_id),
+      explorerUrl: getCantonScanUpdateUrl(updateId),
     };
   });
 
@@ -879,7 +903,7 @@ function formatHistoryAmount(
 function formatNetworkFee(amount: string | number | null | undefined, asset: string | undefined): string | undefined {
   const formattedAmount = formatOptionalAmount(amount);
   if (!formattedAmount) return undefined;
-  return `${formattedAmount}${walletFacingHistoryAsset(asset)}`;
+  return `${formattedAmount} ${walletFacingHistoryAsset(asset)}`;
 }
 
 function formatOptionalAmount(value: string | number | null | undefined): string {

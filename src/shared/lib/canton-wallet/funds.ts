@@ -64,6 +64,7 @@ export type CantonDepositHistoryItem = {
   status?: string;
   deposit_ref?: string;
   chain_tx_id?: string;
+  canton_update_id?: string;
   created_at?: string;
   expires_at?: string;
   credited_at?: string;

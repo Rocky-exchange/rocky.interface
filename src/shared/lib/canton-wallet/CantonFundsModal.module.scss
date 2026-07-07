@@ -3,7 +3,7 @@
   inset: 0;
   z-index: 2000;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 16px 24px;
   background: rgba(2, 4, 10, 0.76);
@@ -15,9 +15,10 @@
   max-height: calc(100vh - 32px);
   overflow: hidden auto;
   color: #f7f8ff;
-  background: radial-gradient(circle at 18% 2%, rgba(240, 154, 74, 0.24), transparent 18rem),
-    radial-gradient(circle at 78% 8%, rgba(48, 131, 255, 0.28), transparent 22rem),
-    linear-gradient(180deg, #080d17 0%, #070a12 48%, #05070d 100%);
+  // background: radial-gradient(circle at 18% 2%, rgba(240, 154, 74, 0.24), transparent 18rem),
+  //   radial-gradient(circle at 78% 8%, rgba(48, 131, 255, 0.28), transparent 22rem),
+  //   linear-gradient(180deg, #080d17 0%, #070a12 48%, #05070d 100%);
+  background: #15151a;
   border: 1px solid rgba(95, 111, 140, 0.34);
   border-radius: 18px;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.66);
@@ -422,8 +423,8 @@
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
   background: transparent;
   border-radius: 10px;
@@ -528,26 +529,37 @@
   width: 42px;
   height: 42px;
   place-items: center;
+  color: #aeb7c8;
+  background: rgba(148, 163, 184, 0.08);
+  border: 2px solid rgba(148, 163, 184, 0.58);
   border-radius: 50%;
 }
 
+.actionChevron {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #c7d0e6;
+}
+
 .depositAction {
-  border-color: rgba(255, 132, 55, 0.5);
-  box-shadow: inset 0 0 34px rgba(255, 119, 41, 0.1);
+  // border-color: rgba(255, 132, 55, 0.5);
+  // box-shadow: inset 0 0 34px rgba(255, 119, 41, 0.1);
 
   .actionIcon {
-    color: #ff873a;
-    border: 2px solid rgba(255, 126, 48, 0.72);
+    color: #aeb7c8;
+    border-color: rgba(148, 163, 184, 0.58);
   }
 }
 
 .withdrawAction {
-  border-color: rgba(50, 121, 255, 0.52);
-  box-shadow: inset 0 0 34px rgba(50, 121, 255, 0.11);
+  // border-color: rgba(50, 121, 255, 0.52);
+  // box-shadow: inset 0 0 34px rgba(50, 121, 255, 0.11);
 
   .actionIcon {
-    color: #337fff;
-    border: 2px solid rgba(50, 121, 255, 0.72);
+    color: #aeb7c8;
+    border-color: rgba(148, 163, 184, 0.58);
   }
 }
 
@@ -827,13 +839,18 @@
 .historyHead,
 .historyRow {
   display: grid;
-  grid-template-columns: 1.25fr 0.8fr 0.9fr 0.85fr 0.9fr;
-  gap: 16px;
+  grid-template-columns: 116px 84px 94px 90px minmax(94px, 1fr);
+  column-gap: 12px;
   align-items: center;
+
+  > span {
+    min-width: 0;
+  }
 }
 
 .historyRowWithFee {
-  grid-template-columns: 1.15fr 0.7fr 0.78fr 0.82fr 0.8fr 0.8fr;
+  grid-template-columns: 108px 72px 82px 66px 82px minmax(66px, 1fr);
+  column-gap: 10px;
 }
 
 .historyHead {
@@ -849,9 +866,10 @@
 
   em {
     display: inline-flex;
-    padding: 5px 10px;
+    padding: 5px 8px;
     color: #63fa8c;
     font-style: normal;
+    white-space: nowrap;
     background: rgba(54, 171, 91, 0.15);
     border-radius: 999px;
   }
@@ -861,15 +879,19 @@
   display: inline-flex;
   gap: 8px;
   align-items: center;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .amountCell {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .feeCell {
   color: #d5dceb;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .positiveAmount {
@@ -884,6 +906,8 @@
   display: inline-flex;
   gap: 7px;
   align-items: center;
+  max-width: 100%;
+  min-width: 0;
   color: #bac5dc;
   text-decoration: none;
   cursor: pointer;
@@ -891,6 +915,12 @@
   &:hover {
     color: #4c9dff;
   }
+}
+
+.referenceText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .historyEmpty {
