@@ -24,6 +24,7 @@ import {
   type CantonFundsHistory,
   type CantonFundsAsset,
 } from "./funds";
+import { setDisplayName, SetDisplayNameError } from "./profile";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
@@ -55,7 +56,7 @@ const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
-  const { connected, party, provider } = useCantonSession();
+  const { connected, party, provider, username } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -75,6 +76,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
   const didRefreshOnOpenRef = useRef(false);
   const depositConfirmationIdRef = useRef(0);
 
@@ -326,6 +331,38 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }
 
+  function startEditName() {
+    setNameDraft(username || "");
+    setNameError("");
+    setEditingName(true);
+  }
+
+  async function handleSaveName() {
+    const draft = nameDraft.trim();
+    if (draft.length < 3 || draft.length > 20 || !/^[a-zA-Z0-9_]+$/.test(draft)) {
+      setNameError(i18n._(t`3-20 letters, digits or underscore.`));
+      return;
+    }
+    setNameSaving(true);
+    setNameError("");
+    try {
+      await setDisplayName(draft);
+      setEditingName(false);
+    } catch (e) {
+      if (e instanceof SetDisplayNameError && e.code === "name_taken") {
+        setNameError(i18n._(t`That name is already taken.`));
+      } else if (e instanceof SetDisplayNameError && e.code === "invalid_name") {
+        setNameError(i18n._(t`3-20 letters, digits or underscore.`));
+      } else if (e instanceof SetDisplayNameError && e.code === "unauthorized") {
+        setNameError(i18n._(t`Please reconnect your wallet.`));
+      } else {
+        setNameError(i18n._(t`Could not save name. Try again.`));
+      }
+    } finally {
+      setNameSaving(false);
+    }
+  }
+
   function selectHistoryTab(nextTab: HistoryTab) {
     setHistoryTab(nextTab);
     setShowAllHistory(false);
@@ -346,7 +383,58 @@ export function CantonFundsModal({ open, onClose }: Props) {
               <img src={walletLogo.src} alt="" className={styles.providerLogo} />
             </span>
             <div className={styles.brandText}>
-              <span className={styles.brandTitle}>{walletLabel}</span>
+              {editingName ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      maxLength={20}
+                      placeholder={i18n._(t`Display name`)}
+                      autoFocus
+                      disabled={nameSaving}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #33333d",
+                        background: "#101014",
+                        color: "#fff",
+                        fontSize: 14,
+                        width: 160,
+                      }}
+                    />
+                    <button type="button" onClick={() => void handleSaveName()} disabled={nameSaving}>
+                      {nameSaving ? i18n._(t`Saving`) : i18n._(t`Save`)}
+                    </button>
+                    <button type="button" onClick={() => setEditingName(false)} disabled={nameSaving}>
+                      {i18n._(t`Cancel`)}
+                    </button>
+                  </div>
+                  {nameError ? <span style={{ color: "#ff7b7b", fontSize: 12 }}>{nameError}</span> : null}
+                </div>
+              ) : (
+                <span className={styles.brandTitle} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                  {username || walletLabel}
+                  {connected ? (
+                    <button
+                      type="button"
+                      onClick={startEditName}
+                      aria-label={i18n._(t`Edit display name`)}
+                      style={{
+                        background: "transparent",
+                        border: "1px solid #33333d",
+                        borderRadius: 6,
+                        color: "#9aa1ad",
+                        cursor: "pointer",
+                        fontSize: 11,
+                        padding: "1px 6px",
+                      }}
+                    >
+                      {i18n._(t`Edit`)}
+                    </button>
+                  ) : null}
+                </span>
+              )}
               {walletParty ? (
                 <div className={styles.brandParty}>
                   <span title={walletParty}>{abbreviateMiddle(walletParty, 30)}</span>
