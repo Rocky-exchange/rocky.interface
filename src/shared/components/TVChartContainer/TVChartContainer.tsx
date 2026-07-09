@@ -71,7 +71,7 @@ type Props = {
   loadLastChart?: boolean;
   disableAutoSave?: boolean;
   chartName?: string;
-  /** 图表左上角图例显示的品牌名 (默认 Primit) */
+  /** 图表左上角图例显示的品牌名 (默认 Rocky) */
   brandName?: string;
   /** 自定义 CSS URL,会注入 TradingView iframe (默认 /tradingview-chart.css) */
   customCssUrl?: string;
@@ -320,8 +320,8 @@ export default function TVChartContainer({
         enforceTradeVolumePaneHeight();
         enforceTradeVolumeScalePadding();
       });
-    } catch (error) {
-      console.error("[TVChartContainer] Failed to ensure Trade Volume MA studies:", error);
+    } catch (_error) {
+      /* ignore */
     } finally {
       isEnsuringVolumeStudiesRef.current = false;
     }
@@ -392,8 +392,8 @@ export default function TVChartContainer({
                 }
               );
             }
-          } catch (error) {
-            console.error("[TVChartContainer] Failed to add Volume indicator after symbol change:", error);
+          } catch (_error) {
+            /* ignore */
           }
         }
 
@@ -495,10 +495,7 @@ export default function TVChartContainer({
       ).TradingView;
       if (!tv?.widget) {
         elapsed += POLL_INTERVAL_MS;
-        if (elapsed >= POLL_TIMEOUT_MS) {
-          console.error("[TVChartContainer] TradingView script did not load within", POLL_TIMEOUT_MS, "ms");
-          return;
-        }
+        if (elapsed >= POLL_TIMEOUT_MS) return;
         pollTimer = setTimeout(initWidget, POLL_INTERVAL_MS);
         return;
       }
@@ -564,8 +561,8 @@ export default function TVChartContainer({
               requestAnimationFrame(() => enforceTradeVolumeScalePadding());
               requestAnimationFrame(() => emitLayout());
               setTimeout(() => emitLayout(), 0);
-            } catch (error) {
-              console.error("[TVChartContainer] Failed to create Volume study on ready:", error);
+            } catch (_error) {
+              /* ignore */
             }
           })();
         }
@@ -596,8 +593,8 @@ export default function TVChartContainer({
                 }
               );
             }
-          } catch (error) {
-            console.error("[TVChartContainer] Failed to add Volume indicator:", error);
+          } catch (_error) {
+            /* ignore */
           }
         }
 
