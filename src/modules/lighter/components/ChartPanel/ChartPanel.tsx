@@ -355,8 +355,8 @@ export function ChartPanel() {
       try {
         tvWidget.activeChart().setChartType(type);
         setChartType(type);
-      } catch (error) {
-        console.error("[ChartPanel] setChartType failed", error);
+      } catch (_error) {
+        /* ignore */
       }
     },
     [tvWidget]
@@ -374,8 +374,8 @@ export function ChartPanel() {
     if (!tvWidget) return;
     try {
       tvWidget.activeChart().executeActionById("insertIndicator");
-    } catch (error) {
-      console.error("[ChartPanel] open indicators dialog failed", error);
+    } catch (_error) {
+      /* ignore */
     }
   }, [tvWidget]);
 
@@ -428,8 +428,8 @@ export function ChartPanel() {
         "mainSeriesProperties.priceLineColor": "#E64558",
         "mainSeriesProperties.priceLineWidth": 1,
       });
-    } catch (error) {
-      console.error("[ChartPanel] apply showPriceLine override failed", error);
+    } catch (_error) {
+      /* ignore */
     }
   }, [tvWidget, rawPrices]);
 
@@ -477,8 +477,8 @@ export function ChartPanel() {
         }
       );
       markLineEntityRef.current = id ?? null;
-    } catch (error) {
-      console.error("[ChartPanel] create mark price line failed", error);
+    } catch (_error) {
+      /* ignore */
     }
 
     return removeExisting;
