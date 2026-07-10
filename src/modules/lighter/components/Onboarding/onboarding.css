@@ -90,3 +90,79 @@
   background: #1a2029;
   transform: translateY(-1px);
 }
+
+/* Welcome checklist modal — numbered getting-started steps.
+   The Modal shell (variant="primit") supplies the panel/scrim; these rules
+   style the step list inside it. */
+.rocky-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 4px 8px;
+  min-width: 300px;
+  max-width: 380px;
+}
+
+.rocky-welcome-intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #aab3bd;
+}
+
+.rocky-welcome-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rocky-welcome-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rocky-welcome-step-num {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #17110a;
+  background: linear-gradient(180deg, #d9a441, #b9862c);
+}
+
+.rocky-welcome-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rocky-welcome-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.rocky-welcome-step-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #aab3bd;
+}
+
+.rocky-welcome-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rocky-welcome-primary {
+  flex: 1 1 auto;
+}

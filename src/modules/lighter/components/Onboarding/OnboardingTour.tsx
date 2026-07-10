@@ -6,11 +6,13 @@
 // copy is a small bilingual map keyed by the active locale — reliable and free
 // of the lingui-macro/catalog id resolution that doesn't survive into this
 // module-scope, non-render code path.
-import { useCallback, useEffect } from "react";
-import { driver, type Driver } from "driver.js";
 import { i18n } from "@lingui/core";
+import { driver, type Driver } from "driver.js";
+import { useCallback, useEffect, useState } from "react";
+
 import "driver.js/dist/driver.css";
 import "./onboarding.css";
+import { WelcomeModal } from "./WelcomeModal";
 
 const SEEN_KEY = "rocky_onboarded_v1";
 
@@ -166,35 +168,64 @@ export function startOnboardingTour() {
   window.setTimeout(() => buildTour().drive(), 150);
 }
 
-export function OnboardingTour() {
-  const replay = useCallback(() => startOnboardingTour(), []);
+type Phase = "idle" | "welcome";
 
+function markSeen() {
+  try {
+    window.localStorage.setItem(SEEN_KEY, "1");
+  } catch (err) {
+    // ignore (private mode etc.)
+  }
+}
+
+export function OnboardingTour() {
+  const [phase, setPhase] = useState<Phase>("idle");
+
+  // First visit: show the welcome checklist (not the tour) after the page
+  // paints. Mark seen on open so it never auto-reopens.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    let seen = false;
+    let seen = true;
     try {
       seen = window.localStorage.getItem(SEEN_KEY) === "1";
-    } catch {
-      seen = false;
+    } catch (err) {
+      seen = true;
     }
     if (seen) return;
-    try {
-      window.localStorage.setItem(SEEN_KEY, "1");
-    } catch {
-      // ignore
-    }
+    const timer = window.setTimeout(() => {
+      markSeen();
+      setPhase((current) => (current === "idle" ? "welcome" : current));
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const dismiss = useCallback(() => setPhase("idle"), []);
+
+  const startTour = useCallback(() => {
+    setPhase("idle");
     startOnboardingTour();
   }, []);
 
+  // The floating "?" reopens the welcome checklist (from which users can launch
+  // the spotlight tour). Mark seen so replaying doesn't re-arm the first-visit
+  // auto-open path.
+  const replay = useCallback(() => {
+    markSeen();
+    setPhase("welcome");
+  }, []);
+
   return (
-    <button
-      type="button"
-      className="rocky-tour-help"
-      onClick={replay}
-      aria-label="Show interface guide"
-      title="Interface guide"
-    >
-      ?
-    </button>
+    <>
+      <WelcomeModal isVisible={phase === "welcome"} onStartTour={startTour} onDismiss={dismiss} />
+      <button
+        type="button"
+        className="rocky-tour-help"
+        onClick={replay}
+        aria-label="Show interface guide"
+        title="Interface guide"
+      >
+        ?
+      </button>
+    </>
   );
 }
