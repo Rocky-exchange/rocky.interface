@@ -1,5 +1,18 @@
 export declare const MINIMAL_CAPABLE_VERSION = "0.1.0";
 export declare const ROCKY_WALLET_INITIALIZED_EVENT = "rockyWallet#initialized";
+export declare const ROCKY_ASSET_SYMBOLS: readonly ["CC", "USDCx", "CBTC"];
+
+export type RockyAssetSymbol = "CC" | "USDCx" | "CBTC";
+export type RockyAssetInstrument =
+  | RockyAssetSymbol
+  | string
+  | {
+      instrument_id?: string;
+      id?: string;
+      [key: string]: unknown;
+    };
+
+export declare function resolveRockyAssetSymbol(instrument?: RockyAssetInstrument): RockyAssetSymbol;
 
 export type ConnectVariant = "local" | "remote" | "combined";
 export type AvailabilityStatus = "installed" | "notInstalled";
@@ -87,15 +100,23 @@ export type GetBalanceRequest = {
 };
 
 export type GetCoinsResponse = {
-  tokens?: Array<Record<string, unknown>>;
-  items?: Array<Record<string, unknown>>;
+  tokens?: RockyTokenBalance[];
+  items?: RockyTokenBalance[];
+  [key: string]: unknown;
+};
+
+export type RockyTokenBalance = {
+  symbol: RockyAssetSymbol | string;
+  amount?: string;
+  priceUsd?: string;
+  price_usd?: string;
   [key: string]: unknown;
 };
 
 export type SignSendRequest = {
   from?: string;
   to: string;
-  token: string;
+  token: RockyAssetSymbol | string;
   amount: string;
   expireDate?: string;
   memo?: string;
@@ -107,8 +128,8 @@ export type BuildTransferRequest = {
   fromParty?: string;
   toAddress?: string;
   to?: string;
-  assetSymbol?: string;
-  token?: string;
+  assetSymbol?: RockyAssetSymbol | string;
+  token?: RockyAssetSymbol | string;
   amount: string;
   memo?: string;
   [key: string]: unknown;
@@ -118,7 +139,7 @@ export type BuildTransferResponse = {
   unsigned_payload: string;
   payload_hash: string;
   resolved_to_party?: string;
-  asset_symbol?: string;
+  asset_symbol?: RockyAssetSymbol | string;
   amount?: string;
   fee_asset_symbol?: string;
   feeAssetSymbol?: string;
@@ -160,7 +181,7 @@ export interface RockyWalletProvider {
   submitCommands: (request: SignSendRequest | Record<string, unknown>) => Promise<SignSendResponse>;
   buildTransfer?: (request: BuildTransferRequest | Record<string, unknown>) => Promise<BuildTransferResponse>;
   sendTransfer?: (request: SignSendRequest | BuildTransferRequest | Record<string, unknown>) => Promise<SignSendResponse>;
-  transfer?: (to: string, amount: string | number, instrument: unknown, options?: Record<string, unknown>) => Promise<SignSendResponse>;
+  transfer?: (to: string, amount: string | number, instrument: RockyAssetInstrument, options?: Record<string, unknown>) => Promise<SignSendResponse>;
   getNodeOffers: (request?: OffersRequest) => Promise<OffersResponse>;
   submitInstructionChoice: (request?: SignInstructionChoiceRequest) => Promise<SignInstructionChoiceResponse>;
 }
@@ -206,7 +227,7 @@ export interface RockyWalletSdk {
   submitCommands(request: SignSendRequest | Record<string, unknown>): Promise<SignSendResponse>;
   buildTransfer(request: BuildTransferRequest | Record<string, unknown>): Promise<BuildTransferResponse>;
   sendTransfer(request: SignSendRequest | BuildTransferRequest | Record<string, unknown>): Promise<SignSendResponse>;
-  transfer(to: string, amount: string | number, instrument: unknown, options?: Record<string, unknown>): Promise<SignSendResponse>;
+  transfer(to: string, amount: string | number, instrument: RockyAssetInstrument, options?: Record<string, unknown>): Promise<SignSendResponse>;
   getOffers(request?: OffersRequest): Promise<OffersResponse>;
   getNodeOffers(request?: OffersRequest): Promise<OffersResponse>;
   submitInstructionChoice(request?: SignInstructionChoiceRequest): Promise<SignInstructionChoiceResponse>;
@@ -229,7 +250,7 @@ export interface RockyWalletSdk {
 }
 
 export interface RockyWalletClientWallet {
-  transfer(to: string, amount: string | number, instrument: unknown, options?: Record<string, unknown>): Promise<SignSendResponse>;
+  transfer(to: string, amount: string | number, instrument: RockyAssetInstrument, options?: Record<string, unknown>): Promise<SignSendResponse>;
   signMessage(request: SignMessageRequest | string): Promise<SignedMessageResponse>;
   signLoginChallenge(challenge: string, options?: SignLoginChallengeOptions): Promise<SignedMessageResponse>;
   submitCommands(request: SignSendRequest | Record<string, unknown>): Promise<SignSendResponse>;
@@ -256,7 +277,7 @@ export interface RockyWalletClient {
   submitCommands(request: SignSendRequest | Record<string, unknown>): Promise<SignSendResponse>;
   buildTransfer(request: BuildTransferRequest | Record<string, unknown>): Promise<BuildTransferResponse>;
   sendTransfer(request: SignSendRequest | BuildTransferRequest | Record<string, unknown>): Promise<SignSendResponse>;
-  transfer(to: string, amount: string | number, instrument: unknown, options?: Record<string, unknown>): Promise<SignSendResponse>;
+  transfer(to: string, amount: string | number, instrument: RockyAssetInstrument, options?: Record<string, unknown>): Promise<SignSendResponse>;
   getOffers(request?: OffersRequest): Promise<OffersResponse>;
   getNodeOffers(request?: OffersRequest): Promise<OffersResponse>;
   submitInstructionChoice(request?: SignInstructionChoiceRequest): Promise<SignInstructionChoiceResponse>;

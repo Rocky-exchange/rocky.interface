@@ -3,7 +3,7 @@ import type { GetCoinsResponse, RockyAccount, RockyWalletSdk } from "./rocky-wal
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 type RockyWalletTarget = "local";
-type RockyWalletTransferToken = "CC" | "USDCx";
+type RockyWalletTransferToken = "CC" | "USDCx" | "CBTC";
 
 type RockyWalletTransferInput = {
   from?: string;

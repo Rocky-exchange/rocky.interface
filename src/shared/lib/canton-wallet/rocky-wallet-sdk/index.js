@@ -1,5 +1,6 @@
 export const MINIMAL_CAPABLE_VERSION = "0.1.0";
 export const ROCKY_WALLET_INITIALIZED_EVENT = "rockyWallet#initialized";
+export const ROCKY_ASSET_SYMBOLS = Object.freeze(["CC", "USDCx", "CBTC"]);
 
 const DEFAULT_TIMEOUT_MS = 1000;
 
@@ -181,13 +182,14 @@ export function createRockyWalletSdk(options = {}) {
 
     async transfer(to, amount, instrument, options = {}) {
       const provider = await getProvider(options);
+      const token = resolveRockyAssetSymbol(instrument);
       if (typeof provider.transfer === "function") {
-        return callProviderMethod(provider, "transfer", to, amount, instrument, options);
+        return callProviderMethod(provider, "transfer", to, amount, token, options);
       }
       const request = {
         to,
         amount: String(amount),
-        token: tokenFromInstrument(instrument),
+        token,
         memo: options.memo || options.message || "",
         options,
       };
@@ -305,13 +307,14 @@ export function createRockyWalletClient(options = {}) {
   const wallet = {
     async transfer(recipient, amount, instrument, transferOptions = {}) {
       const provider = requireProvider();
+      const token = resolveRockyAssetSymbol(instrument);
       if (typeof provider.transfer === "function") {
-        return callProviderMethod(provider, "transfer", recipient, amount, instrument, transferOptions);
+        return callProviderMethod(provider, "transfer", recipient, amount, token, transferOptions);
       }
       const request = {
         to: recipient,
         amount: String(amount),
-        token: tokenFromInstrument(instrument),
+        token,
         memo: transferOptions.memo || transferOptions.message || "",
         options: transferOptions,
       };
@@ -592,7 +595,7 @@ function compareVersions(actual, minimum) {
   return true;
 }
 
-function tokenFromInstrument(instrument) {
+export function resolveRockyAssetSymbol(instrument) {
   const id = String(instrument?.instrument_id || instrument?.id || instrument || "CC").toUpperCase();
   if (id.includes("USDC")) return "USDCx";
   if (id.includes("BTC")) return "CBTC";

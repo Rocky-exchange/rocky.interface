@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { connectRockyWallet } from "./rocky";
+import { ROCKY_ASSET_SYMBOLS } from "./rocky-wallet-sdk";
+import { connectRockyWallet, submitRockyWalletTransfer } from "./rocky";
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -9,6 +10,10 @@ beforeEach(() => {
 });
 
 describe("rocky wallet sdk", () => {
+  it("exposes CBTC through the vendored SDK", () => {
+    expect(ROCKY_ASSET_SYMBOLS).toEqual(["CC", "USDCx", "CBTC"]);
+  });
+
   it("connects with the injected local Rocky Wallet SDK provider", async () => {
     const provider = createRockyWalletProvider();
     window.rockyWallet = provider;
@@ -39,6 +44,27 @@ describe("rocky wallet sdk", () => {
       },
     });
   });
+
+  it("submits CBTC transfers through the Rocky Wallet provider", async () => {
+    const provider = createRockyWalletProvider();
+    window.rockyWallet = provider;
+
+    await expect(submitRockyWalletTransfer({
+      from: "party-1",
+      to: "Cantex::party",
+      token: "CBTC",
+      amount: "0.0001",
+      memo: "cBTC transfer",
+    })).resolves.toMatchObject({ status: true });
+
+    expect(provider.sendTransfer).toHaveBeenCalledWith(expect.objectContaining({
+      from: "party-1",
+      to: "Cantex::party",
+      token: "CBTC",
+      amount: "0.0001",
+      memo: "cBTC transfer",
+    }));
+  });
 });
 
 function createRockyWalletProvider() {
@@ -62,6 +88,7 @@ function createRockyWalletProvider() {
     getCoinsBalance: vi.fn(),
     signMessage: vi.fn(async () => "rocky-signature"),
     submitCommands: vi.fn(),
+    sendTransfer: vi.fn(async () => ({ status: true, transferId: "cbtc-transfer-1" })),
     getNodeOffers: vi.fn(),
     submitInstructionChoice: vi.fn(),
   };

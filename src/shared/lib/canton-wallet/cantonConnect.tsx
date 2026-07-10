@@ -5,6 +5,9 @@ import { useCantonWallet } from "./useCantonWallet";
 import type { WalletProviderId } from "./types";
 import { getWalletProviderLogo, type WalletProviderLogo } from "./walletLogos";
 
+export const ROCKY_WALLET_CHROME_WEB_STORE_URL =
+  "https://chromewebstore.google.com/detail/rocky-wallet/mgafpjfkpppnmpcdfpjghcajhpljomcn";
+
 let isOpenState = false;
 const listeners = new Set<() => void>();
 function emit() {
@@ -117,6 +120,10 @@ export function CantonConnectModal() {
   const [connectingProvider, setConnectingProvider] = useState<Exclude<WalletProviderId, "other"> | null>(null);
   if (!open) return null;
   const pick = async (p: "rocky" | "loop" | "console") => {
+    if (p === "rocky" && !window.rockyWallet) {
+      window.open(ROCKY_WALLET_CHROME_WEB_STORE_URL, "_blank", "noopener,noreferrer");
+      return;
+    }
     try {
       setConnectingProvider(p);
       await connect(p);
