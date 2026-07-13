@@ -2,10 +2,11 @@ import { i18n } from "@lingui/core";
 import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import cx from "classnames";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 
+import { fileToAvatarDataUrl } from "./avatarImage";
 import {
   emptyWalletBalanceRows,
   fetchWalletBalanceSnapshot,
@@ -24,7 +25,7 @@ import {
   type CantonFundsHistory,
   type CantonFundsAsset,
 } from "./funds";
-import { setDisplayName, SetDisplayNameError } from "./profile";
+import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDisplayNameError } from "./profile";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
@@ -56,7 +57,7 @@ const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
-  const { connected, party, provider, username } = useCantonSession();
+  const { connected, party, provider, username, avatar } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -80,6 +81,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [nameDraft, setNameDraft] = useState("");
   const [nameError, setNameError] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const didRefreshOnOpenRef = useRef(false);
   const depositConfirmationIdRef = useRef(0);
 
@@ -163,6 +167,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     if (didRefreshOnOpenRef.current) return;
     didRefreshOnOpenRef.current = true;
     void refreshWalletDashboard();
+    void hydrateOwnProfile();
   }, [connected, open, refreshWalletDashboard]);
 
   useEffect(() => {
@@ -363,6 +368,45 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }
 
+  function openAvatarPicker() {
+    if (!connected || avatarBusy) return;
+    setAvatarError("");
+    avatarInputRef.current?.click();
+  }
+
+  async function handleAvatarFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setAvatarBusy(true);
+    setAvatarError("");
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      await setAvatar(dataUrl);
+    } catch (e) {
+      if (e instanceof SetAvatarError && e.code === "unauthorized") {
+        setAvatarError(i18n._(t`Please reconnect your wallet.`));
+      } else {
+        setAvatarError(i18n._(t`Could not save avatar. Try again.`));
+      }
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    if (avatarBusy) return;
+    setAvatarBusy(true);
+    setAvatarError("");
+    try {
+      await setAvatar(null);
+    } catch (_error) {
+      setAvatarError(i18n._(t`Could not remove avatar. Try again.`));
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
   function selectHistoryTab(nextTab: HistoryTab) {
     setHistoryTab(nextTab);
     setShowAllHistory(false);
@@ -379,9 +423,36 @@ export function CantonFundsModal({ open, onClose }: Props) {
       >
         <header className={styles.header}>
           <div className={styles.brand}>
-            <span className={cx(styles.brandMark, logoFitClass(styles, walletLogo.fit))}>
-              <img src={walletLogo.src} alt="" className={styles.providerLogo} />
-            </span>
+            <button
+              type="button"
+              onClick={openAvatarPicker}
+              disabled={!connected || avatarBusy}
+              aria-label={i18n._(t`Change avatar`)}
+              title={connected ? i18n._(t`Change avatar`) : undefined}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: connected ? "pointer" : "default",
+                lineHeight: 0,
+                opacity: avatarBusy ? 0.6 : 1,
+                padding: 0,
+              }}
+            >
+              <span className={cx(styles.brandMark, logoFitClass(styles, walletLogo.fit))}>
+                {avatar ? (
+                  <img src={avatar} alt="" style={{ height: "100%", objectFit: "cover", width: "100%" }} />
+                ) : (
+                  <img src={walletLogo.src} alt="" className={styles.providerLogo} />
+                )}
+              </span>
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(event) => void handleAvatarFileChange(event)}
+            />
             <div className={styles.brandText}>
               {editingName ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -433,8 +504,28 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       {i18n._(t`Edit`)}
                     </button>
                   ) : null}
+                  {connected && avatar ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveAvatar()}
+                      disabled={avatarBusy}
+                      aria-label={i18n._(t`Remove avatar`)}
+                      style={{
+                        background: "transparent",
+                        border: "1px solid #33333d",
+                        borderRadius: 6,
+                        color: "#9aa1ad",
+                        cursor: "pointer",
+                        fontSize: 11,
+                        padding: "1px 6px",
+                      }}
+                    >
+                      {i18n._(t`Remove avatar`)}
+                    </button>
+                  ) : null}
                 </span>
               )}
+              {avatarError ? <span style={{ color: "#ff7b7b", fontSize: 12 }}>{avatarError}</span> : null}
               {walletParty ? (
                 <div className={styles.brandParty}>
                   <span title={walletParty}>{abbreviateMiddle(walletParty, 30)}</span>

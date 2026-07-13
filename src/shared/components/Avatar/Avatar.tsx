@@ -2,10 +2,30 @@ export type Props = {
   size: number;
   address: string;
   ensName?: string;
+  /** Custom avatar image (e.g. a data URL). Takes priority over the generated initials. */
+  src?: string;
 };
 
-export function Avatar({ size, address, ensName }: Props) {
+export function Avatar({ size, address, ensName, src }: Props) {
   void ensName;
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        style={{
+          borderRadius: "50%",
+          display: "inline-block",
+          height: `${size}px`,
+          objectFit: "cover",
+          width: `${size}px`,
+        }}
+      />
+    );
+  }
+
   const label = address.replace(/^0x/, "").slice(0, 2).toUpperCase() || "--";
 
   return (

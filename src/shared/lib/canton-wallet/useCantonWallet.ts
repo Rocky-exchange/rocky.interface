@@ -7,6 +7,7 @@ import {
   createExchangeSession,
   type ConnectedWallet,
 } from "./index";
+import { hydrateOwnProfile } from "./profile";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
 export function useCantonWallet() {
@@ -27,6 +28,7 @@ export function useCantonWallet() {
       }
       await createExchangeSession(w.connection, w.signMessage);
       notifyCantonSessionChange();
+      await hydrateOwnProfile();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "connect failed");
       throw e;
@@ -45,6 +47,7 @@ export function useCantonWallet() {
       "mtc_token",
       "mtc_party",
       "mtc_username",
+      "mtc_avatar",
       "mtc_email",
       "mtc_login_method",
     ].forEach((k) => localStorage.removeItem(k));

@@ -28,6 +28,7 @@ export function useDisconnectAndClose() {
       "mtc_token",
       "mtc_party",
       "mtc_username",
+      "mtc_avatar",
       "mtc_email",
       "mtc_login_method",
     ].forEach((key) => localStorage.removeItem(key));

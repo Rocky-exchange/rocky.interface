@@ -26,10 +26,11 @@ export function useCantonSession() {
   );
   const party = typeof window !== "undefined" ? localStorage.getItem("mtc_party") || "" : "";
   const username = typeof window !== "undefined" ? localStorage.getItem("mtc_username") || "" : "";
+  const avatar = typeof window !== "undefined" ? localStorage.getItem("mtc_avatar") || "" : "";
   const storedProvider = typeof window !== "undefined" ? localStorage.getItem("mtc_login_method") || "" : "";
   const provider: WalletProviderId | "" =
     storedProvider === "rocky" || storedProvider === "loop" || storedProvider === "console" || storedProvider === "other"
       ? storedProvider
       : "";
-  return { connected: Boolean(token), token, party, username, provider };
+  return { connected: Boolean(token), token, party, username, avatar, provider };
 }

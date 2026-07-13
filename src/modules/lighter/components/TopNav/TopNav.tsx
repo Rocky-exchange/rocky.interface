@@ -18,7 +18,7 @@ const LANGUAGE_OPTIONS = [
 
 export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
   const { i18n } = useLingui();
-  const { connected, username, party } = useCantonSession();
+  const { connected, username, party, avatar } = useCantonSession();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
   const [fundsOpen, setFundsOpen] = useState(false);
@@ -178,6 +178,21 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
           ) : null}
         </div>
         <button type="button" className={styles.connect} onClick={handleWalletClick} data-tour="connect">
+          {connected && avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              aria-hidden="true"
+              style={{
+                borderRadius: "50%",
+                height: 18,
+                marginRight: 6,
+                objectFit: "cover",
+                verticalAlign: "middle",
+                width: 18,
+              }}
+            />
+          ) : null}
           {walletLabel || <Trans>Connect wallet</Trans>}
         </button>
       </div>
