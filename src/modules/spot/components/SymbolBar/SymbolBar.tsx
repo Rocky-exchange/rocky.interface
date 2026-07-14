@@ -1,7 +1,6 @@
-import { Link } from "react-router-dom";
-
-import { spotApi, SPOT_MARKETS, type Ticker24h } from "../../api/spotClient";
+import { spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
+import { SpotMarketDropdown } from "./MarketDropdown";
 import styles from "./SymbolBar.module.scss";
 
 function fmtNum(v: string, digits = 2): string {
@@ -18,17 +17,7 @@ export function SpotSymbolBar({ symbol }: { symbol: string }) {
 
   return (
     <div className={styles.bar}>
-      <div className={styles.tabs}>
-        {SPOT_MARKETS.map((m) => (
-          <Link
-            key={m.symbol}
-            to={`/spot/${m.symbol}`}
-            className={`${styles.tab} ${m.symbol === symbol ? styles.tabActive : ""}`}
-          >
-            {m.base}/{m.quote}
-          </Link>
-        ))}
-      </div>
+      <SpotMarketDropdown symbol={symbol} />
       <div className={styles.divider} />
       <div className={styles.stats}>
         <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
@@ -36,9 +25,7 @@ export function SpotSymbolBar({ symbol }: { symbol: string }) {
           <span className={styles.cellLabel}>24h Change</span>
           <span className={`${styles.cellValue} ${pctCls}`}>
             {t ? `${pct >= 0 ? "+" : ""}${fmtNum(t.priceChange)}` : "—"}{" "}
-            <span className={pctCls}>
-              {t ? `(${pct.toFixed(3)}%)` : ""}
-            </span>
+            <span className={pctCls}>{t ? `(${pct.toFixed(3)}%)` : ""}</span>
           </span>
         </div>
         <div className={styles.cell}>

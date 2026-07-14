@@ -1,0 +1,202 @@
+// Trigger pill (goes inside <SelectorBase label={...}>). SelectorBase itself
+// renders the chevron.
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  color: var(--ltr-text-primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.triggerName {
+  font-family: var(--ltr-font-family);
+  color: var(--ltr-text-primary);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.triggerQuote {
+  color: var(--ltr-text-muted);
+  font-weight: 500;
+  margin-left: 1px;
+}
+
+.triggerLev {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--ltr-bg-hover);
+  color: var(--ltr-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--ltr-border);
+}
+
+.badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ltr-bg-hover);
+  color: var(--ltr-accent-cyan, #ff8a3d);
+  font-weight: 700;
+  font-size: 11px;
+  border: 1px solid var(--ltr-border);
+}
+
+// Popover panel content (SelectorBase provides its own wrapper — we pass a
+// className to widen it and set the panel background).
+
+.floatingPanel {
+  min-width: 560px;
+  padding: 0;
+  background: var(--ltr-bg-panel);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 2px);
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+  color: var(--ltr-text-primary);
+  font-family: var(--ltr-font-family);
+}
+
+.searchWrap {
+  padding: 12px;
+  border-bottom: 1px solid var(--ltr-border);
+}
+
+.search {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--ltr-bg-panel-2, #0e0e14);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 2px);
+  color: var(--ltr-text-primary);
+  font-size: 13px;
+  font-family: var(--ltr-font-family);
+  outline: none;
+
+  &::placeholder {
+    color: var(--ltr-text-muted);
+  }
+
+  &:focus {
+    border-color: var(--ltr-accent-cyan, #ff8a3d);
+  }
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 0.8fr 1fr;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--ltr-text-muted);
+  border-bottom: 1px solid var(--ltr-border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.right {
+  text-align: right;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--ltr-border);
+    border-radius: 3px;
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 0.8fr 1fr;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--ltr-font-family);
+  font-size: 13px;
+  color: var(--ltr-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  transition: background 0.1s;
+  border-bottom: 1px solid var(--ltr-overlay-faint);
+
+  &:hover {
+    background: var(--ltr-bg-hover);
+  }
+}
+
+.rowActive {
+  background: var(--ltr-bg-hover);
+  box-shadow: inset 3px 0 0 var(--ltr-accent-cyan, #ff8a3d);
+}
+
+.rowLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rowSymbol {
+  font-weight: 600;
+  color: var(--ltr-text-primary);
+}
+
+.rowQuote {
+  color: var(--ltr-text-muted);
+  font-weight: 500;
+  margin-left: 1px;
+}
+
+.rowBadgeSpot {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--ltr-bg-panel-2, #0e0e14);
+  border: 1px solid var(--ltr-border);
+  color: var(--ltr-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.rowPrice {
+  text-align: right;
+  color: var(--ltr-text-primary);
+}
+
+.rowPct {
+  text-align: right;
+}
+
+.rowVol {
+  text-align: right;
+  color: var(--ltr-text-secondary);
+}
+
+.up {
+  color: var(--ltr-up, #1bd289);
+}
+.down {
+  color: var(--ltr-down, #ff384f);
+}
+.muted {
+  color: var(--ltr-text-muted);
+}
