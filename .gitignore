@@ -69,3 +69,7 @@ claude.md
 .playwright-mcp/
 local-*.png
 lighter-*.png
+
+# Local dev secrets — VITE_SPOT_API_SECRET etc.
+/.env.local
+/.env.*.local

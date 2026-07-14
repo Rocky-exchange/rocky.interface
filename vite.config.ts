@@ -51,6 +51,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: true,
         },
+        // Spot backend (/api/v3/*). Set VITE_PROXY_SPOT_URL to point at
+        // a local rocky-backend api-gateway (default :8080) for dev.
+        "/api/v3": {
+          target:
+            env.VITE_PROXY_SPOT_URL || env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
+          changeOrigin: true,
+          secure: true,
+        },
       },
     },
     plugins: [

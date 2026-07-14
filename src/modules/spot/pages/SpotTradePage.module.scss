@@ -1,0 +1,112 @@
+// Spot trading page — grid is verbatim from LighterTradePage.module.scss so
+// the visual rhythm (row heights, col widths, borders) exactly matches perp.
+// Only the *content* of each cell is spot-specific.
+
+.page {
+  --ltr-side-col: 321px;
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-width: 0;
+  height: 100vh;
+  min-height: 0;
+  background: var(--ltr-bg-root, #06060c);
+  padding: 4px;
+  display: grid;
+  grid-template-rows: var(--ltr-topnav-h, 56px) minmax(0, 1fr) var(--ltr-bottom-h, 220px);
+  row-gap: 4px;
+  overflow: hidden;
+  font-family: var(--ltr-font-family);
+  color: var(--ltr-text-primary);
+}
+
+.topnav {
+  position: relative;
+  z-index: 200;
+  border-bottom: 1px solid var(--ltr-border);
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col);
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 4px;
+  min-height: 0;
+
+  > div {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.chartCol {
+  display: grid;
+  grid-template-rows: 40px minmax(0, 1fr);
+  row-gap: 4px;
+  background: var(--ltr-bg-root, #000);
+}
+
+.chart {
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ltr-bg-panel);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ltr-text-muted);
+  font-size: 12px;
+}
+
+.chartInner {
+  text-align: center;
+  padding: 12px;
+}
+
+.chartTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ltr-text-secondary);
+  margin-bottom: 6px;
+}
+
+.chartHint {
+  font-size: 11px;
+  color: var(--ltr-text-muted);
+}
+
+.orderbook,
+.orderform {
+  display: flex;
+  flex-direction: column;
+  background: var(--ltr-bg-panel);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 2px);
+  overflow: hidden;
+}
+
+.orderbook > *,
+.orderform > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col);
+  grid-template-rows: var(--ltr-bottom-h, 220px);
+  column-gap: 4px;
+  min-height: 0;
+
+  > div {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--ltr-bg-panel);
+    border: 1px solid var(--ltr-border);
+    border-radius: var(--ltr-radius, 2px);
+  }
+}

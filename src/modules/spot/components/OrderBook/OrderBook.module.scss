@@ -1,0 +1,142 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--ltr-text-primary);
+  font-family: var(--ltr-font-family);
+  font-size: var(--ltr-font-body, 12px);
+}
+
+.tabs {
+  display: flex;
+  height: 32px;
+  border-bottom: 1px solid var(--ltr-border);
+  font-size: 12px;
+}
+
+.tab {
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ltr-text-secondary);
+  border: 0;
+  background: transparent;
+  font-weight: 500;
+  height: 100%;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+
+  &:hover {
+    color: var(--ltr-text-primary);
+  }
+}
+
+.tabActive {
+  color: var(--ltr-text-primary);
+  border-bottom-color: var(--ltr-accent-cyan, #ff8a3d);
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 4px 12px;
+  color: var(--ltr-text-muted);
+  font-size: 11px;
+  border-bottom: 1px solid var(--ltr-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.right {
+  text-align: right;
+}
+
+.rows {
+  flex: 1;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--ltr-border);
+  }
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0 12px;
+  height: var(--ltr-row-h, 18px);
+  line-height: var(--ltr-row-h, 18px);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowBar {
+  position: absolute;
+  inset-y: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.rowText {
+  position: relative;
+  z-index: 1;
+}
+
+.ask {
+  color: var(--ltr-down, #ff384f);
+}
+.askBar {
+  background: var(--ltr-down-bg, rgba(255, 56, 79, 0.1));
+}
+
+.bid {
+  color: var(--ltr-up, #1bd289);
+}
+.bidBar {
+  background: var(--ltr-up-bg, rgba(27, 210, 137, 0.1));
+}
+
+.mid {
+  padding: 6px 12px;
+  border-block: 1px solid var(--ltr-border);
+  display: flex;
+  justify-content: space-between;
+  color: var(--ltr-text-muted);
+  font-size: 11px;
+  background: var(--ltr-bg-panel-2, #0e0e14);
+}
+
+.midPrice {
+  color: var(--ltr-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: 12px;
+  color: var(--ltr-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.err {
+  padding: 12px;
+  color: var(--ltr-down);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.tradeSize {
+  text-align: right;
+  color: var(--ltr-text-primary);
+}
+
+.tradeTime {
+  text-align: right;
+  color: var(--ltr-text-muted);
+}

@@ -1,0 +1,98 @@
+.bar {
+  height: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 12px;
+  background: var(--ltr-bg-panel);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 2px);
+  font-size: var(--ltr-font-body, 12px);
+  color: var(--ltr-text-primary);
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tab {
+  padding: 4px 10px;
+  border-radius: 4px;
+  color: var(--ltr-text-secondary);
+  font-weight: 500;
+  transition: background 0.15s;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--ltr-bg-hover);
+    color: var(--ltr-text-primary);
+  }
+}
+
+.tabActive {
+  color: var(--ltr-text-primary);
+  background: var(--ltr-bg-hover);
+  box-shadow: inset 0 -2px 0 var(--ltr-accent-cyan, #ff8a3d);
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: var(--ltr-border);
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.cellLabel {
+  font-size: 10px;
+  color: var(--ltr-text-muted);
+  line-height: 1;
+}
+
+.cellValue {
+  font-size: 12px;
+  color: var(--ltr-text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.priceMain {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ltr-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.up {
+  color: var(--ltr-up, #1bd289);
+}
+
+.down {
+  color: var(--ltr-down, #ff384f);
+}
+
+.muted {
+  color: var(--ltr-text-muted);
+}
