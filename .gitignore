@@ -5,6 +5,10 @@ node_modules/
 /.pnp
 .pnp.js
 
+# Local secrets (VITE_SPOT_API_SECRET etc. — never commit)
+.env.local
+.env.*.local
+
 # Embedded git repositories (manage separately)
 /ztdx_hyper_strcution/
 /ztdx-market_maker/

@@ -51,6 +51,18 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: true,
         },
+        // Spot backend (/api/v3/*) — mirrors the /fapi proxy above so dev
+        // can hit local rocky-backend api-gateway or api.rocky.exchange
+        // without cross-origin CORS. Set VITE_PROXY_SPOT_URL to override
+        // (e.g. `http://127.0.0.1:8080` when running the full local stack).
+        "/api/v3": {
+          target:
+            env.VITE_PROXY_SPOT_URL ||
+            env.VITE_PROXY_API_URL ||
+            "https://api.rocky.exchange",
+          changeOrigin: true,
+          secure: true,
+        },
       },
     },
     plugins: [
