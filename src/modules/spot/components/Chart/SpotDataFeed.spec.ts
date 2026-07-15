@@ -51,9 +51,7 @@ describe("onReady", () => {
 describe("resolveSymbol", () => {
   it("derives description + pricescale=100 from the pair", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) =>
-      feed.resolveSymbol("CBTC-USDCX", resolve as never)
-    );
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDCX", resolve as never));
     expect(info.name).toBe("CBTC-USDCX");
     expect(info.description).toBe("CBTC/USDCX");
     expect(info.pricescale).toBe(100); // tick 0.01 → 2 decimals
@@ -63,16 +61,16 @@ describe("resolveSymbol", () => {
 
   it("defaults quote to USDCX when symbol has no dash", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) =>
-      feed.resolveSymbol("CBTC", resolve as never)
-    );
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC", resolve as never));
     expect(info.description).toBe("CBTC/USDCX");
     expect(info.currency_code).toBe("USDCX");
   });
 });
 
 describe("getBars", () => {
-  afterEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("maps backend rows to Bar objects with ms times and float OHLCV", async () => {
     const rows = [
@@ -225,17 +223,14 @@ async function waitFor(pred: () => boolean, timeoutMs = 500, stepMs = 10) {
 }
 
 describe("subscribeBars / unsubscribeBars", () => {
-  afterEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("kicks immediately (first fetch happens without waiting for interval)", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(
-      symbolInfo(),
-      "5" as ResolutionString,
-      () => {},
-      "listener-1"
-    );
+    feed.subscribeBars(symbolInfo(), "5" as ResolutionString, () => {}, "listener-1");
     await waitFor(() => urls.length >= 1);
     expect(urls.length).toBeGreaterThanOrEqual(1);
     feed.unsubscribeBars("listener-1");
@@ -248,12 +243,7 @@ describe("subscribeBars / unsubscribeBars", () => {
     ]);
     const feed = new SpotDataFeed();
     const ticks: Bar[] = [];
-    feed.subscribeBars(
-      symbolInfo(),
-      "1" as ResolutionString,
-      (b) => ticks.push(b),
-      "listener-2"
-    );
+    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, (b) => ticks.push(b), "listener-2");
     await waitFor(() => ticks.length >= 2);
     expect(ticks.map((b) => b.close)).toEqual([500, 501]);
     feed.unsubscribeBars("listener-2");
@@ -262,12 +252,7 @@ describe("subscribeBars / unsubscribeBars", () => {
   it("unsubscribeBars clears the interval + drops the sub", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(
-      symbolInfo(),
-      "1" as ResolutionString,
-      () => {},
-      "gonzo"
-    );
+    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "gonzo");
     await waitFor(() => urls.length >= 1);
 
     feed.unsubscribeBars("gonzo");
@@ -280,14 +265,7 @@ describe("subscribeBars / unsubscribeBars", () => {
     const feed = new SpotDataFeed();
     // If the internal tick() didn't swallow, this would emit an uncaught
     // promise rejection; the assertion is the absence of a throw.
-    expect(() =>
-      feed.subscribeBars(
-        symbolInfo(),
-        "1" as ResolutionString,
-        () => {},
-        "resilient"
-      )
-    ).not.toThrow();
+    expect(() => feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "resilient")).not.toThrow();
     // Let the immediate rejected fetch drain so no unhandled promise warning.
     await new Promise((r) => setTimeout(r, 20));
     feed.unsubscribeBars("resilient");
