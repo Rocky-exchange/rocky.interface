@@ -9,6 +9,7 @@ import { SpotOrderBookPanel } from "../components/OrderBook/OrderBook";
 import { SpotOrderForm } from "../components/OrderForm/OrderForm";
 import { SpotBottomTabs } from "../components/BottomTabs/BottomTabs";
 import { SpotAccountsPanel } from "../components/Accounts/Accounts";
+import { SpotChart } from "../components/Chart/SpotChart";
 import styles from "./SpotTradePage.module.scss";
 
 /**
@@ -38,13 +39,7 @@ export default function SpotTradePage() {
         <div className={styles.chartCol}>
           <SpotSymbolBar symbol={symbol} />
           <div className={styles.chart}>
-            <div className={styles.chartInner}>
-              <div className={styles.chartTitle}>{symbol}</div>
-              <div className={styles.chartHint}>
-                TradingView chart wiring — /api/v3/klines is live; component
-                integration is the next PR.
-              </div>
-            </div>
+            <SpotChart symbol={symbol} />
           </div>
         </div>
         <div className={styles.orderbook}>

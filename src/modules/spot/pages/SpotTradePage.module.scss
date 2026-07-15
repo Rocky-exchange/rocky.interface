@@ -51,31 +51,8 @@
 .chart {
   min-height: 0;
   overflow: hidden;
-  background: var(--ltr-bg-panel);
-  border: 1px solid var(--ltr-border);
-  border-radius: var(--ltr-radius, 2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ltr-text-muted);
-  font-size: 12px;
-}
-
-.chartInner {
-  text-align: center;
-  padding: 12px;
-}
-
-.chartTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ltr-text-secondary);
-  margin-bottom: 6px;
-}
-
-.chartHint {
-  font-size: 11px;
-  color: var(--ltr-text-muted);
+  // TradingView widget fills the container via `autosize:true`; no bg/border
+  // needed here (SpotChart's inner .wrap paints them).
 }
 
 .orderbook,
