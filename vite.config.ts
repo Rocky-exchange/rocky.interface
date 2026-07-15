@@ -54,8 +54,7 @@ export default defineConfig(({ mode }) => {
         // Spot backend (/api/v3/*). Set VITE_PROXY_SPOT_URL to point at
         // a local rocky-backend api-gateway (default :8080) for dev.
         "/api/v3": {
-          target:
-            env.VITE_PROXY_SPOT_URL || env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
+          target: env.VITE_PROXY_SPOT_URL || env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
           changeOrigin: true,
           secure: true,
         },
@@ -99,10 +98,7 @@ export default defineConfig(({ mode }) => {
         shared: path.resolve(__dirname, "src/shared"),
         styles: path.resolve(__dirname, "src/shared/styles"),
         "typechain-types": path.resolve(__dirname, "src/modules/lighter/contracts/typechain-types"),
-        "typechain-types-stargate": path.resolve(
-          __dirname,
-          "src/modules/lighter/contracts/typechain-types-stargate"
-        ),
+        "typechain-types-stargate": path.resolve(__dirname, "src/modules/lighter/contracts/typechain-types-stargate"),
         sdk: path.resolve(__dirname, "src/shared/sdk"),
       },
     },

@@ -42,8 +42,8 @@ describe("SPOT_MARKETS", () => {
 });
 
 describe("spotApi.depth (public)", () => {
-  beforeEach(() => vi.stubEnv("VITE_SPOT_API_KEY", ""));
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => { vi.stubEnv("VITE_SPOT_API_KEY", ""); });
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it("GETs /api/v3/depth with symbol + limit, no auth header", async () => {
     const calls = stubFetch(() => ({
@@ -66,7 +66,7 @@ describe("spotApi.depth (public)", () => {
 });
 
 describe("spotApi error handling", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it("throws SpotApiError with Binance-shape code+msg", async () => {
     stubFetch(() => ({ status: 400, body: { code: -2010, msg: "insufficient balance" } }));
@@ -87,7 +87,7 @@ describe("spotApi error handling", () => {
 });
 
 describe("spotApi.trades / klines / ticker (public)", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it("trades passes limit param", async () => {
     const calls = stubFetch(() => ({ body: [] }));
@@ -119,7 +119,7 @@ describe("spotApi signed endpoints", () => {
     vi.stubEnv("VITE_SPOT_API_KEY", "alice_key");
     vi.stubEnv("VITE_SPOT_API_SECRET", "alice_secret_shhh");
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it("account: signed GET carries X-MBX-APIKEY + timestamp + signature", async () => {
     const calls = stubFetch(() => ({

@@ -12,11 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type {
-  ChartingLibraryWidgetOptions,
-  IChartingLibraryWidget,
-  ResolutionString,
-} from "charting_library";
+import type { ChartingLibraryWidgetOptions, IChartingLibraryWidget, ResolutionString } from "charting_library";
 
 import { SpotDataFeed } from "./SpotDataFeed";
 import styles from "./SpotChart.module.scss";

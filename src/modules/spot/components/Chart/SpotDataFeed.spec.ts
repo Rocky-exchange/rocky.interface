@@ -13,13 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SpotDataFeed } from "./SpotDataFeed";
 
-import type {
-  Bar,
-  DatafeedConfiguration,
-  LibrarySymbolInfo,
-  PeriodParams,
-  ResolutionString,
-} from "charting_library";
+import type { Bar, DatafeedConfiguration, LibrarySymbolInfo, PeriodParams, ResolutionString } from "charting_library";
 
 function stubFetch(rows: unknown[] | ((url: string) => unknown[])): { urls: string[] } {
   const urls: string[] = [];
@@ -58,7 +52,7 @@ describe("resolveSymbol", () => {
   it("derives description + pricescale=100 from the pair", async () => {
     const feed = new SpotDataFeed();
     const info = await new Promise<LibrarySymbolInfo>((resolve) =>
-      feed.resolveSymbol("CBTC-USDCX", resolve as never, () => {}, undefined as unknown as string),
+      feed.resolveSymbol("CBTC-USDCX", resolve as never)
     );
     expect(info.name).toBe("CBTC-USDCX");
     expect(info.description).toBe("CBTC/USDCX");
@@ -70,7 +64,7 @@ describe("resolveSymbol", () => {
   it("defaults quote to USDCX when symbol has no dash", async () => {
     const feed = new SpotDataFeed();
     const info = await new Promise<LibrarySymbolInfo>((resolve) =>
-      feed.resolveSymbol("CBTC", resolve as never, () => {}, undefined as unknown as string),
+      feed.resolveSymbol("CBTC", resolve as never)
     );
     expect(info.description).toBe("CBTC/USDCX");
     expect(info.currency_code).toBe("USDCX");
@@ -78,7 +72,7 @@ describe("resolveSymbol", () => {
 });
 
 describe("getBars", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it("maps backend rows to Bar objects with ms times and float OHLCV", async () => {
     const rows = [
@@ -93,7 +87,7 @@ describe("getBars", () => {
         "1" as ResolutionString,
         period(1_699_999_940, 1_700_000_100),
         (data, meta) => resolve(data),
-        (reason) => reject(new Error(reason)),
+        (reason) => reject(new Error(reason))
       );
     });
 
@@ -114,10 +108,10 @@ describe("getBars", () => {
     await new Promise<void>((resolve) => {
       feed.getBars(
         symbolInfo(),
-        "5" as ResolutionString,      // → 5m
-        period(0, 1_000_000, 200),    // countBack 200
+        "5" as ResolutionString, // → 5m
+        period(0, 1_000_000, 200), // countBack 200
         () => resolve(),
-        () => resolve(),
+        () => resolve()
       );
     });
     expect(urls[0]).toContain("symbol=CBTC-USDCX");
@@ -129,22 +123,32 @@ describe("getBars", () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo(), "1" as ResolutionString, period(0, 1, 5), () => resolve(), () => resolve());
+      feed.getBars(
+        symbolInfo(),
+        "1" as ResolutionString,
+        period(0, 1, 5),
+        () => resolve(),
+        () => resolve()
+      );
     });
     expect(urls[0]).toContain("limit=100");
 
     urls.length = 0;
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo(), "1" as ResolutionString, period(0, 1, 999_999), () => resolve(), () => resolve());
+      feed.getBars(
+        symbolInfo(),
+        "1" as ResolutionString,
+        period(0, 1, 999_999),
+        () => resolve(),
+        () => resolve()
+      );
     });
     expect(urls[0]).toContain("limit=1000");
   });
 
   it("scopes bars to [from, to] window and sets noData when empty", async () => {
     // Row at t=1700_000_000_000 (=1_700_000_000 sec) — outside [from=1_700_000_100, to=1_700_000_200].
-    const rows = [
-      [1_700_000_000_000, "500", "501", "499", "500", "1", 1_700_000_059_999, "500", 1, "0", "0", "0"],
-    ];
+    const rows = [[1_700_000_000_000, "500", "501", "499", "500", "1", 1_700_000_059_999, "500", 1, "0", "0", "0"]];
     stubFetch(rows);
     const feed = new SpotDataFeed();
 
@@ -154,7 +158,7 @@ describe("getBars", () => {
         "1" as ResolutionString,
         period(1_700_000_100, 1_700_000_200),
         (data, m) => resolve({ bars: data, meta: m }),
-        (reason) => reject(new Error(reason)),
+        (reason) => reject(new Error(reason))
       );
     });
 
@@ -183,7 +187,7 @@ describe("getBars", () => {
         "1" as ResolutionString,
         period(0, 2_000_000_000),
         (data) => resolve(data),
-        (r) => reject(new Error(r)),
+        (r) => reject(new Error(r))
       );
     });
     const times = bars.map((b) => b.time as number);
@@ -194,7 +198,13 @@ describe("getBars", () => {
     vi.stubGlobal("fetch", () => Promise.reject(new Error("network down")));
     const feed = new SpotDataFeed();
     const reason = await new Promise<string>((resolve) => {
-      feed.getBars(symbolInfo(), "1" as ResolutionString, period(0, 1), () => resolve(""), (r) => resolve(r));
+      feed.getBars(
+        symbolInfo(),
+        "1" as ResolutionString,
+        period(0, 1),
+        () => resolve(""),
+        (r) => resolve(r)
+      );
     });
     expect(reason).toBe("network down");
   });
@@ -215,12 +225,17 @@ async function waitFor(pred: () => boolean, timeoutMs = 500, stepMs = 10) {
 }
 
 describe("subscribeBars / unsubscribeBars", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it("kicks immediately (first fetch happens without waiting for interval)", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo(), "5" as ResolutionString, () => {}, "listener-1", () => {});
+    feed.subscribeBars(
+      symbolInfo(),
+      "5" as ResolutionString,
+      () => {},
+      "listener-1"
+    );
     await waitFor(() => urls.length >= 1);
     expect(urls.length).toBeGreaterThanOrEqual(1);
     feed.unsubscribeBars("listener-1");
@@ -233,7 +248,12 @@ describe("subscribeBars / unsubscribeBars", () => {
     ]);
     const feed = new SpotDataFeed();
     const ticks: Bar[] = [];
-    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, (b) => ticks.push(b), "listener-2", () => {});
+    feed.subscribeBars(
+      symbolInfo(),
+      "1" as ResolutionString,
+      (b) => ticks.push(b),
+      "listener-2"
+    );
     await waitFor(() => ticks.length >= 2);
     expect(ticks.map((b) => b.close)).toEqual([500, 501]);
     feed.unsubscribeBars("listener-2");
@@ -242,7 +262,12 @@ describe("subscribeBars / unsubscribeBars", () => {
   it("unsubscribeBars clears the interval + drops the sub", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "gonzo", () => {});
+    feed.subscribeBars(
+      symbolInfo(),
+      "1" as ResolutionString,
+      () => {},
+      "gonzo"
+    );
     await waitFor(() => urls.length >= 1);
 
     feed.unsubscribeBars("gonzo");
@@ -256,7 +281,12 @@ describe("subscribeBars / unsubscribeBars", () => {
     // If the internal tick() didn't swallow, this would emit an uncaught
     // promise rejection; the assertion is the absence of a throw.
     expect(() =>
-      feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "resilient", () => {}),
+      feed.subscribeBars(
+        symbolInfo(),
+        "1" as ResolutionString,
+        () => {},
+        "resilient"
+      )
     ).not.toThrow();
     // Let the immediate rejected fetch drain so no unhandled promise warning.
     await new Promise((r) => setTimeout(r, 20));

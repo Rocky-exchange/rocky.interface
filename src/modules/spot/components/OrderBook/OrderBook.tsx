@@ -26,27 +26,17 @@ function BookBody({ symbol }: { symbol: string }) {
     return <div className={styles.empty}>No resting orders</div>;
   }
 
-  const askRows = asks.reduce<Array<{ p: string; q: string; total: number }>>(
-    (acc, [p, q]) => {
-      const prev = acc.length ? acc[acc.length - 1].total : 0;
-      acc.push({ p, q, total: prev + parseFloat(q) });
-      return acc;
-    },
-    [],
-  );
-  const bidRows = bids.reduce<Array<{ p: string; q: string; total: number }>>(
-    (acc, [p, q]) => {
-      const prev = acc.length ? acc[acc.length - 1].total : 0;
-      acc.push({ p, q, total: prev + parseFloat(q) });
-      return acc;
-    },
-    [],
-  );
-  const maxTotal = Math.max(
-    askRows[askRows.length - 1]?.total ?? 0,
-    bidRows[bidRows.length - 1]?.total ?? 0,
-    1e-9,
-  );
+  const askRows = asks.reduce<Array<{ p: string; q: string; total: number }>>((acc, [p, q]) => {
+    const prev = acc.length ? acc[acc.length - 1].total : 0;
+    acc.push({ p, q, total: prev + parseFloat(q) });
+    return acc;
+  }, []);
+  const bidRows = bids.reduce<Array<{ p: string; q: string; total: number }>>((acc, [p, q]) => {
+    const prev = acc.length ? acc[acc.length - 1].total : 0;
+    acc.push({ p, q, total: prev + parseFloat(q) });
+    return acc;
+  }, []);
+  const maxTotal = Math.max(askRows[askRows.length - 1]?.total ?? 0, bidRows[bidRows.length - 1]?.total ?? 0, 1e-9);
   const bestAsk = parseFloat(asks[0]?.[0] || "0");
   const bestBid = parseFloat(bids[0]?.[0] || "0");
   const mid = (bestAsk + bestBid) / 2;
@@ -80,10 +70,7 @@ function BookBody({ symbol }: { symbol: string }) {
       <div className={styles.rows}>
         {bidRows.map((r, i) => (
           <div key={`b${i}`} className={styles.row}>
-            <div
-              className={`${styles.rowBar} ${styles.bidBar}`}
-              style={{ width: `${(r.total / maxTotal) * 100}%` }}
-            />
+            <div className={`${styles.rowBar} ${styles.bidBar}`} style={{ width: `${(r.total / maxTotal) * 100}%` }} />
             <span className={`${styles.rowText} ${styles.bid}`}>{fmtNum(r.p)}</span>
             <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
             <span className={`${styles.rowText} ${styles.right}`}>{r.total.toFixed(4)}</span>
@@ -96,8 +83,7 @@ function BookBody({ symbol }: { symbol: string }) {
 
 function TradesBody({ symbol }: { symbol: string }) {
   const { data } = usePolling<Trade[]>(() => spotApi.trades(symbol, 30), 1500, [symbol]);
-  if (!data || data.length === 0)
-    return <div className={styles.empty}>No trades yet</div>;
+  if (!data || data.length === 0) return <div className={styles.empty}>No trades yet</div>;
   return (
     <div className={styles.rows}>
       {data.map((t) => {

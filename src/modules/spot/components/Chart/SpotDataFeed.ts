@@ -68,10 +68,9 @@ function intervalSeconds(interval: string): number {
 type RawKline = [number, string, string, string, string, string, number, string, number, ...string[]];
 
 async function fetchKlines(symbol: string, interval: string, limit: number): Promise<Bar[]> {
-  const r = await fetch(
-    `/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`,
-    { headers: { accept: "application/json" } },
-  );
+  const r = await fetch(`/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`, {
+    headers: { accept: "application/json" },
+  });
   if (!r.ok) throw new Error(`klines HTTP ${r.status}`);
   const rows = (await r.json()) as RawKline[];
   return rows
@@ -140,7 +139,7 @@ export class SpotDataFeed implements IBasicDataFeed {
     resolution: ResolutionString,
     periodParams: PeriodParams,
     onResult: HistoryCallback,
-    onError: (reason: string) => void,
+    onError: (reason: string) => void
   ): Promise<void> {
     try {
       const interval = tvToBackend(resolution);
@@ -162,7 +161,7 @@ export class SpotDataFeed implements IBasicDataFeed {
     symbolInfo: LibrarySymbolInfo,
     resolution: ResolutionString,
     onTick: SubscribeBarsCallback,
-    listenerGuid: string,
+    listenerGuid: string
   ): void {
     const interval = tvToBackend(resolution);
     const secs = intervalSeconds(interval);

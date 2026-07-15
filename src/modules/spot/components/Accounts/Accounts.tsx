@@ -13,15 +13,23 @@ function fmt(v: string, digits = 4): string {
 
 export function SpotAccountsPanel() {
   const { data, err } = usePolling<Account>(() => spotApi.account(), 2500, []);
-  if (err) return <div className={styles.panel}><div className={styles.err}>{err}</div></div>;
-  if (!data) return <div className={styles.panel}><div className={styles.title}>Loading…</div></div>;
+  if (err)
+    return (
+      <div className={styles.panel}>
+        <div className={styles.err}>{err}</div>
+      </div>
+    );
+  if (!data)
+    return (
+      <div className={styles.panel}>
+        <div className={styles.title}>Loading…</div>
+      </div>
+    );
 
   // Rough total in USDCx-equivalent, treating base assets at 0 mark until we
   // wire ticker mid-prices per symbol. Users see the real numbers per row.
   const usdcx = data.balances.find((b) => b.asset === "USDCx");
-  const totalUsdcx = usdcx
-    ? parseFloat(usdcx.free) + parseFloat(usdcx.locked)
-    : 0;
+  const totalUsdcx = usdcx ? parseFloat(usdcx.free) + parseFloat(usdcx.locked) : 0;
 
   return (
     <div className={styles.panel}>

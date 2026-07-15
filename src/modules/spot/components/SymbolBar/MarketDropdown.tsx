@@ -33,9 +33,7 @@ function fmtPct(v: string | undefined): string {
 function MarketRow({ market, active, query }: { market: Market; active: boolean; query: string }) {
   const history = useHistory();
   const close = useSelectorClose();
-  const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.symbol), 5000, [
-    market.symbol,
-  ]);
+  const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.symbol), 5000, [market.symbol]);
 
   const label = `${market.base}/${market.quote}`;
   const q = query.trim().toLowerCase();
@@ -52,11 +50,7 @@ function MarketRow({ market, active, query }: { market: Market; active: boolean;
   };
 
   return (
-    <button
-      type="button"
-      className={`${styles.row} ${active ? styles.rowActive : ""}`}
-      onClick={onClick}
-    >
+    <button type="button" className={`${styles.row} ${active ? styles.rowActive : ""}`} onClick={onClick}>
       <span className={styles.rowLeft}>
         <AssetBadge symbol={market.base} />
         <span className={styles.rowSymbol}>
@@ -101,10 +95,7 @@ function PanelBody({ active }: { active: string }) {
 }
 
 export function SpotMarketDropdown({ symbol }: { symbol: string }) {
-  const active = useMemo(
-    () => SPOT_MARKETS.find((m) => m.symbol === symbol) ?? SPOT_MARKETS[0],
-    [symbol],
-  );
+  const active = useMemo(() => SPOT_MARKETS.find((m) => m.symbol === symbol) ?? SPOT_MARKETS[0], [symbol]);
   return (
     <SelectorBase
       label={

@@ -94,7 +94,7 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
     new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"],
+    ["sign"]
   );
   return cachedKey;
 }
@@ -110,7 +110,7 @@ async function sign(secret: string, payload: string): Promise<string> {
 export class SpotApiError extends Error {
   constructor(
     public readonly code: number,
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = "SpotApiError";
@@ -134,7 +134,7 @@ async function parseOrThrow<T>(r: Response): Promise<T> {
 async function signedRequest<T>(
   method: "GET" | "POST" | "DELETE",
   path: string,
-  extra: Record<string, string> = {},
+  extra: Record<string, string> = {}
 ): Promise<T> {
   if (!API_KEY || !API_SECRET) {
     throw new SpotApiError(-503, "VITE_SPOT_API_KEY / VITE_SPOT_API_SECRET not set in .env.local");
@@ -164,14 +164,10 @@ export const spotApi = {
   trades: (symbol: string, limit = 50) =>
     publicGet<Trade[]>(`/api/v3/trades?symbol=${encodeURIComponent(symbol)}&limit=${limit}`),
   klines: (symbol: string, interval = "1m", limit = 500) =>
-    publicGet<Kline[]>(
-      `/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`,
-    ),
-  ticker: (symbol: string) =>
-    publicGet<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`),
+    publicGet<Kline[]>(`/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`),
+  ticker: (symbol: string) => publicGet<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`),
   account: () => signedRequest<Account>("GET", "/api/v3/account"),
-  openOrders: (symbol: string) =>
-    signedRequest<SpotOrder[]>("GET", "/api/v3/openOrders", { symbol }),
+  openOrders: (symbol: string) => signedRequest<SpotOrder[]>("GET", "/api/v3/openOrders", { symbol }),
   placeOrder: (b: {
     symbol: string;
     side: "BUY" | "SELL";

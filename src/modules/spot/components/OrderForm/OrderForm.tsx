@@ -35,12 +35,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
       setPrice("");
       setQty("");
     } catch (e: unknown) {
-      const text =
-        e instanceof SpotApiError
-          ? `[${e.code}] ${e.message}`
-          : e instanceof Error
-            ? e.message
-            : String(e);
+      const text = e instanceof SpotApiError ? `[${e.code}] ${e.message}` : e instanceof Error ? e.message : String(e);
       setMsg({ kind: "err", text });
     } finally {
       setBusy(false);
@@ -102,11 +97,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
         >
           {busy ? "Sending…" : `${side} ${base}`}
         </button>
-        {msg && (
-          <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`}>
-            {msg.text}
-          </div>
-        )}
+        {msg && <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`}>{msg.text}</div>}
       </div>
     </div>
   );
