@@ -69,3 +69,16 @@
   font-size: 11px;
   word-break: break-all;
 }
+
+.connectCta {
+  background: var(--ltr-accent, #f0b800);
+  color: #000;
+  border: 0;
+  border-radius: var(--ltr-radius, 2px);
+  padding: 6px 14px;
+  margin: 12px auto 0;
+  display: block;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+}

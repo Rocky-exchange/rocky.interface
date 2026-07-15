@@ -85,8 +85,11 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
           <Trans>Portfolio</Trans>
         </NavLink>
         */}
+        <NavLink to="/spot/CBTC-USDCX" className={styles.link} activeClassName={styles.active}>
+          <Trans>Spot</Trans>
+        </NavLink>
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
-          <Trans>Trade</Trans>
+          <Trans>Futures</Trans>
         </NavLink>
       </div>
       <div className={styles.right}>

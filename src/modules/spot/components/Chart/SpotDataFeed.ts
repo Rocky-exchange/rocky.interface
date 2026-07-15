@@ -1,14 +1,18 @@
 /**
- * TradingView IBasicDataFeed for spot pairs, backed by rocky-backend
- * /api/v3/klines. Same-origin via the vite /api/v3 proxy in dev; behind
- * nginx in prod.
+ * TradingView IBasicDataFeed for spot pairs, backed by Binance's public
+ * spot data mirror `data-api.binance.vision`. Rocky's own /api/v3/klines
+ * only reflects local wash trades — starting cold shows a stub chart. Perp
+ * shows a full history because it's been accumulating for weeks; spot has
+ * no such head start, so we source visualization from Binance's spot feed
+ * (BTCUSDT / ETHUSDT) while local orderbook/trade panels still read our
+ * own backend. This matches the perp chart pattern: reference third-party
+ * price, execute against Rocky.
  *
  * Implements the minimum surface TradingView needs:
  *   onReady          — resolutions
  *   resolveSymbol    — one symbol per instance
- *   getBars          — historical /klines fetch
- *   subscribeBars    — 2s poll of the latest bar (spot lacks a WS today;
- *                      swap for the API's WS whenever it lands)
+ *   getBars          — historical /klines from Binance data-api mirror
+ *   subscribeBars    — poll of the latest bar
  *   unsubscribeBars  — cancel that poll
  */
 
@@ -25,8 +29,8 @@ import type {
   SubscribeBarsCallback,
 } from "charting_library";
 
-// rocky-backend interval whitelist — see build_klines_response in
-// services/api-gateway/src/spot/routes_market.rs
+// Binance interval strings. Superset of what rocky-backend accepts; safe
+// because we're fetching from Binance directly here.
 const SUPPORTED_RESOLUTIONS = {
   "1": "1m",
   "5": "5m",
@@ -37,10 +41,18 @@ const SUPPORTED_RESOLUTIONS = {
   "1D": "1d",
 } as const;
 
-type TVResolution = keyof typeof SUPPORTED_RESOLUTIONS;
+// Rocky spot symbol → Binance spot symbol for chart data.
+const BINANCE_SYMBOL: Record<string, string> = {
+  "CBTC-USDCX": "BTCUSDT",
+  "CETH-USDCX": "ETHUSDT",
+};
 
-function tvToBackend(res: ResolutionString): string {
+function tvToBinance(res: ResolutionString): string {
   return (SUPPORTED_RESOLUTIONS as Record<string, string>)[res] ?? "1m";
+}
+
+function toBinanceSymbol(rockySymbol: string): string {
+  return BINANCE_SYMBOL[rockySymbol] ?? rockySymbol.replace("-", "");
 }
 
 function intervalSeconds(interval: string): number {
@@ -64,14 +76,23 @@ function intervalSeconds(interval: string): number {
   }
 }
 
-// Backend row: [openMs, open, high, low, close, volume, closeMs, quoteVolume, count, ...]
+// Binance row: [openMs, open, high, low, close, volume, closeMs, quoteVolume, count, ...]
 type RawKline = [number, string, string, string, string, string, number, string, number, ...string[]];
 
-async function fetchKlines(symbol: string, interval: string, limit: number): Promise<Bar[]> {
-  const r = await fetch(`/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`, {
+const BINANCE_KLINES = "https://data-api.binance.vision/api/v3/klines";
+
+async function fetchKlines(rockySymbol: string, interval: string, limit: number, endTimeMs?: number): Promise<Bar[]> {
+  const binSym = toBinanceSymbol(rockySymbol);
+  const params = new URLSearchParams({
+    symbol: binSym,
+    interval,
+    limit: String(Math.min(Math.max(limit, 100), 1000)),
+  });
+  if (endTimeMs && isFinite(endTimeMs)) params.set("endTime", String(endTimeMs));
+  const r = await fetch(`${BINANCE_KLINES}?${params.toString()}`, {
     headers: { accept: "application/json" },
   });
-  if (!r.ok) throw new Error(`klines HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`binance klines HTTP ${r.status}`);
   const rows = (await r.json()) as RawKline[];
   return rows
     .map((row) => ({
@@ -142,11 +163,13 @@ export class SpotDataFeed implements IBasicDataFeed {
     onError: (reason: string) => void
   ): Promise<void> {
     try {
-      const interval = tvToBackend(resolution);
-      // countBack is TradingView's request for N most recent bars.
+      const interval = tvToBinance(resolution);
       const limit = Math.min(Math.max(periodParams.countBack ?? 500, 100), 1000);
-      const bars = await fetchKlines(symbolInfo.name, interval, limit);
-      // Filter to the periodParams window; TradingView is strict about `to`.
+      // On subsequent pagination (user scrolls left), pin endTime to
+      // periodParams.to so Binance walks back from that point; on initial
+      // load leave it off and the API returns the most-recent `limit` bars.
+      const endTimeMs = periodParams.firstDataRequest ? undefined : periodParams.to * 1000;
+      const bars = await fetchKlines(symbolInfo.name, interval, limit, endTimeMs);
       const fromMs = periodParams.from * 1000;
       const toMs = periodParams.to * 1000;
       const scoped = bars.filter((b) => (b.time as number) >= fromMs && (b.time as number) <= toMs);
@@ -163,7 +186,7 @@ export class SpotDataFeed implements IBasicDataFeed {
     onTick: SubscribeBarsCallback,
     listenerGuid: string
   ): void {
-    const interval = tvToBackend(resolution);
+    const interval = tvToBinance(resolution);
     const secs = intervalSeconds(interval);
     const tick = async () => {
       try {

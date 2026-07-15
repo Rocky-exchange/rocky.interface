@@ -20,8 +20,8 @@ function BookBody({ symbol }: { symbol: string }) {
   if (err) return <div className={styles.err}>{err}</div>;
   if (!data) return <div className={styles.empty}>Loading…</div>;
 
-  const asks = data.asks.slice(0, 13);
-  const bids = data.bids.slice(0, 13);
+  const asks = data.asks.slice(0, 15);
+  const bids = data.bids.slice(0, 15);
   if (asks.length === 0 && bids.length === 0) {
     return <div className={styles.empty}>No resting orders</div>;
   }

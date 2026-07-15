@@ -80,12 +80,8 @@ export function SpotChart({ symbol }: { symbol: string }) {
           "symbol_search_hot_key",
           "use_localstorage_for_settings",
           "study_templates",
-          "left_toolbar",
-          "control_bar",
-          "border_around_the_chart",
-          "timeframes_toolbar",
         ],
-        enabled_features: ["hide_left_toolbar_by_default"],
+        enabled_features: [],
         loading_screen: { backgroundColor: "#121218", foregroundColor: "#8f93a2" },
         overrides: {
           "paneProperties.background": "#121218",

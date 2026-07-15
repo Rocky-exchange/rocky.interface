@@ -12,7 +12,8 @@ type Props = {
 };
 
 const LINKS: { to: string; label: ReactNode }[] = [
-  { to: "/trade", label: <Trans>Trade</Trans> },
+  { to: "/spot/CBTC-USDCX", label: <Trans>Spot</Trans> },
+  { to: "/trade", label: <Trans>Futures</Trans> },
 ];
 
 export function MobileSlideMenu({ open, onOpenChange }: Props) {

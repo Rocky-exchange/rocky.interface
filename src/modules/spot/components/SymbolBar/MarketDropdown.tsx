@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 
 import { SelectorBase, useSelectorClose } from "components/SelectorBase/SelectorBase";
+import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 
 import { spotApi, SPOT_MARKETS, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
@@ -9,11 +10,17 @@ import styles from "./MarketDropdown.module.scss";
 
 type Market = (typeof SPOT_MARKETS)[number];
 
-function AssetBadge({ symbol }: { symbol: string }) {
-  // v1: two-letter monogram inside a colored circle. When TokenIcon supports
-  // CBTC/cETH we swap this out — for now this keeps the pill self-contained.
-  const first = symbol[0]?.toUpperCase() ?? "?";
-  return <div className={styles.badge}>{first}</div>;
+// Rocky spot base assets map to underlying ic_<x>.svg in shared/img/tokens:
+//   CBTC → btc,  cETH / CETH → eth
+function iconSymbolFor(base: string): string {
+  const norm = base.toLowerCase();
+  if (norm === "cbtc" || norm === "btc") return "btc";
+  if (norm === "ceth" || norm === "eth") return "eth";
+  return norm;
+}
+
+export function AssetBadge({ symbol, size = 22 }: { symbol: string; size?: number }) {
+  return <TokenIcon symbol={iconSymbolFor(symbol)} displaySize={size} />;
 }
 
 function fmtPrice(v: string | undefined): string {

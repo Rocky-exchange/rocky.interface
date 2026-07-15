@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
 
 /** Poll `fn` every `intervalMs`, mirrors perp's usePolling contract. */
-export function usePolling<T>(fn: () => Promise<T>, intervalMs: number, deps: unknown[] = []) {
+export function usePolling<T>(
+  fn: () => Promise<T>,
+  intervalMs: number,
+  deps: unknown[] = [],
+  opts: { enabled?: boolean } = {},
+) {
   const [data, setData] = useState<T | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const enabled = opts.enabled !== false;
   useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      setErr(null);
+      return;
+    }
     let alive = true;
     const tick = async () => {
       try {
@@ -24,6 +35,6 @@ export function usePolling<T>(fn: () => Promise<T>, intervalMs: number, deps: un
       clearInterval(iv);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, enabled]);
   return { data, err };
 }

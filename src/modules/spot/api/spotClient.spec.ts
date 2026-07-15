@@ -192,11 +192,13 @@ describe("spotApi signed endpoints", () => {
     expect(calls[0].url).toContain("symbol=CBTC-USDCX");
   });
 
-  it("throws -503 SpotApiError when API key/secret not set", async () => {
+  it("throws -401 SpotApiError when no session credentials are set", async () => {
+    // No env fallback + no setSpotCredentials call → signedRequest must reject
+    // with a wallet-connect hint rather than firing an unsigned HTTP call.
     vi.stubEnv("VITE_SPOT_API_KEY", "");
     vi.stubEnv("VITE_SPOT_API_SECRET", "");
     const { spotApi: freshApi, SpotApiError: FreshErr } = await importFreshApi();
     await expect(freshApi.account()).rejects.toBeInstanceOf(FreshErr);
-    await expect(freshApi.account()).rejects.toMatchObject({ code: -503 });
+    await expect(freshApi.account()).rejects.toMatchObject({ code: -401 });
   });
 });

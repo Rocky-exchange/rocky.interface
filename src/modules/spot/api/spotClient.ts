@@ -12,9 +12,40 @@
  * they go same-origin behind nginx.
  */
 
-const API_KEY = import.meta.env.VITE_SPOT_API_KEY as string | undefined;
-const API_SECRET = import.meta.env.VITE_SPOT_API_SECRET as string | undefined;
+// Session credentials: initially null. `useSpotSession` fills them in
+// after Canton wallet connect (per-user HMAC key minted by the backend
+// /api/v3/session-key endpoint). `.env.local` values are DEV FALLBACK ONLY
+// — never leak them into prod bundles.
+type Creds = { key: string; secret: string } | null;
+
+let creds: Creds = (() => {
+  const envKey = import.meta.env.VITE_SPOT_API_KEY as string | undefined;
+  const envSec = import.meta.env.VITE_SPOT_API_SECRET as string | undefined;
+  if (envKey && envSec && import.meta.env.DEV) return { key: envKey, secret: envSec };
+  return null;
+})();
+
 const RECV_WINDOW_MS = Number(import.meta.env.VITE_SPOT_RECV_WINDOW_MS ?? 60000);
+
+const CREDS_CHANGE_EVENT = "spot-creds-change";
+
+export function setSpotCredentials(next: Creds): void {
+  creds = next;
+  // Invalidate HMAC key cache — a new secret needs a fresh CryptoKey.
+  cachedKey = null;
+  cachedKeySecret = null;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CREDS_CHANGE_EVENT));
+}
+
+export function getSpotCredentials(): Creds {
+  return creds;
+}
+
+export function subscribeSpotCredentials(cb: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  window.addEventListener(CREDS_CHANGE_EVENT, cb);
+  return () => window.removeEventListener(CREDS_CHANGE_EVENT, cb);
+}
 
 const BASE = "";
 
@@ -86,9 +117,10 @@ export type SpotOrder = {
 // ── HMAC-SHA256 via Web Crypto ─────────────────────────────────────────────
 
 let cachedKey: CryptoKey | null = null;
+let cachedKeySecret: string | null = null;
 
 async function hmacKey(secret: string): Promise<CryptoKey> {
-  if (cachedKey) return cachedKey;
+  if (cachedKey && cachedKeySecret === secret) return cachedKey;
   cachedKey = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -96,6 +128,7 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
     false,
     ["sign"]
   );
+  cachedKeySecret = secret;
   return cachedKey;
 }
 
@@ -136,17 +169,18 @@ async function signedRequest<T>(
   path: string,
   extra: Record<string, string> = {}
 ): Promise<T> {
-  if (!API_KEY || !API_SECRET) {
-    throw new SpotApiError(-503, "VITE_SPOT_API_KEY / VITE_SPOT_API_SECRET not set in .env.local");
+  const c = creds;
+  if (!c) {
+    throw new SpotApiError(-401, "Connect your wallet to trade spot");
   }
   const params = new URLSearchParams(extra);
   params.set("timestamp", String(Date.now()));
   params.set("recvWindow", String(RECV_WINDOW_MS));
   const query = params.toString();
-  const signature = await sign(API_SECRET, query);
+  const signature = await sign(c.secret, query);
   const r = await fetch(`${BASE}${path}?${query}&signature=${signature}`, {
     method,
-    headers: { "X-MBX-APIKEY": API_KEY, accept: "application/json" },
+    headers: { "X-MBX-APIKEY": c.key, accept: "application/json" },
   });
   return parseOrThrow<T>(r);
 }

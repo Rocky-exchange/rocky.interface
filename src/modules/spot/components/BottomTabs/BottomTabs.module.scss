@@ -103,3 +103,14 @@
   color: var(--ltr-text-muted);
   font-size: 12px;
 }
+
+.connectCta {
+  background: var(--ltr-accent, #f0b800);
+  color: #000;
+  border: 0;
+  border-radius: var(--ltr-radius, 2px);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+}

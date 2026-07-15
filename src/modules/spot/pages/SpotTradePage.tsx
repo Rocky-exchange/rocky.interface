@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import "@/modules/lighter/styles/global.scss";
 
+import { useSpotSession } from "../api/spotSession";
 import { SpotSymbolBar } from "../components/SymbolBar/SymbolBar";
 import { SpotOrderBookPanel } from "../components/OrderBook/OrderBook";
 import { SpotOrderForm } from "../components/OrderForm/OrderForm";
@@ -24,6 +25,10 @@ import styles from "./SpotTradePage.module.scss";
 export default function SpotTradePage() {
   const params = useParams<{ symbol?: string }>();
   const symbol = params.symbol ?? "CBTC-USDCX";
+
+  // Mint / clear per-user HMAC credentials when the Canton wallet connects
+  // or disconnects. Downstream components read via useSpotAuthReady().
+  useSpotSession();
 
   useEffect(() => {
     document.body.classList.add("lighter-active");

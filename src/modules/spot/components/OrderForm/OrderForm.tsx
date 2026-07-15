@@ -1,11 +1,15 @@
 import { useMemo, useState } from "react";
 
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+
 import { spotApi, SpotApiError } from "../../api/spotClient";
+import { useSpotAuthReady } from "../../api/spotSession";
 import styles from "./OrderForm.module.scss";
 
 type Side = "BUY" | "SELL";
 
 export function SpotOrderForm({ symbol }: { symbol: string }) {
+  const ready = useSpotAuthReady();
   const [side, setSide] = useState<Side>("BUY");
   const [price, setPrice] = useState("");
   const [qty, setQty] = useState("");
@@ -42,7 +46,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
     }
   };
 
-  const disabled = busy || !price || !qty;
+  const disabled = busy || !price || !qty || !ready;
 
   return (
     <div className={styles.panel}>
@@ -89,14 +93,20 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
             {notional} <span style={{ color: "var(--ltr-text-muted)" }}>{quote}</span>
           </span>
         </div>
-        <button
-          type="button"
-          className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
-          onClick={submit}
-          disabled={disabled}
-        >
-          {busy ? "Sending…" : `${side} ${base}`}
-        </button>
+        {ready ? (
+          <button
+            type="button"
+            className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
+            onClick={submit}
+            disabled={disabled}
+          >
+            {busy ? "Sending…" : `${side} ${base}`}
+          </button>
+        ) : (
+          <button type="button" className={styles.submit} onClick={openCantonConnect}>
+            Connect wallet
+          </button>
+        )}
         {msg && <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`}>{msg.text}</div>}
       </div>
     </div>

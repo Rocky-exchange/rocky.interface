@@ -100,7 +100,7 @@ describe("getBars", () => {
     });
   });
 
-  it("hits /api/v3/klines with the mapped backend interval + countBack limit", async () => {
+  it("hits Binance data-api with the mapped symbol/interval/countBack limit", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
     await new Promise<void>((resolve) => {
@@ -112,7 +112,8 @@ describe("getBars", () => {
         () => resolve()
       );
     });
-    expect(urls[0]).toContain("symbol=CBTC-USDCX");
+    expect(urls[0]).toContain("data-api.binance.vision/api/v3/klines");
+    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDCX → BTCUSDT mapping
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
   });
