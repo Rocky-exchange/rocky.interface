@@ -31,7 +31,7 @@ export function SpotAccountsPanel() {
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
-  const { data, err } = usePolling<Account>(() => spotApi.account(), 2500, [], { enabled: ready });
+  const { data, err, refetch } = usePolling<Account>(() => spotApi.account(), 2500, [], { enabled: ready });
   if (!ready)
     return (
       <div className={styles.panel}>
@@ -66,6 +66,7 @@ export function SpotAccountsPanel() {
     setFaucetErr(null);
     try {
       await faucet(party);
+      refetch();
     } catch (e: unknown) {
       setFaucetErr(e instanceof Error ? e.message : String(e));
     } finally {

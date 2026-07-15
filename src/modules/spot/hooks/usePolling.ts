@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-/** Poll `fn` every `intervalMs`, mirrors perp's usePolling contract. */
+/** Poll `fn` every `intervalMs`, mirrors perp's usePolling contract.
+ *  `refetch()` triggers an immediate tick out of band (e.g. right after a
+ *  mutation) so the caller doesn't wait for the next interval. */
 export function usePolling<T>(
   fn: () => Promise<T>,
   intervalMs: number,
@@ -10,10 +12,12 @@ export function usePolling<T>(
   const [data, setData] = useState<T | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const enabled = opts.enabled !== false;
+  const tickRef = useRef<() => void>(() => undefined);
   useEffect(() => {
     if (!enabled) {
       setData(null);
       setErr(null);
+      tickRef.current = () => undefined;
       return;
     }
     let alive = true;
@@ -28,6 +32,7 @@ export function usePolling<T>(
         if (alive) setErr(e instanceof Error ? e.message : String(e));
       }
     };
+    tickRef.current = () => void tick();
     tick();
     const iv = setInterval(tick, intervalMs);
     return () => {
@@ -36,5 +41,9 @@ export function usePolling<T>(
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, enabled]);
-  return { data, err };
+  return {
+    data,
+    err,
+    refetch: () => tickRef.current(),
+  };
 }
