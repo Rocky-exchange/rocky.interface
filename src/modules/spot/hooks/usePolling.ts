@@ -7,7 +7,7 @@ export function usePolling<T>(
   fn: () => Promise<T>,
   intervalMs: number,
   deps: unknown[] = [],
-  opts: { enabled?: boolean } = {},
+  opts: { enabled?: boolean } = {}
 ) {
   const [data, setData] = useState<T | null>(null);
   const [err, setErr] = useState<string | null>(null);
