@@ -181,21 +181,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
           ) : null}
         </div>
         <button type="button" className={styles.connect} onClick={handleWalletClick} data-tour="connect">
-          {connected && avatar ? (
-            <img
-              src={avatar}
-              alt=""
-              aria-hidden="true"
-              style={{
-                borderRadius: "50%",
-                height: 18,
-                marginRight: 6,
-                objectFit: "cover",
-                verticalAlign: "middle",
-                width: 18,
-              }}
-            />
-          ) : null}
+          {connected && avatar ? <img src={avatar} alt="" aria-hidden="true" className={styles.connectAvatar} /> : null}
           {walletLabel || <Trans>Connect wallet</Trans>}
         </button>
       </div>
