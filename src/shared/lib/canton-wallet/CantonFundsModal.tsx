@@ -110,10 +110,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
     [historyTab, localHistory]
   );
   const visibleHistory = useMemo(
-    () => (showAllHistory ? historyItems : historyItems.slice(0, 5)),
+    () => (showAllHistory ? historyItems : historyItems.slice(0, 3)),
     [historyItems, showAllHistory]
   );
-  const canToggleHistory = historyItems.length > 5;
+  const canToggleHistory = historyItems.length > 3;
   const walletExplorerUrl = getCantonScanPartyUrl(walletParty);
 
   const refreshBalances = useCallback(async () => {
@@ -181,6 +181,15 @@ export function CantonFundsModal({ open, onClose }: Props) {
     depositConfirmationIdRef.current += 1;
     setDepositConfirming(false);
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open]);
 
   if (!open) return null;
 
@@ -424,23 +433,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
         <header className={styles.header}>
           <div className={styles.brand}>
             <button
+              className={styles.avatarButton}
               type="button"
               onClick={openAvatarPicker}
               disabled={!connected || avatarBusy}
               aria-label={i18n._(t`Change avatar`)}
               title={connected ? i18n._(t`Change avatar`) : undefined}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: connected ? "pointer" : "default",
-                lineHeight: 0,
-                opacity: avatarBusy ? 0.6 : 1,
-                padding: 0,
-              }}
             >
               <span className={cx(styles.brandMark, logoFitClass(styles, walletLogo.fit))}>
                 {avatar ? (
-                  <img src={avatar} alt="" style={{ height: "100%", objectFit: "cover", width: "100%" }} />
+                  <img src={avatar} alt="" className={styles.avatarImage} />
                 ) : (
                   <img src={walletLogo.src} alt="" className={styles.providerLogo} />
                 )}
@@ -450,13 +452,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
               ref={avatarInputRef}
               type="file"
               accept="image/*"
-              style={{ display: "none" }}
+              className={styles.hiddenFileInput}
               onChange={(event) => void handleAvatarFileChange(event)}
             />
             <div className={styles.brandText}>
               {editingName ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div id="rocky-wallet-dashboard-title" className={styles.nameEditor}>
+                  <div className={styles.nameEditorRow}>
                     <input
                       value={nameDraft}
                       onChange={(e) => setNameDraft(e.target.value)}
@@ -464,68 +466,45 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       placeholder={i18n._(t`Display name`)}
                       autoFocus
                       disabled={nameSaving}
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        border: "1px solid #33333d",
-                        background: "#101014",
-                        color: "#fff",
-                        fontSize: 14,
-                        width: 160,
-                      }}
+                      className={styles.nameInput}
                     />
-                    <button type="button" onClick={() => void handleSaveName()} disabled={nameSaving}>
+                    <button
+                      className={styles.saveNameButton}
+                      type="button"
+                      onClick={() => void handleSaveName()}
+                      disabled={nameSaving}
+                    >
                       {nameSaving ? i18n._(t`Saving`) : i18n._(t`Save`)}
                     </button>
-                    <button type="button" onClick={() => setEditingName(false)} disabled={nameSaving}>
+                    <button
+                      className={styles.cancelNameButton}
+                      type="button"
+                      onClick={() => setEditingName(false)}
+                      disabled={nameSaving}
+                    >
                       {i18n._(t`Cancel`)}
                     </button>
                   </div>
-                  {nameError ? <span style={{ color: "#ff7b7b", fontSize: 12 }}>{nameError}</span> : null}
+                  {nameError ? <span className={styles.inlineError}>{nameError}</span> : null}
                 </div>
               ) : (
-                <span className={styles.brandTitle} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                  {username || walletLabel}
+                <div className={styles.nameRow}>
+                  <span id="rocky-wallet-dashboard-title" className={styles.brandTitle}>
+                    {username || walletLabel}
+                  </span>
                   {connected ? (
                     <button
+                      className={styles.editNameButton}
                       type="button"
                       onClick={startEditName}
                       aria-label={i18n._(t`Edit display name`)}
-                      style={{
-                        background: "transparent",
-                        border: "1px solid #33333d",
-                        borderRadius: 6,
-                        color: "#9aa1ad",
-                        cursor: "pointer",
-                        fontSize: 11,
-                        padding: "1px 6px",
-                      }}
                     >
                       {i18n._(t`Edit`)}
                     </button>
                   ) : null}
-                  {connected && avatar ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleRemoveAvatar()}
-                      disabled={avatarBusy}
-                      aria-label={i18n._(t`Remove avatar`)}
-                      style={{
-                        background: "transparent",
-                        border: "1px solid #33333d",
-                        borderRadius: 6,
-                        color: "#9aa1ad",
-                        cursor: "pointer",
-                        fontSize: 11,
-                        padding: "1px 6px",
-                      }}
-                    >
-                      {i18n._(t`Remove avatar`)}
-                    </button>
-                  ) : null}
-                </span>
+                </div>
               )}
-              {avatarError ? <span style={{ color: "#ff7b7b", fontSize: 12 }}>{avatarError}</span> : null}
+              {avatarError ? <span className={styles.inlineError}>{avatarError}</span> : null}
               {walletParty ? (
                 <div className={styles.brandParty}>
                   <span title={walletParty}>{abbreviateMiddle(walletParty, 30)}</span>
@@ -542,23 +521,49 @@ export function CantonFundsModal({ open, onClose }: Props) {
           </div>
           <div className={styles.headerActions}>
             <a
-              className={cx(styles.explorerLink, !walletExplorerUrl && styles.explorerLinkDisabled)}
+              className={cx(styles.headerIconButton, !walletExplorerUrl && styles.headerIconButtonDisabled)}
               href={walletExplorerUrl || "https://www.cantonscan.com/"}
               target="_blank"
               rel="noreferrer"
+              aria-label={i18n._(t`Explorer`)}
+              title={i18n._(t`Explorer`)}
               aria-disabled={!walletExplorerUrl}
               onClick={(event) => {
                 if (!walletExplorerUrl) event.preventDefault();
               }}
             >
-              <span>{i18n._(t`Explorer`)}</span>
               <ExternalIcon />
             </a>
-            <span className={styles.headerDivider} />
-            <button type="button" className={styles.disconnectButton} onClick={handleDisconnect}>
-              <span>{i18n._(t`Disconnect`)}</span>
-              <LogoutIcon />
-            </button>
+            <details className={styles.moreMenu}>
+              <summary
+                className={styles.headerIconButton}
+                aria-label={i18n._(t`More profile actions`)}
+                title={i18n._(t`More profile actions`)}
+              >
+                <MoreIcon />
+              </summary>
+              <div className={styles.moreMenuPanel}>
+                {connected && avatar ? (
+                  <button
+                    type="button"
+                    className={styles.menuAction}
+                    onClick={() => void handleRemoveAvatar()}
+                    disabled={avatarBusy}
+                  >
+                    <RemoveAvatarIcon />
+                    <span>{i18n._(t`Remove avatar`)}</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={cx(styles.menuAction, styles.disconnectMenuAction)}
+                  onClick={handleDisconnect}
+                >
+                  <LogoutIcon />
+                  <span>{i18n._(t`Disconnect`)}</span>
+                </button>
+              </div>
+            </details>
             <button
               type="button"
               className={styles.closeButton}
@@ -1164,12 +1169,12 @@ async function writeClipboardText(value: string): Promise<boolean> {
 function ExternalIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M14 4h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 4 10 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 4h6v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 4 10 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path
         d="M12 5H7a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3v-5"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
     </svg>
@@ -1182,11 +1187,11 @@ function LogoutIcon() {
       <path
         d="M15 7V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <path d="M10 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m17 9 3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="m17 9 3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -1194,8 +1199,33 @@ function LogoutIcon() {
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m6 6 12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M18 6 6 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="m6 6 12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
+  );
+}
+
+function RemoveAvatarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M4.5 20c1.2-4 4-6 7.5-6 1.7 0 3.2.5 4.4 1.4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path d="m17 18 4 4m0-4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1203,11 +1233,11 @@ function CloseIcon() {
 function CopyIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+      <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <path
         d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
     </svg>
@@ -1217,15 +1247,15 @@ function CopyIcon() {
 function DepositIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <path d="M20 7v18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M20 7v18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <path
         d="m13.5 18.5 6.5 6.5 6.5-6.5"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M12 31h16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M12 31h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1233,8 +1263,8 @@ function DepositIcon() {
 function WithdrawIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <path d="M13 27 27 13" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" />
-      <path d="M17 13h10v10" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13 27 27 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M17 13h10v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -1242,7 +1272,7 @@ function WithdrawIcon() {
 function ChevronIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="m9 5 7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m9 5 7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -1250,7 +1280,7 @@ function ChevronIcon() {
 function ChevronDownIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -1258,11 +1288,11 @@ function ChevronDownIcon() {
 function RefreshIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M20 6v5h-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 6v5h-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path
         d="M19 11a7 7 0 1 0-2.1 5"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
