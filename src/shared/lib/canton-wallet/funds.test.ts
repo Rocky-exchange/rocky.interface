@@ -310,6 +310,51 @@ describe("canton wallet funds", () => {
     ]);
   });
 
+  it("preserves the exact recall suffix for a maximum-length safe provided withdrawal key", async () => {
+    const withdrawalKey = "a".repeat(51);
+    const fetchMock = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
+      if (String(url) === "/v1/bonus/recall-for-withdraw") return jsonResponse(ZERO_BONUS_RECALL);
+      return jsonResponse({ withdrawal_id: "wid-safe-key", status: "submitted" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "USDCx",
+        amount: "5",
+        destinationParty: "party-1",
+        idempotencyKey: withdrawalKey,
+      })
+    ).resolves.toMatchObject({ withdrawal_id: "wid-safe-key" });
+
+    const recallBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    const withdrawalBody = JSON.parse(fetchMock.mock.calls[1][1]?.body as string);
+    expect(recallBody).toEqual({ request_id: `${withdrawalKey}-bonus-recall` });
+    expect(recallBody.request_id).toHaveLength(64);
+    expect(withdrawalBody.idempotency_key).toBe(withdrawalKey);
+  });
+
+  it.each([
+    ["a provided withdrawal key longer than the recall limit", "a".repeat(52)],
+    ["a provided withdrawal key containing unsafe recall characters", "withdrawal/key"],
+  ])("rejects %s before making a request", async (_case, idempotencyKey) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "USDCx",
+        amount: "5",
+        destinationParty: "party-1",
+        idempotencyKey,
+      })
+    ).rejects.toMatchObject({
+      code: "invalid_withdrawal_idempotency_key",
+      message: "Withdrawal request could not be prepared.",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it.each([409, 503])("fails closed when bonus recall returns %i", async (status) => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({ error: "bonus_recall_failed" }, status)

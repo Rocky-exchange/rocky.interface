@@ -140,6 +140,8 @@ export class CantonFundsError extends Error {
 
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
+const BONUS_RECALL_REQUEST_SUFFIX = "-bonus-recall";
+const MAX_WITHDRAWAL_RECALL_KEY_LENGTH = 64 - BONUS_RECALL_REQUEST_SUFFIX.length;
 
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
   return asset === "USDCx" ? "USDC" : "CC";
@@ -229,7 +231,8 @@ export async function submitPlatformWithdrawal(input: {
   ensureExchangeSession();
   const amount = positiveAmount(input.amount);
   const withdrawalKey = input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset);
-  const bonusRecall = await recallBonusForWithdraw({ request_id: `${withdrawalKey}-bonus-recall` });
+  const bonusRecallRequestId = withdrawalRecallRequestId(withdrawalKey);
+  const bonusRecall = await recallBonusForWithdraw({ request_id: bonusRecallRequestId });
   notifyBonusDataChanged();
   const withdrawal = await requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
     method: "POST",
@@ -397,6 +400,15 @@ function positiveAmount(value: string): string {
     throw new CantonFundsError("Amount must be positive", { code: "amount_must_be_positive" });
   }
   return amount;
+}
+
+function withdrawalRecallRequestId(withdrawalKey: string): string {
+  if (withdrawalKey.length > MAX_WITHDRAWAL_RECALL_KEY_LENGTH || !/^[A-Za-z0-9._:-]+$/.test(withdrawalKey)) {
+    throw new CantonFundsError("Withdrawal request could not be prepared.", {
+      code: "invalid_withdrawal_idempotency_key",
+    });
+  }
+  return `${withdrawalKey}${BONUS_RECALL_REQUEST_SUFFIX}`;
 }
 
 async function requestWalletDepositReference(input: {
