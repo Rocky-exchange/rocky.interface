@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/macro";
+import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -7,6 +7,7 @@ import { NavLink } from "react-router-dom";
 import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { useCantonWallet } from "@/shared/lib/canton-wallet/useCantonWallet";
 import { dynamicActivate } from "@/shared/lib/i18n";
 
 import styles from "./TopNav.module.scss";
@@ -18,21 +19,32 @@ const LANGUAGE_OPTIONS = [
 
 export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
   const { i18n } = useLingui();
-  const { connected, username, party, avatar } = useCantonSession();
+  const { connected, locked, username, party, avatar } = useCantonSession();
+  const { unlock, connecting } = useCantonWallet();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
   const [fundsOpen, setFundsOpen] = useState(false);
   const languageRef = useRef<HTMLDivElement>(null);
 
-  const walletLabel = connected ? username || `${party.slice(0, 8)}...` : null;
+  const walletLabel = locked
+    ? connecting
+      ? i18n._(t`Unlocking...`)
+      : i18n._(t`Unlock`)
+    : connected
+      ? username || `${party.slice(0, 8)}...`
+      : null;
 
   const handleWalletClick = useCallback(() => {
+    if (locked) {
+      void unlock().catch(() => undefined);
+      return;
+    }
     if (connected) {
       setFundsOpen(true);
       return;
     }
     openCantonConnect();
-  }, [connected]);
+  }, [connected, locked, unlock]);
 
   const handleLanguageToggle = useCallback(() => {
     setIsLanguageOpen((prev) => !prev);
@@ -181,7 +193,9 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
           ) : null}
         </div>
         <button type="button" className={styles.connect} onClick={handleWalletClick} data-tour="connect">
-          {connected && avatar ? <img src={avatar} alt="" aria-hidden="true" className={styles.connectAvatar} /> : null}
+          {connected && !locked && avatar ? (
+            <img src={avatar} alt="" aria-hidden="true" className={styles.connectAvatar} />
+          ) : null}
           {walletLabel || <Trans>Connect wallet</Trans>}
         </button>
       </div>

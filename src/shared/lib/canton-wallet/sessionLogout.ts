@@ -26,11 +26,15 @@ export function disconnectCantonWalletSession(): Promise<void> {
   return logoutInFlight;
 }
 
-export function shouldDisconnectForRockyAccountChange(
+export type RockyAccountChange = "ignored" | "locked" | "available" | "account-changed";
+
+export function classifyRockyAccountChange(
   currentParty: string,
   account: RockyAccount | undefined
-): boolean {
-  return Boolean(currentParty) && account?.partyId !== currentParty;
+): RockyAccountChange {
+  if (!currentParty) return "ignored";
+  if (!account?.partyId) return "locked";
+  return account.partyId === currentParty ? "available" : "account-changed";
 }
 
 function storedProvider(): WalletProviderId | "" {

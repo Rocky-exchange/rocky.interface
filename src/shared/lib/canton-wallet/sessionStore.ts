@@ -1,4 +1,7 @@
 export const CANTON_SESSION_CHANGE_EVENT = "canton-session-change";
+export const CANTON_WALLET_LOCK_CHANGE_EVENT = "canton-wallet-lock-change";
+
+let cantonWalletLocked = false;
 
 export const CANTON_SESSION_STORAGE_KEYS = [
   "rocky_exchange_session",
@@ -30,8 +33,27 @@ export function notifyCantonSessionChange() {
   }
 }
 
+export function subscribeCantonWalletLock(callback: () => void) {
+  if (typeof window === "undefined") return () => undefined;
+  window.addEventListener(CANTON_WALLET_LOCK_CHANGE_EVENT, callback);
+  return () => window.removeEventListener(CANTON_WALLET_LOCK_CHANGE_EVENT, callback);
+}
+
+export function getCantonWalletLocked() {
+  return cantonWalletLocked;
+}
+
+export function setCantonWalletLocked(locked: boolean) {
+  if (cantonWalletLocked === locked) return;
+  cantonWalletLocked = locked;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CANTON_WALLET_LOCK_CHANGE_EVENT));
+  }
+}
+
 export function clearStoredCantonSession() {
   if (typeof window === "undefined") return;
   CANTON_SESSION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  setCantonWalletLocked(false);
   notifyCantonSessionChange();
 }

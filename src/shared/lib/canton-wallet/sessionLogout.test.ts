@@ -17,10 +17,14 @@ vi.mock("./console", () => ({
 }));
 
 import {
+  classifyRockyAccountChange,
   disconnectCantonWalletSession,
-  shouldDisconnectForRockyAccountChange,
 } from "./sessionLogout";
-import { CANTON_SESSION_STORAGE_KEYS } from "./sessionStore";
+import {
+  CANTON_SESSION_STORAGE_KEYS,
+  getCantonWalletLocked,
+  setCantonWalletLocked,
+} from "./sessionStore";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -47,6 +51,15 @@ describe("Canton wallet session logout", () => {
     window.removeEventListener("canton-session-change", changed);
   });
 
+  it("resets the wallet lock state during a complete logout", async () => {
+    localStorage.setItem("mtc_login_method", "rocky");
+    setCantonWalletLocked(true);
+
+    await disconnectCantonWalletSession();
+
+    expect(getCantonWalletLocked()).toBe(false);
+  });
+
   it("coalesces concurrent logout requests", async () => {
     let releaseDisconnect: (() => void) | undefined;
     adapterMocks.rockyDisconnect.mockImplementation(
@@ -66,17 +79,17 @@ describe("Canton wallet session logout", () => {
     expect(adapterMocks.rockyDisconnect).toHaveBeenCalledTimes(1);
   });
 
-  it("only logs out when the Rocky account party changes or disappears", () => {
+  it("distinguishes a locked Rocky wallet from an account change", () => {
     const party = "rockywallet-block::1220block";
 
-    expect(shouldDisconnectForRockyAccountChange(party, { partyId: party })).toBe(false);
+    expect(classifyRockyAccountChange(party, { partyId: party })).toBe("available");
     expect(
-      shouldDisconnectForRockyAccountChange(party, {
+      classifyRockyAccountChange(party, {
         partyId: "rockywallet-etouyang::1220etouyang",
       })
-    ).toBe(true);
-    expect(shouldDisconnectForRockyAccountChange(party, undefined)).toBe(true);
-    expect(shouldDisconnectForRockyAccountChange("", undefined)).toBe(false);
+    ).toBe("account-changed");
+    expect(classifyRockyAccountChange(party, undefined)).toBe("locked");
+    expect(classifyRockyAccountChange("", undefined)).toBe("ignored");
   });
 });
 

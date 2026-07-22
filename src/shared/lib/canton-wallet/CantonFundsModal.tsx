@@ -57,7 +57,7 @@ const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
-  const { connected, party, provider, username, avatar } = useCantonSession();
+  const { connected, locked, party, provider, username, avatar } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<CantonFundsAsset>("USDA");
@@ -118,8 +118,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const walletExplorerUrl = getCantonScanPartyUrl(walletParty);
 
   useEffect(() => {
-    if (open && !connected) onClose();
-  }, [connected, onClose, open]);
+    if (open && (!connected || locked)) onClose();
+  }, [connected, locked, onClose, open]);
 
   const refreshBalances = useCallback(async () => {
     if (!connected) return;

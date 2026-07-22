@@ -9,6 +9,7 @@ import {
 } from "./index";
 import { hydrateOwnProfile } from "./profile";
 import { disconnectCantonWalletSession } from "./sessionLogout";
+import { setCantonWalletLocked } from "./sessionStore";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
 export function useCantonWallet() {
@@ -40,5 +41,24 @@ export function useCantonWallet() {
 
   const disconnect = useCallback(() => disconnectCantonWalletSession(), []);
 
-  return { connect, disconnect, connecting, error };
+  const unlock = useCallback(async () => {
+    setConnecting(true);
+    setError(null);
+    try {
+      const currentParty = typeof window !== "undefined" ? localStorage.getItem("mtc_party") || "" : "";
+      const wallet = await connectRockyWallet();
+      if (!currentParty || wallet.connection.partyId !== currentParty) {
+        await disconnectCantonWalletSession();
+        throw new Error("Rocky Wallet active account does not match the logged-in party");
+      }
+      setCantonWalletLocked(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "unlock failed");
+      throw e;
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
+  return { connect, disconnect, unlock, connecting, error };
 }

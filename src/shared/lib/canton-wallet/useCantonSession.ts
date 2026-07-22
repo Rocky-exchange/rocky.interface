@@ -2,8 +2,13 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import { subscribeRockyWalletAccountChanges } from "./rocky";
 import { getMtcAuthToken } from "./session";
-import { disconnectCantonWalletSession, shouldDisconnectForRockyAccountChange } from "./sessionLogout";
-import { subscribeCantonSession } from "./sessionStore";
+import { classifyRockyAccountChange, disconnectCantonWalletSession } from "./sessionLogout";
+import {
+  getCantonWalletLocked,
+  setCantonWalletLocked,
+  subscribeCantonSession,
+  subscribeCantonWalletLock,
+} from "./sessionStore";
 import type { WalletProviderId } from "./types";
 
 export { notifyCantonSessionChange } from "./sessionStore";
@@ -23,15 +28,22 @@ export function useCantonSession() {
       ? storedProvider
       : "";
   const connected = Boolean(token);
+  const walletLocked = useSyncExternalStore(subscribeCantonWalletLock, getCantonWalletLocked, () => false);
+  const locked = connected && provider === "rocky" && walletLocked;
 
   useEffect(() => {
     if (!connected || provider !== "rocky" || !party) return undefined;
     return subscribeRockyWalletAccountChanges((account) => {
-      if (shouldDisconnectForRockyAccountChange(party, account)) {
+      const change = classifyRockyAccountChange(party, account);
+      if (change === "locked") {
+        setCantonWalletLocked(true);
+      } else if (change === "available") {
+        setCantonWalletLocked(false);
+      } else if (change === "account-changed") {
         void disconnectCantonWalletSession();
       }
     });
   }, [connected, party, provider]);
 
-  return { connected, token, party, username, avatar, provider };
+  return { connected, locked, token, party, username, avatar, provider };
 }
