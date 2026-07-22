@@ -427,8 +427,9 @@
 }
 
 .connect {
-  color: var(--ltr-text-primary);
-  background: var(--ltr-accent-cyan, #ff8a3d);
+  background: linear-gradient(180deg, #d9a441 0%, #b9862c 100%);
+  color: #17110a;
+  font-weight: 600;
 }
 
 .feeRow {

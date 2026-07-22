@@ -100,7 +100,7 @@ describe("SpotOrderForm", () => {
     expect(orderTypes.compareDocumentPosition(orderSide) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
-  it("shows only Market and Limit while keeping Limit as the active supported type", () => {
+  it("keeps both backend-supported Market and Limit tabs interactive", () => {
     const { getByRole, queryByRole } = render(<SpotOrderForm market={market} />);
 
     const typeTabs = within(getByRole("tablist", { name: "Order type" })).getAllByRole("tab");
@@ -110,8 +110,13 @@ describe("SpotOrderForm", () => {
     expect(queryByRole("tab", { name: "Advanced" })).toBeNull();
     expect(limit.getAttribute("aria-selected")).toBe("true");
     expect(limit.tabIndex).toBe(0);
-    expect(marketType.disabled).toBe(true);
+    expect(marketType.disabled).toBe(false);
     expect(marketType.tabIndex).toBe(-1);
+
+    fireEvent.click(marketType);
+    expect(marketType.getAttribute("aria-selected")).toBe("true");
+    expect(marketType.tabIndex).toBe(0);
+    expect(limit.getAttribute("aria-selected")).toBe("false");
   });
 
   it("uses roving focus and arrow keys across the Buy and Sell tabs", () => {
@@ -157,13 +162,18 @@ describe("SpotOrderForm", () => {
     expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/s);
   });
 
-  it("keeps the Buy form wallet CTA when auth is not ready", () => {
+  it("matches the futures Connect Wallet CTA while keeping the spot connection action", () => {
     mUseSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch });
     const { getByRole, queryByRole } = render(<SpotOrderForm market={market} />);
 
     expect(queryByRole("button", { name: `BUY ${market.displayBase}` })).toBeNull();
-    fireEvent.click(getByRole("button", { name: "Connect wallet" }));
+    fireEvent.click(getByRole("button", { name: "Connect Wallet" }));
     expect(mConnect).toHaveBeenCalledTimes(1);
+
+    const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
+    expect(source).toMatch(
+      /\.connect\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#d9a441 0%,\s*#b9862c 100%\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/s
+    );
   });
 
   it("uses public USDA and CBTC labels for the available balance", () => {

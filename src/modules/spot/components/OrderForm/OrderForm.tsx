@@ -435,7 +435,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           </button>
         ) : (
           <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
-            Connect wallet
+            Connect Wallet
           </button>
         )}
 
