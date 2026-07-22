@@ -25,12 +25,19 @@ type Feedback =
 export function RedeemCodePage() {
   const history = useHistory();
   const { connected } = useCantonSession();
+  const mountedRef = useRef(true);
   const pendingRef = useRef(false);
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
   useLighterBody();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,16 +56,20 @@ export function RedeemCodePage() {
     setPending(true);
     setFeedback(null);
     const requestId = createRedeemRequestId();
+    const attemptPathname = history.location.pathname;
+    const canCommitAttempt = () => mountedRef.current && history.location.pathname === attemptPathname;
 
     try {
       await redeemBonusCode({ code, request_id: requestId });
       notifyBonusDataChanged();
-      history.replace("/bonus");
+      if (canCommitAttempt()) history.replace("/bonus");
     } catch (error) {
-      setFeedback(error instanceof BonusApiError ? { type: "api", message: error.message } : { type: "generic" });
+      if (canCommitAttempt()) {
+        setFeedback(error instanceof BonusApiError ? { type: "api", message: error.message } : { type: "generic" });
+      }
     } finally {
       pendingRef.current = false;
-      setPending(false);
+      if (canCommitAttempt()) setPending(false);
     }
   };
 
@@ -139,6 +150,7 @@ export function RedeemCodePage() {
                   maxLength={MAX_REDEEM_CODE_LENGTH}
                   disabled={pending}
                   aria-describedby="redeem-code-help redeem-feedback"
+                  aria-invalid={feedback !== null}
                 />
                 <span className={styles.counter} aria-hidden="true">
                   {String(code.length).padStart(2, "0")}/{MAX_REDEEM_CODE_LENGTH}
@@ -205,27 +217,23 @@ function FeedbackMessage({ feedback }: { feedback: Feedback }) {
   if (!feedback) return null;
   if (feedback.type === "minimum") {
     return (
-      <p className={styles.error} role="alert">
+      <p className={styles.error}>
         <Trans>Enter at least 4 characters.</Trans>
       </p>
     );
   }
   if (feedback.type === "connect") {
     return (
-      <p className={styles.error} role="alert">
+      <p className={styles.error}>
         <Trans>Connect your wallet before redeeming.</Trans>
       </p>
     );
   }
   if (feedback.type === "api") {
-    return (
-      <p className={styles.error} role="alert">
-        {feedback.message}
-      </p>
-    );
+    return <p className={styles.error}>{feedback.message}</p>;
   }
   return (
-    <p className={styles.error} role="alert">
+    <p className={styles.error}>
       <Trans>Redemption failed. Please try again.</Trans>
     </p>
   );

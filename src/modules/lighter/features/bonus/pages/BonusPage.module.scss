@@ -30,7 +30,7 @@
 
 .eyebrow {
   margin: 0 0 7px;
-  color: var(--ltr-text-muted);
+  color: var(--ltr-text-secondary);
   font-size: 10px;
   line-height: 14px;
   font-weight: 750;
@@ -169,13 +169,13 @@
   }
 
   &[data-status="recalled"] {
-    color: var(--ltr-text-muted);
+    color: var(--ltr-text-secondary);
   }
 }
 
 .grantTier {
   max-width: 50%;
-  color: var(--ltr-text-muted);
+  color: var(--ltr-text-secondary);
   overflow-wrap: anywhere;
   text-align: right;
 }
@@ -199,7 +199,7 @@
 
 .lifecycleMeta {
   margin-top: 13px;
-  color: var(--ltr-text-muted);
+  color: var(--ltr-text-secondary);
   font-size: 11px;
   line-height: 16px;
 
@@ -219,7 +219,7 @@
 
 .expiryHeading {
   margin-bottom: 8px;
-  color: var(--ltr-text-muted);
+  color: var(--ltr-text-secondary);
   font-size: 10px;
   line-height: 14px;
   font-variant-numeric: tabular-nums;
@@ -274,7 +274,7 @@
   }
 
   [data-countdown-label] {
-    color: var(--ltr-text-muted);
+    color: var(--ltr-text-secondary);
     font-size: 8px;
     line-height: 11px;
     font-weight: 700;

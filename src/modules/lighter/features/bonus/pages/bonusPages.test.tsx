@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { createMemoryHistory, type MemoryHistory } from "history";
 import { readFileSync } from "node:fs";
 import type { PropsWithChildren, ReactElement } from "react";
-import { Router } from "react-router-dom";
+import { MemoryRouter, Route, Router, Switch, useHistory } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
@@ -103,6 +103,7 @@ const HISTORY_CASES = [
 const HISTORY_ROWS_BY_EVENT = new Map(
   HISTORY_CASES.map(([eventType]) => [eventType, [{ ...HISTORY_ROW, event_type: eventType }]])
 );
+const REDEEM_ROUTE_ENTRIES = ["/bonus/redeem"];
 
 const REDEEMED: BonusRedeemResponse = {
   bonus_account_id: "bonus-1",
@@ -179,6 +180,15 @@ function getCodeInput(): HTMLInputElement {
   return screen.getByLabelText("Redemption code") as HTMLInputElement;
 }
 
+function LeaveForTradeButton() {
+  const history = useHistory();
+  return (
+    <button type="button" onClick={() => history.push("/trade")}>
+      Leave for trade
+    </button>
+  );
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   mockConnectedSession();
@@ -240,6 +250,37 @@ describe("BonusPage", () => {
 
     expect(mUseBonusBalance).not.toHaveBeenCalled();
     expect(mUseBonusHistory).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: _label === "loading" ? "Loading trial funds" : "Trial funds unavailable",
+      })
+    ).not.toBeNull();
+  });
+
+  it("keeps the active dashboard visible with a non-blocking warning when status refresh fails", () => {
+    mUseBonusStatus.mockReturnValue({
+      data: STATUS,
+      isLoading: false,
+      error: new BonusApiError("Bonus status is temporarily unavailable", {
+        status: 503,
+        code: "bonus_unavailable",
+        data: {},
+      }),
+    } as ReturnType<typeof useBonusStatus>);
+
+    renderAt(<BonusPage />, "/bonus");
+
+    expect(screen.getByText("87.5 USDCx")).not.toBeNull();
+    expect(screen.getByText("Trading fee")).not.toBeNull();
+    expect(screen.getByText("Showing saved trial-funds data while the latest refresh is unavailable.")).not.toBeNull();
+    expect(
+      screen
+        .getByText("Showing saved trial-funds data while the latest refresh is unavailable.")
+        .closest('[role="status"]')
+    ).not.toBeNull();
+    expect(mUseBonusBalance).toHaveBeenCalledTimes(1);
+    expect(mUseBonusHistory).toHaveBeenCalledWith(20);
   });
 
   it("links users without a bonus to the Rocky redeem route", () => {
@@ -317,6 +358,8 @@ describe("Bonus visual components", () => {
     const timer = screen.getByRole("timer", { name: "Bonus expiry countdown" });
     expect(timer.hasAttribute("aria-label")).toBe(false);
     expect(timer.getAttribute("aria-labelledby")).not.toBeNull();
+    expect(timer.getAttribute("aria-live")).toBe("off");
+    expect(vi.getTimerCount()).toBe(1);
     expect(within(timer).getByRole("group", { name: "01 Days" })).not.toBeNull();
     expect(within(timer).getByRole("group", { name: "02 Hours" })).not.toBeNull();
     expect(within(timer).getByRole("group", { name: "03 Minutes" })).not.toBeNull();
@@ -329,16 +372,47 @@ describe("Bonus visual components", () => {
     expect(within(timer).getByRole("group", { name: "03 Seconds" })).not.toBeNull();
     unmount();
     expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("clamps expired and invalid expiry values safely to zero", () => {
+  it("clamps expired and invalid expiry values safely to zero without scheduling a timer", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T00:00:00Z"));
     const { rerender } = renderI18n(<BonusCountdown expiresAt="2020-01-01T00:00:00Z" />);
     expect(screen.getByRole("group", { name: "00 Days" })).not.toBeNull();
     expect(screen.getByRole("group", { name: "00 Seconds" })).not.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
 
     rerender(<BonusCountdown expiresAt="not-a-date" />);
     expect(screen.getByRole("group", { name: "00 Days" })).not.toBeNull();
     expect(screen.getByRole("group", { name: "00 Seconds" })).not.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("clears its interval at zero and restarts only for a future expiry prop", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T00:00:00Z"));
+    const { rerender, unmount } = renderI18n(<BonusCountdown expiresAt="2026-07-22T00:00:02Z" />);
+
+    expect(vi.getTimerCount()).toBe(1);
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(screen.getByRole("group", { name: "01 Seconds" })).not.toBeNull();
+    expect(vi.getTimerCount()).toBe(1);
+
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(screen.getByRole("timer", { name: "Bonus expiry countdown" }).getAttribute("data-expired")).toBe("true");
+    expect(screen.getByRole("group", { name: "00 Seconds" })).not.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(vi.getTimerCount()).toBe(0);
+
+    rerender(<BonusCountdown expiresAt="2026-07-22T00:00:10Z" />);
+    expect(vi.getTimerCount()).toBe(1);
+    rerender(<BonusCountdown expiresAt="2020-01-01T00:00:00Z" />);
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it.each(HISTORY_CASES)("maps %s history rows to %s", (eventType, label) => {
@@ -381,6 +455,67 @@ describe("Bonus visual components", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
+
+  it("preserves stale rows and pagination with a non-blocking refresh warning", () => {
+    const loadMore = vi.fn();
+    renderI18n(
+      <BonusHistoryList
+        rows={HISTORY_ROWS}
+        error={
+          new BonusApiError("History is temporarily unavailable", {
+            status: 503,
+            code: "bonus_unavailable",
+            data: {},
+          })
+        }
+        isLoading={false}
+        hasMore
+        loadMore={loadMore}
+      />
+    );
+
+    expect(screen.getByText("Trading fee")).not.toBeNull();
+    expect(
+      screen.getByText("Showing saved attribution history while the latest refresh is unavailable.")
+    ).not.toBeNull();
+    expect(
+      screen
+        .getByText("Showing saved attribution history while the latest refresh is unavailable.")
+        .closest('[role="status"]')
+    ).not.toBeNull();
+    const more = screen.getByRole("button", { name: "Load more" }) as HTMLButtonElement;
+    expect(more.disabled).toBe(false);
+    fireEvent.click(more);
+    expect(loadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows only the blocking error when history has no retained rows", () => {
+    renderI18n(
+      <BonusHistoryList
+        rows={NO_HISTORY_ROWS}
+        error={new Error("History is temporarily unavailable")}
+        isLoading={false}
+        hasMore
+        loadMore={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("alert").textContent).toContain("History is temporarily unavailable");
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryByText("No attribution events yet.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("makes the horizontal history viewport a named keyboard focus target", () => {
+    renderI18n(
+      <BonusHistoryList rows={HISTORY_ROWS} error={undefined} isLoading={false} hasMore={false} loadMore={vi.fn()} />
+    );
+
+    const viewport = screen.getByRole("region", { name: "Attribution history" });
+    expect(viewport.tabIndex).toBe(0);
+    viewport.focus();
+    expect(document.activeElement).toBe(viewport);
+  });
 });
 
 describe("RedeemCodePage", () => {
@@ -412,7 +547,11 @@ describe("RedeemCodePage", () => {
 
     expect(MIN_REDEEM_CODE_LENGTH).toBe(4);
     expect(mRedeemBonusCode).not.toHaveBeenCalled();
-    expect(screen.getByText("Enter at least 4 characters.").closest('[aria-live="polite"]')).not.toBeNull();
+    const feedback = screen.getByText("Enter at least 4 characters.");
+    expect(feedback.closest('[aria-live="polite"]')).not.toBeNull();
+    expect(feedback.closest('[role="alert"]')).toBeNull();
+    expect(getCodeInput().getAttribute("aria-invalid")).toBe("true");
+    expect(getCodeInput().getAttribute("aria-describedby")).toContain("redeem-feedback");
     expect(getCodeInput().value).toBe("ABC");
     expect((screen.getByRole("button", { name: "Redeem code" }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -430,8 +569,10 @@ describe("RedeemCodePage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Redeem code" }));
 
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("This code cannot be redeemed"));
-    expect(screen.getByRole("alert").closest('[aria-live="polite"]')).not.toBeNull();
+    await waitFor(() => expect(screen.getByText("This code cannot be redeemed")).not.toBeNull());
+    expect(screen.getByText("This code cannot be redeemed").closest('[aria-live="polite"]')).not.toBeNull();
+    expect(screen.getByText("This code cannot be redeemed").closest('[role="alert"]')).toBeNull();
+    expect(getCodeInput().getAttribute("aria-invalid")).toBe("true");
     expect(getCodeInput().value).toBe("ROCKY-2026");
   });
 
@@ -470,6 +611,48 @@ describe("RedeemCodePage", () => {
     expect(mRedeemBonusCode).toHaveBeenCalledTimes(1);
 
     await act(async () => resolveRedeem?.(REDEEMED));
+  });
+
+  it("keeps the destination route when a pending redemption resolves after the redeem page unmounts", async () => {
+    let resolveRedeem: ((value: BonusRedeemResponse) => void) | undefined;
+    mRedeemBonusCode.mockImplementation(() => new Promise<BonusRedeemResponse>((resolve) => (resolveRedeem = resolve)));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={REDEEM_ROUTE_ENTRIES}>
+          <Switch>
+            <Route exact path="/bonus/redeem">
+              <RedeemCodePage />
+              <LeaveForTradeButton />
+            </Route>
+            <Route path="/trade">
+              <h1>Trade route</h1>
+            </Route>
+            <Route path="/bonus">
+              <h1>Bonus route</h1>
+            </Route>
+          </Switch>
+        </MemoryRouter>
+      </I18nProvider>
+    );
+    fireEvent.change(getCodeInput(), { target: { value: "ROCKY-2026" } });
+    fireEvent.click(screen.getByRole("button", { name: "Redeem code" }));
+    await waitFor(() => expect(mRedeemBonusCode).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Leave for trade" }));
+    expect(screen.getByRole("heading", { name: "Trade route" })).not.toBeNull();
+
+    await act(async () => resolveRedeem?.(REDEEMED));
+
+    expect(screen.getByRole("heading", { name: "Trade route" })).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Bonus route" })).toBeNull();
+    expect(mNotifyBonusDataChanged).toHaveBeenCalledTimes(1);
+    expect(
+      consoleError.mock.calls.some((call) =>
+        call.some((entry) => String(entry).includes("state update on an unmounted"))
+      )
+    ).toBe(false);
   });
 });
 
@@ -515,6 +698,45 @@ describe("responsive SCSS contract", () => {
   );
 });
 
+describe("bonus text contrast contract", () => {
+  it("keeps the default secondary text token above 4.5:1 on every bonus text surface", () => {
+    const tokens = readFileSync("src/modules/lighter/styles/tokens.scss", "utf8");
+    const secondary = readHexCustomProperty(tokens, "--ltr-text-secondary");
+    const surfaces = [
+      "#000000",
+      "#07070c",
+      "#09090f",
+      "#0b0b11",
+      "#0d0d13",
+      "#111117",
+      "#1a1a20",
+      readHexCustomProperty(tokens, "--ltr-bg-root"),
+      readHexCustomProperty(tokens, "--ltr-bg-panel-2"),
+    ];
+
+    for (const surface of surfaces) expect(contrastRatio(secondary, surface)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("does not use muted colors for user-visible text in the four bonus stylesheets", () => {
+    const styleSources = [
+      "../components/BonusBalanceCard.module.scss",
+      "../components/BonusHistoryList.module.scss",
+      "./BonusPage.module.scss",
+      "./RedeemCodePage.module.scss",
+    ].map((sourcePath) => readFileSync(new URL(sourcePath, import.meta.url), "utf8"));
+
+    for (const source of styleSources) {
+      expect(source).not.toMatch(/color:\s*var\(--ltr-text-muted\)\s*;/);
+      expect(source).not.toMatch(/color:\s*#505058\s*;/i);
+    }
+
+    expect(styleSources[1]).toMatch(/\.time\s*\{[^}]*color:\s*var\(--ltr-text-secondary\)/);
+    expect(styleSources[2]).toMatch(/\[data-countdown-label\]\s*\{[^}]*color:\s*var\(--ltr-text-secondary\)/);
+    expect(styleSources[3]).toMatch(/\.help\s*\{[^}]*color:\s*var\(--ltr-text-secondary\)/);
+    expect(styleSources[3]).toMatch(/&::placeholder\s*\{[^}]*color:\s*var\(--ltr-text-secondary\)/);
+  });
+});
+
 function extractMaxWidthBlock(source: string, width: number): string {
   const mediaStart = source.search(new RegExp(`@media\\s*\\(max-width:\\s*${width}px\\)`));
   if (mediaStart < 0) return "";
@@ -527,4 +749,24 @@ function extractMaxWidthBlock(source: string, width: number): string {
     if (depth === 0) return source.slice(blockStart + 1, index);
   }
   return "";
+}
+
+function readHexCustomProperty(source: string, property: string): string {
+  const value = source.match(new RegExp(`${property}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+  if (!value) throw new Error(`Missing hex value for ${property}`);
+  return value;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const [lighter, darker] = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function relativeLuminance(hex: string): number {
+  const [red, green, blue] = hex
+    .slice(1)
+    .match(/.{2}/g)!
+    .map((channel) => Number.parseInt(channel, 16) / 255)
+    .map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
+  return red * 0.2126 + green * 0.7152 + blue * 0.0722;
 }

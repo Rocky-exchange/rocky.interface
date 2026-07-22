@@ -28,26 +28,33 @@ export function BonusPage() {
         {!connected ? (
           <DisconnectedState />
         ) : status.isLoading && !status.data ? (
-          <PageState label={<Trans>Loading trial funds status…</Trans>} />
-        ) : status.error ? (
-          <PageState label={status.error.message} error />
+          <PageState heading={<Trans>Loading trial funds</Trans>} label={<Trans>Loading trial funds status…</Trans>} />
+        ) : status.error && !status.data ? (
+          <PageState heading={<Trans>Trial funds unavailable</Trans>} label={status.error.message} error />
         ) : !status.data?.has_bonus ? (
           <NoBonusState />
         ) : (
-          <BonusDashboardContainer status={status.data} />
+          <BonusDashboardContainer status={status.data} statusError={status.error} />
         )}
       </main>
     </div>
   );
 }
 
-function BonusDashboardContainer({ status }: { status: NonNullable<ReturnType<typeof useBonusStatus>["data"]> }) {
+function BonusDashboardContainer({
+  status,
+  statusError,
+}: {
+  status: NonNullable<ReturnType<typeof useBonusStatus>["data"]>;
+  statusError: ReturnType<typeof useBonusStatus>["error"];
+}) {
   const balance = useBonusBalance();
   const history = useBonusHistory(20);
 
   return (
     <BonusDashboard
       status={status}
+      statusError={statusError}
       balance={balance.data}
       balanceError={balance.error}
       balanceLoading={balance.isLoading}
@@ -97,9 +104,18 @@ function NoBonusState() {
   );
 }
 
-function PageState({ label, error = false }: { label: React.ReactNode; error?: boolean }) {
+function PageState({
+  heading,
+  label,
+  error = false,
+}: {
+  heading?: React.ReactNode;
+  label: React.ReactNode;
+  error?: boolean;
+}) {
   return (
     <section className={styles.statePanel} role={error ? "alert" : "status"} aria-live="polite">
+      {heading ? <h1 className={styles.stateTitle}>{heading}</h1> : null}
       <p className={error ? styles.errorText : styles.stateCopy}>{label}</p>
     </section>
   );
@@ -107,12 +123,14 @@ function PageState({ label, error = false }: { label: React.ReactNode; error?: b
 
 function BonusDashboard({
   status,
+  statusError,
   balance,
   balanceError,
   balanceLoading,
   history,
 }: {
   status: NonNullable<ReturnType<typeof useBonusStatus>["data"]>;
+  statusError: ReturnType<typeof useBonusStatus>["error"];
   balance: ReturnType<typeof useBonusBalance>["data"];
   balanceError: ReturnType<typeof useBonusBalance>["error"];
   balanceLoading: boolean;
@@ -133,6 +151,12 @@ function BonusDashboard({
           <Trans>Redeem another code</Trans>
         </Link>
       </header>
+
+      {statusError ? (
+        <div className={`${styles.notice} ${styles.noticeWarning}`} role="status">
+          <Trans>Showing saved trial-funds data while the latest refresh is unavailable.</Trans>
+        </div>
+      ) : null}
 
       {status.status === "frozen" ? (
         <div className={`${styles.notice} ${styles.noticeDanger}`} role="alert">

@@ -14,7 +14,7 @@ export type BonusHistoryListProps = {
 
 export function BonusHistoryList({ rows, error, isLoading, hasMore, loadMore }: BonusHistoryListProps) {
   return (
-    <section className={styles.card} role="region" aria-labelledby="bonus-history-heading">
+    <section className={styles.card}>
       <div className={styles.header}>
         <div>
           <p className={styles.kicker}>
@@ -27,7 +27,13 @@ export function BonusHistoryList({ rows, error, isLoading, hasMore, loadMore }: 
         <span className={styles.rowCount}>{rows.length.toLocaleString()}</span>
       </div>
 
-      {error ? (
+      {error && rows.length > 0 ? (
+        <p className={styles.staleWarning} role="status">
+          <Trans>Showing saved attribution history while the latest refresh is unavailable.</Trans>
+        </p>
+      ) : null}
+
+      {error && rows.length === 0 ? (
         <p className={`${styles.state} ${styles.error}`} role="alert">
           {error.message}
         </p>
@@ -40,7 +46,7 @@ export function BonusHistoryList({ rows, error, isLoading, hasMore, loadMore }: 
           <Trans>No attribution events yet.</Trans>
         </p>
       ) : (
-        <div className={styles.tableViewport}>
+        <div className={styles.tableViewport} role="region" aria-labelledby="bonus-history-heading" tabIndex={0}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -78,7 +84,7 @@ export function BonusHistoryList({ rows, error, isLoading, hasMore, loadMore }: 
         </div>
       )}
 
-      {hasMore ? (
+      {rows.length > 0 && hasMore ? (
         <button type="button" className={styles.loadMore} onClick={loadMore} disabled={isLoading}>
           {isLoading ? <Trans>Loading…</Trans> : <Trans>Load more</Trans>}
         </button>

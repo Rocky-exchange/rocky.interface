@@ -20,10 +20,15 @@ export function BonusCountdown({ expiresAt, className }: BonusCountdownProps) {
   const expiry = safeTimestamp(expiresAt);
 
   useEffect(() => {
-    setNow(Date.now());
-    if (expiry === null) return;
+    const current = Date.now();
+    setNow(current);
+    if (expiry === null || expiry <= current) return;
 
-    const interval = window.setInterval(() => setNow(Date.now()), 1_000);
+    const interval = window.setInterval(() => {
+      const next = Date.now();
+      setNow(next);
+      if (next >= expiry) window.clearInterval(interval);
+    }, 1_000);
     return () => window.clearInterval(interval);
   }, [expiry]);
 
@@ -34,7 +39,7 @@ export function BonusCountdown({ expiresAt, className }: BonusCountdownProps) {
       className={className}
       role="timer"
       aria-labelledby={`${countdownId}-title`}
-      aria-live="polite"
+      aria-live="off"
       data-expired={countdown.expired ? "true" : "false"}
     >
       <span id={`${countdownId}-title`} style={VISUALLY_HIDDEN}>
