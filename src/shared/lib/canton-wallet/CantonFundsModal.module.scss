@@ -1926,25 +1926,57 @@
 }
 
 .historyFilters {
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 16px;
   border-bottom: 1px solid var(--border-subtle);
 
   button {
-    min-height: 42px;
-    padding: 0 14px;
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 8px;
+    place-items: center;
+    overflow: hidden;
     color: var(--text-secondary);
     font: 500 13px/20px var(--font-body);
+    text-overflow: ellipsis;
+    white-space: nowrap;
     background: transparent;
     border: 0;
-    border-bottom: 2px solid transparent;
     cursor: pointer;
+    transition: color 160ms ease;
+
+    &::after {
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      width: calc(100% - 24px);
+      max-width: 128px;
+      height: 2px;
+      content: "";
+      background: transparent;
+      transform: translateX(-50%);
+    }
+
+    &:hover {
+      color: var(--text-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--brand-cool);
+      outline-offset: -2px;
+    }
   }
 
   .historyFilterActive {
     color: var(--text-primary);
-    border-bottom-color: var(--brand-warm);
+    font-weight: 600;
+
+    &::after {
+      background: var(--brand-warm);
+    }
   }
 }
 
