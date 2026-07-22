@@ -1,5 +1,6 @@
 .page {
-  --spot-side-col: var(--ltr-side-col, 321px);
+  --spot-book-col: clamp(300px, 21vw, 440px);
+  --spot-form-col: clamp(330px, 22.5vw, 470px);
   position: relative;
   display: grid;
   grid-template-rows: var(--ltr-topnav-h, 56px) minmax(0, 1fr);
@@ -25,7 +26,7 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--spot-side-col) var(--spot-side-col);
+  grid-template-columns: minmax(0, 1fr) var(--spot-book-col) var(--spot-form-col);
   gap: 4px;
   min-width: 0;
   min-height: 0;
