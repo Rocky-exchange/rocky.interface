@@ -1,4 +1,5 @@
 import {
+  CANTON_FUNDING_ASSETS,
   getCantonFundingAsset,
   walletFacingAssetSymbol,
   type CantonFundsApiAsset,
@@ -95,6 +96,20 @@ export type CantonFundsHistory = {
   deposits: CantonDepositHistoryItem[];
   withdrawals: CantonWithdrawalHistoryItem[];
 };
+
+export type CantonSpotTransferHistoryItem = {
+  eventId: string;
+  asset: string;
+  amount: string;
+  direction: "toSpot" | "toFunding";
+  createdAt: string;
+};
+
+export type CantonSpotTransferHistory = {
+  transfers: CantonSpotTransferHistoryItem[];
+};
+
+export type PlatformAccountBalances = Record<CantonFundsAsset, number | null>;
 
 export type UsdaAuthorizationResult = {
   status?: string;
@@ -249,7 +264,35 @@ export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
   };
 }
 
+export async function fetchSpotTransferHistory(): Promise<CantonSpotTransferHistory> {
+  const data = await requestJson<{ transfers?: CantonSpotTransferHistoryItem[] }>("/v1/spot/transfers", {
+    method: "GET",
+    headers: exchangeSessionHeaders(),
+  });
+  return {
+    transfers: Array.isArray(data.transfers) ? data.transfers : [],
+  };
+}
+
 export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Promise<number | null> {
+  const record = await fetchAccountBalanceRecord(asset);
+  const available =
+    typeof record.spot_free === "string" || typeof record.spot_free === "number"
+      ? Number(record.spot_free)
+      : typeof record.available === "string" || typeof record.available === "number"
+        ? Number(record.available)
+        : NaN;
+  return Number.isFinite(available) ? available : null;
+}
+
+export async function fetchFundingAccountBalance(): Promise<number | null> {
+  const record = await fetchAccountBalanceRecord("USDA");
+  const available =
+    typeof record.available === "string" || typeof record.available === "number" ? Number(record.available) : NaN;
+  return Number.isFinite(available) ? available : null;
+}
+
+async function fetchAccountBalanceRecord(asset: CantonFundsAsset): Promise<Record<string, unknown>> {
   const response = await fetch(`/v1/account/me/${platformDepositApiAsset(asset)}`, {
     headers: exchangeSessionHeaders(),
   });
@@ -258,14 +301,23 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
     await disconnectForInvalidSession(fundsErrorFromResponse(data, response.status, response.url));
     return null;
   }
-  const record = isRecord(data) ? data : {};
-  const available =
-    typeof record.spot_free === "string" || typeof record.spot_free === "number"
-      ? Number(record.spot_free)
-      : typeof record.available === "string" || typeof record.available === "number"
-        ? Number(record.available)
-        : NaN;
-  return Number.isFinite(available) ? available : null;
+  return isRecord(data) ? data : {};
+}
+
+export async function fetchPlatformAccountBalances(): Promise<PlatformAccountBalances> {
+  const rows = await Promise.all(
+    CANTON_FUNDING_ASSETS.map(async ({ symbol }) => {
+      try {
+        return [symbol, await fetchPlatformAccountBalance(symbol)] as const;
+      } catch (_error) {
+        return [symbol, null] as const;
+      }
+    })
+  );
+  return rows.reduce<PlatformAccountBalances>(
+    (balances, [asset, value]) => ({ ...balances, [asset]: value }),
+    { USDA: null, CBTC: null, cETH: null, CC: null }
+  );
 }
 
 export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {

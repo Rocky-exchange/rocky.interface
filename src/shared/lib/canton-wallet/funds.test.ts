@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CantonFundsError,
   fetchCantonFundsHistory,
+  fetchFundingAccountBalance,
   fetchPlatformAccountBalance,
+  fetchPlatformAccountBalances,
   fetchPendingUsdaOffers,
+  fetchSpotTransferHistory,
   fetchUsdaAutoAccept,
   platformDepositApiAsset,
   requestDepositReference,
@@ -118,6 +121,42 @@ describe("canton wallet funds", () => {
       "/v1/spot/transfer",
       expect.objectContaining({
         method: "POST",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
+  });
+
+  it("loads persistent user spot transfer history", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        transfers: [
+          {
+            eventId: "event-1",
+            asset: "USDA",
+            amount: "1",
+            direction: "toSpot",
+            createdAt: "2026-07-22T08:00:00Z",
+          },
+        ],
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchSpotTransferHistory()).resolves.toEqual({
+      transfers: [
+        {
+          eventId: "event-1",
+          asset: "USDA",
+          amount: "1",
+          direction: "toSpot",
+          createdAt: "2026-07-22T08:00:00Z",
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/spot/transfers",
+      expect.objectContaining({
+        method: "GET",
         headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
       })
     );
@@ -238,6 +277,32 @@ describe("canton wallet funds", () => {
     await expect(fetchPlatformAccountBalance("USDA")).resolves.toBe(0.1);
     expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
       headers: { Authorization: "Bearer exchange-token" },
+    });
+  });
+
+  it("reads the USDA futures account balance separately from spot", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ available: "8.5", spot_free: "1.25" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchFundingAccountBalance()).resolves.toBe(8.5);
+    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
+      headers: { Authorization: "Bearer exchange-token" },
+    });
+  });
+
+  it("loads all funding asset spot balances and preserves partial results", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      const asset = String(url).split("/").pop();
+      if (asset === "cETH") throw new Error("temporary network failure");
+      return jsonResponse({ spot_free: asset === "USDC" ? "1" : asset === "CBTC" ? "0.1" : "2" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalances()).resolves.toEqual({
+      USDA: 1,
+      CBTC: 0.1,
+      cETH: null,
+      CC: 2,
     });
   });
 
