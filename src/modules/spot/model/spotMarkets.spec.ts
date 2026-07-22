@@ -18,6 +18,10 @@ describe("resolveSpotMarket", () => {
     expect(resolveSpotMarket("unknown").routeSymbol).toBe("CBTC-USDA");
     expect(resolveSpotMarket(undefined).routeSymbol).toBe("CBTC-USDA");
   });
+
+  it("resolves the non-default CETH market", () => {
+    expect(resolveSpotMarket("  ceth-usda  ").apiSymbol).toBe("CETH-USDCX");
+  });
 });
 
 describe("toSpotDisplayAsset", () => {

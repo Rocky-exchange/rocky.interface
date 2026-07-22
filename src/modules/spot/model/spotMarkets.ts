@@ -8,7 +8,7 @@ export type SpotMarket = {
   chartSymbol: "BTCUSDT" | "ETHUSDT";
 };
 
-export const SPOT_MARKETS: SpotMarket[] = [
+export const SPOT_MARKETS = [
   {
     routeSymbol: "CBTC-USDA",
     apiSymbol: "CBTC-USDCX",
@@ -27,11 +27,13 @@ export const SPOT_MARKETS: SpotMarket[] = [
     apiQuote: "USDCx",
     chartSymbol: "ETHUSDT",
   },
-];
+] as const satisfies readonly SpotMarket[];
+
+const DEFAULT_SPOT_MARKET = SPOT_MARKETS[0];
 
 export function resolveSpotMarket(routeSymbol?: string): SpotMarket {
   const normalizedRouteSymbol = routeSymbol?.trim().toUpperCase();
-  return SPOT_MARKETS.find((market) => market.routeSymbol === normalizedRouteSymbol) ?? SPOT_MARKETS[0];
+  return SPOT_MARKETS.find((market) => market.routeSymbol === normalizedRouteSymbol) ?? DEFAULT_SPOT_MARKET;
 }
 
 export function toSpotDisplayAsset(asset: string): string {
