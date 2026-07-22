@@ -143,7 +143,7 @@ export function useTradingMarketsWithTickers(
         symbols.map(async (sym) => {
           try {
             return [sym, await getTicker(chainId, sym)] as const;
-          } catch {
+          } catch (_error) {
             return null;
           }
         })

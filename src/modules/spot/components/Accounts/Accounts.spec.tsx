@@ -1,6 +1,8 @@
 // Component-layer specs for SpotAccountsPanel — connect gate, balance
 // display, and dev faucet flow (shows only on all-zero).
 import { afterEach, describe, it, expect, vi } from "vitest";
+import { i18n } from "@lingui/core";
+import { I18nProvider } from "@lingui/react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
@@ -33,14 +35,14 @@ const mAccount = vi.mocked(spotApi.account);
 const mConnect = vi.mocked(openCantonConnect);
 const mSession = vi.mocked(useCantonSession);
 
-const acct = (usdcx: string, cbtc = "0", ceth = "0") => ({
+const acct = (usda: string, cbtc = "0", ceth = "0") => ({
   accountType: "SPOT" as const,
   canTrade: true,
   canWithdraw: false,
   canDeposit: false,
   updateTime: 0,
   balances: [
-    { asset: "USDCx", free: usdcx, locked: "0" },
+    { asset: "USDA", free: usda, locked: "0" },
     { asset: "CBTC", free: cbtc, locked: "0" },
     { asset: "cETH", free: ceth, locked: "0" },
   ],
@@ -52,18 +54,26 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+
+i18n.load("en", {});
+i18n.activate("en");
+const I18nWrapper = ({ children }: { children?: React.ReactNode }) => (
+  <I18nProvider i18n={i18n}>{children}</I18nProvider>
+);
+
 describe("SpotAccountsPanel", () => {
   it("shows Connect wallet when auth not ready and skips API", () => {
     mReady.mockReturnValue(false);
     mSession.mockReturnValue({
       connected: false,
+      locked: false,
       token: "",
       party: "",
       username: "",
       avatar: "",
       provider: "",
     });
-    const { getByText } = render(<SpotAccountsPanel />);
+    const { getByText } = render(<SpotAccountsPanel />, { wrapper: I18nWrapper });
     fireEvent.click(getByText("Connect wallet"));
     expect(mConnect).toHaveBeenCalledOnce();
     expect(mAccount).not.toHaveBeenCalled();
@@ -73,6 +83,7 @@ describe("SpotAccountsPanel", () => {
     mReady.mockReturnValue(true);
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -80,7 +91,7 @@ describe("SpotAccountsPanel", () => {
       provider: "",
     });
     mAccount.mockResolvedValue(acct("1234.5", "0.1"));
-    const { findByText, queryByText } = render(<SpotAccountsPanel />);
+    const { findByText, queryByText } = render(<SpotAccountsPanel />, { wrapper: I18nWrapper });
     await findByText("1,234.5000");
     expect(queryByText(/Get test funds/)).toBeNull();
   });
@@ -89,6 +100,7 @@ describe("SpotAccountsPanel", () => {
     mReady.mockReturnValue(true);
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "party-abc",
       username: "u",
@@ -97,7 +109,7 @@ describe("SpotAccountsPanel", () => {
     });
     mAccount.mockResolvedValue(acct("0"));
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
-    const { findByText } = render(<SpotAccountsPanel />);
+    const { findByText } = render(<SpotAccountsPanel />, { wrapper: I18nWrapper });
     const faucetBtn = await findByText(/Get test funds/);
     fireEvent.click(faucetBtn);
     await waitFor(() => expect(fetchSpy).toHaveBeenCalled());

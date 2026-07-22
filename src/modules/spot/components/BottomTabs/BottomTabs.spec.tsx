@@ -1,6 +1,8 @@
 // Component-layer specs for SpotBottomTabs — connect gate + Open Orders
 // render + cancel action.
 import { afterEach, describe, it, expect, vi } from "vitest";
+import { i18n } from "@lingui/core";
+import { I18nProvider } from "@lingui/react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
@@ -35,10 +37,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+
+i18n.load("en", {});
+i18n.activate("en");
+const I18nWrapper = ({ children }: { children?: React.ReactNode }) => (
+  <I18nProvider i18n={i18n}>{children}</I18nProvider>
+);
+
 describe("SpotBottomTabs", () => {
   it("shows Connect wallet placeholder when auth not ready and skips API calls", () => {
     mReady.mockReturnValue(false);
-    const { getByText } = render(<SpotBottomTabs symbol="CBTC-USDCX" />);
+    const { getByText } = render(<SpotBottomTabs symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     fireEvent.click(getByText("Connect wallet"));
     expect(mConnect).toHaveBeenCalledOnce();
     expect(mOpen).not.toHaveBeenCalled();
@@ -47,7 +56,7 @@ describe("SpotBottomTabs", () => {
   it("shows 'No open orders' when ready and empty", async () => {
     mReady.mockReturnValue(true);
     mOpen.mockResolvedValue([]);
-    const { findByText } = render(<SpotBottomTabs symbol="CBTC-USDCX" />);
+    const { findByText } = render(<SpotBottomTabs symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     await findByText("No open orders");
   });
 
@@ -55,7 +64,7 @@ describe("SpotBottomTabs", () => {
     mReady.mockReturnValue(true);
     mOpen.mockResolvedValue([
       {
-        symbol: "CBTC-USDCX",
+        symbol: "CBTC-USDA",
         orderId: "019f64e35ff175d18108787dd7af24f2",
         clientOrderId: "cid-1",
         price: "65000.00",
@@ -70,15 +79,15 @@ describe("SpotBottomTabs", () => {
       },
     ]);
     mCancel.mockResolvedValue({
-      symbol: "CBTC-USDCX",
+      symbol: "CBTC-USDA",
       orderId: "019f64e35ff175d18108787dd7af24f2",
       status: "CANCELED",
     });
-    const { findByText, getByText } = render(<SpotBottomTabs symbol="CBTC-USDCX" />);
+    const { findByText, getByText } = render(<SpotBottomTabs symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     await findByText("SELL");
     await findByText("65,000");
     fireEvent.click(getByText("Cancel"));
     await waitFor(() => expect(mCancel).toHaveBeenCalledOnce());
-    expect(mCancel).toHaveBeenCalledWith("CBTC-USDCX", "019f64e35ff175d18108787dd7af24f2");
+    expect(mCancel).toHaveBeenCalledWith("CBTC-USDA", "019f64e35ff175d18108787dd7af24f2");
   });
 });

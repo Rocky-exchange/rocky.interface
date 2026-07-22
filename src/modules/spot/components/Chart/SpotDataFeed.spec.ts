@@ -32,7 +32,7 @@ function stubFetch(rows: unknown[] | ((url: string) => unknown[])): { urls: stri
 }
 
 // Minimal LibrarySymbolInfo — SpotDataFeed only reads .name.
-function symbolInfo(name = "CBTC-USDCX"): LibrarySymbolInfo {
+function symbolInfo(name = "CBTC-USDA"): LibrarySymbolInfo {
   return { name, ticker: name } as LibrarySymbolInfo;
 }
 
@@ -51,19 +51,19 @@ describe("onReady", () => {
 describe("resolveSymbol", () => {
   it("derives description + pricescale=100 from the pair", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDCX", resolve as never));
-    expect(info.name).toBe("CBTC-USDCX");
-    expect(info.description).toBe("CBTC/USDCX");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDA", resolve as never));
+    expect(info.name).toBe("CBTC-USDA");
+    expect(info.description).toBe("CBTC/USDA");
     expect(info.pricescale).toBe(100); // tick 0.01 → 2 decimals
     expect(info.session).toBe("24x7");
     expect(info.type).toBe("crypto");
   });
 
-  it("defaults quote to USDCX when symbol has no dash", async () => {
+  it("defaults quote to USDA when symbol has no dash", async () => {
     const feed = new SpotDataFeed();
     const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC", resolve as never));
-    expect(info.description).toBe("CBTC/USDCX");
-    expect(info.currency_code).toBe("USDCX");
+    expect(info.description).toBe("CBTC/USDA");
+    expect(info.currency_code).toBe("USDA");
   });
 });
 
@@ -100,7 +100,7 @@ describe("getBars", () => {
     });
   });
 
-  it("hits Binance data-api with the mapped symbol/interval/countBack limit", async () => {
+  it("hits Rocky's own /api/v3/klines only — no third-party endpoints", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
     await new Promise<void>((resolve) => {
@@ -112,10 +112,11 @@ describe("getBars", () => {
         () => resolve()
       );
     });
-    expect(urls[0]).toContain("data-api.binance.vision/api/v3/klines");
-    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDCX → BTCUSDT mapping
+    expect(urls[0].startsWith("/api/v3/klines?")).toBe(true);
+    expect(urls[0]).toContain("symbol=CBTC-USDA"); // Rocky symbol, no mapping
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
+    expect(urls[0]).not.toContain("binance");
   });
 
   it("clamps limit to [100, 1000]", async () => {
@@ -231,7 +232,7 @@ describe("subscribeBars / unsubscribeBars", () => {
   it("kicks immediately (first fetch happens without waiting for interval)", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo(), "5" as ResolutionString, () => {}, "listener-1");
+    feed.subscribeBars(symbolInfo(), "5" as ResolutionString, () => undefined, "listener-1");
     await waitFor(() => urls.length >= 1);
     expect(urls.length).toBeGreaterThanOrEqual(1);
     feed.unsubscribeBars("listener-1");
@@ -253,7 +254,7 @@ describe("subscribeBars / unsubscribeBars", () => {
   it("unsubscribeBars clears the interval + drops the sub", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "gonzo");
+    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => undefined, "gonzo");
     await waitFor(() => urls.length >= 1);
 
     feed.unsubscribeBars("gonzo");
@@ -266,7 +267,9 @@ describe("subscribeBars / unsubscribeBars", () => {
     const feed = new SpotDataFeed();
     // If the internal tick() didn't swallow, this would emit an uncaught
     // promise rejection; the assertion is the absence of a throw.
-    expect(() => feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "resilient")).not.toThrow();
+    expect(() =>
+      feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => undefined, "resilient")
+    ).not.toThrow();
     // Let the immediate rejected fetch drain so no unhandled promise warning.
     await new Promise((r) => setTimeout(r, 20));
     feed.unsubscribeBars("resilient");

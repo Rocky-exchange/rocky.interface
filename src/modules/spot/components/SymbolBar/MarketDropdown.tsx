@@ -1,26 +1,19 @@
 import { useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 
-import { SelectorBase, useSelectorClose } from "components/SelectorBase/SelectorBase";
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 
-import { spotApi, SPOT_MARKETS, type Ticker24h } from "../../api/spotClient";
-import { usePolling } from "../../hooks/usePolling";
+import { SelectorBase, useSelectorClose } from "components/SelectorBase/SelectorBase";
+
 import styles from "./MarketDropdown.module.scss";
+import { spotApi, type Ticker24h } from "../../api/spotClient";
+import { usePolling } from "../../hooks/usePolling";
+import { SPOT_MARKETS, spotMarketAssetIconSymbol } from "../../markets";
 
 type Market = (typeof SPOT_MARKETS)[number];
 
-// Rocky spot base assets map to underlying ic_<x>.svg in shared/img/tokens:
-//   CBTC → btc,  cETH / CETH → eth
-function iconSymbolFor(base: string): string {
-  const norm = base.toLowerCase();
-  if (norm === "cbtc" || norm === "btc") return "btc";
-  if (norm === "ceth" || norm === "eth") return "eth";
-  return norm;
-}
-
 export function AssetBadge({ symbol, size = 22 }: { symbol: string; size?: number }) {
-  return <TokenIcon symbol={iconSymbolFor(symbol)} displaySize={size} />;
+  return <TokenIcon symbol={spotMarketAssetIconSymbol(symbol)} displaySize={size} />;
 }
 
 function fmtPrice(v: string | undefined): string {

@@ -112,7 +112,7 @@ export function SpotChart({ symbol }: { symbol: string }) {
       if (w) {
         try {
           w.remove();
-        } catch {
+        } catch (_error) {
           /* removed already */
         }
         widgetRef.current = null;

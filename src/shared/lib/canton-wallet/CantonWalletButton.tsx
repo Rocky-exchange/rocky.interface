@@ -6,10 +6,19 @@ import ConnectWalletButton from "@/shared/components/ConnectWalletButton/Connect
 import { openCantonConnect } from "./cantonConnect";
 import { CantonFundsModal } from "./CantonFundsModal";
 import { useCantonSession } from "./useCantonSession";
+import { useCantonWallet } from "./useCantonWallet";
 
 export function CantonWalletButton() {
-  const { connected, username, party } = useCantonSession();
+  const { connected, locked, username, party } = useCantonSession();
+  const { unlock, connecting } = useCantonWallet();
   const [fundsOpen, setFundsOpen] = useState(false);
+  if (locked) {
+    return (
+      <ConnectWalletButton onClick={() => void unlock().catch(() => undefined)}>
+        {connecting ? <Trans>Unlocking...</Trans> : <Trans>Unlock</Trans>}
+      </ConnectWalletButton>
+    );
+  }
   if (connected) {
     return (
       <>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import { useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
@@ -38,9 +39,11 @@ function OpenOrders({ symbol }: { symbol: string }) {
     return (
       <div className={styles.empty}>
         <button type="button" className={styles.connectCta} onClick={openCantonConnect}>
-          Connect wallet
+          <Trans>Connect wallet</Trans>
         </button>
-        <span style={{ marginLeft: 8, color: "var(--ltr-text-muted)" }}>to view your open orders</span>
+        <span style={{ marginLeft: 8, color: "var(--ltr-text-muted)" }}>
+          <Trans>to view your open orders</Trans>
+        </span>
       </div>
     );
 
@@ -54,18 +57,22 @@ function OpenOrders({ symbol }: { symbol: string }) {
   };
 
   if (err) return <div className={styles.empty}>{err}</div>;
-  if (!data || data.length === 0) return <div className={styles.empty}>No open orders</div>;
+  if (!data || data.length === 0) return (
+    <div className={styles.empty}>
+      <Trans>No open orders</Trans>
+    </div>
+  );
 
   return (
     <div className={styles.body}>
       <div className={styles.tableHeader}>
-        <span>Time</span>
-        <span>Side</span>
-        <span className={styles.right}>Price</span>
-        <span className={styles.right}>Qty</span>
-        <span className={styles.right}>Filled</span>
-        <span className={styles.right}>Status</span>
-        <span className={styles.right}>Action</span>
+        <span><Trans>Time</Trans></span>
+        <span><Trans>Side</Trans></span>
+        <span className={styles.right}><Trans>Price</Trans></span>
+        <span className={styles.right}><Trans>Qty</Trans></span>
+        <span className={styles.right}><Trans>Filled</Trans></span>
+        <span className={styles.right}><Trans>Status</Trans></span>
+        <span className={styles.right}><Trans>Action</Trans></span>
       </div>
       {data.map((o) => (
         <div key={o.orderId} className={styles.row}>
@@ -83,7 +90,7 @@ function OpenOrders({ symbol }: { symbol: string }) {
             onClick={() => cancel(o.orderId)}
             disabled={cancellingId === o.orderId}
           >
-            {cancellingId === o.orderId ? "…" : "Cancel"}
+            {cancellingId === o.orderId ? "…" : <Trans>Cancel</Trans>}
           </button>
         </div>
       ))}
@@ -96,14 +103,14 @@ export function SpotBottomTabs({ symbol }: { symbol: string }) {
     <div className={styles.panel}>
       <div className={styles.tabs}>
         <button type="button" className={`${styles.tab} ${styles.tabActive}`}>
-          Open Orders
+          <Trans>Open Orders</Trans>
         </button>
         {/* Placeholder tabs — order/trade history are follow-up work */}
         <button type="button" className={styles.tab} disabled>
-          Order History
+          <Trans>Order History</Trans>
         </button>
         <button type="button" className={styles.tab} disabled>
-          Trade History
+          <Trans>Trade History</Trans>
         </button>
       </div>
       <OpenOrders symbol={symbol} />

@@ -135,6 +135,7 @@ function renderI18n(ui: ReactElement) {
 function mockConnectedSession() {
   mUseCantonSession.mockReturnValue({
     connected: true,
+    locked: false,
     token: "session-1",
     party: "party-a",
     username: "alice",
@@ -207,6 +208,7 @@ describe("BonusPage", () => {
   it("shows a Canton connect action while disconnected without inventing a zero USDCx balance", () => {
     mUseCantonSession.mockReturnValue({
       connected: false,
+      locked: false,
       token: "",
       party: "",
       username: "",
