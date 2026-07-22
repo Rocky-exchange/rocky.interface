@@ -1,4 +1,5 @@
 export type BonusLifecycleStatus = "active" | "expired_pending" | "recalled" | "frozen";
+export type BonusBalanceStatus = BonusLifecycleStatus | "no_bonus";
 
 export type BonusStatusResponse = {
   has_bonus: boolean;
@@ -24,7 +25,7 @@ export type BonusBalanceInfoResponse = {
   bonus_free: string;
   bonus_locked: string;
   effective_withdrawable: string;
-  status: BonusLifecycleStatus | "";
+  status: BonusBalanceStatus;
 };
 
 export type BonusHistoryRow = {

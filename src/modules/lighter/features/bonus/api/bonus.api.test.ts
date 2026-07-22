@@ -11,6 +11,7 @@ import {
 } from "./bonus.api";
 import type {
   BonusBalanceInfoResponse,
+  BonusBalanceStatus,
   BonusHistoryResponse,
   BonusHistoryRow,
   BonusLifecycleStatus,
@@ -51,6 +52,7 @@ describe("bonus API", () => {
   });
 
   it("models every success response field required by the wire contract", () => {
+    expectTypeOf<BonusBalanceStatus>().toEqualTypeOf<BonusLifecycleStatus | "no_bonus">();
     expectTypeOf<BonusStatusResponse>().toEqualTypeOf<{
       has_bonus: boolean;
       bonus_account_id: string;
@@ -74,7 +76,7 @@ describe("bonus API", () => {
       bonus_free: string;
       bonus_locked: string;
       effective_withdrawable: string;
-      status: BonusLifecycleStatus | "";
+      status: BonusBalanceStatus;
     }>();
     expectTypeOf<BonusHistoryRow>().toEqualTypeOf<{
       id: string;
@@ -116,24 +118,14 @@ describe("bonus API", () => {
     }>();
   });
 
-  it("requests balance info from the canonical authenticated endpoint", async () => {
+  it("accepts the canonical no-bonus balance response", async () => {
     localStorage.setItem("rocky_exchange_session", "session-1");
-    fetchMock.mockResolvedValue(
-      jsonResponse({
-        total_available: "125.5",
-        available: "100.5",
-        locked: "25",
-        principal_free: "60.5",
-        principal_locked: "15",
-        bonus_free: "40",
-        bonus_locked: "10",
-        effective_withdrawable: "60.5",
-        status: "active",
-      })
-    );
+    const responseBody = bonusBalanceResponse("no_bonus");
+    fetchMock.mockResolvedValue(jsonResponse(responseBody));
 
-    await fetchBonusBalanceInfo();
+    const result = await fetchBonusBalanceInfo();
 
+    expect(result).toEqual(responseBody);
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/bonus/balance-info",
       expect.objectContaining({
@@ -141,6 +133,29 @@ describe("bonus API", () => {
         headers: expect.objectContaining({ Authorization: "Bearer session-1" }),
       })
     );
+  });
+
+  it("continues to accept lifecycle balance statuses", async () => {
+    localStorage.setItem("rocky_exchange_session", "session-1");
+    const responseBody = bonusBalanceResponse("active");
+    fetchMock.mockResolvedValue(jsonResponse(responseBody));
+
+    await expect(fetchBonusBalanceInfo()).resolves.toEqual(responseBody);
+  });
+
+  it.each(["", "unknown"])("rejects invalid balance status %j", async (status) => {
+    localStorage.setItem("rocky_exchange_session", "session-1");
+    fetchMock.mockResolvedValue(jsonResponse(bonusBalanceResponse(status)));
+
+    const error = await fetchBonusBalanceInfo().catch((reason) => reason);
+
+    expect(error).toBeInstanceOf(BonusApiError);
+    expect(error).toMatchObject({
+      status: 200,
+      code: "bonus_invalid_response",
+      message: "Invalid bonus response",
+      data: {},
+    });
   });
 
   it("URL-encodes the history cursor", async () => {
@@ -427,6 +442,20 @@ function bonusStatusResponse(overrides: Record<string, unknown> = {}) {
     granted_at: "",
     expires_at: "",
     ...overrides,
+  };
+}
+
+function bonusBalanceResponse(status: unknown) {
+  return {
+    total_available: "0",
+    available: "0",
+    locked: "0",
+    principal_free: "0",
+    principal_locked: "0",
+    bonus_free: "0",
+    bonus_locked: "0",
+    effective_withdrawable: "0",
+    status,
   };
 }
 

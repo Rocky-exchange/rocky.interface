@@ -3,6 +3,7 @@ import { exchangeSessionHeaders } from "@/shared/lib/canton-wallet/session";
 import {
   BonusApiError,
   type BonusBalanceInfoResponse,
+  type BonusBalanceStatus,
   type BonusHistoryResponse,
   type BonusHistoryRow,
   type BonusLifecycleStatus,
@@ -133,7 +134,7 @@ function isBonusBalanceInfoResponse(data: unknown): data is BonusBalanceInfoResp
       "bonus_locked",
       "effective_withdrawable",
     ]) &&
-    isBonusLifecycleStatus(data.status)
+    isBonusBalanceStatus(data.status)
   );
 }
 
@@ -198,6 +199,10 @@ function isBonusLifecycleStatus(value: unknown): value is BonusLifecycleStatus |
   return (
     value === "" || value === "active" || value === "expired_pending" || value === "recalled" || value === "frozen"
   );
+}
+
+function isBonusBalanceStatus(value: unknown): value is BonusBalanceStatus {
+  return value === "no_bonus" || (isBonusLifecycleStatus(value) && value !== "");
 }
 
 function hasStringFields(data: Record<string, unknown>, fields: string[]): boolean {
