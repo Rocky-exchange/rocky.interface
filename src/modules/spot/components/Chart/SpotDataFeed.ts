@@ -41,6 +41,8 @@ const SUPPORTED_RESOLUTIONS = {
   "60": "1h",
   "240": "4h",
   "1D": "1d",
+  "1W": "1w",
+  "1M": "1M",
 } as const;
 
 function tvToBinance(res: ResolutionString): string {
@@ -69,6 +71,10 @@ function intervalSeconds(interval: string): number {
       return 14400;
     case "1d":
       return 86400;
+    case "1w":
+      return 604800;
+    case "1M":
+      return 2592000;
     default:
       return 60;
   }
@@ -148,7 +154,7 @@ export class SpotDataFeed implements IBasicDataFeed {
       pricescale: resolvedSymbolName === "CC-USDA" ? 100000 : 100,
       has_intraday: true,
       has_daily: true,
-      has_weekly_and_monthly: false,
+      has_weekly_and_monthly: true,
       supported_resolutions: Object.keys(SUPPORTED_RESOLUTIONS) as ResolutionString[],
       volume_precision: 4,
       data_status: "streaming",

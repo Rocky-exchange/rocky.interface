@@ -17,10 +17,10 @@
 }
 
 .triggerName {
-  font-family: var(--ltr-font-family);
+  font-family: inherit;
   color: var(--ltr-text-primary);
   font-size: 12px;
-  line-height: 1;
+  line-height: 16px;
 }
 
 .triggerQuote {
@@ -55,6 +55,7 @@
   border-radius: 4px;
   font-size: 12px;
   font-weight: 400;
+  font-family: var(--primit-font-body, var(--ltr-font-family));
   cursor: pointer;
 }
 

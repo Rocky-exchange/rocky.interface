@@ -19,7 +19,7 @@ function iconSymbolFor(base: string): string {
   return norm;
 }
 
-export function AssetBadge({ symbol, size = 22 }: { symbol: string; size?: number }) {
+export function AssetBadge({ symbol, size = 20 }: { symbol: string; size?: number }) {
   return <TokenIcon symbol={iconSymbolFor(symbol)} displaySize={size} />;
 }
 

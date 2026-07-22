@@ -10,6 +10,7 @@ import type { EntityId, IChartingLibraryWidget, SeriesType } from "../../../../c
 
 import { ChartPaneErrorBoundary } from "./ChartPaneErrorBoundary";
 import styles from "./ChartPanel.module.scss";
+import { ChartTimeframeControls, type ChartTimeframe } from "./ChartTimeframeControls";
 import { DetailsPanel } from "./DetailsPanel";
 import { FundingPanel } from "./FundingPanel";
 import { LighterDepthChart } from "./LighterDepthChart";
@@ -67,13 +68,6 @@ type ChartMode = "TradingView" | "Original" | "Depth";
 
 const DEPTH_FRAME_STYLE = { padding: LIGHTER_DEPTH_CHART_THEME.outerPadding };
 const TV_ENABLED_FEATURES_TO_REMOVE = ["hide_left_toolbar_by_default"];
-
-const MORE_TFS: { label: string; value: string }[] = [
-  { label: "1m", value: "1m" },
-  { label: "D", value: "1d" },
-  { label: "W", value: "1w" },
-  { label: "M", value: "1M" },
-];
 
 // Mirror numeric values from TradingView's `SeriesType` enum (from charting_library.d.ts).
 const CHART_SERIES_TYPE = {
@@ -250,9 +244,7 @@ function SplitMenuRow({
 export function ChartPanel() {
   const [topTab, setTopTab] = useState<TopTab>("Price");
   const [mode, setMode] = useState<ChartMode>("TradingView");
-  const [tf, setTf] = useState("15m");
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+  const [tf, setTf] = useState<ChartTimeframe>("15m");
   const rootRef = useRef<HTMLDivElement>(null);
   // 多窗格布局:Lighter 风格 1 / 2H / 2V / 3H / 3V / 4G
   const [splitLayout, setSplitLayout] = useState<SplitLayout>("1");
@@ -263,8 +255,6 @@ export function ChartPanel() {
   const tabs: TopTab[] = ["Price", "Funding", "Details"];
   // "Original" 图表模式暂时下线(改动回归后再打开): 保留枚举值用于向后兼容,但从 UI 渲染列表中移除
   const modes: ChartMode[] = ["TradingView", "Depth"];
-  const tfs = ["5m", "15m", "1h", "4h"];
-  const moreTfValues = MORE_TFS.map((o) => o.value);
 
   // TradingView widget instance (for chart type / chart properties actions)
   const [tvWidget, setTvWidget] = useState<IChartingLibraryWidget | null>(null);
@@ -284,15 +274,6 @@ export function ChartPanel() {
   const market = useMarketInfoAdapter();
   const markPriceValue = market.markPrice;
   const markLineEntityRef = useRef<EntityId | null>(null);
-
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onDocDown = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-    };
-    document.addEventListener("mousedown", onDocDown);
-    return () => document.removeEventListener("mousedown", onDocDown);
-  }, [moreOpen]);
 
   useEffect(() => {
     if (!chartTypeOpen) return;
@@ -571,47 +552,7 @@ export function ChartPanel() {
         <>
           <div className={styles.toolbar}>
             <div className={styles.tfs}>
-              {tfs.map((t) => (
-                <button key={t} onClick={() => setTf(t)} className={tf === t ? styles.tfActive : styles.tf}>
-                  {t}
-                </button>
-              ))}
-              <div className={styles.moreWrap} ref={moreRef}>
-                <button
-                  type="button"
-                  className={cx(styles.moreBtn, {
-                    [styles.moreBtnActive]: moreTfValues.includes(tf) || moreOpen,
-                  })}
-                  onClick={() => setMoreOpen((v) => !v)}
-                  aria-haspopup="menu"
-                  aria-expanded={moreOpen}
-                >
-                  {moreTfValues.includes(tf) ? MORE_TFS.find((o) => o.value === tf)!.label : <Trans>More</Trans>}
-                  <span className={cx(styles.moreCaret, { [styles.moreCaretOpen]: moreOpen })}>
-                    <svg width="8" height="8" viewBox="0 0 256 256" fill="currentColor">
-                      <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
-                    </svg>
-                  </span>
-                </button>
-                {moreOpen && (
-                  <div className={styles.moreMenu} role="menu">
-                    {MORE_TFS.map((o) => (
-                      <button
-                        key={o.value}
-                        type="button"
-                        role="menuitem"
-                        className={cx(styles.moreItem, { [styles.moreItemActive]: tf === o.value })}
-                        onClick={() => {
-                          setTf(o.value);
-                          setMoreOpen(false);
-                        }}
-                      >
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ChartTimeframeControls value={tf} onChange={setTf} moreLabel={<Trans>More</Trans>} />
               <span className={styles.sep} />
               <button
                 type="button"
