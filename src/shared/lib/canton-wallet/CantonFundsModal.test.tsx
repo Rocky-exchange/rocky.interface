@@ -149,6 +149,45 @@ describe("CantonFundsModal", () => {
   });
 
   it.each(["Deposit", "Withdraw", "Transfer", "History"])(
+    "moves focus into %s and restores it to the originating action",
+    (page) => {
+      render(<CantonFundsModal open onClose={vi.fn()} />);
+
+      const action = screen.getByRole("tab", { name: page });
+      action.focus();
+      expect(document.activeElement).toBe(action);
+
+      fireEvent.click(action);
+      const backButton = screen.getByRole("button", { name: "Back to assets" });
+      expect(document.activeElement).toBe(backButton);
+
+      fireEvent.click(backButton);
+      expect(document.activeElement).toBe(screen.getByRole("tab", { name: page }));
+    }
+  );
+
+  it("uses a title id owned by each modal instance", () => {
+    render(
+      <>
+        <CantonFundsModal open onClose={vi.fn()} />
+        <CantonFundsModal open onClose={vi.fn()} />
+      </>
+    );
+
+    const dialogs = screen.getAllByRole("dialog");
+    const titleIds = dialogs.map((dialog) => dialog.getAttribute("aria-labelledby"));
+
+    expect(titleIds[0]).toBeTruthy();
+    expect(titleIds[1]).toBeTruthy();
+    expect(titleIds[0]).not.toBe(titleIds[1]);
+    dialogs.forEach((dialog, index) => {
+      const title = document.getElementById(titleIds[index] || "");
+      expect(title).toBeTruthy();
+      expect(dialog.contains(title)).toBe(true);
+    });
+  });
+
+  it.each(["Deposit", "Withdraw", "Transfer", "History"])(
     "renders a shared %s page header whose close action exits the modal",
     (page) => {
       const onClose = vi.fn();

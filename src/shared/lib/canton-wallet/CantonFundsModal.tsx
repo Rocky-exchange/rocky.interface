@@ -2,7 +2,17 @@ import { i18n } from "@lingui/core";
 import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import cx from "classnames";
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type Ref,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { spotMarketAssetIconSymbol } from "@/modules/spot/markets";
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
@@ -44,6 +54,7 @@ type Props = {
 };
 
 type WalletView = "assets" | "deposit" | "withdraw" | "history" | "transfer";
+type OperationView = Exclude<WalletView, "assets">;
 type HistoryType = "deposit" | "withdraw" | "transfer";
 type HistoryFilter = "all" | HistoryType;
 type LocalHistoryRow = {
@@ -72,6 +83,7 @@ const EMPTY_PLATFORM_BALANCES: PlatformAccountBalances = {
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
+  const titleId = useId();
   const { connected, locked, party, provider, username, avatar } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
@@ -110,6 +122,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const operationBackButtonRef = useRef<HTMLButtonElement>(null);
+  const operationActionRefs = useRef<Partial<Record<OperationView, HTMLButtonElement | null>>>({});
+  const originatingActionRef = useRef<OperationView | null>(null);
   const didRefreshOnOpenRef = useRef(false);
   const depositConfirmationIdRef = useRef(0);
 
@@ -263,6 +278,17 @@ export function CantonFundsModal({ open, onClose }: Props) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (activeView === "assets") {
+      const originatingAction = originatingActionRef.current;
+      originatingActionRef.current = null;
+      if (originatingAction) operationActionRefs.current[originatingAction]?.focus();
+      return;
+    }
+    operationBackButtonRef.current?.focus();
+  }, [activeView, open]);
 
   if (!open) return null;
 
@@ -529,7 +555,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
         className={cx(styles.modal, !isAssetsDashboard && styles.operationModal)}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={isAssetsDashboard ? "rocky-wallet-dashboard-title" : "rocky-wallet-operation-title"}
+        aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
       >
         {isAssetsDashboard ? (
@@ -560,7 +586,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               />
               <div className={styles.brandText}>
                 {editingName ? (
-                  <div id="rocky-wallet-dashboard-title" className={styles.nameEditor}>
+                  <div id={titleId} className={styles.nameEditor}>
                     <div className={styles.nameEditorRow}>
                       <input
                         value={nameDraft}
@@ -592,7 +618,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   </div>
                 ) : (
                   <div className={styles.nameRow}>
-                    <span id="rocky-wallet-dashboard-title" className={styles.brandTitle}>
+                    <span id={titleId} className={styles.brandTitle}>
                       {username || walletLabel}
                     </span>
                     {connected ? (
@@ -679,9 +705,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
           </header>
         ) : (
           <OperationPageHeader
+            titleId={titleId}
             title={operationTitle}
             backLabel={i18n._(t`Back to assets`)}
             closeLabel={i18n._(t`Close wallet dashboard`)}
+            backButtonRef={operationBackButtonRef}
             onBack={() => setActiveView("assets")}
             onClose={onClose}
           />
@@ -693,11 +721,15 @@ export function CantonFundsModal({ open, onClose }: Props) {
               {(["deposit", "withdraw", "transfer", "history"] as WalletView[]).map((view) => (
                 <button
                   key={view}
+                  ref={(element) => {
+                    operationActionRefs.current[view as OperationView] = element;
+                  }}
                   type="button"
                   role="tab"
                   aria-selected={activeView === view}
                   className={cx(styles.primaryTab, activeView === view && styles.primaryTabActive)}
                   onClick={() => {
+                    originatingActionRef.current = view as OperationView;
                     setActiveView(view);
                     setError("");
                     setNotice("");
@@ -1398,21 +1430,26 @@ export function CantonFundsModal({ open, onClose }: Props) {
 }
 
 function OperationPageHeader({
+  titleId,
   title,
   backLabel,
   closeLabel,
+  backButtonRef,
   onBack,
   onClose,
 }: {
+  titleId: string;
   title: string;
   backLabel: string;
   closeLabel: string;
+  backButtonRef: Ref<HTMLButtonElement>;
   onBack: () => void;
   onClose: () => void;
 }) {
   return (
     <header className={styles.operationPageHeader}>
       <button
+        ref={backButtonRef}
         type="button"
         className={styles.operationHeaderButton}
         onClick={onBack}
@@ -1421,7 +1458,7 @@ function OperationPageHeader({
       >
         <BackIcon />
       </button>
-      <h2 id="rocky-wallet-operation-title">{title}</h2>
+      <h2 id={titleId}>{title}</h2>
       <button
         type="button"
         className={styles.operationHeaderButton}
