@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePrimitOrderSubmit } from "modules/lighter/api/custom/usePrimitOrderSubmit";
@@ -108,6 +108,34 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     expect(checkOpeningOrder.mock.invocationCallOrder[0]).toBeLessThan(submitOrder.mock.invocationCallOrder[0]);
   });
 
+  it("serializes synchronous calls and reports submitting until the active order settles", async () => {
+    const pendingCheck = deferred<void>();
+    checkOpeningOrder.mockReturnValue(pendingCheck.promise);
+    render(<Harness />);
+    let firstOrder!: ReturnType<typeof adapter.placeOrder>;
+    let duplicateOrder!: ReturnType<typeof adapter.placeOrder>;
+
+    act(() => {
+      firstOrder = adapter.placeOrder(baseOrder);
+      duplicateOrder = adapter.placeOrder(baseOrder);
+    });
+
+    expect(checkOpeningOrder).toHaveBeenCalledTimes(1);
+    expect(submitOrder).not.toHaveBeenCalled();
+    expect(adapter.submitting).toBe(true);
+
+    let duplicateResult: unknown;
+    await act(async () => {
+      pendingCheck.resolve();
+      [, duplicateResult] = await Promise.all([firstOrder, duplicateOrder]);
+    });
+
+    expect(duplicateResult).toBeUndefined();
+    expect(checkOpeningOrder).toHaveBeenCalledTimes(1);
+    expect(submitOrder).toHaveBeenCalledTimes(1);
+    expect(adapter.submitting).toBe(false);
+  });
+
   it("prechecks an opening SELL with lowercase side and provided leverage", async () => {
     render(<Harness />);
 
@@ -168,6 +196,24 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     expect(submitOrder).not.toHaveBeenCalled();
   });
 
+  it("releases the submission lock after a bonus precheck rejection so the order can be retried", async () => {
+    const rejection = new BonusOrderRejectedError("bonus_direction_restricted", "Trial funds cannot open this order");
+    checkOpeningOrder.mockRejectedValueOnce(rejection);
+    render(<Harness />);
+
+    await act(async () => {
+      await expect(adapter.placeOrder(baseOrder)).rejects.toBe(rejection);
+    });
+    expect(adapter.submitting).toBe(false);
+    expect(submitOrder).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await expect(adapter.placeOrder(baseOrder)).resolves.toEqual({ order_id: "order-1" });
+    });
+    expect(checkOpeningOrder).toHaveBeenCalledTimes(2);
+    expect(submitOrder).toHaveBeenCalledTimes(1);
+  });
+
   it("uses safe fallback rejection fields when the decision omits both", async () => {
     mockCheckBonusOrder.mockResolvedValue({
       ...passDecision,
@@ -221,7 +267,15 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     submitOrder.mockRejectedValueOnce(error);
     render(<Harness />);
 
-    await expect(adapter.placeOrder(baseOrder)).rejects.toBe(error);
+    await act(async () => {
+      await expect(adapter.placeOrder(baseOrder)).rejects.toBe(error);
+    });
+    expect(adapter.submitting).toBe(false);
+
+    await act(async () => {
+      await expect(adapter.placeOrder(baseOrder)).resolves.toEqual({ order_id: "order-1" });
+    });
+    expect(submitOrder).toHaveBeenCalledTimes(2);
   });
 
   it("fails not-ready orders before precheck or submission", async () => {
@@ -232,7 +286,9 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     render(<Harness />);
 
     await expect(adapter.placeOrder(baseOrder)).rejects.toThrow("钱包未连接或未认证");
+    await expect(adapter.placeOrder(baseOrder)).rejects.toThrow("钱包未连接或未认证");
 
+    expect(adapter.submitting).toBe(false);
     expect(checkOpeningOrder).not.toHaveBeenCalled();
     expect(submitOrder).not.toHaveBeenCalled();
   });
@@ -246,7 +302,9 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     render(<Harness />);
 
     await expect(adapter.placeOrder(baseOrder)).rejects.toThrow("未选择交易对");
+    await expect(adapter.placeOrder(baseOrder)).rejects.toThrow("未选择交易对");
 
+    expect(adapter.submitting).toBe(false);
     expect(checkOpeningOrder).not.toHaveBeenCalled();
     expect(submitOrder).not.toHaveBeenCalled();
   });
