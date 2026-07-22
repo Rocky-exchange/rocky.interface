@@ -151,6 +151,17 @@ export function CantonFundsModal({ open, onClose }: Props) {
     );
   }, [assetFilter, assetSearch]);
   const transferSourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingAvailable;
+  const isAssetsDashboard = activeView === "assets";
+  const operationTitle =
+    activeView === "deposit"
+      ? i18n._(t`Deposit`)
+      : activeView === "withdraw"
+        ? i18n._(t`Withdraw`)
+        : activeView === "transfer"
+          ? i18n._(t`Transfer`)
+          : activeView === "history"
+            ? i18n._(t`History`)
+            : "";
 
   useEffect(() => {
     if (open && (!connected || locked)) onClose();
@@ -515,185 +526,197 @@ export function CantonFundsModal({ open, onClose }: Props) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <section
-        className={styles.modal}
+        className={cx(styles.modal, !isAssetsDashboard && styles.operationModal)}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="rocky-wallet-dashboard-title"
+        aria-labelledby={isAssetsDashboard ? "rocky-wallet-dashboard-title" : "rocky-wallet-operation-title"}
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={styles.header}>
-          <div className={styles.brand}>
-            <button
-              className={styles.avatarButton}
-              type="button"
-              onClick={openAvatarPicker}
-              disabled={!connected || avatarBusy}
-              aria-label={i18n._(t`Change avatar`)}
-              title={connected ? i18n._(t`Change avatar`) : undefined}
-            >
-              <span className={cx(styles.brandMark, logoFitClass(styles, walletLogo.fit))}>
-                {avatar ? (
-                  <img src={avatar} alt="" className={styles.avatarImage} />
+        {isAssetsDashboard ? (
+          <header className={styles.header}>
+            <div className={styles.brand}>
+              <button
+                className={styles.avatarButton}
+                type="button"
+                onClick={openAvatarPicker}
+                disabled={!connected || avatarBusy}
+                aria-label={i18n._(t`Change avatar`)}
+                title={connected ? i18n._(t`Change avatar`) : undefined}
+              >
+                <span className={cx(styles.brandMark, logoFitClass(styles, walletLogo.fit))}>
+                  {avatar ? (
+                    <img src={avatar} alt="" className={styles.avatarImage} />
+                  ) : (
+                    <img src={walletLogo.src} alt="" className={styles.providerLogo} />
+                  )}
+                </span>
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className={styles.hiddenFileInput}
+                onChange={(event) => void handleAvatarFileChange(event)}
+              />
+              <div className={styles.brandText}>
+                {editingName ? (
+                  <div id="rocky-wallet-dashboard-title" className={styles.nameEditor}>
+                    <div className={styles.nameEditorRow}>
+                      <input
+                        value={nameDraft}
+                        onChange={(e) => setNameDraft(e.target.value)}
+                        maxLength={20}
+                        placeholder={i18n._(t`Display name`)}
+                        autoFocus
+                        disabled={nameSaving}
+                        className={styles.nameInput}
+                      />
+                      <button
+                        className={styles.saveNameButton}
+                        type="button"
+                        onClick={() => void handleSaveName()}
+                        disabled={nameSaving}
+                      >
+                        {nameSaving ? i18n._(t`Saving`) : i18n._(t`Save`)}
+                      </button>
+                      <button
+                        className={styles.cancelNameButton}
+                        type="button"
+                        onClick={() => setEditingName(false)}
+                        disabled={nameSaving}
+                      >
+                        {i18n._(t`Cancel`)}
+                      </button>
+                    </div>
+                    {nameError ? <span className={styles.inlineError}>{nameError}</span> : null}
+                  </div>
                 ) : (
-                  <img src={walletLogo.src} alt="" className={styles.providerLogo} />
+                  <div className={styles.nameRow}>
+                    <span id="rocky-wallet-dashboard-title" className={styles.brandTitle}>
+                      {username || walletLabel}
+                    </span>
+                    {connected ? (
+                      <button
+                        className={styles.editNameButton}
+                        type="button"
+                        onClick={startEditName}
+                        aria-label={i18n._(t`Edit display name`)}
+                      >
+                        {i18n._(t`Edit`)}
+                      </button>
+                    ) : null}
+                  </div>
                 )}
-              </span>
-            </button>
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/*"
-              className={styles.hiddenFileInput}
-              onChange={(event) => void handleAvatarFileChange(event)}
-            />
-            <div className={styles.brandText}>
-              {editingName ? (
-                <div id="rocky-wallet-dashboard-title" className={styles.nameEditor}>
-                  <div className={styles.nameEditorRow}>
-                    <input
-                      value={nameDraft}
-                      onChange={(e) => setNameDraft(e.target.value)}
-                      maxLength={20}
-                      placeholder={i18n._(t`Display name`)}
-                      autoFocus
-                      disabled={nameSaving}
-                      className={styles.nameInput}
-                    />
+                {avatarError ? <span className={styles.inlineError}>{avatarError}</span> : null}
+                {walletParty ? (
+                  <div className={styles.brandParty}>
+                    <span title={walletParty}>{abbreviateMiddle(walletParty, 30)}</span>
                     <button
-                      className={styles.saveNameButton}
                       type="button"
-                      onClick={() => void handleSaveName()}
-                      disabled={nameSaving}
+                      onClick={() => copyValue(walletParty, "header-party")}
+                      aria-label={i18n._(t`Copy wallet party id`)}
                     >
-                      {nameSaving ? i18n._(t`Saving`) : i18n._(t`Save`)}
-                    </button>
-                    <button
-                      className={styles.cancelNameButton}
-                      type="button"
-                      onClick={() => setEditingName(false)}
-                      disabled={nameSaving}
-                    >
-                      {i18n._(t`Cancel`)}
+                      {copiedKey === "header-party" ? i18n._(t`Copied`) : <CopyIcon />}
                     </button>
                   </div>
-                  {nameError ? <span className={styles.inlineError}>{nameError}</span> : null}
-                </div>
-              ) : (
-                <div className={styles.nameRow}>
-                  <span id="rocky-wallet-dashboard-title" className={styles.brandTitle}>
-                    {username || walletLabel}
-                  </span>
-                  {connected ? (
-                    <button
-                      className={styles.editNameButton}
-                      type="button"
-                      onClick={startEditName}
-                      aria-label={i18n._(t`Edit display name`)}
-                    >
-                      {i18n._(t`Edit`)}
-                    </button>
-                  ) : null}
-                </div>
-              )}
-              {avatarError ? <span className={styles.inlineError}>{avatarError}</span> : null}
-              {walletParty ? (
-                <div className={styles.brandParty}>
-                  <span title={walletParty}>{abbreviateMiddle(walletParty, 30)}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyValue(walletParty, "header-party")}
-                    aria-label={i18n._(t`Copy wallet party id`)}
-                  >
-                    {copiedKey === "header-party" ? i18n._(t`Copied`) : <CopyIcon />}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <div className={styles.headerActions}>
-            <a
-              className={cx(styles.headerIconButton, !walletExplorerUrl && styles.headerIconButtonDisabled)}
-              href={walletExplorerUrl || "https://www.cantonscan.com/"}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={i18n._(t`Explorer`)}
-              title={i18n._(t`Explorer`)}
-              aria-disabled={!walletExplorerUrl}
-              onClick={(event) => {
-                if (!walletExplorerUrl) event.preventDefault();
-              }}
-            >
-              <ExternalIcon />
-            </a>
-            <details className={styles.moreMenu}>
-              <summary
-                className={styles.headerIconButton}
-                aria-label={i18n._(t`More profile actions`)}
-                title={i18n._(t`More profile actions`)}
-              >
-                <MoreIcon />
-              </summary>
-              <div className={styles.moreMenuPanel}>
-                {connected && avatar ? (
-                  <button
-                    type="button"
-                    className={styles.menuAction}
-                    onClick={() => void handleRemoveAvatar()}
-                    disabled={avatarBusy}
-                  >
-                    <RemoveAvatarIcon />
-                    <span>{i18n._(t`Remove avatar`)}</span>
-                  </button>
                 ) : null}
-                <button
-                  type="button"
-                  className={cx(styles.menuAction, styles.disconnectMenuAction)}
-                  onClick={handleDisconnect}
-                >
-                  <LogoutIcon />
-                  <span>{i18n._(t`Disconnect`)}</span>
-                </button>
               </div>
-            </details>
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={onClose}
-              aria-label={i18n._(t`Close wallet dashboard`)}
-            >
-              <CloseIcon />
-            </button>
-          </div>
-        </header>
-
-        <main className={styles.walletWorkspace}>
-          <nav className={styles.primaryTabs} role="tablist" aria-label={i18n._(t`Wallet funds`)}>
-            {(["deposit", "withdraw", "transfer", "history"] as WalletView[]).map((view) => (
-              <button
-                key={view}
-                type="button"
-                role="tab"
-                aria-selected={activeView === view}
-                className={cx(styles.primaryTab, activeView === view && styles.primaryTabActive)}
-                onClick={() => {
-                  setActiveView(view);
-                  setError("");
-                  setNotice("");
+            </div>
+            <div className={styles.headerActions}>
+              <a
+                className={cx(styles.headerIconButton, !walletExplorerUrl && styles.headerIconButtonDisabled)}
+                href={walletExplorerUrl || "https://www.cantonscan.com/"}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={i18n._(t`Explorer`)}
+                title={i18n._(t`Explorer`)}
+                aria-disabled={!walletExplorerUrl}
+                onClick={(event) => {
+                  if (!walletExplorerUrl) event.preventDefault();
                 }}
               >
-                <span className={styles.primaryTabIcon} aria-hidden="true">
-                  {view === "deposit" ? <DepositIcon /> : null}
-                  {view === "withdraw" ? <WithdrawIcon /> : null}
-                  {view === "history" ? <HistoryIcon /> : null}
-                  {view === "transfer" ? <TransferIcon /> : null}
-                </span>
-                {view === "deposit" ? i18n._(t`Deposit`) : null}
-                {view === "withdraw" ? i18n._(t`Withdraw`) : null}
-                {view === "history" ? i18n._(t`History`) : null}
-                {view === "transfer" ? i18n._(t`Transfer`) : null}
+                <ExternalIcon />
+              </a>
+              <details className={styles.moreMenu}>
+                <summary
+                  className={styles.headerIconButton}
+                  aria-label={i18n._(t`More profile actions`)}
+                  title={i18n._(t`More profile actions`)}
+                >
+                  <MoreIcon />
+                </summary>
+                <div className={styles.moreMenuPanel}>
+                  {connected && avatar ? (
+                    <button
+                      type="button"
+                      className={styles.menuAction}
+                      onClick={() => void handleRemoveAvatar()}
+                      disabled={avatarBusy}
+                    >
+                      <RemoveAvatarIcon />
+                      <span>{i18n._(t`Remove avatar`)}</span>
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={cx(styles.menuAction, styles.disconnectMenuAction)}
+                    onClick={handleDisconnect}
+                  >
+                    <LogoutIcon />
+                    <span>{i18n._(t`Disconnect`)}</span>
+                  </button>
+                </div>
+              </details>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={onClose}
+                aria-label={i18n._(t`Close wallet dashboard`)}
+              >
+                <CloseIcon />
               </button>
-            ))}
-          </nav>
+            </div>
+          </header>
+        ) : (
+          <OperationPageHeader
+            title={operationTitle}
+            backLabel={i18n._(t`Back to assets`)}
+            closeLabel={i18n._(t`Close wallet dashboard`)}
+            onBack={() => setActiveView("assets")}
+            onClose={onClose}
+          />
+        )}
+
+        <main className={styles.walletWorkspace}>
+          {isAssetsDashboard ? (
+            <nav className={styles.primaryTabs} role="tablist" aria-label={i18n._(t`Wallet funds`)}>
+              {(["deposit", "withdraw", "transfer", "history"] as WalletView[]).map((view) => (
+                <button
+                  key={view}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeView === view}
+                  className={cx(styles.primaryTab, activeView === view && styles.primaryTabActive)}
+                  onClick={() => {
+                    setActiveView(view);
+                    setError("");
+                    setNotice("");
+                  }}
+                >
+                  <span className={styles.primaryTabIcon} aria-hidden="true">
+                    {view === "deposit" ? <DepositIcon /> : null}
+                    {view === "withdraw" ? <WithdrawIcon /> : null}
+                    {view === "history" ? <HistoryIcon /> : null}
+                    {view === "transfer" ? <TransferIcon /> : null}
+                  </span>
+                  {view === "deposit" ? i18n._(t`Deposit`) : null}
+                  {view === "withdraw" ? i18n._(t`Withdraw`) : null}
+                  {view === "history" ? i18n._(t`History`) : null}
+                  {view === "transfer" ? i18n._(t`Transfer`) : null}
+                </button>
+              ))}
+            </nav>
+          ) : null}
 
           {activeView === "assets" ? (
             <section className={styles.assetsView}>
@@ -787,24 +810,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
           {activeView === "deposit" || activeView === "withdraw" ? (
             <section className={styles.taskView}>
-              <div className={styles.taskHeader}>
-                <button
-                  type="button"
-                  className={styles.backButton}
-                  onClick={() => setActiveView("assets")}
-                  aria-label={i18n._(t`Back to assets`)}
-                >
-                  <BackIcon />
-                </button>
-                <div>
-                  <h3>{activeView === "deposit" ? i18n._(t`Deposit`) : i18n._(t`Withdraw`)}</h3>
-                  <p>
-                    {activeView === "deposit"
-                      ? i18n._(t`Transfer funds from the connected wallet to the exchange account.`)
-                      : i18n._(t`Move platform available balance back to the connected wallet party.`)}
-                  </p>
-                </div>
-              </div>
               <form className={styles.compactForm} onSubmit={activeView === "deposit" ? handleDeposit : handleWithdraw}>
                 <label className={styles.field}>
                   <span>{i18n._(t`Asset`)}</span>
@@ -910,20 +915,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
           {activeView === "transfer" ? (
             <section className={styles.taskView}>
-              <div className={styles.taskHeader}>
-                <button
-                  type="button"
-                  className={styles.backButton}
-                  onClick={() => setActiveView("assets")}
-                  aria-label={i18n._(t`Back to assets`)}
-                >
-                  <BackIcon />
-                </button>
-                <div>
-                  <h3>{i18n._(t`Transfer`)}</h3>
-                  <p>{i18n._(t`Move USDA between Spot and Futures accounts.`)}</p>
-                </div>
-              </div>
               <form className={styles.compactForm} onSubmit={handleTransfer}>
                 <div className={styles.accountRoute}>
                   <div className={styles.accountBox}>
@@ -1001,19 +992,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
           {activeView === "history" ? (
             <section className={styles.historyView}>
-              <div className={styles.taskHeader}>
-                <button
-                  type="button"
-                  className={styles.backButton}
-                  onClick={() => setActiveView("assets")}
-                  aria-label={i18n._(t`Back to assets`)}
-                >
-                  <BackIcon />
-                </button>
-                <div>
-                  <h3>{i18n._(t`History`)}</h3>
-                </div>
-              </div>
               <div className={styles.historyFilters} role="tablist" aria-label={i18n._(t`History type`)}>
                 {(["all", "deposit", "withdraw", "transfer"] as HistoryFilter[]).map((filter) => (
                   <button
@@ -1416,6 +1394,44 @@ export function CantonFundsModal({ open, onClose }: Props) {
         )}
       </section>
     </div>
+  );
+}
+
+function OperationPageHeader({
+  title,
+  backLabel,
+  closeLabel,
+  onBack,
+  onClose,
+}: {
+  title: string;
+  backLabel: string;
+  closeLabel: string;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <header className={styles.operationPageHeader}>
+      <button
+        type="button"
+        className={styles.operationHeaderButton}
+        onClick={onBack}
+        aria-label={backLabel}
+        title={backLabel}
+      >
+        <BackIcon />
+      </button>
+      <h2 id="rocky-wallet-operation-title">{title}</h2>
+      <button
+        type="button"
+        className={styles.operationHeaderButton}
+        onClick={onClose}
+        aria-label={closeLabel}
+        title={closeLabel}
+      >
+        <CloseIcon />
+      </button>
+    </header>
   );
 }
 

@@ -107,7 +107,7 @@ describe("CantonFundsModal", () => {
     });
   });
 
-  it("opens on a real four-asset table and exposes all primary views", async () => {
+  it("opens on a real four-asset table with all primary actions", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
     expect(screen.queryByRole("tab", { name: "Assets" })).toBeNull();
@@ -121,15 +121,49 @@ describe("CantonFundsModal", () => {
     for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
       expect(screen.getAllByText(asset).length).toBeGreaterThan(0);
     }
-
-    for (const name of ["Deposit", "Withdraw", "Transfer"]) {
-      const tab = screen.getByRole("tab", { name });
-      fireEvent.click(tab);
-      expect(tab.getAttribute("aria-selected")).toBe("true");
-    }
-    fireEvent.click(screen.getByRole("tab", { name: "History" }));
-    expect(screen.getByRole("tab", { name: "History" }).getAttribute("aria-selected")).toBe("true");
   });
+
+  it("opens operation pages inside the existing modal and returns to Assets", () => {
+    const onClose = vi.fn();
+    render(<CantonFundsModal open onClose={onClose} />);
+
+    const dialog = screen.getByRole("dialog");
+    expect(screen.getByRole("textbox", { name: "Search asset" })).toBeTruthy();
+    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Deposit" }));
+
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(screen.getByRole("heading", { name: "Deposit", level: 2 })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Edit display name" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Withdraw" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Search asset" })).toBeNull();
+    expect(screen.queryByTestId("icon-btc")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to assets" }));
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(screen.getByRole("button", { name: "Edit display name" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Deposit" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Search asset" })).toBeTruthy();
+    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it.each(["Deposit", "Withdraw", "Transfer", "History"])(
+    "renders a shared %s page header whose close action exits the modal",
+    (page) => {
+      const onClose = vi.fn();
+      render(<CantonFundsModal open onClose={onClose} />);
+
+      fireEvent.click(screen.getByRole("tab", { name: page }));
+
+      expect(screen.getByRole("heading", { name: page, level: 2 })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Edit display name" })).toBeNull();
+      expect(screen.queryByRole("tablist", { name: "Wallet funds" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Back to assets" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Close wallet dashboard" }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it("submits USDA transfers between Spot and Futures accounts", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
