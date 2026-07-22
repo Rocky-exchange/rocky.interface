@@ -14,7 +14,10 @@ const MARKET_BAND = 1.05; // 5% protective band — mirrors backend gateway
 
 function availableOf(account: Account | null, asset: string): number | null {
   if (!account) return null;
-  const row = account.balances.find((b) => b.asset === asset);
+  // Case-insensitive: the backend keys some assets with mixed case (e.g.
+  // "cETH"), while symbol.split("-") on "CETH-USDA" yields uppercase "CETH".
+  // USDA/CBTC/cETH/CC are all distinct case-insensitively, so this is safe.
+  const row = account.balances.find((b) => b.asset.toLowerCase() === asset.toLowerCase());
   if (!row) return 0;
   const free = parseFloat(row.free);
   return isFinite(free) ? free : 0;

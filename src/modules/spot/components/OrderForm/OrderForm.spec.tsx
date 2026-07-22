@@ -49,9 +49,10 @@ function accountWith(usdaFree: string, cbtcFree = "0", cethFree = "0"): Account 
     balances: [
       { asset: "USDA", free: usdaFree, locked: "0" },
       { asset: "CBTC", free: cbtcFree, locked: "0" },
-      // Matches the "CETH" base OrderForm derives from the "CETH-USDA" symbol
-      // (a literal symbol.split("-"), not the markets.ts display alias).
-      { asset: "CETH", free: cethFree, locked: "0" },
+      // Real backend casing (verified against live /api/v3/account): "cETH",
+      // NOT the uppercase "CETH" that symbol.split("-") derives from
+      // "CETH-USDA". availableOf() must match case-insensitively.
+      { asset: "cETH", free: cethFree, locked: "0" },
       { asset: "CC", free: "0", locked: "0" },
     ],
     permissions: ["SPOT"],
@@ -224,24 +225,58 @@ describe("SpotOrderForm", () => {
 
   it("submits MARKET SELL without a price (notional estimate uses the bid floor, not the ask cap)", async () => {
     mReady.mockReturnValue(true);
-    // 5 CETH free — plenty to cover a 0.5 qty sell.
+    // 5 cETH free (real backend casing) — plenty to cover a 0.5 qty sell.
     mAccount.mockResolvedValue(accountWith("0", "0", "5"));
     mTicker.mockImplementation(() => new Promise(() => undefined));
     mDepth.mockResolvedValue({ lastUpdateId: 1, bids: [["1900", "5"]], asks: [["2000", "5"]] });
     mPlace.mockResolvedValue({ status: "NEW", orderId: "sell-market-abc" } as never);
 
-    const { getByText, getByPlaceholderText } = render(
+    const { getByText, getByPlaceholderText, findByText } = render(
       <SpotOrderForm symbol="CETH-USDA" />, { wrapper: I18nWrapper });
 
     fireEvent.click(getByText("Market"));
     fireEvent.click(getByText("Sell CETH"));
+    // Regression guard for the CETH/cETH case-mismatch bug: the Available
+    // row must see the backend's "cETH" balance, not 0.
+    await findByText("Available");
     fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.5" } });
 
-    await waitFor(() => expect(getByText("SELL CETH · Market")).not.toHaveProperty("disabled", true));
-    fireEvent.click(getByText("SELL CETH · Market"));
+    const submit = await waitFor(() => {
+      const btn = getByText("SELL CETH · Market") as HTMLButtonElement;
+      expect(btn.disabled).toBe(false);
+      return btn;
+    });
+    fireEvent.click(submit);
 
     await waitFor(() => expect(mPlace).toHaveBeenCalledWith(
       expect.objectContaining({ type: "MARKET", side: "SELL", quantity: "0.5", symbol: "CETH-USDA" })));
     expect(mPlace.mock.calls[0][0]).not.toHaveProperty("price");
+  });
+
+  it("allows a LIMIT SELL of cETH once the (case-mismatched) balance loads, and Max fills the full amount", async () => {
+    mReady.mockReturnValue(true);
+    // 5 cETH free (real backend casing). Pre-fix, availableOf("CETH") would
+    // not match the "cETH" balance row → baseAvail 0 → SELL always blocked.
+    mAccount.mockResolvedValue(accountWith("0", "0", "5"));
+    mTicker.mockImplementation(() => new Promise(() => undefined));
+    mDepth.mockImplementation(() => new Promise(() => undefined));
+
+    const { getByText, getByPlaceholderText, findByText } = render(
+      <SpotOrderForm symbol="CETH-USDA" />, { wrapper: I18nWrapper });
+
+    fireEvent.click(getByText("Sell CETH"));
+    await findByText("Available");
+
+    // Max should fill the full 5 cETH available (not 0).
+    fireEvent.click(getByText("Max"));
+    expect((getByPlaceholderText("0.1") as HTMLInputElement).value).toBe("5");
+
+    fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.5" } });
+    fireEvent.change(getByPlaceholderText("Limit price"), { target: { value: "2000" } });
+
+    const submit = getByText("SELL CETH · Limit") as HTMLButtonElement;
+    await waitFor(() => expect(submit.disabled).toBe(false));
+    // No affordability warning should render — 0.5 <= 5 available.
+    expect(() => getByText(/Insufficient/i)).toThrow();
   });
 });
