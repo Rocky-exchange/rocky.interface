@@ -37,7 +37,7 @@ Deposit, Withdraw, Transfer, and History are compact pages inside the same modal
 
 ### Primary Actions
 
-The Assets dashboard contains four icon-and-text actions in a two-column grid:
+The Assets dashboard contains four icon-and-text actions in a compact two-column button grid. Each action is an individually bordered 48 px control with a subtle elevated background, a small framed icon on the left, and a clear hover/focus state. Full-width divider lines and tab-style active underlines are not used.
 
 1. Deposit and Withdraw on the first row.
 2. Transfer and History on the second row.
@@ -145,8 +145,8 @@ Data fetching and mutation handlers remain owned by the modal controller. Presen
 - Dashboard actions use button semantics. Operation pages expose a labeled back action, centered page heading, and labeled close action.
 - Icon-only actions have localized accessible names and hover tooltips.
 - Focus states remain visible against the dark surface.
-- Desktop uses the compact Assets table layout at up to 480 px. The three data columns remain visible with reduced gaps and controlled truncation; operation pages remain capped at 460 px.
-- Operation pages use a compact single-column panel on desktop and a nearly full-width panel on mobile.
+- Desktop uses one stable 480 x 680 px modal shell for Assets, Deposit, Withdraw, Transfer, and History. The three Assets columns remain visible with reduced gaps and controlled truncation. Switching pages must not resize or reposition the modal.
+- The shared workspace scrolls inside the stable shell. On viewports at or below 520 px, every view uses the same full-screen shell.
 - Below 720 px, asset rows become compact stacked rows and operation pages remain one column.
 - All controls remain at least 40 px tall and text must not overlap or truncate critical amounts.
 
