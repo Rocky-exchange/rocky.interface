@@ -130,15 +130,12 @@ export class SpotDataFeed implements IBasicDataFeed {
     const normalizedSymbolName = symbolName.trim().toUpperCase();
     const isKnownMarket = market.routeSymbol === normalizedSymbolName;
     const [base, quote] = symbolName.split("-");
-    const displayBase = isKnownMarket
-      ? market.routeSymbol === "CBTC-USDA"
-        ? market.apiBase
-        : market.displayBase
-      : base;
+    const resolvedSymbolName = isKnownMarket ? market.routeSymbol : symbolName;
+    const displayBase = isKnownMarket ? market.displayBase : base;
     const displayQuote = isKnownMarket ? market.displayQuote : (quote ?? "USDCX");
     const info: LibrarySymbolInfo = {
-      name: symbolName,
-      ticker: symbolName,
+      name: resolvedSymbolName,
+      ticker: resolvedSymbolName,
       description: `${displayBase}/${displayQuote}`,
       type: "crypto",
       session: "24x7",

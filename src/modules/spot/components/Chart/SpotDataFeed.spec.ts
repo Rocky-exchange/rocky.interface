@@ -70,6 +70,15 @@ describe("resolveSymbol", () => {
     expect(info.currency_code).toBe("USDA");
   });
 
+  it("canonicalizes a normalized known symbol", async () => {
+    const feed = new SpotDataFeed();
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("  ceth-usda  ", resolve as never));
+    expect(info.name).toBe("CETH-USDA");
+    expect(info.ticker).toBe("CETH-USDA");
+    expect(info.description).toBe("cETH/USDA");
+    expect(info.currency_code).toBe("USDA");
+  });
+
   it("uses generic labels for an unknown symbol without a dash", async () => {
     const feed = new SpotDataFeed();
     const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("UNKNOWN", resolve as never));
@@ -273,6 +282,15 @@ describe("subscribeBars / unsubscribeBars", () => {
     await waitFor(() => ticks.length >= 2);
     expect(ticks.map((b) => b.close)).toEqual([500, 501]);
     feed.unsubscribeBars("listener-2");
+  });
+
+  it("maps CETH-USDA subscriptions to Binance ETHUSDT", async () => {
+    const { urls } = stubFetch([]);
+    const feed = new SpotDataFeed();
+    feed.subscribeBars(symbolInfo("CETH-USDA"), "5" as ResolutionString, () => undefined, "ceth-listener");
+    await waitFor(() => urls.length >= 1);
+    expect(urls[0]).toContain("symbol=ETHUSDT");
+    feed.unsubscribeBars("ceth-listener");
   });
 
   it("unsubscribeBars clears the interval + drops the sub", async () => {
