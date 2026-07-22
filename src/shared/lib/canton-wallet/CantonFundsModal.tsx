@@ -207,19 +207,15 @@ export function CantonFundsModal({ open, onClose }: Props) {
     const walletRequest = fetchWalletBalanceSnapshot()
       .then(setSnapshot)
       .finally(() => setWalletBalanceLoading(false));
-    const platformRequest = Promise.all([fetchPlatformAccountBalances(), fetchPlatformWithdrawableBalance()])
-      .then(([balances, effectiveWithdrawable]) => {
-        const authoritativeBalances = { ...balances, USDA: effectiveWithdrawable };
-        setPlatformBalances(authoritativeBalances);
-        setWithdrawAvailable(authoritativeBalances[selectedAsset]);
-      })
+    const platformRequest = fetchPlatformAccountBalances()
+      .then(setPlatformBalances)
       .finally(() => setPlatformBalanceLoading(false));
     const fundingRequest = fetchFundingAccountBalance().then(setFundingAvailable);
 
     await Promise.allSettled([walletRequest, platformRequest, fundingRequest]);
-  }, [connected, selectedAsset]);
+  }, [connected]);
 
-  const refreshWithdrawAvailable = useCallback(async () => {
+  const refreshWithdrawAvailable = useCallback(async (asset: CantonFundsAsset = selectedAsset) => {
     if (!connected) {
       setWithdrawAvailable(null);
       return null;
@@ -227,11 +223,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setWithdrawAvailableLoading(true);
     try {
       const available =
-        selectedAsset === "USDA"
+        asset === "USDA"
           ? await fetchPlatformWithdrawableBalance()
-          : await fetchPlatformAccountBalance(selectedAsset);
+          : await fetchPlatformAccountBalance(asset);
       setWithdrawAvailable(available);
-      setPlatformBalances((current) => ({ ...current, [selectedAsset]: available }));
       return available;
     } finally {
       setWithdrawAvailableLoading(false);
@@ -260,8 +255,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   }, [connected]);
 
   const refreshWalletDashboard = useCallback(async () => {
-    await Promise.all([refreshBalances(), refreshFundsHistory()]);
-  }, [refreshBalances, refreshFundsHistory]);
+    await Promise.all([refreshBalances(), refreshWithdrawAvailable(), refreshFundsHistory()]);
+  }, [refreshBalances, refreshFundsHistory, refreshWithdrawAvailable]);
 
   useEffect(() => {
     if (!open || !connected) {
@@ -273,11 +268,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
     void refreshWalletDashboard();
     void hydrateOwnProfile();
   }, [connected, open, refreshWalletDashboard]);
-
-  useEffect(() => {
-    if (!open || !connected) return;
-    setWithdrawAvailable(platformBalances[selectedAsset]);
-  }, [connected, open, platformBalances, selectedAsset]);
 
   useEffect(() => {
     if (!copiedKey) return;
@@ -867,6 +857,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         originatingActionRef.current = null;
                         originatingAssetRowRef.current = asset.symbol;
                         setSelectedAsset(asset.symbol);
+                        void refreshWithdrawAvailable(asset.symbol);
                         setActiveView("deposit");
                       }}
                       aria-label={i18n._(t`Deposit ${asset.symbol}`)}
@@ -938,6 +929,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                             )}
                             onClick={() => {
                               setSelectedAsset(asset.symbol);
+                              void refreshWithdrawAvailable(asset.symbol);
                               setDepositAmount("");
                               setWithdrawAmount("");
                               setOperationAssetOpen(false);
@@ -1221,7 +1213,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     aria-label={i18n._(t`Asset`)}
                     value={selectedAsset}
                     onChange={(event) => {
-                      setSelectedAsset(event.target.value as CantonFundsAsset);
+                      const asset = event.target.value as CantonFundsAsset;
+                      setSelectedAsset(asset);
+                      void refreshWithdrawAvailable(asset);
                       setDepositAmount("");
                       setWithdrawAmount("");
                       setError("");

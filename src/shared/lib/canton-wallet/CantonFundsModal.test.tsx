@@ -363,6 +363,36 @@ describe("CantonFundsModal", () => {
     );
   });
 
+  it("keeps raw spot USDA available for transfers when the effective withdrawal limit is lower", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(4);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+
+    expect(await screen.findByText("Available: 100 USDA")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "50" } });
+    fireEvent.click(screen.getByRole("button", { name: "Transfer USDA" }));
+
+    await waitFor(() =>
+      expect(mocks.transferSpotBalance).toHaveBeenCalledWith({
+        asset: "USDA",
+        amount: "50",
+        direction: "toFunding",
+      })
+    );
+  });
+
+  it("keeps raw spot USDA visible when the effective withdrawal request fails", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(null);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+
+    expect(await screen.findByText("Available: 100 USDA")).toBeTruthy();
+  });
+
   it("renders wrapped balances with compact leading-zero notation and extension asset icons", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
