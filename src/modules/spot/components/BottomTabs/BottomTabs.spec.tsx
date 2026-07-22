@@ -11,6 +11,7 @@ vi.mock("../../api/spotClient", async () => {
     spotApi: {
       openOrders: vi.fn(),
       cancelOrder: vi.fn(),
+      myTrades: vi.fn(),
     },
   };
 });
@@ -28,6 +29,7 @@ import { resolveSpotMarket } from "../../model/spotMarkets";
 const mReady = vi.mocked(useSpotAuthReady);
 const mOpen = vi.mocked(spotApi.openOrders);
 const mCancel = vi.mocked(spotApi.cancelOrder);
+const mTrades = vi.mocked(spotApi.myTrades);
 const market = resolveSpotMarket("CBTC-USDA");
 const cethMarket = resolveSpotMarket("CETH-USDA");
 
@@ -64,7 +66,7 @@ afterEach(() => {
 });
 
 describe("SpotBottomTabs", () => {
-  it("shows Assets by default with the exact ZTDX tab set and disabled history placeholders", () => {
+  it("shows Assets by default; Order History disabled, Trade History enabled", () => {
     mReady.mockReturnValue(true);
 
     const { getAllByRole, getByTestId } = render(<SpotBottomTabs market={market} />);
@@ -73,10 +75,13 @@ describe("SpotBottomTabs", () => {
     expect(tabs.map((tab) => tab.textContent)).toEqual(["Assets", "Open Orders", "Order History", "Trade History"]);
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
     expect(tabs[1].getAttribute("aria-selected")).toBe("false");
+    // Order History still needs /api/v3/allOrders (unbuilt) → disabled.
     expect((tabs[2] as HTMLButtonElement).disabled).toBe(true);
-    expect((tabs[3] as HTMLButtonElement).disabled).toBe(true);
+    // Trade History is now backed by /api/v3/myTrades → enabled.
+    expect((tabs[3] as HTMLButtonElement).disabled).toBe(false);
     expect(getByTestId("assets-view").textContent).toBe("Assets for CBTC-USDA");
     expect(mOpen).not.toHaveBeenCalled();
+    expect(mTrades).not.toHaveBeenCalled();
   });
 
   it("keeps the futures-style view controls in the tab toolbar", () => {
@@ -87,7 +92,7 @@ describe("SpotBottomTabs", () => {
     expect(getByTestId("spot-bottom-view-controls").children).toHaveLength(3);
   });
 
-  it("uses roving focus and skips disabled history tabs during keyboard navigation", () => {
+  it("uses roving focus over the 3 enabled tabs and skips disabled Order History", () => {
     mReady.mockReturnValue(false);
 
     const { getByRole } = render(<SpotBottomTabs market={market} />);
@@ -110,14 +115,16 @@ describe("SpotBottomTabs", () => {
     expect(document.activeElement).toBe(assets);
     expect(assets.getAttribute("aria-selected")).toBe("true");
 
+    // ArrowLeft from the first tab wraps to the last ENABLED tab (Trade History),
+    // skipping the disabled Order History.
     fireEvent.keyDown(assets, { key: "ArrowLeft" });
-    expect(document.activeElement).toBe(openOrders);
-    expect(openOrders.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(tradeHistory);
+    expect(tradeHistory.getAttribute("aria-selected")).toBe("true");
 
-    fireEvent.keyDown(openOrders, { key: "End" });
-    expect(document.activeElement).toBe(openOrders);
+    // End jumps to the last enabled tab too.
+    fireEvent.keyDown(tradeHistory, { key: "End" });
+    expect(document.activeElement).toBe(tradeHistory);
     expect(orderHistory.disabled).toBe(true);
-    expect(tradeHistory.disabled).toBe(true);
   });
 
   it("switches to Open Orders without rendering a panel-level wallet CTA", () => {
@@ -241,5 +248,41 @@ describe("SpotBottomTabs", () => {
 
     expect((await findByRole("alert")).textContent).toBe("cancel rejected");
     await waitFor(() => expect(cancelButton.disabled).toBe(false));
+  });
+
+  it("switches to Trade History and renders myTrades rows for the API symbol", async () => {
+    mReady.mockReturnValue(true);
+    mTrades.mockResolvedValue([
+      {
+        symbol: "CBTC-USDCX",
+        id: "018f0000-0000-0000-0000-0000000000aa",
+        price: "65000.00",
+        qty: "0.001",
+        quoteQty: "65.00",
+        commission: "0.026",
+        commissionAsset: "USDA",
+        time: 1_700_000_000_000,
+        isBuyer: true,
+        isMaker: false,
+        isBestMatch: true,
+      },
+    ]);
+
+    const { getByRole, findByRole } = render(<SpotBottomTabs market={market} />);
+    fireEvent.click(getByRole("tab", { name: "Trade History" }));
+
+    const row = await findByRole("row", { name: /BUY.*65,000.*Taker/ });
+    expect(within(row).getByText("Taker")).toBeTruthy();
+    expect(mTrades).toHaveBeenCalledWith("CBTC-USDCX");
+  });
+
+  it("shows the empty state when the user has no trades", async () => {
+    mReady.mockReturnValue(true);
+    mTrades.mockResolvedValue([]);
+
+    const { getByRole, findByRole } = render(<SpotBottomTabs market={market} />);
+    fireEvent.click(getByRole("tab", { name: "Trade History" }));
+
+    expect((await findByRole("status")).textContent).toBe("No trades yet");
   });
 });

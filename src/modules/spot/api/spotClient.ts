@@ -114,6 +114,22 @@ export type SpotOrder = {
   isWorking?: boolean;
 };
 
+// One personal fill (GET /api/v3/myTrades). Backend has no order_id column on
+// spot_trades, so orderId is absent; display only needs price/qty/side/fee/time.
+export type MyTrade = {
+  symbol: string;
+  id: string;
+  price: string;
+  qty: string;
+  quoteQty: string;
+  commission: string;
+  commissionAsset: string;
+  time: number;
+  isBuyer: boolean;
+  isMaker: boolean;
+  isBestMatch: boolean;
+};
+
 // ── HMAC-SHA256 via Web Crypto ─────────────────────────────────────────────
 
 let cachedKey: CryptoKey | null = null;
@@ -202,6 +218,8 @@ export const spotApi = {
   ticker: (symbol: string) => publicGet<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`),
   account: () => signedRequest<Account>("GET", "/api/v3/account"),
   openOrders: (symbol: string) => signedRequest<SpotOrder[]>("GET", "/api/v3/openOrders", { symbol }),
+  myTrades: (symbol: string, limit = 500) =>
+    signedRequest<MyTrade[]>("GET", "/api/v3/myTrades", { symbol, limit: String(limit) }),
   placeOrder: (b: {
     symbol: string;
     side: "BUY" | "SELL";

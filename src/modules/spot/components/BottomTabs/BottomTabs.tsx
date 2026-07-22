@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useRef, useState } from "react";
 
 import styles from "./BottomTabs.module.scss";
-import { spotApi, type SpotOrder } from "../../api/spotClient";
+import { spotApi, type MyTrade, type SpotOrder } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
 import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
@@ -123,21 +123,96 @@ function OpenOrders({ market }: { market: SpotMarket }) {
   );
 }
 
-type EnabledTab = "assets" | "open-orders";
+function TradeHistory({ market }: { market: SpotMarket }) {
+  const ready = useSpotAuthReady();
+  // NOTE: the backend keys spot_trades on the settlement symbol (market.apiSymbol),
+  // same source openOrders reads. If a symbol form ever returns no rows, the
+  // mismatch is in the shared apiSymbol model, not here.
+  const { data, err } = usePolling<MyTrade[]>(
+    () => spotApi.myTrades(market.apiSymbol),
+    3000,
+    [market.apiSymbol],
+    { enabled: ready },
+  );
+
+  if (!ready)
+    return <div className={styles.empty}>Connect wallet from the header to view your trade history</div>;
+
+  if (err)
+    return (
+      <div className={styles.empty} role="alert">
+        {err}
+      </div>
+    );
+  if (!data)
+    return (
+      <div className={styles.empty} role="status">
+        Loading…
+      </div>
+    );
+  if (data.length === 0)
+    return (
+      <div className={styles.empty} role="status">
+        No trades yet
+      </div>
+    );
+
+  return (
+    <div className={styles.body}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Side</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Total</th>
+            <th>Fee</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((trade) => (
+            <tr key={trade.id}>
+              <td style={MUTED_TEXT_STYLE}>{fmtTime(trade.time)}</td>
+              <td className={trade.isBuyer ? styles.buy : styles.sell}>{trade.isBuyer ? "BUY" : "SELL"}</td>
+              <td>{fmtNum(trade.price, 2)}</td>
+              <td>{fmtNum(trade.qty, 8)}</td>
+              <td>{fmtNum(trade.quoteQty, 2)}</td>
+              <td style={MUTED_TEXT_STYLE}>
+                {fmtNum(trade.commission, 6)} {trade.commissionAsset}
+              </td>
+              <td style={SECONDARY_TEXT_STYLE}>{trade.isMaker ? "Maker" : "Taker"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+type EnabledTab = "assets" | "open-orders" | "trade-history";
+
+// Roving-focus order of the ENABLED tabs (Order History is a disabled
+// placeholder skipped by keyboard nav until /api/v3/allOrders exists).
+const ENABLED_TABS: EnabledTab[] = ["assets", "open-orders", "trade-history"];
 
 export function SpotBottomTabs({ market }: { market: SpotMarket }) {
   const [activeTab, setActiveTab] = useState<EnabledTab>("assets");
   const tabRefs = useRef<Record<EnabledTab, HTMLButtonElement | null>>({
     assets: null,
     "open-orders": null,
+    "trade-history": null,
   });
 
   const activateFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentTab: EnabledTab) => {
+    const i = ENABLED_TABS.indexOf(currentTab);
     let nextTab: EnabledTab | null = null;
-    if (event.key === "Home") nextTab = "assets";
-    if (event.key === "End") nextTab = "open-orders";
-    if (event.key === "ArrowRight") nextTab = currentTab === "assets" ? "open-orders" : "assets";
-    if (event.key === "ArrowLeft") nextTab = currentTab === "assets" ? "open-orders" : "assets";
+    if (event.key === "Home") nextTab = ENABLED_TABS[0];
+    if (event.key === "End") nextTab = ENABLED_TABS[ENABLED_TABS.length - 1];
+    if (event.key === "ArrowRight") nextTab = ENABLED_TABS[(i + 1) % ENABLED_TABS.length];
+    if (event.key === "ArrowLeft")
+      nextTab = ENABLED_TABS[(i - 1 + ENABLED_TABS.length) % ENABLED_TABS.length];
     if (!nextTab) return;
 
     event.preventDefault();
@@ -193,12 +268,17 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         </button>
         <button
           type="button"
+          id="spot-trade-history-tab"
           role="tab"
-          aria-selected="false"
-          aria-disabled="true"
-          tabIndex={-1}
-          className={styles.tab}
-          disabled
+          aria-selected={activeTab === "trade-history"}
+          aria-controls="spot-bottom-panel"
+          tabIndex={activeTab === "trade-history" ? 0 : -1}
+          className={`${styles.tab} ${activeTab === "trade-history" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("trade-history")}
+          onKeyDown={(event) => activateFromKeyboard(event, "trade-history")}
+          ref={(node) => {
+            tabRefs.current["trade-history"] = node;
+          }}
         >
           Trade History
         </button>
@@ -220,14 +300,18 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
       <div
         id="spot-bottom-panel"
         role="tabpanel"
-        aria-labelledby={activeTab === "assets" ? "spot-assets-tab" : "spot-open-orders-tab"}
+        aria-labelledby={
+          activeTab === "assets"
+            ? "spot-assets-tab"
+            : activeTab === "trade-history"
+              ? "spot-trade-history-tab"
+              : "spot-open-orders-tab"
+        }
         className={styles.tabPanel}
       >
-        {activeTab === "assets" ? (
-          <SpotAccountsPanel market={market} variant="workspace" />
-        ) : (
-          <OpenOrders key={market.apiSymbol} market={market} />
-        )}
+        {activeTab === "assets" && <SpotAccountsPanel market={market} variant="workspace" />}
+        {activeTab === "open-orders" && <OpenOrders key={market.apiSymbol} market={market} />}
+        {activeTab === "trade-history" && <TradeHistory key={market.apiSymbol} market={market} />}
       </div>
     </div>
   );
