@@ -26,21 +26,22 @@ Replace the current single-asset wallet funds dashboard with the approved five-v
 
 The modal has a stable shell and one active content view.
 
-### Header
+### Asset Dashboard Header
 
-The header remains visible while content scrolls. It contains the wallet logo or avatar, display name and Edit action, abbreviated party ID with copy action, explorer link, profile menu, and close button.
+The full wallet identity header is shown only on the Assets dashboard. It contains the wallet logo or avatar, display name and Edit action, abbreviated party ID with copy action, explorer link, profile menu, and close button.
 
-### Primary Navigation
+### Operation Page Header
 
-The navigation contains five icon-and-text tabs:
+Deposit, Withdraw, Transfer, and History are compact pages inside the same modal instance. Their shared header contains a back action on the left, the page title in the center, and the modal close action on the right. Back returns to Assets without closing the modal or resetting fetched balances. Close exits the modal.
 
-1. Assets
-2. Deposit
-3. Withdraw
-4. History
-5. Transfer
+### Primary Actions
 
-The active tab uses the existing cool accent underline from the approved reference. Switching tabs must not close the modal or disconnect the wallet.
+The Assets dashboard contains four icon-and-text actions in a two-column grid:
+
+1. Deposit and Withdraw on the first row.
+2. Transfer and History on the second row.
+
+Assets is the dashboard itself and is not rendered as an action. Selecting an action changes the modal's internal page without unmounting or closing it. The full wallet header, action grid, asset toolbar, and asset table are hidden on operation pages.
 
 ### Assets View
 
@@ -51,21 +52,21 @@ The default view lists USDA, CBTC, cETH, and CC in one table. Each row contains:
 - Spot exchange balance.
 - A row action that selects the asset and opens Deposit.
 
-The toolbar provides an asset filter, text search, and refresh icon. Search is case-insensitive and filters symbols and display names. Refresh updates wallet balances, spot balances, and funds history without changing the selected tab.
+The toolbar provides an asset filter, text search, and refresh icon. Search is case-insensitive and filters symbols and display names. Refresh updates wallet balances, spot balances, and funds history without navigating away from Assets.
 
-### Deposit View
+### Deposit Page
 
 The view contains a back action, asset selector, wallet balance, amount input, available/max affordance, and submit button. Submission continues to use the existing connected-wallet transfer flow and deposit reference API. Successful submission refreshes balances and history. Pending platform credit remains visible as a submitted history item until polling confirms it.
 
-### Withdraw View
+### Withdraw Page
 
 The view contains a back action, asset selector, destination wallet party, spot available balance, amount input, native-asset fee quote, calculated receive amount, and submit button. Withdrawals continue to debit only the spot account. Existing insufficient-balance and invalid-session handling remains authoritative.
 
-### History View
+### History Page
 
 The view combines deposits, withdrawals, and user-initiated USDA transfers in reverse chronological order. Filters are All, Deposit, Withdraw, and Transfer. Each row shows type, timestamp, signed amount, asset, status, and the appropriate explorer/copy action when an external transaction identifier exists. Transfer rows show their account direction and Completed status without inventing a chain transaction hash.
 
-### Transfer View
+### Transfer Page
 
 The view supports USDA only. It contains From and To account selectors, a swap-direction icon, both available balances, asset display, amount input, Max affordance, and submit button.
 
@@ -110,7 +111,7 @@ Results are ordered newest first and limited to the latest 200 records. The endp
 `CantonFundsModal` remains the integration boundary but is divided into focused internal components in the same module or adjacent files:
 
 - `WalletModalHeader`
-- `WalletModalNavigation`
+- `WalletModalActions`
 - `AssetsView`
 - `DepositView`
 - `WithdrawView`
@@ -140,11 +141,12 @@ Data fetching and mutation handlers remain owned by the modal controller. Presen
 
 ## Accessibility And Responsive Behavior
 
-- Tabs use button semantics and expose the active state with `aria-current` or `aria-selected`.
+- Dashboard actions use button semantics. Operation pages expose a labeled back action, centered page heading, and labeled close action.
 - Icon-only actions have localized accessible names and hover tooltips.
 - Focus states remain visible against the dark surface.
-- Desktop uses the approved dense table layout at up to 960 px.
-- Below 720 px, asset rows become compact stacked rows and operation views use one column.
+- Desktop uses the approved dense Assets table layout at up to 960 px.
+- Operation pages use a compact single-column panel on desktop and a nearly full-width panel on mobile.
+- Below 720 px, asset rows become compact stacked rows and operation pages remain one column.
 - All controls remain at least 40 px tall and text must not overlap or truncate critical amounts.
 
 ## Verification
@@ -160,4 +162,3 @@ Focused tests cover:
 - Invalid-session and locked-wallet regressions remain covered.
 
 Run frontend unit tests, TypeScript checks, production build, backend unit tests for event serialization and route filtering, and `git diff --check`. Start the local app and capture desktop and mobile Playwright screenshots for comparison with the approved UI reference. Verify no overlap, clipping, blank content, or unexpected mock data.
-
