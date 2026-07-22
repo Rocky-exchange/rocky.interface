@@ -112,10 +112,10 @@ describe("CantonFundsModal", () => {
     });
   });
 
-  it("blocks withdrawals against principal-only effective withdrawable funds", async () => {
-    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(4);
+  it("blocks withdrawals against the latest raw spot balance", async () => {
+    mocks.fetchPlatformAccountBalance.mockResolvedValue(4);
     render(<CantonFundsModal open onClose={vi.fn()} />);
-    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
     const amountInput = screen.getByLabelText("Withdraw amount");
@@ -123,30 +123,31 @@ describe("CantonFundsModal", () => {
     fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
 
     expect(
-      await screen.findByText(
-        "Insufficient platform balance for this withdrawal. Available: 4 USDA. Required: 6 USDA including fee."
-      )
-    ).toBeTruthy();
-    expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(2);
-    expect(mocks.fetchPlatformAccountBalance).not.toHaveBeenCalled();
+      (
+        await screen.findAllByText(
+          "Insufficient platform balance for this withdrawal. Available: 4 USDA. Required: 6 USDA including fee."
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledWith("USDA");
     expect(mocks.submitPlatformWithdrawal).not.toHaveBeenCalled();
   });
 
-  it("shows an unknown local limit and lets authoritative withdrawal checks fail closed", async () => {
+  it("keeps raw spot withdrawals available when the funding transfer limit is unavailable", async () => {
     mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(null);
-    mocks.submitPlatformWithdrawal.mockRejectedValueOnce(new Error("Withdrawal could not be submitted."));
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
     await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
     const amountInput = screen.getByLabelText("Withdraw amount");
+    expect(await screen.findByText("Available: 100.00 USDA")).toBeTruthy();
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((amountInput as HTMLInputElement).value).toBe("99");
     fireEvent.change(amountInput, { target: { value: "5" } });
     fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
 
-    expect(await screen.findByText("Withdrawal could not be submitted.")).toBeTruthy();
-    expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(2);
-    expect(mocks.fetchPlatformAccountBalance).not.toHaveBeenCalled();
-    expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
+    expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledWith("USDA");
   });
 
   it("shows recalled trial funds without replacing the withdrawal result and refreshes the dashboard", async () => {
@@ -182,7 +183,7 @@ describe("CantonFundsModal", () => {
     expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${updateId}"]`)).toBeTruthy();
     await waitFor(() => {
       expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(2);
-      expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(3);
+      expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(2);
       expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2);
     });
   });
@@ -351,6 +352,7 @@ describe("CantonFundsModal", () => {
 
     expect(screen.getByText("Spot Account")).toBeTruthy();
     expect(screen.getByText("Futures Account")).toBeTruthy();
+    expect(await screen.findByText("Available: 100 USDA")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Transfer USDA" }));
 
@@ -371,6 +373,8 @@ describe("CantonFundsModal", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
 
     expect(await screen.findByText("Available: 100 USDA")).toBeTruthy();
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((screen.getByLabelText("Transfer amount") as HTMLInputElement).value).toBe("100");
     fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "50" } });
     fireEvent.click(screen.getByRole("button", { name: "Transfer USDA" }));
 
@@ -383,7 +387,25 @@ describe("CantonFundsModal", () => {
     );
   });
 
-  it("keeps raw spot USDA visible when the effective withdrawal request fails", async () => {
+  it("uses the effective limit for Futures to Spot Max and local validation", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(4);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Swap accounts" }));
+
+    expect(await screen.findByText("Available: 4 USDA")).toBeTruthy();
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((screen.getByLabelText("Transfer amount") as HTMLInputElement).value).toBe("4");
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Transfer USDA" }));
+
+    expect(await screen.findByText("Insufficient balance for this transfer.")).toBeTruthy();
+    expect(mocks.transferSpotBalance).not.toHaveBeenCalled();
+  });
+
+  it("keeps raw spot USDA visible but disables Futures to Spot when the effective limit request fails", async () => {
     mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(null);
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
@@ -391,6 +413,11 @@ describe("CantonFundsModal", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
 
     expect(await screen.findByText("Available: 100 USDA")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Swap accounts" }));
+    expect(screen.getByText("Available: - USDA")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Transfer USDA" }).hasAttribute("disabled")).toBe(true);
+    expect(mocks.transferSpotBalance).not.toHaveBeenCalled();
   });
 
   it("renders wrapped balances with compact leading-zero notation and extension asset icons", async () => {
