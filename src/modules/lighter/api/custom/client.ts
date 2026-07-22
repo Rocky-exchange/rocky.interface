@@ -1407,7 +1407,7 @@ export async function setPositionTpSl(
   const response = await apiFetch<{ success: boolean; data: TpSlResponse }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
   return response.data;
@@ -1425,7 +1425,7 @@ export async function getPositionTpSl(
   address?: string | null
 ): Promise<TpSlResponse> {
   const response = await apiFetch<{ success: boolean; data: TpSlResponse }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
   return response.data;
@@ -1443,7 +1443,7 @@ export async function deletePositionTpSl(
 ): Promise<{ success: boolean; data: string; error: string | null }> {
   return apiFetch<{ success: boolean; data: string; error: string | null }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
     method: "DELETE",
-    requireAuth: true,
+    authMode: "exchange",
   });
 }
 

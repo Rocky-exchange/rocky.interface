@@ -1,7 +1,17 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CreateOrderRequest } from "../types";
-import { cancelOrder, closePosition, createOrder, getOrders, getPositions } from "./client";
+import {
+  cancelOrder,
+  closePosition,
+  createOrder,
+  deletePositionTpSl,
+  getAccountTrades,
+  getOrders,
+  getPositions,
+  getPositionTpSl,
+  setPositionTpSl,
+} from "./client";
 
 const UNIT_18 = 10n ** 18n;
 const UNIT_30 = 10n ** 30n;
@@ -459,6 +469,63 @@ describe("Rocky order request contract", () => {
 
     await expect(createOrder(1, buildRequest(), "party-1")).rejects.toThrow(/Canton wallet session required/i);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps set, get, and delete TP/SL requests on the exchange session", async () => {
+    localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
+    localStorage.setItem("primit_jwt_expiry_1_party-1", String(Math.floor(Date.now() / 1000) + 3600));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "DELETE") return jsonResponse({ success: true, data: "deleted", error: null });
+      return jsonResponse({ success: true, data: { position_id: "position-1" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await setPositionTpSl(1, "position-1", { take_profit_price: "110" }, "party-1");
+    await getPositionTpSl(1, "position-1", "party-1");
+    await deletePositionTpSl(1, "position-1");
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-exchange-session");
+    }
+  });
+
+  it("fails every TP/SL request before fetch when the exchange session is missing", async () => {
+    localStorage.removeItem("rocky_exchange_session");
+    localStorage.setItem("mtc_token", "legacy-mtc-session");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(setPositionTpSl(1, "position-1", { take_profit_price: "110" }, "party-1")).rejects.toThrow(
+      /Canton wallet session required/i
+    );
+    await expect(getPositionTpSl(1, "position-1", "party-1")).rejects.toThrow(/Canton wallet session required/i);
+    await expect(deletePositionTpSl(1, "position-1")).rejects.toThrow(/Canton wallet session required/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps account trade history on the exchange session", async () => {
+    localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
+    localStorage.setItem("primit_jwt_expiry_1_party-1", String(Math.floor(Date.now() / 1000) + 3600));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse({ trades: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getAccountTrades(1, "party-1");
+
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-exchange-session");
+  });
+
+  it("does not clear legacy or exchange storage after an exchange-session 401", async () => {
+    localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
+    localStorage.setItem("primit_jwt_expiry_1_party-1", String(Math.floor(Date.now() / 1000) + 3600));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ error: "unauthorized" }, 401)));
+
+    await expect(getOrders(1, "party-1")).rejects.toThrow("unauthorized");
+
+    expect(localStorage.getItem("primit_jwt_token_1_party-1")).toBe("legacy-user-token");
+    expect(localStorage.getItem("rocky_exchange_session")).toBe("test-exchange-session");
   });
 
   it("keeps one generated idempotency key through the same network call", async () => {
