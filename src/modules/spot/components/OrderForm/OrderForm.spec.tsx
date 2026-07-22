@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
@@ -90,18 +91,27 @@ beforeEach(() => {
 });
 
 describe("SpotOrderForm", () => {
-  it("shows Limit as the active order type and exposes unsupported types as disabled", () => {
+  it("places order type controls before buy and sell controls like the futures panel", () => {
     const { getByRole } = render(<SpotOrderForm market={market} />);
 
+    const orderTypes = getByRole("tablist", { name: "Order type" });
+    const orderSide = getByRole("tablist", { name: "Order side" });
+
+    expect(orderTypes.compareDocumentPosition(orderSide) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("shows only Market and Limit while keeping Limit as the active supported type", () => {
+    const { getByRole, queryByRole } = render(<SpotOrderForm market={market} />);
+
+    const typeTabs = within(getByRole("tablist", { name: "Order type" })).getAllByRole("tab");
     const limit = getByRole("tab", { name: "Limit" }) as HTMLButtonElement;
     const marketType = getByRole("tab", { name: "Market" }) as HTMLButtonElement;
-    const limitOrder = getByRole("tab", { name: "Limit Order" }) as HTMLButtonElement;
+    expect(typeTabs.map((tab) => tab.textContent)).toEqual(["Market", "Limit"]);
+    expect(queryByRole("tab", { name: "Advanced" })).toBeNull();
     expect(limit.getAttribute("aria-selected")).toBe("true");
     expect(limit.tabIndex).toBe(0);
     expect(marketType.disabled).toBe(true);
     expect(marketType.tabIndex).toBe(-1);
-    expect(limitOrder.disabled).toBe(true);
-    expect(limitOrder.tabIndex).toBe(-1);
   });
 
   it("uses roving focus and arrow keys across the Buy and Sell tabs", () => {
@@ -132,13 +142,28 @@ describe("SpotOrderForm", () => {
     expect(sell.getAttribute("aria-selected")).toBe("true");
   });
 
-  it("shows Connect wallet CTA and skips submit when auth is not ready", () => {
+  it("moves one shared indicator between Buy and Sell like the futures panel", () => {
+    const view = render(<SpotOrderForm market={market} />);
+    const indicator = view.getByTestId("spot-side-indicator");
+
+    expect(indicator.className).toContain("indicatorBuy");
+    fireEvent.click(view.getByRole("tab", { name: `Sell ${market.displayBase}` }));
+    expect(view.getByTestId("spot-side-indicator")).toBe(indicator);
+    expect(indicator.className).toContain("indicatorSell");
+    expect(indicator.className).not.toContain("indicatorBuy");
+
+    const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
+    expect(source).toMatch(/\.sideIndicator\s*\{[^}]*transition:\s*transform 200ms/s);
+    expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/s);
+  });
+
+  it("keeps the Buy form wallet CTA when auth is not ready", () => {
     mUseSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch });
     const { getByRole, queryByRole } = render(<SpotOrderForm market={market} />);
 
     expect(queryByRole("button", { name: `BUY ${market.displayBase}` })).toBeNull();
     fireEvent.click(getByRole("button", { name: "Connect wallet" }));
-    expect(mConnect).toHaveBeenCalledOnce();
+    expect(mConnect).toHaveBeenCalledTimes(1);
   });
 
   it("uses public USDA and CBTC labels for the available balance", () => {
@@ -148,6 +173,22 @@ describe("SpotOrderForm", () => {
     expect(queryByText(/USDCx/)).toBeNull();
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
     expect(getByText("2.5 CBTC")).toBeTruthy();
+  });
+
+  it("uses the futures compact field rows and percentage input", () => {
+    const view = render(<SpotOrderForm market={market} />);
+
+    const price = view.getByLabelText(`Price (${market.displayQuote})`);
+    const amount = view.getByLabelText(`Amount (${market.displayBase})`);
+    const total = view.getByLabelText(`Total (${market.displayQuote})`);
+
+    expect(price.parentElement?.querySelector("label")?.textContent).toBe("Price");
+    expect(amount.parentElement?.querySelector("label")?.textContent).toBe("Amount");
+    expect(total.parentElement?.querySelector("label")?.textContent).toBe("Total");
+    expect(view.getByLabelText("Order percentage input")).toHaveProperty("value", "0");
+    for (const label of ["0%", "25%", "50%", "75%", "100%"]) {
+      expect(view.queryByText(label)).toBeNull();
+    }
   });
 
   it("formats large fractional balances without losing precision or rounding up", () => {
@@ -213,7 +254,7 @@ describe("SpotOrderForm", () => {
     expect(total.value).toBe("999.0009975");
     expect(total.readOnly).toBe(true);
     expect(getByText("0.999001 USDA")).toBeTruthy();
-    for (const label of ["0%", "25%", "50%", "75%", "100%"]) expect(getByText(label)).toBeTruthy();
+    expect(getByLabelText("Order percentage input")).toHaveProperty("value", "100");
   });
 
   it("sizes a sell from base balance without requiring a price", () => {

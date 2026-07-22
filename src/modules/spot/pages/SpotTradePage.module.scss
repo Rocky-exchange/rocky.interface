@@ -1,94 +1,165 @@
 .page {
-  --spot-book-col: clamp(300px, 21vw, 440px);
-  --spot-form-col: clamp(330px, 22.5vw, 470px);
+  --ltr-side-col: 321px;
   position: relative;
   display: grid;
-  grid-template-rows: var(--ltr-topnav-h, 56px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) var(--ltr-bottom-h, 220px);
   gap: 4px;
   width: 100%;
   max-width: none;
-  height: 100vh;
+  height: 100%;
   min-height: 0;
   margin: 0;
-  padding: 4px;
+  padding: 0;
   overflow: hidden;
   background: var(--ltr-bg-root, #06060c);
   color: var(--ltr-text-primary);
   font-family: var(--ltr-font-family);
 }
 
-.topnav {
-  position: relative;
-  z-index: 200;
-  min-width: 0;
-  border-bottom: 1px solid var(--ltr-border);
-}
-
-.workspace {
+.primary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--spot-book-col) var(--spot-form-col);
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col);
   gap: 4px;
   min-width: 0;
   min-height: 0;
 }
 
-.marketWorkspace {
+.chartWorkspace {
   display: grid;
-  grid-template-rows: 64px minmax(0, 1fr) var(--ltr-bottom-h, 220px);
+  grid-template-rows: 40px 25px minmax(0, 1fr);
   gap: 4px;
   min-width: 0;
   min-height: 0;
+  background: #000;
 }
 
 .chartPanel {
   display: grid;
-  grid-template-rows: 36px minmax(0, 1fr);
+  grid-template-rows: 32px minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--ltr-bg-panel);
-  border: 1px solid var(--ltr-border);
-  border-radius: var(--ltr-radius, 2px);
+  background: transparent;
 }
 
 .chartTabs {
   display: flex;
-  align-items: stretch;
-  gap: 20px;
-  padding: 0 12px;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0;
   border-bottom: 1px solid var(--ltr-border);
+  background: var(--ltr-bg-panel);
 
-  button {
+  .chartTabsLeft {
+    display: flex;
+    align-items: center;
+    height: 32px;
+  }
+
+  .chartTab {
     position: relative;
-    padding: 0;
-    color: var(--ltr-text-muted);
-    font: 500 var(--ltr-font-body, 12px) / 1 var(--ltr-font-family);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 8px 12px;
+    color: var(--ltr-text-secondary);
+    font: 400 12px / 1 var(--ltr-font-family);
     background: transparent;
     border: 0;
   }
 
-  button[aria-selected="true"] {
+  .chartTab[aria-selected="true"] {
     color: var(--ltr-text-primary);
 
     &::after {
       position: absolute;
       right: 0;
-      bottom: -1px;
+      bottom: 2px;
       left: 0;
-      height: 2px;
+      width: 60%;
+      max-width: 64px;
+      height: 1px;
+      margin: 0 auto;
+      border-radius: 999px;
       content: "";
-      background: var(--ltr-accent-cyan, #ff8a3d);
+      background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
     }
   }
 
-  button:not(:disabled):focus-visible {
+  .chartTab:not(:disabled):focus-visible {
     outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
     outline-offset: -2px;
   }
 
-  button:disabled {
+  .chartTab:disabled {
     cursor: default;
     opacity: 0.55;
+  }
+}
+
+.chartModes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  padding: 0 8px;
+  color: #828285;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chartModeActive {
+  color: var(--ltr-text-primary);
+}
+
+.chartModesSep {
+  width: 1px;
+  height: 16px;
+  background: var(--ltr-border);
+}
+
+.chartIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--ltr-text-muted);
+  font-size: 15px;
+}
+
+.favoritesBar {
+  display: flex;
+  align-items: center;
+  height: 25px;
+  padding: 0 8px;
+  background: #17181f;
+  border-top: 1px solid #20222a;
+}
+
+.favoriteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  color: #8f93a2;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: #c8ccd6;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rocky-theme-accent, #f5a85f);
+    outline-offset: -2px;
   }
 }
 
@@ -105,15 +176,43 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--ltr-bg-panel);
-  border: 1px solid var(--ltr-border);
-  border-radius: var(--ltr-radius, 2px);
+  padding-bottom: 4px;
+  background: #000;
 }
 
 .orderbook > *,
 .orderform > * {
   flex: 1;
   min-height: 0;
+}
+
+.bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col);
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tabs {
+  position: relative;
+  z-index: 30;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.accounts {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+@media (max-width: 1180px) {
+  .page {
+    --ltr-side-col: minmax(280px, 320px);
+  }
 }
 
 @media (max-width: 1024px) {
@@ -124,37 +223,42 @@
     grid-template-rows: auto auto;
   }
 
-  .workspace {
+  .primary {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(520px, auto) minmax(520px, auto);
   }
 
-  .marketWorkspace {
-    grid-template-rows: 64px minmax(520px, 1fr) var(--ltr-bottom-h, 220px);
-    min-height: 812px;
+  .chartWorkspace {
+    grid-template-rows: auto 25px minmax(520px, 1fr);
+    min-height: 593px;
   }
 
   .orderbook,
   .orderform {
     min-height: 520px;
   }
+
+  .bottom {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(260px, auto) minmax(220px, auto);
+  }
 }
 
 @media (max-width: 640px) {
   .page {
     gap: 2px;
-    width: calc(100dvw - 4px);
-    padding: 2px;
+    width: 100%;
     overflow-x: hidden;
   }
 
-  .workspace,
-  .marketWorkspace {
+  .primary,
+  .chartWorkspace,
+  .bottom {
     gap: 2px;
   }
 
-  .marketWorkspace {
-    grid-template-rows: 64px minmax(420px, 1fr) var(--ltr-bottom-h, 220px);
-    min-height: 706px;
+  .chartWorkspace {
+    grid-template-rows: auto 25px minmax(420px, 1fr);
+    min-height: 491px;
   }
 }

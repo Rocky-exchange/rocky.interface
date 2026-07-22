@@ -120,6 +120,8 @@ export function SpotMarketDropdown({ market }: { market: SpotMarket }) {
         </span>
       }
       modalLabel="Select market"
+      handleClassName={styles.symbolHandle}
+      chevronClassName={styles.caret}
       desktopPanelClassName={styles.floatingPanel}
     >
       <PanelBody active={market.routeSymbol} />

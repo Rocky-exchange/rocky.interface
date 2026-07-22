@@ -1,9 +1,6 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
-  openCantonConnect: vi.fn(),
-}));
 vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
   useCantonSession: vi.fn(),
 }));
@@ -11,14 +8,12 @@ vi.mock("../../hooks/useSpotAccount", () => ({
   useSpotAccount: vi.fn(),
 }));
 
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { SpotAccountsPanel } from "./Accounts";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
 
-const mConnect = vi.mocked(openCantonConnect);
 const mSession = vi.mocked(useCantonSession);
 const mSpotAccount = vi.mocked(useSpotAccount);
 const market = resolveSpotMarket("CBTC-USDA");
@@ -43,7 +38,7 @@ afterEach(() => {
 });
 
 describe("SpotAccountsPanel", () => {
-  it("preserves the wallet connect path while account auth is unavailable", () => {
+  it("hides the panel-level wallet CTA while account auth is unavailable", () => {
     mSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch: vi.fn() });
     mSession.mockReturnValue({
       connected: false,
@@ -54,10 +49,28 @@ describe("SpotAccountsPanel", () => {
       provider: "",
     });
 
-    const { getByRole } = render(<SpotAccountsPanel market={market} />);
-    fireEvent.click(getByRole("button", { name: "Connect wallet" }));
+    const { getByText, queryByRole } = render(<SpotAccountsPanel market={market} />);
 
-    expect(mConnect).toHaveBeenCalledOnce();
+    expect(getByText("Spot Account")).toBeTruthy();
+    expect(queryByRole("button", { name: "Connect wallet" })).toBeNull();
+  });
+
+  it("renders a futures-style asset table instead of a duplicate account CTA in workspace mode", () => {
+    mSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch: vi.fn() });
+    mSession.mockReturnValue({
+      connected: false,
+      token: "",
+      party: "",
+      username: "",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getByRole, queryByRole } = render(<SpotAccountsPanel market={market} variant="workspace" />);
+    const header = getByRole("row", { name: "Asset Free Locked" });
+
+    expect(header).toBeTruthy();
+    expect(queryByRole("button", { name: "Connect wallet" })).toBeNull();
   });
 
   it("renders the account total and backend balances with public USDA and configured asset casing", () => {

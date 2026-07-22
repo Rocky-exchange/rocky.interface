@@ -5,6 +5,8 @@
   color: var(--ltr-text-primary);
   font-family: var(--ltr-font-family);
   font-size: var(--ltr-font-body, 12px);
+  overflow: hidden;
+  background: #000;
 }
 
 .topBar {
@@ -12,24 +14,35 @@
 }
 
 .tabs {
+  position: relative;
   display: flex;
-  height: 40px;
-  border-bottom: 1px solid var(--ltr-border);
-  font-size: 13px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  margin-bottom: 4px;
+  overflow: visible;
+  background: #14151b;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 .tab {
-  padding: 0 16px;
+  position: relative;
   display: inline-flex;
+  flex: 1;
   align-items: center;
-  cursor: pointer;
-  color: var(--ltr-text-secondary);
+  justify-content: center;
+  min-width: 80px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 8px;
+  color: #a9aaad;
+  font-size: 11px;
+  font-weight: 400;
   border: 0;
   background: transparent;
-  font-weight: 500;
-  height: 100%;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  cursor: pointer;
+  white-space: nowrap;
 
   &:hover {
     color: var(--ltr-text-primary);
@@ -43,27 +56,64 @@
 
 .tabActive {
   color: var(--ltr-text-primary);
-  border-bottom-color: var(--ltr-accent-cyan, #ff8a3d);
+  background: #22232b;
+}
+
+.tab::after,
+.tabActive::after {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  left: 0;
+  width: 52%;
+  max-width: 52px;
+  height: 2px;
+  margin: 0 auto;
+  border-radius: 999px;
+  content: "";
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.tabActive::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .bookViews {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 3px 11px;
-  border-bottom: 1px solid var(--ltr-border);
+  justify-content: space-between;
+  height: 25px;
+  min-height: 25px;
+  padding: 0 10px;
+  margin-bottom: 4px;
+  background: var(--ltr-bg-panel);
+}
+
+.bookViewButtons,
+.bookSelectors {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bookSelectors {
+  gap: 12px;
+  color: var(--ltr-text-secondary);
+  font-size: 11px;
 }
 
 .bookViewButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 22px;
-  padding: 4px;
-  border: 1px solid transparent;
-  border-radius: 3px;
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  border: 0;
+  border-radius: 2px;
   background: transparent;
   cursor: pointer;
   opacity: 0.62;
@@ -80,8 +130,7 @@
 }
 
 .bookViewActive {
-  border-color: var(--ltr-border);
-  background: var(--ltr-bg-panel-2, #0e0e14);
+  background: var(--ltr-bg-hover);
   opacity: 1;
 }
 
@@ -96,6 +145,8 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
+  background: var(--ltr-bg-panel);
 }
 
 .askLine,
@@ -116,12 +167,12 @@
 .header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  min-height: 24px;
+  min-height: 28px;
   align-items: center;
-  padding: 3px 12px;
-  color: var(--ltr-text-muted);
-  font-size: 11px;
-  border-bottom: 1px solid var(--ltr-border);
+  padding: 4px 10px;
+  color: #b4b4b6;
+  font-size: 12px;
+  background: var(--ltr-bg-panel);
   font-variant-numeric: tabular-nums;
 }
 
@@ -145,9 +196,9 @@
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  padding: 0 12px;
-  height: var(--ltr-row-h, 18px);
-  line-height: var(--ltr-row-h, 18px);
+  padding: 0 10px;
+  height: 20px;
+  line-height: 20px;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -180,13 +231,15 @@
 }
 
 .mid {
-  padding: 6px 12px;
-  border-block: 1px solid var(--ltr-border);
+  min-height: 28px;
+  padding: 0 10px;
+  border-block: 0;
   display: flex;
   justify-content: space-between;
   color: var(--ltr-text-muted);
   font-size: 11px;
-  background: var(--ltr-bg-panel-2, #0e0e14);
+  align-items: center;
+  background: #000;
 }
 
 .midPrice {

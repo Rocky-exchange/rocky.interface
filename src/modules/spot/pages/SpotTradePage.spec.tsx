@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryHistory } from "history";
 import { Router, Route } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -68,6 +68,34 @@ function renderSpotRoute(path: string) {
 }
 
 describe("SpotTradePage", () => {
+  it("uses the same primary and bottom panel skeleton as the futures terminal", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const primary = screen.getByTestId("spot-primary-workspace");
+    const bottom = screen.getByTestId("spot-bottom-workspace");
+
+    expect(within(primary).getByTestId("symbol-bar-probe")).not.toBeNull();
+    expect(within(primary).getByTestId("chart-probe")).not.toBeNull();
+    expect(within(primary).getByTestId("spot-orderbook-region")).not.toBeNull();
+    expect(within(primary).getByTestId("spot-orderform-region")).not.toBeNull();
+    expect(within(bottom).getByTestId("bottom-tabs-probe")).not.toBeNull();
+    expect(within(bottom).getByTestId("spot-standalone-account")).not.toBeNull();
+  });
+
+  it("uses the futures market-header, favorites, and chart row order", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const workspace = screen.getByTestId("spot-market-workspace");
+    const marketHeader = screen.getByTestId("symbol-bar-probe");
+    const favorites = screen.getByTestId("spot-favorites-bar");
+    const chartPanel = screen.getByTestId("spot-chart-workspace");
+
+    expect(workspace.children).toHaveLength(3);
+    expect(workspace.children[0]).toBe(marketHeader);
+    expect(workspace.children[1]).toBe(favorites);
+    expect(workspace.children[2]).toBe(chartPanel);
+  });
+
   it("coordinates the routed market across the ZTDX trading workspace", () => {
     const history = createMemoryHistory({ initialEntries: ["/spot/CBTC-USDA"] });
 
@@ -92,20 +120,32 @@ describe("SpotTradePage", () => {
       expect(probe.getAttribute("data-api-symbol")).toBe("CBTC-USDCX");
     }
 
-    expect(screen.queryByTestId("spot-standalone-account")).toBeNull();
+    expect(screen.getByTestId("spot-standalone-account")).not.toBeNull();
   });
 
-  it("links the selected Chart tab to its labelled tabpanel", () => {
+  it("links the selected Price tab to its labelled tabpanel", () => {
     renderSpotRoute("/spot/CBTC-USDA");
 
-    const chartTab = screen.getByRole("tab", { name: "Chart" });
-    const chartPanel = screen.getByRole("tabpanel", { name: "Chart" });
+    const chartTab = screen.getByRole("tab", { name: "Price" });
+    const chartPanel = screen.getByRole("tabpanel", { name: "Price" });
 
     expect(chartTab.getAttribute("id")).toBe("spot-chart-tab");
     expect(chartTab.getAttribute("aria-selected")).toBe("true");
     expect(chartTab.getAttribute("aria-controls")).toBe("spot-chart-panel");
     expect(chartPanel.getAttribute("id")).toBe("spot-chart-panel");
     expect(chartPanel.getAttribute("aria-labelledby")).toBe("spot-chart-tab");
+  });
+
+  it("keeps explicit local styles on every market-view tab", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const tablist = screen.getByRole("tablist", { name: "Market view" });
+    const tabs = within(tablist).getAllByRole("tab");
+
+    expect(tabs).toHaveLength(3);
+    for (const tab of tabs) {
+      expect(tab.className).toContain("chartTab");
+    }
   });
 
   it.each([

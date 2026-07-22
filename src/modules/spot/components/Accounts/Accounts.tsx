@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./Accounts.module.scss";
@@ -36,19 +35,59 @@ function displayAsset(asset: string, market: SpotMarket): string {
   );
 }
 
-export function SpotAccountsPanel({ market }: { market: SpotMarket }) {
+export function SpotAccountsPanel({
+  market,
+  variant = "account",
+}: {
+  market: SpotMarket;
+  variant?: "account" | "workspace";
+}) {
   const { ready, account, err, refetch } = useSpotAccount();
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
 
+  if (variant === "workspace") {
+    return (
+      <div className={`${styles.panel} ${styles.workspacePanel}`}>
+        <div className={styles.tableScroll}>
+          <table className={`${styles.balanceTable} ${styles.workspaceTable}`}>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Free</th>
+                <th>Locked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {account?.balances.map((balance) => (
+                <tr key={balance.asset}>
+                  <td className={styles.asset}>{displayAsset(balance.asset, market)}</td>
+                  <td>{fmt(balance.free)}</td>
+                  <td className={styles.locked}>{fmt(balance.locked)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {ready && !account && !err && (
+            <div className={styles.workspaceState} role="status">
+              Loading…
+            </div>
+          )}
+          {err && (
+            <div className={styles.workspaceState} role="alert">
+              {err}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!ready)
     return (
       <div className={styles.panel}>
         <div className={styles.title}>Spot Account</div>
-        <button type="button" className={styles.connectCta} onClick={openCantonConnect}>
-          Connect wallet
-        </button>
       </div>
     );
   if (err)

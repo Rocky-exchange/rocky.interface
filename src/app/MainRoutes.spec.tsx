@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { createMemoryHistory } from "history";
 import type { PropsWithChildren } from "react";
 import { Router } from "react-router-dom";
@@ -22,6 +22,10 @@ vi.mock("@/modules/lighter/pages/LighterTradePage", () => ({
   default: () => <h1>Trade route</h1>,
 }));
 
+vi.mock("@/modules/lighter/components/TopNav/TopNav", () => ({
+  TopNav: () => <nav data-testid="terminal-top-nav" />,
+}));
+
 vi.mock("@/modules/spot/pages/SpotTradePage", () => ({
   default: () => <h1>Spot route</h1>,
 }));
@@ -43,11 +47,13 @@ vi.mock("@/shared/components/RedirectWithQuery/RedirectWithQuery", async () => {
 
 function renderRoute(path: string) {
   const history = createMemoryHistory({ initialEntries: [path] });
-  return render(
+  const result = render(
     <Router history={history}>
       <MainRoutes openSettings={vi.fn()} />
     </Router>
   );
+
+  return { ...result, history };
 }
 
 beforeEach(() => {
@@ -76,5 +82,17 @@ describe("MainRoutes bonus routes", () => {
 
     expect(await screen.findByRole("heading", { name: "Trade route" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: /Bonus route|Redeem route/ })).toBeNull();
+  });
+});
+
+describe("MainRoutes trading terminal shell", () => {
+  it("keeps the same header DOM node mounted between futures and spot routes", async () => {
+    const { history } = renderRoute("/trade");
+    const header = await screen.findByTestId("terminal-top-nav");
+
+    act(() => history.push("/spot/CBTC-USDA"));
+
+    expect(await screen.findByRole("heading", { name: "Spot route" })).not.toBeNull();
+    expect(screen.getByTestId("terminal-top-nav")).toBe(header);
   });
 });

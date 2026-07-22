@@ -1,7 +1,5 @@
 import { type KeyboardEvent, useRef, useState } from "react";
 
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
-
 import styles from "./BottomTabs.module.scss";
 import { spotApi, type SpotOrder } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
@@ -9,7 +7,6 @@ import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
 import { SpotAccountsPanel } from "../Accounts/Accounts";
 
-const CONNECT_HINT_STYLE = { marginLeft: 8, color: "var(--ltr-text-muted)" } as const;
 const MUTED_TEXT_STYLE = { color: "var(--ltr-text-muted)" } as const;
 const SECONDARY_TEXT_STYLE = { color: "var(--ltr-text-secondary)" } as const;
 
@@ -42,14 +39,7 @@ function OpenOrders({ market }: { market: SpotMarket }) {
   const [cancelErr, setCancelErr] = useState<string | null>(null);
 
   if (!ready)
-    return (
-      <div className={styles.empty}>
-        <button type="button" className={styles.connectCta} onClick={openCantonConnect}>
-          Connect wallet
-        </button>
-        <span style={CONNECT_HINT_STYLE}>to view your open orders</span>
-      </div>
-    );
+    return <div className={styles.empty}>Connect wallet from the header to view your open orders</div>;
 
   const cancel = async (orderId: string) => {
     setCancelErr(null);
@@ -212,6 +202,20 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         >
           Trade History
         </button>
+        <div className={styles.viewControls} data-testid="spot-bottom-view-controls" aria-hidden="true">
+          <span className={styles.viewControlActive}>
+            <i className={styles.askLine} />
+            <i className={styles.bidLine} />
+          </span>
+          <span>
+            <i className={styles.askLine} />
+            <i className={styles.askLine} />
+          </span>
+          <span>
+            <i className={styles.bidLine} />
+            <i className={styles.bidLine} />
+          </span>
+        </div>
       </div>
       <div
         id="spot-bottom-panel"
@@ -220,7 +224,7 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         className={styles.tabPanel}
       >
         {activeTab === "assets" ? (
-          <SpotAccountsPanel market={market} />
+          <SpotAccountsPanel market={market} variant="workspace" />
         ) : (
           <OpenOrders key={market.apiSymbol} market={market} />
         )}

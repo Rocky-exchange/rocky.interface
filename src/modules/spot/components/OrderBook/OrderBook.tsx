@@ -166,23 +166,29 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
           ))}
         </div>
         {tab === "book" && (
-          <div className={styles.bookViews}>
-            {bookViewButtons.map(({ view, label, lines }) => (
-              <button
-                key={view}
-                type="button"
-                className={`${styles.bookViewButton} ${bookView === view ? styles.bookViewActive : ""}`}
-                aria-label={label}
-                aria-pressed={bookView === view}
-                onClick={() => setBookView(view)}
-              >
-                <span className={styles.bookViewIcon} aria-hidden="true">
-                  {lines.map((line, index) => (
-                    <span key={`${line}-${index}`} className={line === "ask" ? styles.askLine : styles.bidLine} />
-                  ))}
-                </span>
-              </button>
-            ))}
+          <div className={styles.bookViews} data-testid="spot-orderbook-toolbar">
+            <div className={styles.bookViewButtons}>
+              {bookViewButtons.map(({ view, label, lines }) => (
+                <button
+                  key={view}
+                  type="button"
+                  className={`${styles.bookViewButton} ${bookView === view ? styles.bookViewActive : ""}`}
+                  aria-label={label}
+                  aria-pressed={bookView === view}
+                  onClick={() => setBookView(view)}
+                >
+                  <span className={styles.bookViewIcon} aria-hidden="true">
+                    {lines.map((line, index) => (
+                      <span key={`${line}-${index}`} className={line === "ask" ? styles.askLine : styles.bidLine} />
+                    ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className={styles.bookSelectors} aria-hidden="true">
+              <span>{market.displayQuote}</span>
+              <span>1</span>
+            </div>
           </div>
         )}
       </div>

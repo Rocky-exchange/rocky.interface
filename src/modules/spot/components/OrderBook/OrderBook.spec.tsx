@@ -67,6 +67,15 @@ describe("SpotOrderBookPanel", () => {
     expect(mTrades).not.toHaveBeenCalled();
   });
 
+  it("uses the futures toolbar rhythm with quote and aggregation controls", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByTestId } = render(<SpotOrderBookPanel market={market} />);
+
+    await findByText("65,010.00");
+    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("USDA");
+    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("1");
+  });
+
   it("preserves the existing Recent Trades view and requests the API symbol", async () => {
     mDepth.mockResolvedValue(twoSidedDepth);
     mTrades.mockResolvedValue([]);

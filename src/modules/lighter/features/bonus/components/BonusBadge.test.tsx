@@ -223,21 +223,19 @@ describe("BonusBadge", () => {
 });
 
 describe("TopNav bonus placement", () => {
-  it("places the display-only badge before extras, language, and wallet controls", () => {
+  it("omits the redeem badge while keeping extras, language, and wallet controls", () => {
     mockStatus({});
 
     render(<TopNav rightExtra={<span data-testid="right-extra">extra</span>} />, { wrapper: TestShell });
 
-    const badge = screen.getByRole("link", { name: "Redeem" });
     const extra = screen.getByTestId("right-extra");
     const language = screen.getByRole("button", { name: "language" });
     const wallet = screen.getByRole("button", { name: "Connect wallet" });
-    const right = badge.parentElement;
+    const right = extra.parentElement;
 
-    expect(right).toBe(extra.parentElement);
+    expect(screen.queryByRole("link", { name: "Redeem" })).toBeNull();
     expect(right).toBe(language.parentElement?.parentElement);
     expect(right).toBe(wallet.parentElement);
-    expect([...right!.children]).toEqual([badge, extra, language.parentElement, wallet]);
-    expect(badge.querySelector("button")).toBeNull();
+    expect([...right!.children]).toEqual([extra, language.parentElement, wallet]);
   });
 });

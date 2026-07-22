@@ -8,6 +8,10 @@ import { TradeStateProvider } from "@/modules/lighter/store/TradeStateContext/Tr
 import SpotTradePage from "@/modules/spot/pages/SpotTradePage";
 import { RedirectWithQuery } from "@/shared/components/RedirectWithQuery/RedirectWithQuery";
 
+import { TradingTerminalShell } from "./TradingTerminalShell";
+
+const TRADING_ROUTE_PATHS = ["/trade", "/spot"];
+
 const BonusPage = lazy(() =>
   import("@/modules/lighter/features/bonus/pages/BonusPage").then(({ BonusPage }) => ({ default: BonusPage }))
 );
@@ -32,23 +36,33 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
         </LighterTradeRuntimeProviders>
       </Route>
 
-      <Route exact path="/trade/:tradeType?">
-        <LighterTradeRuntimeProviders>
-          <TradeStateProvider>
-            <LighterTradePage />
-          </TradeStateProvider>
-        </LighterTradeRuntimeProviders>
+      <Route path={TRADING_ROUTE_PATHS}>
+        <TradingTerminalShell>
+          <Switch>
+            <Route exact path="/trade/:tradeType?">
+              <LighterTradeRuntimeProviders>
+                <TradeStateProvider>
+                  <LighterTradePage />
+                </TradeStateProvider>
+              </LighterTradeRuntimeProviders>
+            </Route>
+
+            {/* Spot trading — USDA public route labels map to USDCx API symbols via rocky-backend /api/v3 */}
+            <Route exact path="/spot/:symbol?">
+              <SpotTradePage />
+            </Route>
+
+            <Route>
+              <RedirectWithQuery to="/trade" />
+            </Route>
+          </Switch>
+        </TradingTerminalShell>
       </Route>
 
       <Route exact path="/portfolio">
         <LighterTradeRuntimeProviders>
           <LighterPortfolioPage />
         </LighterTradeRuntimeProviders>
-      </Route>
-
-      {/* Spot trading — USDA public route labels map to USDCx API symbols via rocky-backend /api/v3 */}
-      <Route exact path="/spot/:symbol?">
-        <SpotTradePage />
       </Route>
 
       <Route exact path="/bonus">

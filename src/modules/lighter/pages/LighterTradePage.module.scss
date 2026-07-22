@@ -8,20 +8,14 @@
   max-width: none;
   margin: 0;
   min-width: 0;
-  height: 100vh;
+  height: 100%;
   min-height: 0;
   background: #000;
-  padding: 4px;
+  padding: 0;
   display: grid;
-  grid-template-rows: var(--ltr-topnav-h) minmax(0, 1fr) var(--ltr-bottom-h);
+  grid-template-rows: minmax(0, 1fr) var(--ltr-bottom-h);
   row-gap: 4px;
   overflow: hidden;
-}
-
-.topnav {
-  position: relative;
-  z-index: 200;
-  border-bottom: 1px solid var(--ltr-border);
 }
 
 .banner {
@@ -171,7 +165,7 @@
     min-height: 100dvh;
     grid-template-rows: auto;
     overflow: visible;
-    padding: 4px;
+    padding: 0;
   }
 
   .main,
@@ -226,12 +220,6 @@
   .page {
     padding: 2px;
     row-gap: 2px;
-  }
-
-  .topnav {
-    width: calc(100dvw - 4px);
-    max-width: calc(100dvw - 4px);
-    border-bottom: 0;
   }
 
   .chartCol {

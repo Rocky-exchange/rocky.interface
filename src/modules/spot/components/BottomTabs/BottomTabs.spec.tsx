@@ -1,9 +1,6 @@
 import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
-  openCantonConnect: vi.fn(),
-}));
 vi.mock("../../api/spotSession", () => ({
   useSpotAuthReady: vi.fn(),
 }));
@@ -23,8 +20,6 @@ vi.mock("../Accounts/Accounts", () => ({
   ),
 }));
 
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
-
 import { SpotBottomTabs } from "./BottomTabs";
 import { spotApi } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
@@ -33,7 +28,6 @@ import { resolveSpotMarket } from "../../model/spotMarkets";
 const mReady = vi.mocked(useSpotAuthReady);
 const mOpen = vi.mocked(spotApi.openOrders);
 const mCancel = vi.mocked(spotApi.cancelOrder);
-const mConnect = vi.mocked(openCantonConnect);
 const market = resolveSpotMarket("CBTC-USDA");
 const cethMarket = resolveSpotMarket("CETH-USDA");
 
@@ -85,6 +79,14 @@ describe("SpotBottomTabs", () => {
     expect(mOpen).not.toHaveBeenCalled();
   });
 
+  it("keeps the futures-style view controls in the tab toolbar", () => {
+    mReady.mockReturnValue(true);
+
+    const { getByTestId } = render(<SpotBottomTabs market={market} />);
+
+    expect(getByTestId("spot-bottom-view-controls").children).toHaveLength(3);
+  });
+
   it("uses roving focus and skips disabled history tabs during keyboard navigation", () => {
     mReady.mockReturnValue(false);
 
@@ -118,15 +120,14 @@ describe("SpotBottomTabs", () => {
     expect(tradeHistory.disabled).toBe(true);
   });
 
-  it("switches to Open Orders and preserves the connect-wallet path", () => {
+  it("switches to Open Orders without rendering a panel-level wallet CTA", () => {
     mReady.mockReturnValue(false);
 
-    const { getByRole } = render(<SpotBottomTabs market={market} />);
+    const { getByRole, queryByRole } = render(<SpotBottomTabs market={market} />);
     fireEvent.click(getByRole("tab", { name: "Open Orders" }));
-    fireEvent.click(getByRole("button", { name: "Connect wallet" }));
 
     expect(getByRole("tab", { name: "Open Orders" }).getAttribute("aria-selected")).toBe("true");
-    expect(mConnect).toHaveBeenCalledOnce();
+    expect(queryByRole("button", { name: "Connect wallet" })).toBeNull();
     expect(mOpen).not.toHaveBeenCalled();
   });
 

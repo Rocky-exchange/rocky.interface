@@ -4,7 +4,8 @@ import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 
-import { BonusBadge } from "@/modules/lighter/features/bonus/components/BonusBadge";
+// 临时隐藏 Header 的 Redeem 入口；保留 BonusBadge 组件与兑换路由，便于后续恢复。
+// import { BonusBadge } from "@/modules/lighter/features/bonus/components/BonusBadge";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
@@ -94,7 +95,9 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         </NavLink>
       </div>
       <div className={styles.right}>
+        {/* 临时隐藏 Header 的 Redeem 入口。
         <BonusBadge />
+        */}
         {rightExtra}
         <div className={styles.langWrap} ref={languageRef}>
           <button

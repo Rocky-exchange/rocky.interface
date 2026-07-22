@@ -22,7 +22,7 @@ function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
       <div className={styles.stats}>
         <div className={styles.priceBlock}>
           <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
-          <span className={styles.priceQuote}>{market.displayQuote}</span>
+          <span className={styles.priceQuote}>Last Price</span>
         </div>
         <div className={styles.cell}>
           <span className={styles.cellLabel}>24h Change</span>

@@ -11,7 +11,6 @@ import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
 
-const PERCENT_LABELS = [0, 25, 50, 75, 100] as const;
 const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 const FEE_MULTIPLIER = new Decimal("1.001");
 
@@ -219,6 +218,23 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
   return (
     <div className={styles.panel}>
+      <div className={styles.orderTypeTabs} role="tablist" aria-label="Order type">
+        <button type="button" role="tab" aria-selected="false" aria-disabled="true" tabIndex={-1} disabled>
+          Market
+        </button>
+        <button
+          type="button"
+          id="spot-limit-tab"
+          role="tab"
+          aria-selected="true"
+          aria-controls="spot-order-form-panel"
+          tabIndex={0}
+          className={styles.orderTypeActive}
+        >
+          Limit
+        </button>
+      </div>
+
       <div className={styles.sideTabs} role="tablist" aria-label="Order side">
         <button
           type="button"
@@ -228,7 +244,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           aria-controls="spot-order-form-panel"
           tabIndex={side === "BUY" && !busy ? 0 : -1}
           disabled={busy}
-          className={`${styles.sideTab} ${side === "BUY" ? styles.sideTabBuyActive : ""}`}
+          className={styles.sideTab}
           onClick={() => selectSide("BUY")}
           onKeyDown={(event) => activateSideFromKeyboard(event, "BUY")}
           ref={(node) => {
@@ -245,7 +261,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           aria-controls="spot-order-form-panel"
           tabIndex={side === "SELL" && !busy ? 0 : -1}
           disabled={busy}
-          className={`${styles.sideTab} ${side === "SELL" ? styles.sideTabSellActive : ""}`}
+          className={styles.sideTab}
           onClick={() => selectSide("SELL")}
           onKeyDown={(event) => activateSideFromKeyboard(event, "SELL")}
           ref={(node) => {
@@ -254,26 +270,11 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         >
           Sell {base}
         </button>
-      </div>
-
-      <div className={styles.orderTypeTabs} role="tablist" aria-label="Order type">
-        <button
-          type="button"
-          id="spot-limit-tab"
-          role="tab"
-          aria-selected="true"
-          aria-controls="spot-order-form-panel"
-          tabIndex={0}
-          className={styles.orderTypeActive}
-        >
-          Limit
-        </button>
-        <button type="button" role="tab" aria-selected="false" aria-disabled="true" tabIndex={-1} disabled>
-          Market
-        </button>
-        <button type="button" role="tab" aria-selected="false" aria-disabled="true" tabIndex={-1} disabled>
-          Limit Order
-        </button>
+        <div
+          aria-hidden="true"
+          data-testid="spot-side-indicator"
+          className={`${styles.sideIndicator} ${side === "BUY" ? styles.indicatorBuy : styles.indicatorSell}`}
+        />
       </div>
 
       <div
@@ -292,40 +293,38 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
         <div className={styles.field}>
           <label htmlFor="spot-order-price" className={styles.fieldLabel}>
-            Price ({quote})
+            Price
           </label>
-          <div className={styles.inputShell}>
-            <input
-              id="spot-order-price"
-              className={styles.input}
-              value={price}
-              onChange={(event) => updatePrice(event.target.value)}
-              disabled={busy}
-              placeholder="500"
-              inputMode="decimal"
-              autoComplete="off"
-            />
-            <span className={styles.unit}>{quote}</span>
-          </div>
+          <input
+            id="spot-order-price"
+            aria-label={`Price (${quote})`}
+            className={styles.input}
+            value={price}
+            onChange={(event) => updatePrice(event.target.value)}
+            disabled={busy}
+            placeholder="500"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <span className={styles.unit}>{quote}</span>
         </div>
 
         <div className={styles.field}>
           <label htmlFor="spot-order-amount" className={styles.fieldLabel}>
-            Amount ({base})
+            Amount
           </label>
-          <div className={styles.inputShell}>
-            <input
-              id="spot-order-amount"
-              className={styles.input}
-              value={amount}
-              onChange={(event) => updateAmount(event.target.value)}
-              disabled={busy}
-              placeholder="0.1"
-              inputMode="decimal"
-              autoComplete="off"
-            />
-            <span className={styles.unit}>{base}</span>
-          </div>
+          <input
+            id="spot-order-amount"
+            aria-label={`Amount (${base})`}
+            className={styles.input}
+            value={amount}
+            onChange={(event) => updateAmount(event.target.value)}
+            disabled={busy}
+            placeholder="0.1"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <span className={styles.unit}>{base}</span>
         </div>
 
         <div className={styles.sliderBlock}>
@@ -341,28 +340,36 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             onChange={(event) => updatePercent(Number(event.target.value))}
             disabled={busy}
           />
-          <div className={styles.percentLabels} aria-hidden="true">
-            {PERCENT_LABELS.map((label) => (
-              <span key={label}>{label}%</span>
-            ))}
+          <div className={styles.percentInput}>
+            <input
+              aria-label="Order percentage input"
+              className={styles.percentInputValue}
+              value={percent}
+              inputMode="numeric"
+              onChange={(event) => {
+                const next = Number(event.target.value.replace(/[^0-9]/g, ""));
+                if (!Number.isNaN(next)) updatePercent(Math.max(0, Math.min(100, next)));
+              }}
+              disabled={busy}
+            />
+            <span aria-hidden="true">%</span>
           </div>
         </div>
 
-        <div className={styles.field}>
+        <div className={`${styles.field} ${styles.readOnlyShell}`}>
           <label htmlFor="spot-order-total" className={styles.fieldLabel}>
-            Total ({quote})
+            Total
           </label>
-          <div className={`${styles.inputShell} ${styles.readOnlyShell}`}>
-            <input
-              id="spot-order-total"
-              className={styles.input}
-              value={summary.total}
-              placeholder="0.00"
-              readOnly
-              tabIndex={-1}
-            />
-            <span className={styles.unit}>{quote}</span>
-          </div>
+          <input
+            id="spot-order-total"
+            aria-label={`Total (${quote})`}
+            className={styles.input}
+            value={summary.total}
+            placeholder="0.00"
+            readOnly
+            tabIndex={-1}
+          />
+          <span className={styles.unit}>{quote}</span>
         </div>
 
         {ready ? (
