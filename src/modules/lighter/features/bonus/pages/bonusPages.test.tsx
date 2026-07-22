@@ -2,6 +2,7 @@ import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryHistory, type MemoryHistory } from "history";
+import { readFileSync } from "node:fs";
 import type { PropsWithChildren, ReactElement } from "react";
 import { Router } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -212,8 +213,33 @@ describe("BonusPage", () => {
     const connect = screen.getByRole("button", { name: "Connect wallet" });
     expect(screen.queryByText(/999/)).toBeNull();
     expect(screen.queryByText("0 USDCx")).toBeNull();
+    expect(mUseBonusBalance).not.toHaveBeenCalled();
+    expect(mUseBonusHistory).not.toHaveBeenCalled();
     fireEvent.click(connect);
     expect(mOpenCantonConnect).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["loading", { data: undefined, isLoading: true }],
+    [
+      "error",
+      {
+        data: undefined,
+        isLoading: false,
+        error: new BonusApiError("Bonus status is temporarily unavailable", {
+          status: 503,
+          code: "bonus_unavailable",
+          data: {},
+        }),
+      },
+    ],
+  ] as const)("does not mount balance or history polling while status is %s", (_label, response) => {
+    mUseBonusStatus.mockReturnValue(response as ReturnType<typeof useBonusStatus>);
+
+    renderAt(<BonusPage />, "/bonus");
+
+    expect(mUseBonusBalance).not.toHaveBeenCalled();
+    expect(mUseBonusHistory).not.toHaveBeenCalled();
   });
 
   it("links users without a bonus to the Rocky redeem route", () => {
@@ -227,6 +253,8 @@ describe("BonusPage", () => {
     renderAt(<BonusPage />, "/bonus");
 
     expect(screen.getByRole("link", { name: "Redeem trial funds" }).getAttribute("href")).toBe("/bonus/redeem");
+    expect(mUseBonusBalance).not.toHaveBeenCalled();
+    expect(mUseBonusHistory).not.toHaveBeenCalled();
   });
 
   it("renders the active USDCx lifecycle, risk rules, API leverage, and attribution ledger", () => {
@@ -238,12 +266,16 @@ describe("BonusPage", () => {
     expect(screen.getByText("63 USDCx")).not.toBeNull();
     expect(screen.getByLabelText("Bonus expiry countdown")).not.toBeNull();
     expect(screen.getByText(/50%.*trial funds.*50%.*principal/i)).not.toBeNull();
+    expect(screen.getByText(/capped by remaining trial funds/i)).not.toBeNull();
     expect(screen.getByText(/profits.*principal/i)).not.toBeNull();
     expect(screen.getByText(/trial funds.*non-withdrawable/i)).not.toBeNull();
     expect(screen.getByText(/Maximum leverage/i).textContent).toContain("8x");
     expect(screen.getByText(/60% net-direction/i)).not.toBeNull();
     expect(screen.getByRole("region", { name: "Attribution history" })).not.toBeNull();
     expect(screen.getByText("Trading fee")).not.toBeNull();
+    expect(mUseBonusBalance).toHaveBeenCalledTimes(1);
+    expect(mUseBonusHistory).toHaveBeenCalledTimes(1);
+    expect(mUseBonusHistory).toHaveBeenCalledWith(20);
   });
 
   it.each([
@@ -282,25 +314,31 @@ describe("Bonus visual components", () => {
     const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
     const { unmount } = renderI18n(<BonusCountdown expiresAt="2026-07-23T02:03:04Z" />);
 
-    expect(screen.getByLabelText("1 day")).not.toBeNull();
-    expect(screen.getByLabelText("2 hours")).not.toBeNull();
-    expect(screen.getByLabelText("3 minutes")).not.toBeNull();
-    expect(screen.getByLabelText("4 seconds")).not.toBeNull();
+    const timer = screen.getByRole("timer", { name: "Bonus expiry countdown" });
+    expect(timer.hasAttribute("aria-label")).toBe(false);
+    expect(timer.getAttribute("aria-labelledby")).not.toBeNull();
+    expect(within(timer).getByRole("group", { name: "01 Days" })).not.toBeNull();
+    expect(within(timer).getByRole("group", { name: "02 Hours" })).not.toBeNull();
+    expect(within(timer).getByRole("group", { name: "03 Minutes" })).not.toBeNull();
+    expect(within(timer).getByRole("group", { name: "04 Seconds" })).not.toBeNull();
+    expect([...timer.querySelectorAll("[data-countdown-unit]")].every((unit) => !unit.hasAttribute("aria-label"))).toBe(
+      true
+    );
 
     act(() => vi.advanceTimersByTime(1_000));
-    expect(screen.getByLabelText("3 seconds")).not.toBeNull();
+    expect(within(timer).getByRole("group", { name: "03 Seconds" })).not.toBeNull();
     unmount();
     expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
   });
 
   it("clamps expired and invalid expiry values safely to zero", () => {
     const { rerender } = renderI18n(<BonusCountdown expiresAt="2020-01-01T00:00:00Z" />);
-    expect(screen.getByLabelText("0 days")).not.toBeNull();
-    expect(screen.getByLabelText("0 seconds")).not.toBeNull();
+    expect(screen.getByRole("group", { name: "00 Days" })).not.toBeNull();
+    expect(screen.getByRole("group", { name: "00 Seconds" })).not.toBeNull();
 
     rerender(<BonusCountdown expiresAt="not-a-date" />);
-    expect(screen.getByLabelText("0 days")).not.toBeNull();
-    expect(screen.getByLabelText("0 seconds")).not.toBeNull();
+    expect(screen.getByRole("group", { name: "00 Days" })).not.toBeNull();
+    expect(screen.getByRole("group", { name: "00 Seconds" })).not.toBeNull();
   });
 
   it.each(HISTORY_CASES)("maps %s history rows to %s", (eventType, label) => {
@@ -435,8 +473,8 @@ describe("RedeemCodePage", () => {
   });
 });
 
-describe("390px responsive route", () => {
-  it("keeps every primary action on the same bonus and redeem page routes", () => {
+describe("390px DOM and routing contract", () => {
+  it("keeps every primary action on the same bonus and redeem routes without asserting computed CSS", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     window.dispatchEvent(new Event("resize"));
     mockBonusHooks({ hasMore: true });
@@ -453,3 +491,40 @@ describe("390px responsive route", () => {
     expect(screen.getByRole("button", { name: "Redeem code" }).hidden).toBe(false);
   });
 });
+
+describe("responsive SCSS contract", () => {
+  it.each([
+    ["status", "./BonusPage.module.scss", "summaryGrid", "primaryAction", "heroBalance"],
+    ["redeem", "./RedeemCodePage.module.scss", "redeemGrid", "submit", "policyValue"],
+  ] as const)(
+    "locks the %s page mobile stack, padding, tap target, action width, and long-value wrapping",
+    (_page, sourcePath, gridClass, actionClass, longValueClass) => {
+      const source = readFileSync(new URL(sourcePath, import.meta.url), "utf8");
+      const mobile = extractMaxWidthBlock(source, 768);
+
+      expect(mobile).toMatch(/\.main\s*\{[^}]*padding:\s*\d+px\s+16px(?:\s+\d+px)?\s*;/);
+      expect(mobile).toMatch(new RegExp(`\\.${gridClass}(?:\\s*,[^\\{]+)?\\s*\\{[^}]*grid-template-columns:\\s*1fr`));
+      expect(mobile).toMatch(new RegExp(`\\.${actionClass}(?:\\s*,[^\\{]+)?\\s*\\{[^}]*width:\\s*100%`));
+      expect(source).toMatch(
+        new RegExp(`\\.${actionClass}(?:\\s*,[^\\{]+)?\\s*\\{[^}]*min-height:\\s*(?:4[4-9]|[5-9]\\d)px`)
+      );
+      expect(source).toMatch(
+        new RegExp(`\\.${longValueClass}\\s*\\{[^}]*(?:overflow-wrap|word-break):\\s*(?:anywhere|break-word)`)
+      );
+    }
+  );
+});
+
+function extractMaxWidthBlock(source: string, width: number): string {
+  const mediaStart = source.search(new RegExp(`@media\\s*\\(max-width:\\s*${width}px\\)`));
+  if (mediaStart < 0) return "";
+
+  const blockStart = source.indexOf("{", mediaStart);
+  let depth = 0;
+  for (let index = blockStart; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    if (source[index] === "}") depth -= 1;
+    if (depth === 0) return source.slice(blockStart + 1, index);
+  }
+  return "";
+}

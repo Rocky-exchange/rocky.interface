@@ -385,6 +385,10 @@
     margin-bottom: 10px;
   }
 
+  .redeemGrid {
+    grid-template-columns: 1fr;
+  }
+
   .intro,
   .formPanel {
     padding: 28px 20px;
@@ -400,6 +404,7 @@
 
   .submit,
   .connectAction {
+    width: 100%;
     min-height: 46px;
   }
 

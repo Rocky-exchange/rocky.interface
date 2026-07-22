@@ -16,8 +16,6 @@ import { BonusHistoryList } from "../components/BonusHistoryList";
 export function BonusPage() {
   const { connected } = useCantonSession();
   const status = useBonusStatus();
-  const balance = useBonusBalance();
-  const history = useBonusHistory(20);
 
   useLighterBody();
 
@@ -36,16 +34,25 @@ export function BonusPage() {
         ) : !status.data?.has_bonus ? (
           <NoBonusState />
         ) : (
-          <BonusDashboard
-            status={status.data}
-            balance={balance.data}
-            balanceError={balance.error}
-            balanceLoading={balance.isLoading}
-            history={history}
-          />
+          <BonusDashboardContainer status={status.data} />
         )}
       </main>
     </div>
+  );
+}
+
+function BonusDashboardContainer({ status }: { status: NonNullable<ReturnType<typeof useBonusStatus>["data"]> }) {
+  const balance = useBonusBalance();
+  const history = useBonusHistory(20);
+
+  return (
+    <BonusDashboard
+      status={status}
+      balance={balance.data}
+      balanceError={balance.error}
+      balanceLoading={balance.isLoading}
+      history={history}
+    />
   );
 }
 
@@ -200,7 +207,10 @@ function BonusDashboard({
               <Trans>50 / 50 cost attribution</Trans>
             </h3>
             <p>
-              <Trans>Trading costs use 50% trial funds and 50% principal while both balances remain positive.</Trans>
+              <Trans>
+                Trading costs use 50% trial funds and 50% principal while both balances remain positive, with the
+                trial-funds share capped by remaining trial funds.
+              </Trans>
             </p>
           </article>
           <article className={styles.rule}>

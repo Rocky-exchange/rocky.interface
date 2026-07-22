@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/macro";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useId, useState } from "react";
 
 export type BonusCountdownProps = {
   expiresAt?: string;
@@ -15,6 +15,7 @@ type CountdownValue = {
 };
 
 export function BonusCountdown({ expiresAt, className }: BonusCountdownProps) {
+  const countdownId = useId();
   const [now, setNow] = useState(() => Date.now());
   const expiry = safeTimestamp(expiresAt);
 
@@ -32,34 +33,47 @@ export function BonusCountdown({ expiresAt, className }: BonusCountdownProps) {
     <div
       className={className}
       role="timer"
-      aria-label="Bonus expiry countdown"
+      aria-labelledby={`${countdownId}-title`}
       aria-live="polite"
       data-expired={countdown.expired ? "true" : "false"}
     >
-      <CountdownUnit value={countdown.days} unit="day" label={<Trans>Days</Trans>} />
-      <CountdownUnit value={countdown.hours} unit="hour" label={<Trans>Hours</Trans>} />
-      <CountdownUnit value={countdown.minutes} unit="minute" label={<Trans>Minutes</Trans>} />
-      <CountdownUnit value={countdown.seconds} unit="second" label={<Trans>Seconds</Trans>} />
+      <span id={`${countdownId}-title`} style={VISUALLY_HIDDEN}>
+        <Trans>Bonus expiry countdown</Trans>
+      </span>
+      <CountdownUnit id={`${countdownId}-days`} value={countdown.days} label={<Trans>Days</Trans>} />
+      <CountdownUnit id={`${countdownId}-hours`} value={countdown.hours} label={<Trans>Hours</Trans>} />
+      <CountdownUnit id={`${countdownId}-minutes`} value={countdown.minutes} label={<Trans>Minutes</Trans>} />
+      <CountdownUnit id={`${countdownId}-seconds`} value={countdown.seconds} label={<Trans>Seconds</Trans>} />
     </div>
   );
 }
 
-function CountdownUnit({
-  value,
-  unit,
-  label,
-}: {
-  value: number;
-  unit: "day" | "hour" | "minute" | "second";
-  label: React.ReactNode;
-}) {
+function CountdownUnit({ id, value, label }: { id: string; value: number; label: React.ReactNode }) {
+  const valueId = `${id}-value`;
+  const labelId = `${id}-label`;
   return (
-    <span data-countdown-unit aria-label={`${value} ${unit}${value === 1 ? "" : "s"}`}>
-      <strong data-countdown-value>{String(value).padStart(2, "0")}</strong>
-      <span data-countdown-label>{label}</span>
+    <span data-countdown-unit role="group" aria-labelledby={`${valueId} ${labelId}`}>
+      <strong id={valueId} data-countdown-value>
+        {String(value).padStart(2, "0")}
+      </strong>
+      <span id={labelId} data-countdown-label>
+        {label}
+      </span>
     </span>
   );
 }
+
+const VISUALLY_HIDDEN: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
 
 function safeTimestamp(value?: string): number | null {
   const timestamp = value ? Date.parse(value) : Number.NaN;
