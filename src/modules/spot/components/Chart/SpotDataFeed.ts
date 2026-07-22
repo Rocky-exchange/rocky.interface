@@ -41,18 +41,23 @@ const SUPPORTED_RESOLUTIONS = {
   "1D": "1d",
 } as const;
 
-// Rocky spot symbol → Binance spot symbol for chart data.
+// Rocky spot symbol → Binance symbol for chart data.
 const BINANCE_SYMBOL: Record<string, string> = {
   "CBTC-USDA": "BTCUSDT",
   "CETH-USDA": "ETHUSDT",
+  "CC-USDA": "CCUSDT",
+};
+
+// Price decimals per symbol (mirror ledger.markets tick_size):
+// CBTC/CETH tick 0.01 → 2dp; CC tick 0.00001 → 5dp.
+const PRICESCALE: Record<string, number> = {
+  "CBTC-USDA": 100,
+  "CETH-USDA": 100,
+  "CC-USDA": 100000,
 };
 
 function tvToBinance(res: ResolutionString): string {
   return (SUPPORTED_RESOLUTIONS as Record<string, string>)[res] ?? "1m";
-}
-
-function toBinanceSymbol(rockySymbol: string): string {
-  return BINANCE_SYMBOL[rockySymbol] ?? rockySymbol.replace("-", "");
 }
 
 function intervalSeconds(interval: string): number {
@@ -80,16 +85,28 @@ function intervalSeconds(interval: string): number {
 type RawKline = [number, string, string, string, string, string, number, string, number, ...string[]];
 
 const BINANCE_KLINES = "https://data-api.binance.vision/api/v3/klines";
+// Same-origin Rocky spot klines (ledger.spot_trades aggregation). Used for
+// symbols with no Binance spot mirror (CC has no CCUSDT spot market).
+const ROCKY_KLINES = "/api/v3/klines";
 
 async function fetchKlines(rockySymbol: string, interval: string, limit: number, endTimeMs?: number): Promise<Bar[]> {
-  const binSym = toBinanceSymbol(rockySymbol);
+  const binSym = BINANCE_SYMBOL[rockySymbol];
+  // Clamp to Binance's 1..1000. Do NOT floor to 100 here: subscribeBars
+  // intentionally asks for the last 2 bars only — flooring silently turned
+  // that into 100 bars per poll, all of which got pushed through the
+  // realtime callback and tripped TradingView's bar-time-order check
+  // ("putToCacheNewBar: time violation" console flood).
   const params = new URLSearchParams({
-    symbol: binSym,
+    symbol: binSym ?? rockySymbol,
     interval,
-    limit: String(Math.min(Math.max(limit, 100), 1000)),
+    limit: String(Math.min(Math.max(limit, 1), 1000)),
   });
-  if (endTimeMs && isFinite(endTimeMs)) params.set("endTime", String(endTimeMs));
-  const r = await fetch(`${BINANCE_KLINES}?${params.toString()}`, {
+  // Rocky's own klines endpoint has no endTime pagination — older-history
+  // requests just re-return the latest window; getBars scopes + reports
+  // noData, which TradingView handles.
+  if (binSym && endTimeMs && isFinite(endTimeMs)) params.set("endTime", String(endTimeMs));
+  const url = binSym ? BINANCE_KLINES : ROCKY_KLINES;
+  const r = await fetch(`${url}?${params.toString()}`, {
     headers: { accept: "application/json" },
   });
   if (!r.ok) throw new Error(`binance klines HTTP ${r.status}`);
@@ -142,8 +159,7 @@ export class SpotDataFeed implements IBasicDataFeed {
       listed_exchange: "Rocky",
       format: "price",
       minmov: 1,
-      // rocky-backend tick=0.01 for both pairs → 2 decimals.
-      pricescale: 100,
+      pricescale: PRICESCALE[symbolName] ?? 100,
       has_intraday: true,
       has_daily: true,
       has_weekly_and_monthly: false,
@@ -193,12 +209,17 @@ export class SpotDataFeed implements IBasicDataFeed {
         // Pull the last 2 bars so we can emit both the still-updating current
         // bar and (occasionally) fill in the previous bar's final print.
         const bars = await fetchKlines(symbolInfo.name, interval, 2);
-        for (const b of bars) {
-          onTick(b);
-        }
         const state = this.subs.get(listenerGuid);
-        if (state && bars.length) state.lastBarTime = bars[bars.length - 1].time as number;
-      } catch {
+        if (!state) return; // unsubscribed while the fetch was in flight
+        for (const b of bars) {
+          // TradingView requires realtime bars in non-decreasing time order;
+          // never emit anything older than what we've already pushed.
+          if ((b.time as number) >= state.lastBarTime) {
+            onTick(b);
+            state.lastBarTime = b.time as number;
+          }
+        }
+      } catch (_error) {
         /* transient — try again next tick */
       }
     };
