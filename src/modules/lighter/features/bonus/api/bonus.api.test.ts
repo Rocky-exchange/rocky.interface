@@ -15,6 +15,8 @@ import type {
   BonusHistoryRow,
   BonusLifecycleStatus,
   BonusOrderDecision,
+  BonusRecallResponse,
+  BonusRedeemResponse,
   BonusStatusResponse,
 } from "./bonus.types";
 
@@ -33,20 +35,7 @@ describe("bonus API", () => {
 
   it("uses the canonical status URL and Rocky exchange session", async () => {
     localStorage.setItem("rocky_exchange_session", "session-1");
-    const responseBody = {
-      has_bonus: false,
-      bonus_account_id: "",
-      status: "",
-      grant_tier: "",
-      bonus_initial: "",
-      bonus_balance: "",
-      bonus_locked_in_margin: "",
-      bonus_consumed_total: "",
-      bonus_recalled_total: "",
-      max_leverage: 0,
-      granted_at: "",
-      expires_at: "",
-    };
+    const responseBody = bonusStatusResponse();
     fetchMock.mockResolvedValue(jsonResponse(responseBody));
 
     const result = await fetchBonusStatus();
@@ -111,6 +100,20 @@ describe("bonus API", () => {
       bonus_ratio_pct: string;
       net_direction: string;
     }>();
+    expectTypeOf<BonusRedeemResponse>().toEqualTypeOf<{
+      bonus_account_id: string;
+      amount: string;
+      granted_at: string;
+      expires_at: string;
+      replayed: boolean;
+    }>();
+    expectTypeOf<BonusRecallResponse>().toEqualTypeOf<{
+      recalled_amount: string;
+      bonus_balance_after: string;
+      bonus_locked_after: string;
+      effective_withdrawable: string;
+      replayed: boolean;
+    }>();
   });
 
   it("requests balance info from the canonical authenticated endpoint", async () => {
@@ -142,10 +145,27 @@ describe("bonus API", () => {
 
   it("URL-encodes the history cursor", async () => {
     localStorage.setItem("rocky_exchange_session", "session-1");
-    fetchMock.mockResolvedValue(jsonResponse({ rows: [], next_cursor: "" }));
+    const responseBody = {
+      rows: [
+        {
+          id: "history-1",
+          event_type: "trading_fee",
+          total_cost: "1",
+          bonus_share: "0.5",
+          principal_share: "0.5",
+          attribution_rule: "50_50",
+          source_trade_id: "trade-1",
+          source_funding_id: "",
+          occurred_at: "2026-07-22T00:00:00Z",
+        },
+      ],
+      next_cursor: "cursor-2",
+    };
+    fetchMock.mockResolvedValue(jsonResponse(responseBody));
 
-    await fetchBonusHistory({ limit: 20, before: "cursor/one" });
+    const result = await fetchBonusHistory({ limit: 20, before: "cursor/one" });
 
+    expect(result).toEqual(responseBody);
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/bonus/history?limit=20&before=cursor%2Fone",
       expect.objectContaining({ method: "GET" })
@@ -177,6 +197,11 @@ describe("bonus API", () => {
       "/v1/bonus/check-order",
       expect.objectContaining({
         method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer session-1",
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify({
           symbol: "BTC-PERP",
           side: "buy",
@@ -277,7 +302,133 @@ describe("bonus API", () => {
       expect(error.message).not.toContain(rawResponseText);
     }
   });
+
+  it.each([
+    {
+      name: "status with an empty body",
+      request: () => fetchBonusStatus(),
+      response: new Response(null, { status: 200 }),
+    },
+    {
+      name: "balance with a non-JSON body",
+      request: () => fetchBonusBalanceInfo(),
+      response: new Response("private upstream success text", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      }),
+      secret: "private upstream success text",
+    },
+    {
+      name: "history with a JSON primitive",
+      request: () => fetchBonusHistory(),
+      response: jsonResponse("private-json-value"),
+      secret: "private-json-value",
+    },
+    {
+      name: "history with a row missing a required field",
+      request: () => fetchBonusHistory(),
+      response: jsonResponse({
+        rows: [
+          {
+            id: "private-history-row",
+            event_type: "trading_fee",
+            total_cost: "1",
+            bonus_share: "0.5",
+            principal_share: "0.5",
+            attribution_rule: "50_50",
+            source_trade_id: "trade-1",
+            occurred_at: "2026-07-22T00:00:00Z",
+          },
+        ],
+        next_cursor: "",
+      }),
+      secret: "private-history-row",
+    },
+    {
+      name: "check-order with an empty object",
+      request: () => checkBonusOrder({ symbol: "BTC-PERP", side: "buy", is_opening: true, leverage: 5 }),
+      response: jsonResponse({}),
+    },
+    {
+      name: "redeem with a missing required field",
+      request: () => redeemBonusCode({ code: "LAUNCH-1", request_id: "redeem-invalid" }),
+      response: jsonResponse({
+        bonus_account_id: "private-bonus-account",
+        amount: "100",
+        granted_at: "2026-07-22T00:00:00Z",
+        expires_at: "2026-07-29T00:00:00Z",
+      }),
+      secret: "private-bonus-account",
+    },
+    {
+      name: "recall with a field of the wrong type",
+      request: () => recallBonusForWithdraw({ request_id: "recall-invalid" }),
+      response: jsonResponse({
+        recalled_amount: "private-recall-amount",
+        bonus_balance_after: "10",
+        bonus_locked_after: "10",
+        effective_withdrawable: "50",
+        replayed: "false",
+      }),
+      secret: "private-recall-amount",
+    },
+    {
+      name: "status with an unsupported lifecycle value",
+      request: () => fetchBonusStatus(),
+      response: jsonResponse(bonusStatusResponse({ status: "paused" })),
+      secret: "paused",
+    },
+    {
+      name: "check-order with an unsupported decision",
+      request: () => checkBonusOrder({ symbol: "BTC-PERP", side: "buy", is_opening: true, leverage: 5 }),
+      response: jsonResponse({
+        decision: "allow",
+        reason_code: "",
+        message: "",
+        bonus_balance: "50",
+        total_available: "100",
+        bonus_ratio_pct: "50",
+        net_direction: "long",
+      }),
+      secret: "allow",
+    },
+  ])("rejects malformed 2xx: $name", async ({ request, response, secret }) => {
+    localStorage.setItem("rocky_exchange_session", "session-1");
+    fetchMock.mockResolvedValue(response);
+
+    const error = await request().catch((reason) => reason);
+
+    expect(error).toBeInstanceOf(BonusApiError);
+    expect(error).toMatchObject({
+      status: 200,
+      code: "bonus_invalid_response",
+      message: "Invalid bonus response",
+      data: {},
+    });
+    if (secret) {
+      expect((error as Error).message).not.toContain(secret);
+      expect(JSON.stringify(error)).not.toContain(secret);
+    }
+  });
 });
+
+function bonusStatusResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    has_bonus: false,
+    bonus_account_id: "",
+    status: "",
+    grant_tier: "",
+    bonus_initial: "",
+    bonus_balance: "",
+    bonus_locked_in_margin: "",
+    bonus_consumed_total: "",
+    bonus_recalled_total: "",
+    max_leverage: 0,
+    granted_at: "",
+    expires_at: "",
+    ...overrides,
+  };
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
