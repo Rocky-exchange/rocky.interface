@@ -8,8 +8,9 @@ Replace the current single-asset wallet funds dashboard with the approved five-v
 
 ### Frontend
 
-- Keep the existing wallet identity header, avatar editing, explorer link, overflow menu, disconnect action, and close action.
-- Expand the desktop modal to approximately 960 px while retaining a nearly full-width mobile layout.
+- Keep the existing wallet identity header, avatar editing, explorer link, disconnect action, and close action.
+- Use a compact desktop Assets modal capped at 480 px while retaining a full-width mobile layout.
+- Remove the profile overflow menu. Replace it with a directly visible red disconnect icon button between the explorer and close actions. The former Remove avatar menu entry is intentionally removed.
 - Add top-level views: Assets, Deposit, Withdraw, History, and Transfer.
 - Remove the old balance card, expandable action cards, and permanently visible history card.
 - Continue using the existing Canton wallet session, wallet provider SDKs, funding asset configuration, amount formatting, and localization system.
@@ -28,7 +29,7 @@ The modal has a stable shell and one active content view.
 
 ### Asset Dashboard Header
 
-The full wallet identity header is shown only on the Assets dashboard. It contains the wallet logo or avatar, display name and Edit action, abbreviated party ID with copy action, explorer link, profile menu, and close button.
+The full wallet identity header is shown only on the Assets dashboard. It contains the wallet logo or avatar, display name and Edit action, abbreviated party ID with copy action, explorer link, red disconnect button, and close button. Disconnect uses the existing session teardown flow and is exposed as a labeled icon button rather than an overflow-menu action.
 
 ### Operation Page Header
 
@@ -144,7 +145,7 @@ Data fetching and mutation handlers remain owned by the modal controller. Presen
 - Dashboard actions use button semantics. Operation pages expose a labeled back action, centered page heading, and labeled close action.
 - Icon-only actions have localized accessible names and hover tooltips.
 - Focus states remain visible against the dark surface.
-- Desktop uses the approved dense Assets table layout at up to 960 px.
+- Desktop uses the compact Assets table layout at up to 480 px. The three data columns remain visible with reduced gaps and controlled truncation; operation pages remain capped at 460 px.
 - Operation pages use a compact single-column panel on desktop and a nearly full-width panel on mobile.
 - Below 720 px, asset rows become compact stacked rows and operation pages remain one column.
 - All controls remain at least 40 px tall and text must not overlap or truncate critical amounts.
