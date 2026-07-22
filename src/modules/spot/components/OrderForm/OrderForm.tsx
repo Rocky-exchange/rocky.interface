@@ -54,13 +54,14 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
   const bestAsk = depth?.asks?.[0]?.[0] ? parseFloat(depth.asks[0][0]) : null;
   const bestBid = depth?.bids?.[0]?.[0] ? parseFloat(depth.bids[0][0]) : null;
   const capEst = bestAsk !== null ? bestAsk * MARKET_BAND : null;
+  const floorEst = bestBid !== null ? bestBid * (2 - MARKET_BAND) : null;
 
   const quoteAvail = availableOf(account ?? null, quote ?? "USDA");
   const baseAvail = availableOf(account ?? null, base ?? "");
 
   const priceNum = parseFloat(price);
   const qtyNum = parseFloat(qty);
-  const effPriceNum = orderType === "MARKET" ? (capEst ?? NaN) : priceNum;
+  const effPriceNum = orderType === "MARKET" ? ((side === "BUY" ? capEst : floorEst) ?? NaN) : priceNum;
   const notionalNum = isFinite(effPriceNum) && isFinite(qtyNum) ? effPriceNum * qtyNum : null;
   const notional =
     notionalNum === null ? "—" : notionalNum.toLocaleString("en-US", { maximumFractionDigits: 4 });
@@ -129,7 +130,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
   };
 
   const marketReady =
-    orderType === "LIMIT" || (side === "BUY" ? capEst !== null : bestBid !== null);
+    orderType === "LIMIT" || (side === "BUY" ? capEst !== null : floorEst !== null);
   const disabled =
     busy || !qty || !ready || insufficient || !marketReady ||
     (orderType === "LIMIT" && !price);

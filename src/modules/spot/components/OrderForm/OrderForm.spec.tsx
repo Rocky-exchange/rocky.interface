@@ -39,7 +39,7 @@ const mTicker = vi.mocked(spotApi.ticker);
 const mDepth = vi.mocked(spotApi.depth);
 const mConnect = vi.mocked(openCantonConnect);
 
-function accountWith(usdaFree: string, cbtcFree = "0"): Account {
+function accountWith(usdaFree: string, cbtcFree = "0", cethFree = "0"): Account {
   return {
     accountType: "SPOT",
     canTrade: true,
@@ -49,7 +49,9 @@ function accountWith(usdaFree: string, cbtcFree = "0"): Account {
     balances: [
       { asset: "USDA", free: usdaFree, locked: "0" },
       { asset: "CBTC", free: cbtcFree, locked: "0" },
-      { asset: "cETH", free: "0", locked: "0" },
+      // Matches the "CETH" base OrderForm derives from the "CETH-USDA" symbol
+      // (a literal symbol.split("-"), not the markets.ts display alias).
+      { asset: "CETH", free: cethFree, locked: "0" },
       { asset: "CC", free: "0", locked: "0" },
     ],
     permissions: ["SPOT"],
@@ -218,5 +220,28 @@ describe("SpotOrderForm", () => {
     fireEvent.click(getByText("Market"));
     fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.05" } });
     await findByText(/Insufficient USDA/);
+  });
+
+  it("submits MARKET SELL without a price (notional estimate uses the bid floor, not the ask cap)", async () => {
+    mReady.mockReturnValue(true);
+    // 5 CETH free — plenty to cover a 0.5 qty sell.
+    mAccount.mockResolvedValue(accountWith("0", "0", "5"));
+    mTicker.mockImplementation(() => new Promise(() => undefined));
+    mDepth.mockResolvedValue({ lastUpdateId: 1, bids: [["1900", "5"]], asks: [["2000", "5"]] });
+    mPlace.mockResolvedValue({ status: "NEW", orderId: "sell-market-abc" } as never);
+
+    const { getByText, getByPlaceholderText } = render(
+      <SpotOrderForm symbol="CETH-USDA" />, { wrapper: I18nWrapper });
+
+    fireEvent.click(getByText("Market"));
+    fireEvent.click(getByText("Sell CETH"));
+    fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.5" } });
+
+    await waitFor(() => expect(getByText("SELL CETH · Market")).not.toHaveProperty("disabled", true));
+    fireEvent.click(getByText("SELL CETH · Market"));
+
+    await waitFor(() => expect(mPlace).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "MARKET", side: "SELL", quantity: "0.5", symbol: "CETH-USDA" })));
+    expect(mPlace.mock.calls[0][0]).not.toHaveProperty("price");
   });
 });
