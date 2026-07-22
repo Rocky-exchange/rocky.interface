@@ -17,7 +17,7 @@ import {
 import styles from "./CantonFundsModal.module.scss";
 import {
   fetchCantonFundsHistory,
-  fetchPlatformAccountBalance,
+  fetchPlatformWithdrawableBalance,
   submitCantonWalletDeposit,
   submitPlatformWithdrawal,
   waitForPlatformDepositCredit,
@@ -134,7 +134,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
     setWithdrawAvailableLoading(true);
     try {
-      const available = await fetchPlatformAccountBalance(FIXED_FUNDS_ASSET);
+      const available = await fetchPlatformWithdrawableBalance();
       setWithdrawAvailable(available);
       return available;
     } finally {

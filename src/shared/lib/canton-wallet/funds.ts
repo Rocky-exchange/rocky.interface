@@ -1,4 +1,4 @@
-import { recallBonusForWithdraw } from "@/modules/lighter/features/bonus/api/bonus.api";
+import { fetchBonusBalanceInfo, recallBonusForWithdraw } from "@/modules/lighter/features/bonus/api/bonus.api";
 import type { BonusRecallResponse } from "@/modules/lighter/features/bonus/api/bonus.types";
 import { notifyBonusDataChanged } from "@/modules/lighter/features/bonus/api/useBonus";
 
@@ -275,6 +275,18 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
   const available =
     typeof data.available === "string" || typeof data.available === "number" ? Number(data.available) : NaN;
   return Number.isFinite(available) ? available : null;
+}
+
+export async function fetchPlatformWithdrawableBalance(): Promise<number | null> {
+  try {
+    const balance = await fetchBonusBalanceInfo();
+    const effectiveWithdrawableText = balance.effective_withdrawable.trim();
+    if (!effectiveWithdrawableText) return null;
+    const effectiveWithdrawable = Number(effectiveWithdrawableText);
+    return Number.isFinite(effectiveWithdrawable) && effectiveWithdrawable >= 0 ? effectiveWithdrawable : null;
+  } catch (_error) {
+    return null;
+  }
 }
 
 export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {

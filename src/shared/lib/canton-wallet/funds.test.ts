@@ -6,6 +6,7 @@ import {
   CantonFundsError,
   fetchCantonFundsHistory,
   fetchPlatformAccountBalance,
+  fetchPlatformWithdrawableBalance,
   fetchPendingUsdcxOffers,
   fetchUsdcxAutoAccept,
   requestDepositReference,
@@ -20,6 +21,18 @@ const ZERO_BONUS_RECALL = {
   bonus_locked_after: "0",
   effective_withdrawable: "100",
   replayed: false,
+};
+
+const BONUS_BALANCE_INFO = {
+  total_available: "100",
+  available: "100",
+  locked: "0",
+  principal_free: "4",
+  principal_locked: "0",
+  bonus_free: "96",
+  bonus_locked: "0",
+  effective_withdrawable: "4",
+  status: "active",
 };
 
 beforeEach(() => {
@@ -436,6 +449,55 @@ describe("canton wallet funds", () => {
     expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
       headers: { Authorization: "Bearer exchange-token" },
     });
+  });
+
+  it("reads principal-only withdrawable funds from bonus balance info instead of raw account availability", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(BONUS_BALANCE_INFO));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBe(4);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/bonus/balance-info",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
+  });
+
+  it("uses effective withdrawable funds for users without a bonus account", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ...BONUS_BALANCE_INFO,
+        principal_free: "100",
+        bonus_free: "0",
+        effective_withdrawable: "100",
+        status: "no_bonus",
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBe(100);
+  });
+
+  it.each(["", "-1", "not-a-number"])("treats invalid effective withdrawable value %s as unknown", async (value) => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ...BONUS_BALANCE_INFO,
+        effective_withdrawable: value,
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBeNull();
+  });
+
+  it("treats bonus balance-info failures as an unknown local withdrawal limit", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ error: "bonus_unavailable" }, 503));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBeNull();
   });
 
   it("loads deposit and withdrawal history with exchange session auth", async () => {

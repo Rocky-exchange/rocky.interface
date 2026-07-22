@@ -12,6 +12,7 @@ const PARTY_ID = "rockywallet-etouyang::1220a1af0547f0824e223861619bed56442c7379
 const mocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
   fetchPlatformAccountBalance: vi.fn(),
+  fetchPlatformWithdrawableBalance: vi.fn(),
   fetchWalletBalanceSnapshot: vi.fn(),
   fetchCantonFundsHistory: vi.fn(),
   submitCantonWalletDeposit: vi.fn(),
@@ -55,6 +56,7 @@ vi.mock("./balances", () => ({
 
 vi.mock("./funds", () => ({
   fetchPlatformAccountBalance: mocks.fetchPlatformAccountBalance,
+  fetchPlatformWithdrawableBalance: mocks.fetchPlatformWithdrawableBalance,
   fetchCantonFundsHistory: mocks.fetchCantonFundsHistory,
   submitCantonWalletDeposit: mocks.submitCantonWalletDeposit,
   submitPlatformWithdrawal: mocks.submitPlatformWithdrawal,
@@ -86,6 +88,7 @@ describe("CantonFundsModal", () => {
     vi.stubGlobal("localStorage", createMemoryStorage());
     i18nMock.translations = {};
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(100);
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
     mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
       provider: "rocky",
@@ -112,9 +115,7 @@ describe("CantonFundsModal", () => {
     runInNewContext(catalogSource, { module: catalogModule });
     const catalog = setupI18n({ locale: "zh", messages: { zh: catalogModule.exports.messages ?? {} } });
 
-    expect(catalog._("KB9R16", { recalledAmountLabel: "12.50" })).toBe(
-      "提領前已收回 12.50 USDCx 試用資金"
-    );
+    expect(catalog._("KB9R16", { recalledAmountLabel: "12.50" })).toBe("提領前已收回 12.50 USDCx 試用資金");
     expect(catalog._("SGjkVa")).toBe("試用資金不允許此訂單");
     expect(catalog._("F98vMm")).toBe("試用資金請求失敗");
     expect(catalog._("E9hc0Z")).toBe("試用資金回應格式無效");
@@ -129,6 +130,46 @@ describe("CantonFundsModal", () => {
 
     expect(screen.getByText("Network Fee")).toBeTruthy();
     expect(screen.getAllByText("1 USDCx").length).toBeGreaterThan(1);
+  });
+
+  it("blocks withdrawals against principal-only effective withdrawable funds", async () => {
+    mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(4);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+
+    openWithdrawForm();
+    const amountInput = screen.getByPlaceholderText("50");
+    fireEvent.change(amountInput, { target: { value: "5" } });
+    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
+
+    expect(
+      await screen.findByText(
+        "Insufficient platform balance for this withdrawal. Available: 4 USDCx. Required: 6 USDCx including fee."
+      )
+    ).toBeTruthy();
+    expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(2);
+    expect(mocks.fetchPlatformAccountBalance).not.toHaveBeenCalled();
+    expect(mocks.submitPlatformWithdrawal).not.toHaveBeenCalled();
+  });
+
+  it("shows an unknown local limit and lets authoritative withdrawal checks fail closed", async () => {
+    mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(null);
+    mocks.submitPlatformWithdrawal.mockRejectedValueOnce(new Error("Withdrawal could not be submitted."));
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByText("Exchange Balance").parentElement?.textContent).toContain("- USDCx"));
+    openWithdrawForm();
+    const amountInput = screen.getByPlaceholderText("50");
+    fireEvent.change(amountInput, { target: { value: "5" } });
+    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
+
+    expect(await screen.findByText("Withdrawal could not be submitted.")).toBeTruthy();
+    expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(2);
+    expect(mocks.fetchPlatformAccountBalance).not.toHaveBeenCalled();
+    expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1);
   });
 
   it("shows recalled trial funds without replacing the withdrawal result and refreshes the dashboard", async () => {
@@ -148,7 +189,7 @@ describe("CantonFundsModal", () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
     await waitFor(() => {
       expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(1);
-      expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledTimes(1);
+      expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1);
       expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1);
     });
 
@@ -160,7 +201,7 @@ describe("CantonFundsModal", () => {
     expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${updateId}"]`)).toBeTruthy();
     await waitFor(() => {
       expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(2);
-      expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledTimes(3);
+      expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(3);
       expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2);
     });
   });
