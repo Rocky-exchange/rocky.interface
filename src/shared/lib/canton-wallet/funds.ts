@@ -276,19 +276,13 @@ export async function fetchSpotTransferHistory(): Promise<CantonSpotTransferHist
 
 export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Promise<number | null> {
   const record = await fetchAccountBalanceRecord(asset);
-  const available =
-    typeof record.spot_free === "string" || typeof record.spot_free === "number"
-      ? Number(record.spot_free)
-      : typeof record.available === "string" || typeof record.available === "number"
-        ? Number(record.available)
-        : NaN;
+  const available = numericRecordField(record, "spot_free", "spotFree", "available");
   return Number.isFinite(available) ? available : null;
 }
 
 export async function fetchFundingAccountBalance(): Promise<number | null> {
   const record = await fetchAccountBalanceRecord("USDA");
-  const available =
-    typeof record.available === "string" || typeof record.available === "number" ? Number(record.available) : NaN;
+  const available = numericRecordField(record, "available");
   return Number.isFinite(available) ? available : null;
 }
 
@@ -582,6 +576,17 @@ function fallbackErrorMessage(status: number, url: string): string {
 
 function stringField(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function numericRecordField(record: Record<string, unknown>, ...keys: string[]): number {
+  const nested = isRecord(record.data) ? record.data : {};
+  for (const key of keys) {
+    const value = record[key] ?? nested[key];
+    if (typeof value !== "string" && typeof value !== "number") continue;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+  }
+  return NaN;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

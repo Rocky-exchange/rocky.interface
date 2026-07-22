@@ -110,8 +110,13 @@ describe("CantonFundsModal", () => {
   it("opens on a real four-asset table and exposes all primary views", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
-    const assetsTab = screen.getByRole("tab", { name: "Assets" });
-    expect(assetsTab.getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("tab", { name: "Assets" })).toBeNull();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "Deposit",
+      "Withdraw",
+      "Transfer",
+      "History",
+    ]);
     await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
     for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
       expect(screen.getAllByText(asset).length).toBeGreaterThan(0);
@@ -152,6 +157,19 @@ describe("CantonFundsModal", () => {
     expect(screen.getByText("5", { selector: "sub" }).parentElement?.textContent).toContain("0.0519");
     expect(screen.getByTestId("icon-btc")).toBeTruthy();
     expect(screen.getByTestId("icon-eth")).toBeTruthy();
+  });
+
+  it("shows exchange balances without waiting for the wallet balance request", async () => {
+    mocks.fetchWalletBalanceSnapshot.mockReturnValue(new Promise(() => undefined));
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 1, CBTC: 0.000031, cETH: 0.0001, CC: 0 });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.0431")
+    );
+    expect(screen.getAllByLabelText("Refreshing...")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "Refresh balances" }).className).not.toContain("refreshButtonLoading");
   });
 
   it("combines persisted deposits, withdrawals, and account transfers in History", async () => {

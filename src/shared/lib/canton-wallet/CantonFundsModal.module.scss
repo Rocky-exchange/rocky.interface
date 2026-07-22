@@ -1462,7 +1462,7 @@
   top: 87px;
   z-index: 2;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 0 20px;
   background: var(--bg-glass);
   border-bottom: 1px solid var(--border-subtle);
@@ -1495,6 +1495,10 @@
 .primaryTabActive {
   color: var(--text-primary);
   border-bottom-color: var(--brand-cool);
+}
+
+.primaryTab:nth-child(-n + 2):not(.primaryTabActive) {
+  border-bottom-color: var(--border-subtle);
 }
 
 .primaryTabIcon {
@@ -1637,6 +1641,20 @@
   small {
     color: var(--text-secondary);
     font-size: 12px;
+  }
+}
+
+.assetBalanceLoading {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--brand-cool);
+
+  svg {
+    width: 18px;
+    height: 18px;
+    animation: wallet-refresh-spin 800ms linear infinite;
   }
 }
 

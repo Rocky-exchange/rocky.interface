@@ -306,6 +306,17 @@ describe("canton wallet funds", () => {
     });
   });
 
+  it("accepts camel-case and nested spot balance responses", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ spotFree: "0.000031" }))
+      .mockResolvedValueOnce(jsonResponse({ data: { spot_free: "0.0001" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalance("CBTC")).resolves.toBe(0.000031);
+    await expect(fetchPlatformAccountBalance("cETH")).resolves.toBe(0.0001);
+  });
+
   it("loads deposit and withdrawal history with exchange session auth", async () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
       if (String(url) === "/v1/deposits") {

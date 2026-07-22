@@ -76,7 +76,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<CantonFundsAsset>("USDA");
-  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [walletBalanceLoading, setWalletBalanceLoading] = useState(false);
+  const [platformBalanceLoading, setPlatformBalanceLoading] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [activeView, setActiveView] = useState<WalletView>("assets");
@@ -129,7 +130,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
           t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(withdrawAvailable)} ${selectedAsset}. Required: ${formatDisplayAmount(withdrawRequiredAmount)} ${selectedAsset} including fee.`
         )
       : "";
-  const dashboardRefreshing = balanceLoading || withdrawAvailableLoading || depositConfirming || historyLoading;
+  const dashboardRefreshing =
+    walletBalanceLoading || platformBalanceLoading || withdrawAvailableLoading || depositConfirming || historyLoading;
   const historyItems = useMemo(
     () => localHistory.filter((item) => historyFilter === "all" || item.type === historyFilter),
     [historyFilter, localHistory]
@@ -156,22 +158,21 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
   const refreshBalances = useCallback(async () => {
     if (!connected) return;
-    setBalanceLoading(true);
-    try {
-      const [snapshotResult, platformResult, fundingResult] = await Promise.allSettled([
-        fetchWalletBalanceSnapshot(),
-        fetchPlatformAccountBalances(),
-        fetchFundingAccountBalance(),
-      ]);
-      if (snapshotResult.status === "fulfilled") setSnapshot(snapshotResult.value);
-      if (platformResult.status === "fulfilled") {
-        setPlatformBalances(platformResult.value);
-        setWithdrawAvailable(platformResult.value[selectedAsset]);
-      }
-      if (fundingResult.status === "fulfilled") setFundingAvailable(fundingResult.value);
-    } finally {
-      setBalanceLoading(false);
-    }
+    setWalletBalanceLoading(true);
+    setPlatformBalanceLoading(true);
+
+    const walletRequest = fetchWalletBalanceSnapshot()
+      .then(setSnapshot)
+      .finally(() => setWalletBalanceLoading(false));
+    const platformRequest = fetchPlatformAccountBalances()
+      .then((balances) => {
+        setPlatformBalances(balances);
+        setWithdrawAvailable(balances[selectedAsset]);
+      })
+      .finally(() => setPlatformBalanceLoading(false));
+    const fundingRequest = fetchFundingAccountBalance().then(setFundingAvailable);
+
+    await Promise.allSettled([walletRequest, platformRequest, fundingRequest]);
   }, [connected, selectedAsset]);
 
   const refreshWithdrawAvailable = useCallback(async () => {
@@ -667,7 +668,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
         <main className={styles.walletWorkspace}>
           <nav className={styles.primaryTabs} role="tablist" aria-label={i18n._(t`Wallet funds`)}>
-            {(["assets", "deposit", "withdraw", "history", "transfer"] as WalletView[]).map((view) => (
+            {(["deposit", "withdraw", "transfer", "history"] as WalletView[]).map((view) => (
               <button
                 key={view}
                 type="button"
@@ -681,13 +682,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 }}
               >
                 <span className={styles.primaryTabIcon} aria-hidden="true">
-                  {view === "assets" ? <AssetsIcon /> : null}
                   {view === "deposit" ? <DepositIcon /> : null}
                   {view === "withdraw" ? <WithdrawIcon /> : null}
                   {view === "history" ? <HistoryIcon /> : null}
                   {view === "transfer" ? <TransferIcon /> : null}
                 </span>
-                {view === "assets" ? i18n._(t`Assets`) : null}
                 {view === "deposit" ? i18n._(t`Deposit`) : null}
                 {view === "withdraw" ? i18n._(t`Withdraw`) : null}
                 {view === "history" ? i18n._(t`History`) : null}
@@ -722,7 +721,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 </div>
                 <button
                   type="button"
-                  className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
+                  className={styles.refreshButton}
                   onClick={() => void refreshWalletDashboard()}
                   disabled={dashboardRefreshing}
                   aria-label={i18n._(t`Refresh balances`)}
@@ -756,7 +755,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         <strong>{asset.symbol}</strong>
                       </span>
                       <span className={styles.assetBalanceValue}>
-                        {walletBalance === null ? (
+                        {walletBalanceLoading ? (
+                          <span className={styles.assetBalanceLoading} aria-label={i18n._(t`Refreshing...`)}>
+                            <RefreshIcon />
+                          </span>
+                        ) : walletBalance === null ? (
                           "-"
                         ) : (
                           <CompactAssetAmount value={walletBalance} asset={asset.symbol} />
@@ -998,6 +1001,19 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
           {activeView === "history" ? (
             <section className={styles.historyView}>
+              <div className={styles.taskHeader}>
+                <button
+                  type="button"
+                  className={styles.backButton}
+                  onClick={() => setActiveView("assets")}
+                  aria-label={i18n._(t`Back to assets`)}
+                >
+                  <BackIcon />
+                </button>
+                <div>
+                  <h3>{i18n._(t`History`)}</h3>
+                </div>
+              </div>
               <div className={styles.historyFilters} role="tablist" aria-label={i18n._(t`History type`)}>
                 {(["all", "deposit", "withdraw", "transfer"] as HistoryFilter[]).map((filter) => (
                   <button
@@ -1772,15 +1788,6 @@ async function writeClipboardText(value: string): Promise<boolean> {
   } finally {
     document.body.removeChild(textarea);
   }
-}
-
-function AssetsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 5.5h16v13H4z" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M4 9h16M8 13h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
 }
 
 function HistoryIcon() {
