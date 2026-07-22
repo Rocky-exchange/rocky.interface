@@ -9,11 +9,11 @@
  * We stub fetch + fake TradingView types.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { SpotDataFeed } from "./SpotDataFeed";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Bar, DatafeedConfiguration, LibrarySymbolInfo, PeriodParams, ResolutionString } from "charting_library";
+
+import { SpotDataFeed } from "./SpotDataFeed";
 
 function stubFetch(rows: unknown[] | ((url: string) => unknown[])): { urls: string[] } {
   const urls: string[] = [];
@@ -32,7 +32,7 @@ function stubFetch(rows: unknown[] | ((url: string) => unknown[])): { urls: stri
 }
 
 // Minimal LibrarySymbolInfo — SpotDataFeed only reads .name.
-function symbolInfo(name = "CBTC-USDCX"): LibrarySymbolInfo {
+function symbolInfo(name = "CBTC-USDA"): LibrarySymbolInfo {
   return { name, ticker: name } as LibrarySymbolInfo;
 }
 
@@ -49,20 +49,24 @@ describe("onReady", () => {
 });
 
 describe("resolveSymbol", () => {
-  it("derives description + pricescale=100 from the pair", async () => {
+  it("preserves USDA route identity and labels", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDCX", resolve as never));
-    expect(info.name).toBe("CBTC-USDCX");
-    expect(info.description).toBe("CBTC/USDCX");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDA", resolve as never));
+    expect(info.name).toBe("CBTC-USDA");
+    expect(info.ticker).toBe("CBTC-USDA");
+    expect(info.description).toBe("CBTC/USDA");
+    expect(info.currency_code).toBe("USDA");
     expect(info.pricescale).toBe(100); // tick 0.01 → 2 decimals
     expect(info.session).toBe("24x7");
     expect(info.type).toBe("crypto");
   });
 
-  it("defaults quote to USDCX when symbol has no dash", async () => {
+  it("uses generic labels for an unknown symbol without a dash", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC", resolve as never));
-    expect(info.description).toBe("CBTC/USDCX");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("UNKNOWN", resolve as never));
+    expect(info.name).toBe("UNKNOWN");
+    expect(info.ticker).toBe("UNKNOWN");
+    expect(info.description).toBe("UNKNOWN/USDCX");
     expect(info.currency_code).toBe("USDCX");
   });
 });
@@ -84,7 +88,7 @@ describe("getBars", () => {
         symbolInfo(),
         "1" as ResolutionString,
         period(1_699_999_940, 1_700_000_100),
-        (data, meta) => resolve(data),
+        (data) => resolve(data),
         (reason) => reject(new Error(reason))
       );
     });
@@ -100,7 +104,7 @@ describe("getBars", () => {
     });
   });
 
-  it("hits Binance data-api with the mapped symbol/interval/countBack limit", async () => {
+  it("hits Binance data-api with the USDA route's mapped symbol/interval/countBack limit", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
     await new Promise<void>((resolve) => {
@@ -113,9 +117,21 @@ describe("getBars", () => {
       );
     });
     expect(urls[0]).toContain("data-api.binance.vision/api/v3/klines");
-    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDCX → BTCUSDT mapping
+    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDA → BTCUSDT mapping
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
+
+    urls.length = 0;
+    await new Promise<void>((resolve) => {
+      feed.getBars(symbolInfo("CETH-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+    });
+    expect(urls[0]).toContain("symbol=ETHUSDT");
+
+    urls.length = 0;
+    await new Promise<void>((resolve) => {
+      feed.getBars(symbolInfo("UNKNOWN-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+    });
+    expect(urls[0]).toContain("symbol=UNKNOWNUSDA");
   });
 
   it("clamps limit to [100, 1000]", async () => {
@@ -231,7 +247,7 @@ describe("subscribeBars / unsubscribeBars", () => {
   it("kicks immediately (first fetch happens without waiting for interval)", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo(), "5" as ResolutionString, () => {}, "listener-1");
+    feed.subscribeBars(symbolInfo(), "5" as ResolutionString, () => undefined, "listener-1");
     await waitFor(() => urls.length >= 1);
     expect(urls.length).toBeGreaterThanOrEqual(1);
     feed.unsubscribeBars("listener-1");
@@ -253,7 +269,7 @@ describe("subscribeBars / unsubscribeBars", () => {
   it("unsubscribeBars clears the interval + drops the sub", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "gonzo");
+    feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => undefined, "gonzo");
     await waitFor(() => urls.length >= 1);
 
     feed.unsubscribeBars("gonzo");
@@ -266,7 +282,7 @@ describe("subscribeBars / unsubscribeBars", () => {
     const feed = new SpotDataFeed();
     // If the internal tick() didn't swallow, this would emit an uncaught
     // promise rejection; the assertion is the absence of a throw.
-    expect(() => feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => {}, "resilient")).not.toThrow();
+    expect(() => feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => undefined, "resilient")).not.toThrow();
     // Let the immediate rejected fetch drain so no unhandled promise warning.
     await new Promise((r) => setTimeout(r, 20));
     feed.unsubscribeBars("resilient");

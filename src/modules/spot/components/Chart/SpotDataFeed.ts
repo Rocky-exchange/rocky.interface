@@ -29,6 +29,8 @@ import type {
   SubscribeBarsCallback,
 } from "charting_library";
 
+import { resolveSpotMarket } from "../../model/spotMarkets";
+
 // Binance interval strings. Superset of what rocky-backend accepts; safe
 // because we're fetching from Binance directly here.
 const SUPPORTED_RESOLUTIONS = {
@@ -41,18 +43,14 @@ const SUPPORTED_RESOLUTIONS = {
   "1D": "1d",
 } as const;
 
-// Rocky spot symbol → Binance spot symbol for chart data.
-const BINANCE_SYMBOL: Record<string, string> = {
-  "CBTC-USDCX": "BTCUSDT",
-  "CETH-USDCX": "ETHUSDT",
-};
-
 function tvToBinance(res: ResolutionString): string {
   return (SUPPORTED_RESOLUTIONS as Record<string, string>)[res] ?? "1m";
 }
 
-function toBinanceSymbol(rockySymbol: string): string {
-  return BINANCE_SYMBOL[rockySymbol] ?? rockySymbol.replace("-", "");
+function toBinanceSymbol(routeSymbol: string): string {
+  const market = resolveSpotMarket(routeSymbol);
+  const normalizedRouteSymbol = routeSymbol.trim().toUpperCase();
+  return market.routeSymbol === normalizedRouteSymbol ? market.chartSymbol : routeSymbol.replace("-", "");
 }
 
 function intervalSeconds(interval: string): number {
@@ -128,13 +126,16 @@ export class SpotDataFeed implements IBasicDataFeed {
   }
 
   resolveSymbol(symbolName: string, onResolve: ResolveCallback): void {
-    // symbolName === "CBTC-USDCX" or "CETH-USDCX"; description shown in the
-    // symbol title area.
+    const market = resolveSpotMarket(symbolName);
+    const normalizedSymbolName = symbolName.trim().toUpperCase();
+    const isKnownMarket = market.routeSymbol === normalizedSymbolName;
     const [base, quote] = symbolName.split("-");
+    const displayBase = isKnownMarket ? market.displayBase.toUpperCase() : base;
+    const displayQuote = isKnownMarket ? market.displayQuote : (quote ?? "USDCX");
     const info: LibrarySymbolInfo = {
       name: symbolName,
       ticker: symbolName,
-      description: `${base}/${quote ?? "USDCX"}`,
+      description: `${displayBase}/${displayQuote}`,
       type: "crypto",
       session: "24x7",
       timezone: "Etc/UTC",
@@ -150,7 +151,7 @@ export class SpotDataFeed implements IBasicDataFeed {
       supported_resolutions: Object.keys(SUPPORTED_RESOLUTIONS) as ResolutionString[],
       volume_precision: 4,
       data_status: "streaming",
-      currency_code: quote ?? "USDCX",
+      currency_code: displayQuote,
     };
     setTimeout(() => onResolve(info), 0);
   }
@@ -198,7 +199,7 @@ export class SpotDataFeed implements IBasicDataFeed {
         }
         const state = this.subs.get(listenerGuid);
         if (state && bars.length) state.lastBarTime = bars[bars.length - 1].time as number;
-      } catch {
+      } catch (_error) {
         /* transient — try again next tick */
       }
     };
