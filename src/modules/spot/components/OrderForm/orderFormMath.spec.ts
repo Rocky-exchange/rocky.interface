@@ -1,3 +1,4 @@
+import BigNumber from "bignumber.js";
 import { describe, expect, it } from "vitest";
 
 import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
@@ -41,16 +42,33 @@ describe("quantityForPercent", () => {
     expect(quantityForPercent({ ...input, percent: 150 })).toBe("0.4");
   });
 
-  it("formats calculated quantities to eight decimal places without trailing zeroes", () => {
-    expect(
-      quantityForPercent({
-        side: "SELL",
-        percent: 100,
-        price: "",
-        baseFree: "0.123456789",
-        quoteFree: "1000",
-      }),
-    ).toBe("0.12345679");
+  it("rounds a 100% SELL down so quantity does not exceed the base balance", () => {
+    const baseFree = "0.123456789";
+    const quantity = quantityForPercent({
+      side: "SELL",
+      percent: 100,
+      price: "",
+      baseFree,
+      quoteFree: "1000",
+    });
+
+    expect(quantity).toBe("0.12345678");
+    expect(new BigNumber(quantity).lte(baseFree)).toBe(true);
+  });
+
+  it("rounds a 100% BUY down so notional does not exceed the quote balance", () => {
+    const price = "3";
+    const quoteFree = "2";
+    const quantity = quantityForPercent({
+      side: "BUY",
+      percent: 100,
+      price,
+      baseFree: "0.4",
+      quoteFree,
+    });
+
+    expect(quantity).toBe("0.66666666");
+    expect(new BigNumber(quantity).times(price).lte(quoteFree)).toBe(true);
   });
 });
 
@@ -74,5 +92,6 @@ describe("calculateOrderSummary", () => {
 
   it("formats totals and fees to eight decimal places without trailing zeroes", () => {
     expect(calculateOrderSummary("1", "0.123456789")).toEqual({ total: "0.12345679", fee: "0.00012346" });
+    expect(calculateOrderSummary("1", "1.000000001")).toEqual({ total: "1", fee: "0.001" });
   });
 });

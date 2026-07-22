@@ -1,3 +1,5 @@
+import BigNumber from "bignumber.js";
+
 type Side = "BUY" | "SELL";
 
 type PercentInput = {
@@ -8,32 +10,38 @@ type PercentInput = {
   quoteFree: string;
 };
 
-const FEE_CAP = 0.001;
+const Decimal = BigNumber.clone({ DECIMAL_PLACES: 8, ROUNDING_MODE: BigNumber.ROUND_DOWN });
+const FEE_CAP = new Decimal("0.001");
 
-function positiveNumber(value: string): number | null {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+function positiveNumber(value: string): BigNumber | null {
+  const parsed = new Decimal(value);
+  return parsed.isFinite() && parsed.gt(0) ? parsed : null;
 }
 
-function format(value: number): string {
-  if (!Number.isFinite(value)) return "";
-  return value.toFixed(8).replace(/\.?0+$/, "");
+function format(value: BigNumber, roundingMode: BigNumber.RoundingMode): string {
+  if (!value.isFinite()) return "";
+  return value.decimalPlaces(8, roundingMode).toFixed();
 }
 
-function clampPercent(percent: number): number {
-  if (!Number.isFinite(percent)) return 0;
-  return Math.min(100, Math.max(0, percent));
+function clampPercent(percent: number): BigNumber {
+  const parsed = new Decimal(percent);
+  if (!parsed.isFinite() || parsed.isNegative()) return new Decimal(0);
+  return parsed.gt(100) ? new Decimal(100) : parsed;
 }
 
 export function quantityForPercent(input: PercentInput): string {
-  const percent = clampPercent(input.percent) / 100;
+  const percent = clampPercent(input.percent);
   const balance = positiveNumber(input.side === "BUY" ? input.quoteFree : input.baseFree);
   if (balance === null) return "";
 
-  if (input.side === "SELL") return format(balance * percent);
+  if (input.side === "SELL") {
+    return format(balance.times(percent).dividedBy(100), BigNumber.ROUND_DOWN);
+  }
 
   const price = positiveNumber(input.price);
-  return price === null ? "" : format((balance * percent) / price);
+  return price === null
+    ? ""
+    : format(balance.times(percent).dividedBy(price.times(100)), BigNumber.ROUND_DOWN);
 }
 
 export function calculateOrderSummary(price: string, quantity: string): { total: string; fee: string } {
@@ -41,8 +49,11 @@ export function calculateOrderSummary(price: string, quantity: string): { total:
   const parsedQuantity = positiveNumber(quantity);
   if (parsedPrice === null || parsedQuantity === null) return { total: "", fee: "" };
 
-  const total = parsedPrice * parsedQuantity;
-  if (!Number.isFinite(total) || total <= 0) return { total: "", fee: "" };
+  const total = parsedPrice.times(parsedQuantity);
+  if (!total.isFinite() || !total.gt(0)) return { total: "", fee: "" };
 
-  return { total: format(total), fee: format(total * FEE_CAP) };
+  return {
+    total: format(total, BigNumber.ROUND_HALF_UP),
+    fee: format(total.times(FEE_CAP), BigNumber.ROUND_HALF_UP),
+  };
 }
