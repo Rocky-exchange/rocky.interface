@@ -97,98 +97,40 @@ describe("canton wallet funds", () => {
     expect(result.platform_available).toBe("1.5");
   });
 
-  it("renews stale Rocky exchange sessions before submitting wallet deposits", async () => {
+  it("disconnects and clears the wallet when the exchange session is invalid", async () => {
     const provider = createRockyWalletProvider();
     window.rockyWallet = provider;
     localStorage.setItem("rocky_exchange_session", "stale-token");
-
-    let refreshedBalanceReads = 0;
-    const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      const requestUrl = String(url);
-      const auth = headerValue(init?.headers, "Authorization");
-
-      if (requestUrl === "/v1/account/me/USDC") {
-        if (auth === "Bearer stale-token") {
-          return jsonResponse({ error: "invalid session" }, 401);
-        }
-        refreshedBalanceReads += 1;
-        return jsonResponse({
-          asset: "USDC",
-          available: refreshedBalanceReads > 1 ? "0.2" : "0",
-          locked: "0",
-        });
-      }
-
-      if (requestUrl === "/v1/deposits/reference") {
-        if (auth === "Bearer stale-token") {
-          return jsonResponse({ error: "invalid session" }, 401);
-        }
-        return jsonResponse({
-          asset: "USDC",
-          target_party_id: "target-party",
-          deposit_ref: "dep-2",
-          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-
-      if (requestUrl === "/v1/wallet/challenge") {
-        return jsonResponse({
-          challenge_id: "challenge-1",
-          message: "Rocky Exchange login challenge",
-        });
-      }
-
-      if (requestUrl === "/v1/wallet/verify") {
-        return jsonResponse({
-          user_id: "user-1",
-          binding_id: "binding-1",
-          provider: "rocky",
-          party_id: "party-1",
-          session_token: "refreshed-token",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-
-      return jsonResponse({ error: "unexpected" }, 500);
-    });
+    localStorage.setItem("mtc_login_method", "rocky");
+    localStorage.setItem("mtc_party", "party-1");
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL) => jsonResponse({ error: "invalid session" }, 401));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitCantonWalletDeposit({
-      provider: "rocky",
-      walletParty: "party-1",
-      asset: "USDA",
-      amount: "0.2",
+    await expect(requestDepositReference({ asset: "USDA", amount: "0.2" })).rejects.toMatchObject({
+      message: "invalid session",
+      status: 401,
     });
 
-    const depositReferenceCalls = fetchMock.mock.calls.filter(([url]) => String(url) === "/v1/deposits/reference");
-    expect(depositReferenceCalls).toHaveLength(2);
-    expect(headerValue(depositReferenceCalls[0][1]?.headers, "Authorization")).toBe("Bearer stale-token");
-    expect(headerValue(depositReferenceCalls[1][1]?.headers, "Authorization")).toBe("Bearer refreshed-token");
-    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      "/v1/account/me/USDC",
-      "/v1/deposits/reference",
-      "/v1/wallet/challenge",
-      "/v1/wallet/verify",
-      "/v1/deposits/reference",
-      "/v1/account/me/USDC",
-      "/v1/account/me/USDC",
-    ]);
-    expect(provider.connect).toHaveBeenCalledWith({
-      name: "Rocky Exchange",
-      target: "local",
+    expect(provider.disconnect).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("rocky_exchange_session")).toBeNull();
+    expect(localStorage.getItem("mtc_party")).toBeNull();
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/v1/deposits/reference"]);
+  });
+
+  it("preserves the wallet session for unrelated unauthorized responses", async () => {
+    const provider = createRockyWalletProvider();
+    window.rockyWallet = provider;
+    localStorage.setItem("mtc_login_method", "rocky");
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL) => jsonResponse({ error: "permission denied" }, 401));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestDepositReference({ asset: "CC", amount: "1" })).rejects.toMatchObject({
+      message: "permission denied",
+      status: 401,
     });
-    expect(provider.signMessage).toHaveBeenCalled();
-    expect(provider.sendTransfer).toHaveBeenCalledWith({
-      asset_id: "usda-asset",
-      to: "target-party",
-      amount: "0.2",
-      memo: "dep-2",
-    });
-    expect(localStorage.getItem("rocky_exchange_session")).toBe("refreshed-token");
-    expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
-    expect(result.platform_credit_status).toBe("confirmed");
-    expect(result.platform_available).toBe("0.2");
+
+    expect(provider.disconnect).not.toHaveBeenCalled();
+    expect(localStorage.getItem("rocky_exchange_session")).toBe("exchange-token");
   });
 
   it("returns pending deposit metadata when platform credit is delayed", async () => {
@@ -424,6 +366,7 @@ function createRockyWalletProvider() {
         networkId: "CANTON_NETWORK",
       },
     })),
+    disconnect: vi.fn(async () => ({ status: true })),
     getPrimaryAccount: vi.fn(async () => ({
       partyId: "party-1",
       displayName: "alice",

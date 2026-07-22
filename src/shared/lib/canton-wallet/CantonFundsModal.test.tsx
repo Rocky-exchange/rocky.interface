@@ -19,6 +19,14 @@ const i18nMock = vi.hoisted(() => ({
   translations: {} as Record<string, string>,
 }));
 
+const sessionMock = vi.hoisted(() => ({
+  connected: true,
+  party: "rockywallet-etouyang::1220a1af0547f0824e223861619bed56442c73797d14be152f5a48e65598d9fa16fa",
+  provider: "rocky",
+  username: "Etouyang",
+  avatar: "",
+}));
+
 vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
   default: ({ symbol }: { symbol: string }) => <span>{symbol}</span>,
 }));
@@ -57,11 +65,7 @@ vi.mock("./funds", () => ({
 }));
 
 vi.mock("./useCantonSession", () => ({
-  useCantonSession: () => ({
-    connected: true,
-    party: PARTY_ID,
-    provider: "rocky",
-  }),
+  useCantonSession: () => sessionMock,
 }));
 
 vi.mock("./useCantonWallet", () => ({
@@ -77,6 +81,7 @@ describe("CantonFundsModal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionMock.connected = true;
     i18nMock.translations = {};
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
@@ -97,6 +102,16 @@ describe("CantonFundsModal", () => {
         withdrawal_id: `withdrawal-${index}`,
       };
     });
+  });
+
+  it("closes the wallet dashboard when the Canton session disconnects", () => {
+    const onClose = vi.fn();
+    const view = render(<CantonFundsModal open onClose={onClose} />);
+
+    sessionMock.connected = false;
+    view.rerender(<CantonFundsModal open onClose={onClose} />);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("shows the fixed network fee in withdrawal history", async () => {

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const adapterMocks = vi.hoisted(() => ({
-  rockyDisconnect: vi.fn<[], Promise<void>>(),
-  loopDisconnect: vi.fn<[], Promise<void>>(),
-  consoleDisconnect: vi.fn<[], Promise<void>>(),
+  rockyDisconnect: vi.fn<() => Promise<void>>(),
+  loopDisconnect: vi.fn<() => Promise<void>>(),
+  consoleDisconnect: vi.fn<() => Promise<void>>(),
 }));
 
 vi.mock("./rocky", () => ({

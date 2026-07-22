@@ -6,8 +6,8 @@ import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useR
 
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 
-import { fileToAvatarDataUrl } from "./avatarImage";
 import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol } from "./assets";
+import { fileToAvatarDataUrl } from "./avatarImage";
 import {
   emptyWalletBalanceRows,
   fetchWalletBalanceSnapshot,
@@ -115,6 +115,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
   );
   const canToggleHistory = historyItems.length > 3;
   const walletExplorerUrl = getCantonScanPartyUrl(walletParty);
+
+  useEffect(() => {
+    if (open && !connected) onClose();
+  }, [connected, onClose, open]);
 
   const refreshBalances = useCallback(async () => {
     if (!connected) return;

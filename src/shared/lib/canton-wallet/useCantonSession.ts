@@ -1,8 +1,9 @@
 import { useEffect, useSyncExternalStore } from "react";
+
+import { subscribeRockyWalletAccountChanges } from "./rocky";
 import { getMtcAuthToken } from "./session";
 import { disconnectCantonWalletSession, shouldDisconnectForRockyAccountChange } from "./sessionLogout";
-import { notifyCantonSessionChange, subscribeCantonSession } from "./sessionStore";
-import { subscribeRockyWalletAccountChanges } from "./rocky";
+import { subscribeCantonSession } from "./sessionStore";
 import type { WalletProviderId } from "./types";
 
 export { notifyCantonSessionChange } from "./sessionStore";

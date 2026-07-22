@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { useHistory, useLocation } from "react-router-dom";
 
-import { useTradingAccountModalOpen } from "@/modules/lighter/context/TradingAccountContext";
 import { useSettings } from "@/modules/lighter/context/SettingsContext";
+import { useTradingAccountModalOpen } from "@/modules/lighter/context/TradingAccountContext";
 import { disconnectCantonWalletSession } from "@/shared/lib/canton-wallet/sessionLogout";
 import { userAnalytics } from "lib/userAnalytics";
 import { DisconnectWalletEvent } from "lib/userAnalytics/types";

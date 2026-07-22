@@ -1,5 +1,11 @@
-import { createRockyWalletSdk } from "@rocky-wallet/dapp-sdk";
-import type { GetCoinsResponse, RockyAccount, RockyAssetDescriptor, RockyWalletSdk } from "@rocky-wallet/dapp-sdk";
+import {
+  createRockyWalletSdk,
+  type GetCoinsResponse,
+  type RockyAccount,
+  type RockyAssetDescriptor,
+  type RockyWalletSdk,
+} from "@rocky-wallet/dapp-sdk";
+
 import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
