@@ -15,6 +15,7 @@ type PendingIntentLease = OrderIntentScope & {
   fingerprint: string;
   key: string;
   state: PendingIntentState;
+  ownerId?: string;
   createdAt: number;
   expiresAt: number;
 };
@@ -24,6 +25,7 @@ type PendingIntentRegistry = {
 
 let memoryRegistry: PendingIntentRegistry = { entries: [] };
 let idSequence = 0;
+const runtimeOwnerId = globalThis.crypto?.randomUUID?.() ?? `runtime-${Date.now()}-${Math.random()}`;
 
 export function createOrderIdempotencyKey(): string {
   const nativeUuid = globalThis.crypto?.randomUUID?.();
@@ -41,14 +43,17 @@ export function acquirePendingOrderIntentKey(scope: OrderIntentScope, intent: Or
   const now = Date.now();
   const fingerprint = fingerprintOrderIntent(intent);
   const registry = pruneRegistry(readRegistry(), now);
-  const ambiguousLease = registry.entries.find(
-    (entry) => matchesScopeAndFingerprint(entry, scope, fingerprint) && entry.state === "ambiguous"
+  const reusableLease = registry.entries.find(
+    (entry) =>
+      matchesScopeAndFingerprint(entry, scope, fingerprint) &&
+      (entry.state === "ambiguous" || (entry.state === "in-flight" && entry.ownerId !== runtimeOwnerId))
   );
 
-  if (ambiguousLease) {
-    ambiguousLease.state = "in-flight";
+  if (reusableLease) {
+    reusableLease.state = "in-flight";
+    reusableLease.ownerId = runtimeOwnerId;
     writeRegistry(registry);
-    return ambiguousLease.key;
+    return reusableLease.key;
   }
 
   const key = createOrderIdempotencyKey();
@@ -57,6 +62,7 @@ export function acquirePendingOrderIntentKey(scope: OrderIntentScope, intent: Or
     fingerprint,
     key,
     state: "in-flight",
+    ownerId: runtimeOwnerId,
     createdAt: now,
     expiresAt: now + INTENT_TTL_MS,
   });

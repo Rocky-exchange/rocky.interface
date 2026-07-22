@@ -238,6 +238,23 @@ describe("Rocky order request contract", () => {
     expect(nextIntent.idempotency_key).not.toBe(firstRequest.idempotency_key);
   });
 
+  it("reuses an in-flight idempotency key after the registry module reloads", async () => {
+    const intent = {
+      symbol: "BTC-PERP",
+      side: "BUY" as const,
+      price: "103.000000",
+      qty: "1.25000000",
+      leverage: 10,
+    };
+    const firstRegistry = await import("./orderIntentRegistry");
+    const firstKey = firstRegistry.acquirePendingOrderIntentKey(DEFAULT_SCOPE, intent);
+
+    vi.resetModules();
+    const reloadedRegistry = await import("./orderIntentRegistry");
+
+    expect(reloadedRegistry.acquirePendingOrderIntentKey(DEFAULT_SCOPE, intent)).toBe(firstKey);
+  });
+
   it("reuses the id after a 5xx but clears it after an explicit 4xx", async () => {
     const serverFailureRequest = buildRequest({ clientOrderId: undefined, triggerPrice: 104n * UNIT_30 });
     vi.spyOn(console, "error").mockImplementation(() => undefined);
