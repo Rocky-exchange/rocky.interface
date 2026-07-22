@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import { useState } from "react";
 
 import { spotApi, type DepthResp, type Trade } from "../../api/spotClient";
@@ -18,12 +19,12 @@ function fmtNum(v: string | number, digits = 2): string {
 function BookBody({ symbol }: { symbol: string }) {
   const { data, err } = usePolling<DepthResp>(() => spotApi.depth(symbol, 20), 1000, [symbol]);
   if (err) return <div className={styles.err}>{err}</div>;
-  if (!data) return <div className={styles.empty}>Loading…</div>;
+  if (!data) return <div className={styles.empty}><Trans>Loading…</Trans></div>;
 
   const asks = data.asks.slice(0, 15);
   const bids = data.bids.slice(0, 15);
   if (asks.length === 0 && bids.length === 0) {
-    return <div className={styles.empty}>No resting orders</div>;
+    return <div className={styles.empty}><Trans>No resting orders</Trans></div>;
   }
 
   const askRows = asks.reduce<Array<{ p: string; q: string; total: number }>>((acc, [p, q]) => {
@@ -64,7 +65,7 @@ function BookBody({ symbol }: { symbol: string }) {
       <div className={styles.mid}>
         <span className={styles.midPrice}>{fmtNum(mid)}</span>
         <span>
-          Spread {spread.toFixed(2)} ({spreadPct.toFixed(3)}%)
+          <Trans>Spread</Trans> {spread.toFixed(2)} ({spreadPct.toFixed(3)}%)
         </span>
       </div>
       <div className={styles.rows}>
@@ -83,7 +84,7 @@ function BookBody({ symbol }: { symbol: string }) {
 
 function TradesBody({ symbol }: { symbol: string }) {
   const { data } = usePolling<Trade[]>(() => spotApi.trades(symbol, 30), 1500, [symbol]);
-  if (!data || data.length === 0) return <div className={styles.empty}>No trades yet</div>;
+  if (!data || data.length === 0) return <div className={styles.empty}><Trans>No trades yet</Trans></div>;
   return (
     <div className={styles.rows}>
       {data.map((t) => {
@@ -119,14 +120,14 @@ export function SpotOrderBookPanel({ symbol }: { symbol: string }) {
             className={`${styles.tab} ${tab === t ? styles.tabActive : ""}`}
             onClick={() => setTab(t)}
           >
-            {t === "book" ? "Orderbook" : "Trades"}
+            {t === "book" ? <Trans>Orderbook</Trans> : <Trans>Trades</Trans>}
           </button>
         ))}
       </div>
       <div className={styles.header}>
-        <span>Price</span>
-        <span className={styles.right}>Size</span>
-        <span className={styles.right}>{tab === "book" ? "Total" : "Time"}</span>
+        <span><Trans>Price</Trans></span>
+        <span className={styles.right}><Trans>Size</Trans></span>
+        <span className={styles.right}>{tab === "book" ? <Trans>Total</Trans> : <Trans>Time</Trans>}</span>
       </div>
       {tab === "book" ? <BookBody symbol={symbol} /> : <TradesBody symbol={symbol} />}
     </div>

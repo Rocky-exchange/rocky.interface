@@ -1,6 +1,8 @@
 // Component-layer specs for SpotOrderBookPanel — renders levels, spread,
 // cumulative totals, and switches to Trades tab.
 import { afterEach, describe, it, expect, vi } from "vitest";
+import { i18n } from "@lingui/core";
+import { I18nProvider } from "@lingui/react";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 
 vi.mock("../../api/spotClient", async () => {
@@ -25,10 +27,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+
+i18n.load("en", {});
+i18n.activate("en");
+const I18nWrapper = ({ children }: { children?: React.ReactNode }) => (
+  <I18nProvider i18n={i18n}>{children}</I18nProvider>
+);
+
 describe("SpotOrderBookPanel", () => {
   it("shows 'No resting orders' when the book comes back empty", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [], bids: [] });
-    const { findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />);
+    const { findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     await findByText("No resting orders");
   });
 
@@ -48,7 +57,7 @@ describe("SpotOrderBookPanel", () => {
         ["64970.00", "0.003"],
       ],
     });
-    const { findByText, container } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />);
+    const { findByText, container } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     // Wait for asks + bids to render
     await findByText("65,010.00");
     await findByText("64,990.00");
@@ -61,7 +70,7 @@ describe("SpotOrderBookPanel", () => {
   it("switches to Trades tab and calls trades() instead of depth()", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [["65010", "0.001"]], bids: [["64990", "0.001"]] });
     mTrades.mockResolvedValue([]);
-    const { getByText, findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />);
+    const { getByText, findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     await findByText("65,010.00");
     act(() => {
       fireEvent.click(getByText("Trades"));

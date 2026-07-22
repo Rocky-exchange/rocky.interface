@@ -1,3 +1,4 @@
+import { Trans, t } from "@lingui/macro";
 import { useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
@@ -44,9 +45,11 @@ export function SpotAccountsPanel() {
   if (!ready)
     return (
       <div className={styles.panel}>
-        <div className={styles.title}>Spot Account</div>
+        <div className={styles.title}>
+          <Trans>Spot Account</Trans>
+        </div>
         <button type="button" className={styles.connectCta} onClick={openCantonConnect}>
-          Connect wallet
+          <Trans>Connect wallet</Trans>
         </button>
       </div>
     );
@@ -59,7 +62,9 @@ export function SpotAccountsPanel() {
   if (!data)
     return (
       <div className={styles.panel}>
-        <div className={styles.title}>Loading…</div>
+        <div className={styles.title}>
+          <Trans>Loading…</Trans>
+        </div>
       </div>
     );
 
@@ -95,8 +100,8 @@ export function SpotAccountsPanel() {
       });
       setXferMsg(
         direction === "toSpot"
-          ? `Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
-          : `Moved ${result.amount} ${result.asset} to contract (contract available: ${result.fundingAvailable})`,
+          ? t`Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
+          : t`Moved ${result.amount} ${result.asset} to futures (futures available: ${result.fundingAvailable})`
       );
       setXferAmount("");
       refetch();
@@ -109,16 +114,28 @@ export function SpotAccountsPanel() {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.title}>Spot Account</div>
+      <div className={styles.title}>
+        <Trans>Spot Account</Trans>
+      </div>
       <div className={styles.totalRow}>
-        <span className={styles.totalLabel}>USDA (free + locked)</span>
+        <span className={styles.totalLabel}>
+          USDA (<Trans>free + locked</Trans>)
+        </span>
         <span className={styles.totalValue}>{totalUsda.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
       </div>
-      <div className={styles.title}>Balances</div>
+      <div className={styles.title}>
+        <Trans>Balances</Trans>
+      </div>
       <div className={styles.rows}>
-        <span className={styles.rowHeader}>Asset</span>
-        <span className={`${styles.rowHeader} ${styles.free}`}>Free</span>
-        <span className={`${styles.rowHeader} ${styles.locked}`}>Locked</span>
+        <span className={styles.rowHeader}>
+          <Trans>Asset</Trans>
+        </span>
+        <span className={`${styles.rowHeader} ${styles.free}`}>
+          <Trans>Free</Trans>
+        </span>
+        <span className={`${styles.rowHeader} ${styles.locked}`}>
+          <Trans>Locked</Trans>
+        </span>
         {data.balances.map((b) => (
           <div key={b.asset} style={{ display: "contents" }}>
             <span className={styles.asset}>{b.asset}</span>
@@ -129,16 +146,18 @@ export function SpotAccountsPanel() {
       </div>
       {allZero && (
         <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
-          {faucetBusy ? "Requesting…" : "Get test funds (dev)"}
+          {faucetBusy ? <Trans>Requesting…</Trans> : <Trans>Get test funds (dev)</Trans>}
         </button>
       )}
       {faucetErr && <div className={styles.err}>{faucetErr}</div>}
-      <div className={styles.title}>USDA Transfer</div>
+      <div className={styles.title}>
+        <Trans>Transfer</Trans>
+      </div>
       <div className={styles.transferRow}>
         <input
           className={styles.transferInput}
           inputMode="decimal"
-          placeholder="Amount"
+          placeholder={t`Amount`}
           value={xferAmount}
           onChange={(e) => setXferAmount(e.target.value)}
           disabled={xferBusy}
@@ -151,7 +170,7 @@ export function SpotAccountsPanel() {
           disabled={xferBusy || !xferAmount.trim()}
           onClick={() => onTransfer("toSpot")}
         >
-          {xferBusy ? "…" : "Contract → Spot"}
+          {xferBusy ? "…" : <Trans>Futures → Spot</Trans>}
         </button>
         <button
           type="button"
@@ -159,7 +178,7 @@ export function SpotAccountsPanel() {
           disabled={xferBusy || !xferAmount.trim()}
           onClick={() => onTransfer("toFunding")}
         >
-          {xferBusy ? "…" : "Spot → Contract"}
+          {xferBusy ? "…" : <Trans>Spot → Futures</Trans>}
         </button>
       </div>
       {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}

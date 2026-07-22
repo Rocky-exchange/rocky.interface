@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/macro";
+
 import { spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import { SpotMarketDropdown } from "./MarketDropdown";
@@ -22,26 +24,26 @@ export function SpotSymbolBar({ symbol }: { symbol: string }) {
       <div className={styles.stats}>
         <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Change</span>
+          <span className={styles.cellLabel}><Trans>24h Change</Trans></span>
           <span className={`${styles.cellValue} ${pctCls}`}>
             {t ? `${pct >= 0 ? "+" : ""}${fmtNum(t.priceChange)}` : "—"}{" "}
             <span className={pctCls}>{t ? `(${pct.toFixed(3)}%)` : ""}</span>
           </span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h High</span>
+          <span className={styles.cellLabel}><Trans>24h High</Trans></span>
           <span className={styles.cellValue}>{t ? fmtNum(t.highPrice) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Low</span>
+          <span className={styles.cellLabel}><Trans>24h Low</Trans></span>
           <span className={styles.cellValue}>{t ? fmtNum(t.lowPrice) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol {base}</span>
+          <span className={styles.cellLabel}><Trans>24h Vol</Trans> {base}</span>
           <span className={styles.cellValue}>{t ? fmtNum(t.volume, 4) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol USDA</span>
+          <span className={styles.cellLabel}><Trans>24h Vol</Trans> USDA</span>
           <span className={styles.cellValue}>{t ? fmtNum(t.quoteVolume) : "—"}</span>
         </div>
       </div>
