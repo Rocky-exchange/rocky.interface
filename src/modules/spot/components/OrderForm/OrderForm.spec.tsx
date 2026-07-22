@@ -39,7 +39,7 @@ const account: Account = {
   canDeposit: true,
   updateTime: 1,
   balances: [
-    { asset: "USDCx", free: "1000", locked: "25" },
+    { asset: "USDA", free: "1000", locked: "25" },
     { asset: "CBTC", free: "2.5", locked: "0.5" },
   ],
   permissions: ["SPOT"],
@@ -54,7 +54,7 @@ function accountWith({
     ...account,
     canTrade,
     balances: [
-      { asset: "USDCx", free: quoteFree, locked: "25" },
+      { asset: "USDA", free: quoteFree, locked: "25" },
       { asset: "CBTC", free: baseFree, locked: "0.5" },
     ],
   };
@@ -203,7 +203,6 @@ describe("SpotOrderForm", () => {
     const { getByText, getByRole, queryByText } = render(<SpotOrderForm market={market} />);
 
     expect(getByText("1,000 USDA")).toBeTruthy();
-    expect(queryByText(/USDCx/)).toBeNull();
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
     expect(getByText("2.5 CBTC")).toBeTruthy();
   });
@@ -374,7 +373,7 @@ describe("SpotOrderForm", () => {
 
     await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
     expect(mPlace).toHaveBeenCalledWith({
-      symbol: "CBTC-USDCX",
+      symbol: "CBTC-USDA",
       side: "BUY",
       type: "LIMIT",
       price: "250",
@@ -396,7 +395,7 @@ describe("SpotOrderForm", () => {
 
     await waitFor(() =>
       expect(mPlace).toHaveBeenCalledWith({
-        symbol: "CBTC-USDCX",
+        symbol: "CBTC-USDA",
         side: "SELL",
         type: "LIMIT",
         price: "250",
@@ -463,7 +462,7 @@ describe("SpotOrderForm", () => {
     fireEvent.click(view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }));
     await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(2));
     expect(mPlace).toHaveBeenLastCalledWith({
-      symbol: "CETH-USDCX",
+      symbol: "CETH-USDA",
       side: "BUY",
       type: "LIMIT",
       price: "250",

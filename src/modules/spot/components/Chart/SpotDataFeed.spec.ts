@@ -84,8 +84,8 @@ describe("resolveSymbol", () => {
     const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("UNKNOWN", resolve as never));
     expect(info.name).toBe("UNKNOWN");
     expect(info.ticker).toBe("UNKNOWN");
-    expect(info.description).toBe("UNKNOWN/USDCX");
-    expect(info.currency_code).toBe("USDCX");
+    expect(info.description).toBe("UNKNOWN/USDA");
+    expect(info.currency_code).toBe("USDA");
   });
 });
 

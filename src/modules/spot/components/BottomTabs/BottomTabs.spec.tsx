@@ -45,7 +45,7 @@ function deferred<T>() {
 
 function order(orderId: string, side: "BUY" | "SELL" = "SELL", price = "65000.00") {
   return {
-    symbol: "CBTC-USDCX",
+    symbol: "CBTC-USDA",
     orderId,
     clientOrderId: `client-${orderId}`,
     price,
@@ -146,7 +146,7 @@ describe("SpotBottomTabs", () => {
     fireEvent.click(getByRole("tab", { name: "Open Orders" }));
 
     expect((await findByRole("status")).textContent).toBe("No open orders");
-    expect(mOpen).toHaveBeenCalledWith("CBTC-USDCX");
+    expect(mOpen).toHaveBeenCalledWith("CBTC-USDA");
   });
 
   it("shows a loading state while open orders are pending", () => {
@@ -173,7 +173,7 @@ describe("SpotBottomTabs", () => {
     const cethOrders = deferred<ReturnType<typeof order>[]>();
     mReady.mockReturnValue(true);
     mOpen.mockImplementation((symbol) =>
-      symbol === "CBTC-USDCX" ? Promise.resolve([order("cbtc-old")]) : cethOrders.promise,
+      symbol === "CBTC-USDA" ? Promise.resolve([order("cbtc-old")]) : cethOrders.promise,
     );
 
     const { getByRole, findByRole, queryByRole, rerender } = render(<SpotBottomTabs market={market} />);
@@ -184,7 +184,7 @@ describe("SpotBottomTabs", () => {
 
     expect(queryByRole("row", { name: /65,000.*Cancel/ })).toBeNull();
     expect(getByRole("status").textContent).toBe("Loading…");
-    expect(mOpen).toHaveBeenCalledWith("CETH-USDCX");
+    expect(mOpen).toHaveBeenCalledWith("CETH-USDA");
     expect(mCancel).not.toHaveBeenCalled();
     cethOrders.resolve([]);
   });
@@ -200,7 +200,7 @@ describe("SpotBottomTabs", () => {
     fireEvent.click(within(row).getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => expect(mCancel).toHaveBeenCalledOnce());
-    expect(mCancel).toHaveBeenCalledWith("CBTC-USDCX", "019f64e35ff175d18108787dd7af24f2");
+    expect(mCancel).toHaveBeenCalledWith("CBTC-USDA", "019f64e35ff175d18108787dd7af24f2");
     await waitFor(() => expect(mOpen).toHaveBeenCalledTimes(2));
   });
 
@@ -254,7 +254,7 @@ describe("SpotBottomTabs", () => {
     mReady.mockReturnValue(true);
     mTrades.mockResolvedValue([
       {
-        symbol: "CBTC-USDCX",
+        symbol: "CBTC-USDA",
         id: "018f0000-0000-0000-0000-0000000000aa",
         price: "65000.00",
         qty: "0.001",
@@ -273,7 +273,7 @@ describe("SpotBottomTabs", () => {
 
     const row = await findByRole("row", { name: /BUY.*65,000.*Taker/ });
     expect(within(row).getByText("Taker")).toBeTruthy();
-    expect(mTrades).toHaveBeenCalledWith("CBTC-USDCX");
+    expect(mTrades).toHaveBeenCalledWith("CBTC-USDA");
   });
 
   it("shows the empty state when the user has no trades", async () => {

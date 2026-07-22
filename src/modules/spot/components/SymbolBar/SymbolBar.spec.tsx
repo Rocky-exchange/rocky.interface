@@ -77,7 +77,7 @@ describe("SpotSymbolBar", () => {
     expect(queryAllByText("66,011.75")).toHaveLength(0);
     expect(getAllByText("—").length).toBeGreaterThan(0);
     await waitFor(() => {
-      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-USDCX", "CETH-USDCX"]);
+      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-USDA", "CETH-USDA"]);
     });
 
     await act(async () => {
@@ -99,7 +99,7 @@ describe("SpotSymbolBar", () => {
     );
     rerender(<SpotSymbolBar market={cethMarket} />);
     await waitFor(() => {
-      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-USDCX", "CETH-USDCX"]);
+      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-USDA", "CETH-USDA"]);
     });
 
     await act(async () => {

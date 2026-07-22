@@ -54,7 +54,7 @@ describe("SpotOrderBookPanel", () => {
     const { findByText, getByRole, getByText } = render(<SpotOrderBookPanel market={market} />);
 
     await findByText("65,010.00");
-    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CBTC-USDCX", 20));
+    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CBTC-USDA", 20));
     expect(getByRole("tablist")).toBeTruthy();
     expect(getByRole("tab", { name: "Order Book" }).getAttribute("aria-selected")).toBe("true");
     expect(getByRole("tab", { name: "Recent Trades" }).getAttribute("aria-selected")).toBe("false");
@@ -85,7 +85,7 @@ describe("SpotOrderBookPanel", () => {
     fireEvent.click(getByRole("tab", { name: "Recent Trades" }));
 
     await findByText("No trades yet");
-    await waitFor(() => expect(mTrades).toHaveBeenCalledWith("CBTC-USDCX", 30));
+    await waitFor(() => expect(mTrades).toHaveBeenCalledWith("CBTC-USDA", 30));
   });
 
   it("uses roving focus and arrow keys across the order book tabs", async () => {
@@ -187,7 +187,7 @@ describe("SpotOrderBookPanel", () => {
 
     expect(queryByText("65,010.00")).toBeNull();
     expect(getByText("Loading…")).toBeTruthy();
-    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CETH-USDCX", 20));
+    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CETH-USDA", 20));
 
     resolveNextDepth({ lastUpdateId: 2, asks: [["3501", "1"]], bids: [["3499", "1"]] });
     expect(await findAllByText("3,501.00")).toHaveLength(2);

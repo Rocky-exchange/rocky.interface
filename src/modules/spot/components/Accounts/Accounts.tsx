@@ -114,7 +114,7 @@ export function SpotAccountsPanel({
       </div>
     );
 
-  const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDCX");
+  const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDA");
   const totalUsda = quoteBalance ? parseFloat(quoteBalance.free) + parseFloat(quoteBalance.locked) : 0;
   const allZero = account.balances.every(
     (balance) => parseFloat(balance.free) === 0 && parseFloat(balance.locked) === 0,

@@ -25,7 +25,7 @@ const account = (usdcx: string, locked = "0", cbtc = "0", ceth = "0") => ({
   canDeposit: false,
   updateTime: 0,
   balances: [
-    { asset: "USDCX", free: usdcx, locked },
+    { asset: "USDA", free: usdcx, locked },
     { asset: "CBTC", free: cbtc, locked: "0" },
     { asset: "CETH", free: ceth, locked: "0" },
   ],
@@ -96,7 +96,6 @@ describe("SpotAccountsPanel", () => {
     expect(getAllByText("USDA")).toHaveLength(1);
     expect(getByText("CBTC")).toBeTruthy();
     expect(getByText("cETH")).toBeTruthy();
-    expect(queryByText(/USDCx/i)).toBeNull();
     expect(queryByText(/Get test funds/)).toBeNull();
   });
 

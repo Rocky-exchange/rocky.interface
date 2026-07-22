@@ -47,7 +47,7 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
               </LighterTradeRuntimeProviders>
             </Route>
 
-            {/* Spot trading — USDA public route labels map to USDCx API symbols via rocky-backend /api/v3 */}
+            {/* Spot trading — USDA symbols end-to-end (route, API, and display) via rocky-backend /api/v3 */}
             <Route exact path="/spot/:symbol?">
               <SpotTradePage />
             </Route>

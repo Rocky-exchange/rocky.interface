@@ -117,7 +117,7 @@ describe("SpotTradePage", () => {
     for (const child of ["symbol-bar", "chart", "bottom-tabs", "orderbook", "orderform"]) {
       const probe = screen.getByTestId(`${child}-probe`);
       expect(probe.getAttribute("data-route-symbol")).toBe("CBTC-USDA");
-      expect(probe.getAttribute("data-api-symbol")).toBe("CBTC-USDCX");
+      expect(probe.getAttribute("data-api-symbol")).toBe("CBTC-USDA");
     }
 
     expect(screen.getByTestId("spot-standalone-account")).not.toBeNull();
@@ -149,9 +149,8 @@ describe("SpotTradePage", () => {
   });
 
   it.each([
-    ["legacy CBTC API symbol", "/spot/CBTC-USDCX", "/spot/CBTC-USDA"],
-    ["case-insensitive CETH API symbol", "/spot/ceth-usdcx", "/spot/CETH-USDA"],
-    ["trimmed API symbol", "/spot/%20CBTC-USDCX%20", "/spot/CBTC-USDA"],
+    ["case-insensitive CETH symbol", "/spot/ceth-usda", "/spot/CETH-USDA"],
+    ["trimmed symbol", "/spot/%20CBTC-USDA%20", "/spot/CBTC-USDA"],
     ["missing symbol", "/spot", "/spot/CBTC-USDA"],
     ["lowercase public symbol", "/spot/cbtc-usda", "/spot/CBTC-USDA"],
     ["unknown symbol", "/spot/not-a-market", "/spot/CBTC-USDA"],

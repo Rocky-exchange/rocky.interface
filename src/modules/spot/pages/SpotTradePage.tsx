@@ -24,7 +24,7 @@ import { resolveSpotMarket } from "../model/spotMarkets";
 export default function SpotTradePage() {
   const params = useParams<{ symbol?: string }>();
   const history = useHistory();
-  const routeSymbol = params.symbol?.trim().replace(/-USDCX$/i, "-USDA");
+  const routeSymbol = params.symbol?.trim();
   const market = resolveSpotMarket(routeSymbol);
   const [isFavorite, setIsFavorite] = useState(false);
 
