@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   BonusApiError,
@@ -9,6 +9,14 @@ import {
   recallBonusForWithdraw,
   redeemBonusCode,
 } from "./bonus.api";
+import type {
+  BonusBalanceInfoResponse,
+  BonusHistoryResponse,
+  BonusHistoryRow,
+  BonusLifecycleStatus,
+  BonusOrderDecision,
+  BonusStatusResponse,
+} from "./bonus.types";
 
 const fetchMock = vi.fn();
 
@@ -25,10 +33,25 @@ describe("bonus API", () => {
 
   it("uses the canonical status URL and Rocky exchange session", async () => {
     localStorage.setItem("rocky_exchange_session", "session-1");
-    fetchMock.mockResolvedValue(jsonResponse({ has_bonus: false }));
+    const responseBody = {
+      has_bonus: false,
+      bonus_account_id: "",
+      status: "",
+      grant_tier: "",
+      bonus_initial: "",
+      bonus_balance: "",
+      bonus_locked_in_margin: "",
+      bonus_consumed_total: "",
+      bonus_recalled_total: "",
+      max_leverage: 0,
+      granted_at: "",
+      expires_at: "",
+    };
+    fetchMock.mockResolvedValue(jsonResponse(responseBody));
 
-    await fetchBonusStatus();
+    const result = await fetchBonusStatus();
 
+    expect(result).toEqual(responseBody);
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/bonus/status",
       expect.objectContaining({
@@ -36,6 +59,58 @@ describe("bonus API", () => {
         headers: expect.objectContaining({ Authorization: "Bearer session-1" }),
       })
     );
+  });
+
+  it("models every success response field required by the wire contract", () => {
+    expectTypeOf<BonusStatusResponse>().toEqualTypeOf<{
+      has_bonus: boolean;
+      bonus_account_id: string;
+      status: BonusLifecycleStatus | "";
+      grant_tier: string;
+      bonus_initial: string;
+      bonus_balance: string;
+      bonus_locked_in_margin: string;
+      bonus_consumed_total: string;
+      bonus_recalled_total: string;
+      max_leverage: number;
+      granted_at: string;
+      expires_at: string;
+    }>();
+    expectTypeOf<BonusBalanceInfoResponse>().toEqualTypeOf<{
+      total_available: string;
+      available: string;
+      locked: string;
+      principal_free: string;
+      principal_locked: string;
+      bonus_free: string;
+      bonus_locked: string;
+      effective_withdrawable: string;
+      status: BonusLifecycleStatus | "";
+    }>();
+    expectTypeOf<BonusHistoryRow>().toEqualTypeOf<{
+      id: string;
+      event_type: string;
+      total_cost: string;
+      bonus_share: string;
+      principal_share: string;
+      attribution_rule: string;
+      source_trade_id: string;
+      source_funding_id: string;
+      occurred_at: string;
+    }>();
+    expectTypeOf<BonusHistoryResponse>().toEqualTypeOf<{
+      rows: BonusHistoryRow[];
+      next_cursor: string;
+    }>();
+    expectTypeOf<BonusOrderDecision>().toEqualTypeOf<{
+      decision: "pass" | "reject";
+      reason_code: string;
+      message: string;
+      bonus_balance: string;
+      total_available: string;
+      bonus_ratio_pct: string;
+      net_direction: string;
+    }>();
   });
 
   it("requests balance info from the canonical authenticated endpoint", async () => {
