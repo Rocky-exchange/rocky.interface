@@ -95,6 +95,19 @@ describe("SpotTradePage", () => {
     expect(screen.queryByTestId("spot-standalone-account")).toBeNull();
   });
 
+  it("links the selected Chart tab to its labelled tabpanel", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const chartTab = screen.getByRole("tab", { name: "Chart" });
+    const chartPanel = screen.getByRole("tabpanel", { name: "Chart" });
+
+    expect(chartTab.getAttribute("id")).toBe("spot-chart-tab");
+    expect(chartTab.getAttribute("aria-selected")).toBe("true");
+    expect(chartTab.getAttribute("aria-controls")).toBe("spot-chart-panel");
+    expect(chartPanel.getAttribute("id")).toBe("spot-chart-panel");
+    expect(chartPanel.getAttribute("aria-labelledby")).toBe("spot-chart-tab");
+  });
+
   it.each([
     ["legacy CBTC API symbol", "/spot/CBTC-USDCX", "/spot/CBTC-USDA"],
     ["case-insensitive CETH API symbol", "/spot/ceth-usdcx", "/spot/CETH-USDA"],

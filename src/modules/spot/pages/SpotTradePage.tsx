@@ -53,14 +53,25 @@ export default function SpotTradePage() {
           <SpotSymbolBar market={market} />
           <div className={styles.chartPanel}>
             <div className={styles.chartTabs} role="tablist" aria-label="Market view">
-              <button type="button" role="tab" aria-selected="true">
+              <button
+                type="button"
+                role="tab"
+                id="spot-chart-tab"
+                aria-selected="true"
+                aria-controls="spot-chart-panel"
+              >
                 Chart
               </button>
               <button type="button" role="tab" aria-selected="false" disabled>
                 Market Info
               </button>
             </div>
-            <div className={styles.chart}>
+            <div
+              className={styles.chart}
+              role="tabpanel"
+              id="spot-chart-panel"
+              aria-labelledby="spot-chart-tab"
+            >
               <SpotChart market={market} />
             </div>
           </div>

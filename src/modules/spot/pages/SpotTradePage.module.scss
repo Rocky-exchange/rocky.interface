@@ -81,6 +81,11 @@
     }
   }
 
+  button:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
+  }
+
   button:disabled {
     cursor: default;
     opacity: 0.55;

@@ -9,6 +9,11 @@
   color: var(--ltr-text-primary);
   font-weight: 600;
   font-size: 14px;
+
+  :global(.SelectorBase-button:not(.SelectorBase-button-disabled):not(:disabled):focus-visible) & {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: 2px;
+  }
 }
 
 .triggerName {
@@ -142,6 +147,12 @@
 
   &:hover {
     background: var(--ltr-bg-hover);
+  }
+
+  &:not(:disabled):focus-visible {
+    background: var(--ltr-bg-hover);
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
   }
 }
 

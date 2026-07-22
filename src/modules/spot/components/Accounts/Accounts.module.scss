@@ -121,6 +121,11 @@
   font-weight: 600;
   font-size: 12px;
 
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: 2px;
+  }
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.55;
