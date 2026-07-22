@@ -64,9 +64,12 @@ describe("SpotTradePage", () => {
       </Router>
     );
 
-    expect(screen.getByTestId("spot-market-workspace")).not.toBeNull();
-    expect(screen.getByTestId("spot-orderbook-region")).not.toBeNull();
-    expect(screen.getByTestId("spot-orderform-region")).not.toBeNull();
+    const marketWorkspace = screen.getByTestId("spot-market-workspace");
+    const orderbookRegion = screen.getByTestId("spot-orderbook-region");
+    const orderformRegion = screen.getByTestId("spot-orderform-region");
+
+    expect(marketWorkspace.compareDocumentPosition(orderbookRegion) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(orderbookRegion.compareDocumentPosition(orderformRegion) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
 
     for (const child of ["symbol-bar", "chart", "bottom-tabs", "orderbook", "orderform"]) {
       const probe = screen.getByTestId(`${child}-probe`);

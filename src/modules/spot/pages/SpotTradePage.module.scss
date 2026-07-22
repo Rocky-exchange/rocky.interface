@@ -33,7 +33,7 @@
 
 .marketWorkspace {
   display: grid;
-  grid-template-rows: 64px minmax(0, 1fr) 220px;
+  grid-template-rows: 64px minmax(0, 1fr) var(--ltr-bottom-h, 220px);
   gap: 4px;
   min-width: 0;
   min-height: 0;
@@ -124,7 +124,7 @@
   }
 
   .marketWorkspace {
-    grid-template-rows: 64px minmax(520px, 1fr) 220px;
+    grid-template-rows: 64px minmax(520px, 1fr) var(--ltr-bottom-h, 220px);
     min-height: 812px;
   }
 
@@ -148,7 +148,7 @@
   }
 
   .marketWorkspace {
-    grid-template-rows: 64px minmax(420px, 1fr) 220px;
+    grid-template-rows: 64px minmax(420px, 1fr) var(--ltr-bottom-h, 220px);
     min-height: 706px;
   }
 }
