@@ -143,3 +143,42 @@
   color: var(--ltr-down);
   border: 1px solid var(--ltr-down);
 }
+
+.typeTabs {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px 0;
+  font-size: 12px;
+}
+
+.typeTabActive {
+  color: var(--ltr-text, #eaecef);
+  border-bottom: 2px solid var(--ltr-accent, #f0b90b);
+  padding-bottom: 4px;
+  font-weight: 600;
+}
+
+.typeTabDisabled {
+  color: var(--ltr-text-muted, #5e6673);
+  cursor: not-allowed;
+  padding-bottom: 4px;
+}
+
+.fillChip {
+  background: none;
+  border: 1px solid var(--ltr-border, #2a2c33);
+  border-radius: 4px;
+  color: var(--ltr-text-muted, #848e9c);
+  cursor: pointer;
+  font-size: 10px;
+  margin-left: 6px;
+  padding: 1px 6px;
+
+  &:hover {
+    color: var(--ltr-text, #eaecef);
+  }
+}
+
+.summaryUnit {
+  color: var(--ltr-text-muted, #848e9c);
+}
