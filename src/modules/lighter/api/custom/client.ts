@@ -8,9 +8,9 @@
 // 使用统一的后端 URL 配置
 import { i18n } from "@lingui/core";
 
+import { exchangeSessionHeaders, getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
 import { getTradingBackendUrl } from "config/backend";
 import { isDevelopment } from "config/env";
-import { getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
 
 import { marketDataRequest } from "../marketRequests";
 import {
@@ -406,6 +406,7 @@ export function isAuthenticated(address?: string | null, chainId?: number | null
 interface FetchOptions extends RequestInit {
   requireAuth?: boolean;
   address?: string | null; // Optional address for address-specific token lookup
+  authMode?: "legacy" | "exchange";
 }
 
 // rocky-backend exposes routes directly at /v1/* (web) and /fapi/* (Binance-
@@ -425,7 +426,15 @@ async function apiFetch<T>(chainId: number, path: string, options: FetchOptions 
     ...(options.headers || {}),
   };
 
-  if (options.requireAuth) {
+  const authMode = options.authMode ?? (options.requireAuth ? "legacy" : undefined);
+
+  if (authMode === "exchange") {
+    const authorization = new Headers(exchangeSessionHeaders()).get("Authorization");
+    if (!authorization) {
+      throw new Error("Canton wallet session required. Please connect your wallet and sign in again.");
+    }
+    (headers as Record<string, string>)["Authorization"] = authorization;
+  } else if (authMode === "legacy") {
     // Get token for the specified address and chainId
     // If address is not provided, try to get from last used address
     let targetAddress = options.address;
@@ -494,7 +503,7 @@ async function apiFetch<T>(chainId: number, path: string, options: FetchOptions 
         errorData.message || errorData.error || (errorData as any).detail || errorText || "Request failed";
 
       // Handle 401 Unauthorized errors - token is invalid or expired
-      if (response.status === 401) {
+      if (response.status === 401 && authMode !== "exchange") {
         // Get the address used for this request
         let targetAddress = options.address;
         if (!targetAddress) {
@@ -921,11 +930,11 @@ export interface UnifiedAccountResponse {
 }
 
 export async function getPositions(chainId: number, address?: string | null): Promise<PositionsResponse> {
-  return apiFetch<PositionsResponse>(chainId, "/v1/positions/me", { requireAuth: true, address });
+  return apiFetch<PositionsResponse>(chainId, "/v1/positions/me", { authMode: "exchange", address });
 }
 
 export async function getOrders(chainId: number, address?: string | null): Promise<OrdersResponse> {
-  return apiFetch<OrdersResponse>(chainId, "/v1/orders/me", { requireAuth: true, address });
+  return apiFetch<OrdersResponse>(chainId, "/v1/orders/me", { authMode: "exchange", address });
 }
 
 // NOT SUPPORTED by rocky-backend -- conditional/trigger orders are
@@ -951,7 +960,7 @@ export async function createTriggerOrder(
     {
       method: "POST",
       body: JSON.stringify(request),
-      requireAuth: true,
+      authMode: "exchange",
       address,
     }
   );
@@ -969,7 +978,7 @@ export async function cancelTriggerOrder(
 ): Promise<void> {
   await apiFetch<unknown>(chainId, `/v1/trigger-orders/${triggerOrderId}`, {
     method: "DELETE",
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
 }
@@ -1012,7 +1021,7 @@ export interface AccountTradesResponse {
 }
 
 export async function getAccountTrades(chainId: number, address?: string | null): Promise<AccountTradesResponse> {
-  return apiFetch<AccountTradesResponse>(chainId, "/v1/trades/me", { requireAuth: true, address });
+  return apiFetch<AccountTradesResponse>(chainId, "/v1/trades/me", { authMode: "exchange", address });
 }
 
 export interface WithdrawHistoryResponse {
@@ -1147,7 +1156,7 @@ export async function createOrder(
   const response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
 
@@ -1184,7 +1193,7 @@ export async function reportPositionCloseAuditSubmission(
   return apiFetch<PositionCloseAuditSubmissionResponse>(chainId, "/v1/positions/close-audits/submission", {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
 }
@@ -1234,7 +1243,7 @@ export async function cancelOrder(
   return apiFetch<CancelOrderResponse>(chainId, `/v1/orders/${orderId}`, {
     method: "DELETE",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
 }
@@ -1252,7 +1261,7 @@ export async function updateOrder(
     return await apiFetch<UpdateOrderResponse>(chainId, `/v1/orders/${orderId}`, {
       method: "PATCH",
       body: JSON.stringify(request),
-      requireAuth: true,
+      authMode: "exchange",
       address,
     });
   } catch (error) {
@@ -1265,7 +1274,7 @@ export async function updateOrder(
     return apiFetch<UpdateOrderResponse>(chainId, `/v1/orders/${orderId}`, {
       method: "PUT",
       body: JSON.stringify(request),
-      requireAuth: true,
+      authMode: "exchange",
       address,
     });
   }
@@ -1277,7 +1286,7 @@ export async function batchCancelOrders(chainId: number, request: BatchCancelReq
   return apiFetch<BatchCancelResponse>(chainId, "/v1/orders/batch", {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
   });
 }
 
@@ -1331,7 +1340,7 @@ export async function getCloseOperatorAuthorization(
   const suffix = operator ? `?operator=${encodeURIComponent(operator)}` : "";
   return apiFetch<CloseOperatorAuthorizationResponse>(chainId, `/v1/positions/close-operator-authorization${suffix}`, {
     method: "GET",
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
 }
@@ -1347,7 +1356,7 @@ export async function addPositionCollateral(
   return apiFetch<Position>(chainId, `/v1/positions/${positionId}/collateral/add`, {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
   });
 }
 
@@ -1360,7 +1369,7 @@ export async function removePositionCollateral(
   return apiFetch<Position>(chainId, `/v1/positions/${positionId}/collateral/remove`, {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
   });
 }
 

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CreateOrderRequest } from "../types";
-import { closePosition, createOrder } from "./client";
+import { cancelOrder, closePosition, createOrder, getOrders, getPositions } from "./client";
 
 const UNIT_18 = 10n ** 18n;
 const UNIT_30 = 10n ** 30n;
@@ -49,7 +49,8 @@ describe("Rocky order request contract", () => {
   });
 
   beforeEach(() => {
-    localStorage.setItem("mtc_token", "test-session");
+    localStorage.setItem("rocky_exchange_session", "test-exchange-session");
+    localStorage.setItem("mtc_token", "legacy-mtc-session");
   });
 
   afterEach(() => {
@@ -161,6 +162,75 @@ describe("Rocky order request contract", () => {
       leverage: 10,
       idempotency_key: "client-42",
     });
+  });
+
+  it("uses only the exchange session when a scoped legacy JWT also exists", async () => {
+    localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
+    localStorage.setItem("primit_jwt_expiry_1_party-1", String(Math.floor(Date.now() / 1000) + 3600));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ order_id: "exchange-order" })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createOrder(1, buildRequest(), "party-1");
+
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-exchange-session");
+  });
+
+  it("does not let an invalid legacy MTC token override the exchange session", async () => {
+    localStorage.setItem("mtc_token", "invalid-legacy-token");
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ order_id: "exchange-order" })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createOrder(1, buildRequest(), "party-1");
+
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-exchange-session");
+  });
+
+  it("keeps cancel, close, order, and position requests on the exchange session", async () => {
+    localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
+    localStorage.setItem("primit_jwt_expiry_1_party-1", String(Math.floor(Date.now() / 1000) + 3600));
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const path = new URL(String(input), "https://rocky.test").pathname;
+      if (path === "/v1/orders/order-1") return jsonResponse({ order_id: "order-1", status: "cancelled" });
+      if (path === "/v1/orders") return jsonResponse({ order_id: "close-1" });
+      if (path === "/v1/orders/me") return jsonResponse({ orders: [] });
+      if (path === "/v1/positions/me") {
+        return jsonResponse({ positions: [], total_unrealized_pnl: "0", total_collateral: "0" });
+      }
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await cancelOrder(1, "order-1", { signature: "canton-session", timestamp: 1 }, "party-1");
+    await closePosition(
+      1,
+      "position-1",
+      { symbol: "BTC-PERP", side: "long", qty: "0.5", markPrice: "100", leverage: 20 },
+      "party-1"
+    );
+    await getOrders(1, "party-1");
+    await getPositions(1, "party-1");
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-exchange-session");
+    }
+  });
+
+  it("fails safely before fetch when the exchange session is missing", async () => {
+    localStorage.removeItem("rocky_exchange_session");
+    localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
+    localStorage.setItem("primit_jwt_expiry_1_party-1", String(Math.floor(Date.now() / 1000) + 3600));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createOrder(1, buildRequest(), "party-1")).rejects.toThrow(/Canton wallet session required/i);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("keeps one generated idempotency key through the same network call", async () => {
