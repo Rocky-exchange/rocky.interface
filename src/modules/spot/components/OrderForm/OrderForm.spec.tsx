@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
@@ -43,8 +43,23 @@ const account: Account = {
   permissions: ["SPOT"],
 };
 
-function readyAccount() {
-  mUseSpotAccount.mockReturnValue({ ready: true, account, err: null, refetch });
+function accountWith({
+  quoteFree = "1000",
+  baseFree = "2.5",
+  canTrade = true,
+}: { quoteFree?: string; baseFree?: string; canTrade?: boolean } = {}): Account {
+  return {
+    ...account,
+    canTrade,
+    balances: [
+      { asset: "USDCx", free: quoteFree, locked: "25" },
+      { asset: "CBTC", free: baseFree, locked: "0.5" },
+    ],
+  };
+}
+
+function readyAccount(nextAccount: Account | null = account) {
+  mUseSpotAccount.mockReturnValue({ ready: true, account: nextAccount, err: null, refetch });
 }
 
 function successfulOrder(side: "BUY" | "SELL"): SpotOrder {
@@ -99,6 +114,13 @@ describe("SpotOrderForm", () => {
     expect(getByText("2.5 CBTC")).toBeTruthy();
   });
 
+  it("formats large fractional balances without losing precision or rounding up", () => {
+    readyAccount(accountWith({ quoteFree: "9007199254740993.123456789" }));
+    const { getByText } = render(<SpotOrderForm market={market} />);
+
+    expect(getByText("9,007,199,254,740,993.12345678 USDA")).toBeTruthy();
+  });
+
   it("disables submit until price and amount are valid positive values", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
     const submit = getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement;
@@ -112,17 +134,49 @@ describe("SpotOrderForm", () => {
     expect(submit.disabled).toBe(false);
   });
 
-  it("sizes a buy from quote balance and derives total and the 0.1% fee", () => {
+  it("requires a loaded account with trading enabled before submission", () => {
+    readyAccount(null);
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
+    expect((view.getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
+
+    readyAccount(accountWith({ canTrade: false }));
+    view.rerender(<SpotOrderForm market={market} />);
+    expect((view.getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("rejects manual buy and sell amounts that exceed their available balances", () => {
+    const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
+    const price = getByLabelText(`Price (${market.displayQuote})`);
+    const amount = getByLabelText(`Amount (${market.displayBase})`);
+    const buy = getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement;
+
+    fireEvent.change(price, { target: { value: "1000" } });
+    fireEvent.change(amount, { target: { value: "1" } });
+    expect(buy.disabled).toBe(true); // total plus 0.1% fee is 1001 USDA
+    fireEvent.change(price, { target: { value: "999" } });
+    expect(buy.disabled).toBe(false);
+
+    fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
+    const sell = getByRole("button", { name: `SELL ${market.displayBase}` }) as HTMLButtonElement;
+    fireEvent.change(amount, { target: { value: "2.50000001" } });
+    expect(sell.disabled).toBe(true);
+    fireEvent.change(amount, { target: { value: "2.5" } });
+    expect(sell.disabled).toBe(false);
+  });
+
+  it("reserves the fee when sizing a 100% buy and derives total and the 0.1% fee", () => {
     const { getByLabelText, getByRole, getByText } = render(<SpotOrderForm market={market} />);
 
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
-    fireEvent.change(getByRole("slider", { name: "Order size percentage" }), { target: { value: "25" } });
+    fireEvent.change(getByRole("slider", { name: "Order percentage" }), { target: { value: "100" } });
 
-    expect((getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement).value).toBe("1");
+    expect((getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement).value).toBe("3.99600399");
     const total = getByLabelText(`Total (${market.displayQuote})`) as HTMLInputElement;
-    expect(total.value).toBe("250");
+    expect(total.value).toBe("999.0009975");
     expect(total.readOnly).toBe(true);
-    expect(getByText("0.25 USDA")).toBeTruthy();
+    expect(getByText("0.999001 USDA")).toBeTruthy();
     for (const label of ["0%", "25%", "50%", "75%", "100%"]) expect(getByText(label)).toBeTruthy();
   });
 
@@ -130,7 +184,7 @@ describe("SpotOrderForm", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
 
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
-    fireEvent.change(getByRole("slider", { name: "Order size percentage" }), { target: { value: "50" } });
+    fireEvent.change(getByRole("slider", { name: "Order percentage" }), { target: { value: "50" } });
 
     expect((getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement).value).toBe("1.25");
   });
@@ -139,7 +193,7 @@ describe("SpotOrderForm", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
     const price = getByLabelText(`Price (${market.displayQuote})`);
     const amount = getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
-    const slider = getByRole("slider", { name: "Order size percentage" });
+    const slider = getByRole("slider", { name: "Order percentage" });
 
     fireEvent.change(slider, { target: { value: "100" } });
     expect(amount.value).toBe("");
@@ -154,11 +208,38 @@ describe("SpotOrderForm", () => {
     const amount = getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
 
     fireEvent.change(price, { target: { value: "100" } });
-    fireEvent.change(getByRole("slider", { name: "Order size percentage" }), { target: { value: "100" } });
-    expect(amount.value).toBe("10");
+    fireEvent.change(getByRole("slider", { name: "Order percentage" }), { target: { value: "100" } });
+    expect(amount.value).toBe("9.99000999");
 
     fireEvent.change(price, { target: { value: "200" } });
-    expect(amount.value).toBe("5");
+    expect(amount.value).toBe("4.99500499");
+  });
+
+  it("keeps active percentage sizing when switching sides", () => {
+    const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
+    const amount = getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
+    const slider = getByRole("slider", { name: "Order percentage" }) as HTMLInputElement;
+
+    fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(slider, { target: { value: "50" } });
+    expect(amount.value).toBe("1.99800199");
+    fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
+
+    expect(slider.value).toBe("50");
+    expect(amount.value).toBe("1.25");
+  });
+
+  it("recalculates active percentage sizing when a polled balance falls", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    const amount = view.getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
+
+    fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "100" } });
+    fireEvent.change(view.getByRole("slider", { name: "Order percentage" }), { target: { value: "100" } });
+    expect(amount.value).toBe("9.99000999");
+
+    readyAccount(accountWith({ quoteFree: "100" }));
+    view.rerender(<SpotOrderForm market={market} />);
+    await waitFor(() => expect(amount.value).toBe("0.99900099"));
   });
 
   it("sends a LIMIT BUY to the internal API symbol and clears fields on success", async () => {
@@ -201,6 +282,28 @@ describe("SpotOrderForm", () => {
         quantity: "1",
       })
     );
+  });
+
+  it("locks every mutable control while the order request is pending", async () => {
+    let resolveOrder!: (order: SpotOrder) => void;
+    mPlace.mockReturnValue(
+      new Promise((resolve) => {
+        resolveOrder = resolve;
+      })
+    );
+    const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
+    fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
+    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase}` }));
+
+    await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
+    expect((getByRole("tab", { name: `Buy ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
+    expect((getByRole("tab", { name: `Sell ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
+    expect((getByLabelText(`Price (${market.displayQuote})`) as HTMLInputElement).disabled).toBe(true);
+    expect((getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement).disabled).toBe(true);
+    expect((getByRole("slider", { name: "Order percentage" }) as HTMLInputElement).disabled).toBe(true);
+
+    await act(async () => resolveOrder(successfulOrder("BUY")));
   });
 
   it("surfaces SpotApiError code and message to the user", async () => {

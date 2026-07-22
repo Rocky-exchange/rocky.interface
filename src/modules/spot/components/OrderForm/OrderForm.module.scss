@@ -35,6 +35,11 @@
     border-color: var(--ltr-border);
     background: var(--ltr-bg-hover);
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.62;
+  }
 }
 
 .sideTabBuyActive {
@@ -175,6 +180,11 @@
     color: var(--ltr-text-muted);
     font-weight: 500;
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.68;
+  }
 }
 
 .unit {
@@ -262,6 +272,11 @@
   &:focus-visible {
     outline: 1px solid var(--ltr-accent-cyan, #ff8a3d);
     outline-offset: 4px;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.58;
   }
 }
 

@@ -1,4 +1,5 @@
-import { type CSSProperties, useMemo, useState } from "react";
+import BigNumber from "bignumber.js";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
@@ -11,15 +12,67 @@ import type { SpotMarket } from "../../model/spotMarkets";
 type Side = "BUY" | "SELL";
 
 const PERCENT_LABELS = [0, 25, 50, 75, 100] as const;
+const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
+const FEE_MULTIPLIER = new Decimal("1.001");
+
+type PercentOrderInput = {
+  side: Side;
+  percent: number;
+  price: string;
+  baseFree: string;
+  quoteFree: string;
+};
 
 function balanceFree(asset: string, balances: { asset: string; free: string }[]): string {
   return balances.find((balance) => balance.asset.toUpperCase() === asset.toUpperCase())?.free ?? "0";
 }
 
 function formatBalance(value: string): string {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "—";
-  return number.toLocaleString("en-US", { maximumFractionDigits: 8 });
+  const number = new Decimal(value);
+  if (!number.isFinite()) return "—";
+  return number.decimalPlaces(8, BigNumber.ROUND_DOWN).toFormat();
+}
+
+function positiveDecimal(value: string): BigNumber | null {
+  const number = new Decimal(value);
+  return number.isFinite() && number.gt(0) ? number : null;
+}
+
+function quantityForOrderPercent(input: PercentOrderInput): string {
+  if (input.side === "SELL") return quantityForPercent(input);
+
+  const price = positiveDecimal(input.price);
+  const balance = positiveDecimal(input.quoteFree);
+  if (price === null || balance === null) return "";
+
+  const percent = Decimal.maximum(0, Decimal.minimum(100, input.percent));
+  return balance
+    .times(percent)
+    .dividedBy(100)
+    .dividedBy(price)
+    .dividedBy(FEE_MULTIPLIER)
+    .decimalPlaces(8, BigNumber.ROUND_DOWN)
+    .toFixed();
+}
+
+function isWithinAvailableBalance(
+  side: Side,
+  price: string,
+  amount: string,
+  baseFree: string,
+  quoteFree: string
+): boolean {
+  const parsedPrice = positiveDecimal(price);
+  const parsedAmount = positiveDecimal(amount);
+  if (parsedPrice === null || parsedAmount === null) return false;
+
+  if (side === "SELL") {
+    const balance = new Decimal(baseFree);
+    return balance.isFinite() && parsedAmount.lte(balance);
+  }
+
+  const balance = new Decimal(quoteFree);
+  return balance.isFinite() && parsedPrice.times(parsedAmount).times(FEE_MULTIPLIER).lte(balance);
 }
 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
@@ -41,8 +94,17 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
   const selectSide = (nextSide: Side) => {
     setSide(nextSide);
-    setAmount("");
-    setPercent(0);
+    setAmount(
+      percent === 0
+        ? ""
+        : quantityForOrderPercent({
+            side: nextSide,
+            percent,
+            price,
+            baseFree,
+            quoteFree,
+          })
+    );
     setMsg(null);
   };
 
@@ -55,7 +117,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setPrice(value);
     if (percent === 0) return;
     setAmount(
-      quantityForPercent({
+      quantityForOrderPercent({
         side,
         percent,
         price: value,
@@ -68,7 +130,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const updatePercent = (value: number) => {
     setPercent(value);
     setAmount(
-      quantityForPercent({
+      quantityForOrderPercent({
         side,
         percent: value,
         price,
@@ -78,7 +140,17 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     );
   };
 
+  useEffect(() => {
+    if (percent === 0 || busy) return;
+    const nextAmount = quantityForOrderPercent({ side, percent, price, baseFree, quoteFree });
+    setAmount((currentAmount) => (currentAmount === nextAmount ? currentAmount : nextAmount));
+  }, [baseFree, busy, percent, price, quoteFree, side]);
+
+  const canSubmit =
+    ready && account?.canTrade === true && !busy && isWithinAvailableBalance(side, price, amount, baseFree, quoteFree);
+
   const submit = async () => {
+    if (!canSubmit) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -107,7 +179,6 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     }
   };
 
-  const disabled = busy || !summary.total || !ready;
   const sliderStyle = { "--slider-fill": `${percent}%` } as CSSProperties;
 
   return (
@@ -117,6 +188,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           type="button"
           role="tab"
           aria-selected={side === "BUY"}
+          disabled={busy}
           className={`${styles.sideTab} ${side === "BUY" ? styles.sideTabBuyActive : ""}`}
           onClick={() => selectSide("BUY")}
         >
@@ -126,6 +198,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           type="button"
           role="tab"
           aria-selected={side === "SELL"}
+          disabled={busy}
           className={`${styles.sideTab} ${side === "SELL" ? styles.sideTabSellActive : ""}`}
           onClick={() => selectSide("SELL")}
         >
@@ -164,6 +237,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               className={styles.input}
               value={price}
               onChange={(event) => updatePrice(event.target.value)}
+              disabled={busy}
               placeholder="500"
               inputMode="decimal"
               autoComplete="off"
@@ -182,6 +256,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               className={styles.input}
               value={amount}
               onChange={(event) => updateAmount(event.target.value)}
+              disabled={busy}
               placeholder="0.1"
               inputMode="decimal"
               autoComplete="off"
@@ -192,7 +267,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
         <div className={styles.sliderBlock}>
           <input
-            aria-label="Order size percentage"
+            aria-label="Order percentage"
             className={styles.slider}
             style={sliderStyle}
             type="range"
@@ -201,6 +276,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             step="1"
             value={percent}
             onChange={(event) => updatePercent(Number(event.target.value))}
+            disabled={busy}
           />
           <div className={styles.percentLabels} aria-hidden="true">
             {PERCENT_LABELS.map((label) => (
@@ -231,7 +307,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             type="button"
             className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
             onClick={submit}
-            disabled={disabled}
+            disabled={!canSubmit}
           >
             {busy ? "Sending…" : `${side} ${base}`}
           </button>
