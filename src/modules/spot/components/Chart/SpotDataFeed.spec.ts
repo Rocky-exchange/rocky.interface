@@ -61,6 +61,15 @@ describe("resolveSymbol", () => {
     expect(info.type).toBe("crypto");
   });
 
+  it("preserves the configured cETH display capitalization", async () => {
+    const feed = new SpotDataFeed();
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CETH-USDA", resolve as never));
+    expect(info.name).toBe("CETH-USDA");
+    expect(info.ticker).toBe("CETH-USDA");
+    expect(info.description).toBe("cETH/USDA");
+    expect(info.currency_code).toBe("USDA");
+  });
+
   it("uses generic labels for an unknown symbol without a dash", async () => {
     const feed = new SpotDataFeed();
     const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("UNKNOWN", resolve as never));
