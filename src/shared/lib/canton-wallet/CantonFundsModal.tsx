@@ -794,8 +794,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <button
                   type="button"
                   className={styles.refreshButton}
-                  onClick={() => void refreshWalletDashboard()}
-                  disabled={dashboardRefreshing}
+                  onClick={() => {
+                    if (!dashboardRefreshing) void refreshWalletDashboard();
+                  }}
+                  aria-busy={dashboardRefreshing}
                   aria-label={i18n._(t`Refresh balances`)}
                 >
                   <RefreshIcon />

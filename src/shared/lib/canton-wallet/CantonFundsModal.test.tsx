@@ -285,7 +285,10 @@ describe("CantonFundsModal", () => {
       expect(screen.getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.0431")
     );
     expect(screen.getAllByLabelText("Refreshing...")).toHaveLength(4);
-    expect(screen.getByRole("button", { name: "Refresh balances" }).className).not.toContain("refreshButtonLoading");
+    const refreshButton = screen.getByRole("button", { name: "Refresh balances" });
+    expect(refreshButton.hasAttribute("disabled")).toBe(false);
+    expect(refreshButton.getAttribute("aria-busy")).toBe("true");
+    expect(refreshButton.className).not.toContain("refreshButtonLoading");
   });
 
   it("combines persisted deposits, withdrawals, and account transfers in History", async () => {
