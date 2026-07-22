@@ -262,6 +262,20 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     await expect(adapter.placeOrder(baseOrder)).resolves.toBe(response);
   });
 
+  it("passes the live effective price to the shared MARKET submission boundary", async () => {
+    render(<Harness />);
+
+    await adapter.placeOrder({ ...baseOrder, side: "sell", effectivePrice: 100, maxSlippage: 0.01 });
+
+    expect(submitOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isLong: false,
+        acceptablePrice: 100n * 10n ** 30n,
+        maxSlippage: "0.01",
+      })
+    );
+  });
+
   it("propagates submitOrder errors unchanged", async () => {
     const error = new Error("ledger rejected the order");
     submitOrder.mockRejectedValueOnce(error);

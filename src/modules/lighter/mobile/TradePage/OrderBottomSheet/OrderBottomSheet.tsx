@@ -34,15 +34,16 @@ export function OrderBottomSheet({ open, side, baseSymbol, onOpenChange, maxLeve
   const { placeOrder, submitting } = usePlaceOrderAdapter();
   const { connected } = useCantonSession();
   const isConnected = connected;
-  const { amountNum, amountReady, preview, costMargin, liqPrice, previewErrorMessage } = useOrderAmountPreview({
-    side: form.side,
-    mode: form.mode,
-    rawSize: form.size,
-    sizeUnit: form.sizeUnit,
-    limitPrice: form.price,
-    leverage: form.leverageValue,
-    marginMode: form.marginTab.toLowerCase() as "cross" | "isolated",
-  });
+  const { amountNum, amountReady, effectivePrice, preview, costMargin, liqPrice, previewErrorMessage } =
+    useOrderAmountPreview({
+      side: form.side,
+      mode: form.mode,
+      rawSize: form.size,
+      sizeUnit: form.sizeUnit,
+      limitPrice: form.price,
+      leverage: form.leverageValue,
+      marginMode: form.marginTab.toLowerCase() as "cross" | "isolated",
+    });
   const info = useOrderInfoRows({ preview, side: form.side, amountNum, baseSymbol });
   const isAdvanced = isAdvancedMode(form.mode);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export function OrderBottomSheet({ open, side, baseSymbol, onOpenChange, maxLeve
         side: form.side,
         type: form.mode === "Market" ? "market" : "limit",
         amount: amountNum,
+        ...(form.mode === "Market" && effectivePrice ? { effectivePrice } : {}),
         price: form.mode === "Limit" ? Number(form.price) : undefined,
         leverage: form.leverageValue,
         marginMode: form.marginTab.toLowerCase() as "cross" | "isolated",

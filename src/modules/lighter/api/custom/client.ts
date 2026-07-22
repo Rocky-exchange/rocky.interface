@@ -1127,22 +1127,36 @@ export interface CreateOrderResponse {
   };
 }
 
-// Path fixed to match rocky-backend's real POST /v1/orders. NOTE: the
-// request body's `symbol` field must be Rocky-native ("BTC-PERP"), not the
-// Binance-style "BTCUSDT" the caller (usePrimitOrderSubmit.ts) currently
-// sends -- that conversion needs fixing at the call site, not here, since
-// this function just forwards whatever request it's given.
+let orderIdempotencySequence = 0;
+
+export function createOrderIdempotencyKey(): string {
+  const nativeUuid = globalThis.crypto?.randomUUID?.();
+  if (nativeUuid) return nativeUuid;
+  orderIdempotencySequence += 1;
+  return `web-${Date.now().toString(36)}-${orderIdempotencySequence.toString(36)}`;
+}
+
 export async function createOrder(
   chainId: number,
   request: CreateOrderRequest,
   address?: string | null
 ): Promise<CreateOrderResponse> {
-  return apiFetch<CreateOrderResponse>(chainId, "/v1/orders", {
+  const response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
     method: "POST",
     body: JSON.stringify(request),
     requireAuth: true,
     address,
   });
+
+  return {
+    order_id: response.order_id,
+    status: response.status ?? "open",
+    filled_amount: response.filled_amount ?? "0",
+    remaining_amount: response.remaining_amount ?? request.qty,
+    average_price: response.average_price ?? null,
+    created_at: response.created_at ?? new Date().toISOString(),
+    chain_audit_payload: response.chain_audit_payload,
+  };
 }
 
 export interface PositionCloseAuditSubmissionRequest {
@@ -1290,21 +1304,15 @@ export async function closePosition(
   // closing a short means buying (aggressively above mark, to cross asks).
   const closingSide: "buy" | "sell" = request.side === "long" ? "sell" : "buy";
   const price =
-    closingSide === "sell"
-      ? mark * (1 - CLOSE_POSITION_AGGRESSION)
-      : mark * (1 + CLOSE_POSITION_AGGRESSION);
+    closingSide === "sell" ? mark * (1 - CLOSE_POSITION_AGGRESSION) : mark * (1 + CLOSE_POSITION_AGGRESSION);
 
   const orderRequest: CreateOrderRequest = {
     symbol: request.symbol,
-    side: closingSide,
-    order_type: "limit",
+    side: closingSide.toUpperCase() as "BUY" | "SELL",
     price: price.toFixed(8),
-    amount: request.qty,
+    qty: request.qty,
     leverage: request.leverage ?? 1,
-    margin_mode: "cross",
-    signature: "canton-session",
-    timestamp: Math.floor(Date.now() / 1000),
-    reduce_only: true,
+    idempotency_key: createOrderIdempotencyKey(),
   };
 
   return createOrder(chainId, orderRequest, address);

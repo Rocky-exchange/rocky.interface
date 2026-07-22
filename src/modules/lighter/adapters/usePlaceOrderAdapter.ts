@@ -16,6 +16,8 @@ export type PlaceOrderParams = {
   amount: number;
   /** 限价单价格(限价时必填) */
   price?: number;
+  /** 市价单真实 mark/preview 参考价；shared boundary 会据此生成 crossing limit。 */
+  effectivePrice?: number;
   /** 条件单触发价 */
   triggerPrice?: number;
   /** 杠杆倍数(默认 10) */
@@ -118,6 +120,7 @@ export function usePlaceOrderAdapter() {
 
         const sizeDeltaUsd = toBigIntScaled(p.amount, BASE_TOKEN_DECIMALS);
         const limitPrice = isLimit && p.price != null ? toBigIntScaled(p.price, USD_DECIMALS) : undefined;
+        const marketReferencePrice = !isLimit ? toBigIntScaled(p.effectivePrice ?? NaN, USD_DECIMALS) : undefined;
 
         const result = await submitOrder({
           symbol: selectedSymbol,
@@ -126,6 +129,7 @@ export function usePlaceOrderAdapter() {
           sizeDeltaUsd,
           indexTokenDecimals: BASE_TOKEN_DECIMALS,
           triggerPrice: limitPrice,
+          acceptablePrice: marketReferencePrice,
           orderType: orderTypeNum,
           apiOrderTypeOverride: p.type,
           reduceOnly: isDecrease,
