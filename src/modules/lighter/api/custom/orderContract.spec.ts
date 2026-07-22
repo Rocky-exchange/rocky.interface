@@ -6,6 +6,7 @@ import { closePosition, createOrder } from "./client";
 const UNIT_18 = 10n ** 18n;
 const UNIT_30 = 10n ** 30n;
 const store = new Map<string, string>();
+const sessionStore = new Map<string, string>();
 let orderSubmit: typeof import("./usePrimitOrderSubmit");
 
 function buildRequest(overrides: Record<string, unknown> = {}): CreateOrderRequest {
@@ -41,6 +42,15 @@ describe("Rocky order request contract", () => {
         clear: () => store.clear(),
       },
     });
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => sessionStore.get(key) ?? null,
+        setItem: (key: string, value: string) => sessionStore.set(key, value),
+        removeItem: (key: string) => sessionStore.delete(key),
+        clear: () => sessionStore.clear(),
+      },
+    });
     orderSubmit = await import("./usePrimitOrderSubmit");
   });
 
@@ -54,6 +64,7 @@ describe("Rocky order request contract", () => {
 
   afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -116,25 +127,109 @@ describe("Rocky order request contract", () => {
     }
   );
 
-  it("uses the custom client id, otherwise generates a unique non-empty id per logical submit", () => {
+  it("uses the custom client id without replacing it", () => {
     expect(buildRequest().idempotency_key).toBe("client-42");
-
-    const first = buildRequest({ clientOrderId: undefined }).idempotency_key;
-    const second = buildRequest({ clientOrderId: undefined }).idempotency_key;
-    expect(first).toBeTruthy();
-    expect(second).toBeTruthy();
-    expect(second).not.toBe(first);
   });
 
-  it("does not leak reduce-only or any other legacy fields into the native request", () => {
-    expect(buildRequest({ reduceOnly: true })).toEqual({
-      symbol: "BTC-PERP",
-      side: "BUY",
-      price: "100.000000",
-      qty: "1.25000000",
-      leverage: 10,
-      idempotency_key: "client-42",
-    });
+  it("reuses one generated id for the same pending intent and separates different payloads", () => {
+    const first = buildRequest({ clientOrderId: undefined, triggerPrice: 101n * UNIT_30 }).idempotency_key;
+    const retry = buildRequest({ clientOrderId: undefined, triggerPrice: 101n * UNIT_30 }).idempotency_key;
+    const different = buildRequest({ clientOrderId: undefined, triggerPrice: 102n * UNIT_30 }).idempotency_key;
+
+    expect(first).toBeTruthy();
+    expect(retry).toBe(first);
+    expect(different).not.toBe(first);
+  });
+
+  it.each([{ reduceOnly: true }, { closePosition: true }])(
+    "rejects unsupported closing option %j before fetch",
+    (option) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      expect(() => buildRequest(option)).toThrow(/Close Position/i);
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([{ tpPrice: "110" }, { slPrice: "90" }, { tpPrice: "110", slPrice: "90" }])(
+    "rejects unsupported attached protection %j before fetch",
+    (option) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      expect(() => buildRequest(option)).toThrow(/attached Take Profit.*Stop Loss/i);
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ["BTC-PERP", "BTC-PERP"],
+    ["BTCUSDT", "BTC-PERP"],
+    ["BTC-USD", "BTC-PERP"],
+    ["BTCUSD", "BTC-PERP"],
+  ])("normalizes %s to the idempotent Rocky symbol %s", (symbol, expected) => {
+    expect(buildRequest({ symbol }).symbol).toBe(expected);
+  });
+
+  it.each(["1", "1.1", "0", "-0.1", "not-a-number"])(
+    "rejects unsafe maxSlippage %s without producing a SELL price of zero",
+    (maxSlippage) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      expect(() =>
+        buildRequest({
+          isLong: false,
+          apiOrderTypeOverride: "market",
+          orderType: 0,
+          triggerPrice: undefined,
+          acceptablePrice: 100n * UNIT_30,
+          maxSlippage,
+        })
+      ).toThrow(/maxSlippage/i);
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it("reuses the id after an ambiguous network failure, then clears it after success", async () => {
+    const firstRequest = buildRequest({ clientOrderId: undefined, triggerPrice: 103n * UNIT_30 });
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("connection reset")));
+
+    await expect(createOrder(1, firstRequest, "party-1")).rejects.toThrow("connection reset");
+    const retryRequest = buildRequest({ clientOrderId: undefined, triggerPrice: 103n * UNIT_30 });
+    expect(retryRequest.idempotency_key).toBe(firstRequest.idempotency_key);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ order_id: "retry-ok" }))
+    );
+    await createOrder(1, retryRequest, "party-1");
+    const nextIntent = buildRequest({ clientOrderId: undefined, triggerPrice: 103n * UNIT_30 });
+    expect(nextIntent.idempotency_key).not.toBe(firstRequest.idempotency_key);
+  });
+
+  it("reuses the id after a 5xx but clears it after an explicit 4xx", async () => {
+    const serverFailureRequest = buildRequest({ clientOrderId: undefined, triggerPrice: 104n * UNIT_30 });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ error: "temporarily unavailable" }, 503))
+    );
+    await expect(createOrder(1, serverFailureRequest, "party-1")).rejects.toThrow();
+    expect(buildRequest({ clientOrderId: undefined, triggerPrice: 104n * UNIT_30 }).idempotency_key).toBe(
+      serverFailureRequest.idempotency_key
+    );
+
+    const clientFailureRequest = buildRequest({ clientOrderId: undefined, triggerPrice: 105n * UNIT_30 });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ error: "bad order" }, 400))
+    );
+    await expect(createOrder(1, clientFailureRequest, "party-1")).rejects.toThrow();
+    expect(buildRequest({ clientOrderId: undefined, triggerPrice: 105n * UNIT_30 }).idempotency_key).not.toBe(
+      clientFailureRequest.idempotency_key
+    );
   });
 
   it("sends only native fields and normalizes Rocky's sparse response", async () => {
@@ -204,9 +299,9 @@ describe("Rocky order request contract", () => {
   });
 });
 
-function jsonResponse(body: unknown): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
-    status: 200,
+    status,
     headers: { "Content-Type": "application/json" },
   });
 }

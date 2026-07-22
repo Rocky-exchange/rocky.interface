@@ -1,8 +1,7 @@
-import { Trans, t } from "@lingui/macro";
-import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CoinSelect, Row } from "./MarketOrderForm";
+import { CoinSelect, Row, UnsupportedBasicOrderOptions } from "./MarketOrderForm";
 import { getCurrentOrderFormPosition, getProjectedOrderFormPositionValue } from "./orderFormPosition";
 import { formatPreviewFeeRatePercent } from "./orderPreviewFeeFormat";
 import { useAvailableBalanceAdapter } from "../../../adapters/useAvailableBalanceAdapter";
@@ -13,7 +12,6 @@ import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
 import { useOrderGate } from "./useOrderGate";
 import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
-import { Checkbox } from "../../../components/Checkbox/Checkbox";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
 
 type Props = {
@@ -26,17 +24,10 @@ type Props = {
 const FALLBACK_MID_PRICE = 74328.3;
 
 export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Props) {
-  const { i18n } = useLingui();
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [amountUnit, setAmountUnit] = useState<"SYMBOL" | "USD">("USD");
   const [pct, setPct] = useState(0);
-  const [reduceOnly, setReduceOnly] = useState(false);
-  const [tpsl, setTpsl] = useState(false);
-  const [tpPrice, setTpPrice] = useState("");
-  const [tpGain, setTpGain] = useState("");
-  const [slPrice, setSlPrice] = useState("");
-  const [slLoss, setSlLoss] = useState("");
   // 点 OrderBook 行时通过 limitPriceBus 推送价格过来,mount 时也读一次最新值
   // 兜住用户"先点了 book 再切到限價 Tab"的顺序。
   useEffect(() => {
@@ -65,7 +56,6 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
     amount: amountNum,
     leverage,
     marginMode,
-    reduceOnly,
     price: priceNum,
   });
   const p = preview.data;
@@ -97,7 +87,7 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
   const bonusGate = useOrderGate({
     symbol: `${baseSymbol}USDT`,
     side,
-    isOpening: !reduceOnly,
+    isOpening: true,
     marginMode: "isolated_hedge",
   });
 
@@ -110,9 +100,6 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
         price: priceNum || undefined,
         leverage,
         marginMode,
-        reduceOnly,
-        tpPrice: tpsl && tpPrice ? Number(tpPrice) : undefined,
-        slPrice: tpsl && slPrice ? Number(slPrice) : undefined,
       })
     );
 
@@ -131,7 +118,7 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
         />
         <Row
           label={<Trans>Position</Trans>}
-          value={getProjectedOrderFormPositionValue(currentPosition, baseSymbol, amountNum, side, reduceOnly)}
+          value={getProjectedOrderFormPositionValue(currentPosition, baseSymbol, amountNum, side, false)}
         />
       </div>
 
@@ -207,85 +194,7 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
           side={side}
         />
 
-        <Checkbox
-          checked={reduceOnly}
-          onChange={(checked) => {
-            setReduceOnly(checked);
-            if (checked) setTpsl(false);
-          }}
-          label={i18n._(t`Reduce Only`)}
-        />
-        {!reduceOnly && (
-          <Checkbox
-            checked={tpsl}
-            onChange={(checked) => {
-              setTpsl(checked);
-              if (checked) setReduceOnly(false);
-            }}
-            label={i18n._(t`Take Profit / Stop Loss`)}
-          />
-        )}
-
-        {tpsl && (
-          <div className="ltr-form__grid2">
-            <div className="ltr-form__field">
-              <label className="ltr-form__label">
-                <Trans>TP Price</Trans>
-              </label>
-              <input
-                className="ltr-form__input"
-                value={tpPrice}
-                onChange={(e) => setTpPrice(e.target.value)}
-                placeholder="0.0"
-                inputMode="decimal"
-              />
-            </div>
-            <div className="ltr-form__field">
-              <label className="ltr-form__label">
-                <Trans>Gain</Trans>
-              </label>
-              <input
-                className="ltr-form__input"
-                value={tpGain}
-                onChange={(e) => setTpGain(e.target.value)}
-                placeholder="0.00"
-                inputMode="decimal"
-              />
-              <button className="ltr-form__trailing" type="button">
-                <span>%</span>
-                <Caret />
-              </button>
-            </div>
-            <div className="ltr-form__field">
-              <label className="ltr-form__label">
-                <Trans>SL Price</Trans>
-              </label>
-              <input
-                className="ltr-form__input"
-                value={slPrice}
-                onChange={(e) => setSlPrice(e.target.value)}
-                placeholder="0.0"
-                inputMode="decimal"
-              />
-            </div>
-            <div className="ltr-form__field">
-              <label className="ltr-form__label">
-                <Trans>Loss</Trans>
-              </label>
-              <input
-                className="ltr-form__input"
-                value={slLoss}
-                onChange={(e) => setSlLoss(e.target.value)}
-                placeholder="0.00"
-                inputMode="decimal"
-              />
-              <button className="ltr-form__trailing" type="button">
-                <span>%</span>
-                <Caret />
-              </button>
-            </div>
-          </div>
-        )}
+        <UnsupportedBasicOrderOptions />
       </div>
 
       <div className="ltr-form__section">
@@ -341,13 +250,5 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
         </button>
       )}
     </div>
-  );
-}
-
-function Caret() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor">
-      <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
-    </svg>
   );
 }

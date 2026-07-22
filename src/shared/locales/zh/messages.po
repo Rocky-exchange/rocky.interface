@@ -261,6 +261,11 @@ msgstr "交易歷史"
 msgid "More"
 msgstr "更多"
 
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+#: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
+msgid "Reduce Only is unavailable here. Use Close Position to reduce an open position."
+msgstr "此處暫不支援只減倉。請使用「平倉」來減少現有倉位。"
+
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
@@ -298,8 +303,6 @@ msgstr "即時資金費率"
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "SL Price"
 msgstr "止損價格"
 
@@ -515,8 +518,6 @@ msgstr "此提現請求已處理。"
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Gain"
 msgstr "收益"
 
@@ -1413,8 +1414,6 @@ msgstr "此市場目前已關閉。"
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Loss"
 msgstr "虧損"
 
@@ -1612,8 +1611,6 @@ msgstr "若要存入，請在下方任一 AVAX DEX 上將您的原生 USDT 或 U
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Reduce Only"
@@ -1763,8 +1760,6 @@ msgstr "做空 {baseSymbol}"
 
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/TPSLSection.tsx
 msgid "Take Profit / Stop Loss"
 msgstr "止盈 / 止損"
@@ -2575,8 +2570,6 @@ msgstr "保證金"
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "TP Price"
 msgstr "止盈價格"
 
@@ -3298,6 +3291,11 @@ msgstr "圖表元素"
 #: src/modules/lighter/components/BottomTabs/BottomTabs.tsx
 msgid "Assets ({0})"
 msgstr "資產 ({0})"
+
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+#: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
+msgid "Attached Take Profit / Stop Loss is not supported yet."
+msgstr "目前尚不支援主單附帶止盈／止損。"
 
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx

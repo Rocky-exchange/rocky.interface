@@ -150,30 +150,39 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     expect(submitOrder).toHaveBeenCalledTimes(1);
   });
 
-  it("bypasses the precheck for reduce-only orders and still submits", async () => {
+  it("fails closed for unsupported reduce-only orders before precheck or submission", async () => {
     render(<Harness />);
 
-    await adapter.placeOrder({ ...baseOrder, reduceOnly: true });
+    await expect(adapter.placeOrder({ ...baseOrder, reduceOnly: true })).rejects.toThrow(/Close Position/i);
 
     expect(checkOpeningOrder).not.toHaveBeenCalled();
-    expect(submitOrder).toHaveBeenCalledTimes(1);
+    expect(submitOrder).not.toHaveBeenCalled();
   });
 
-  it("treats closePosition as a reduce-only closing order even when reduceOnly is omitted", async () => {
+  it("fails closed when closePosition is routed through the generic form adapter", async () => {
     render(<Harness />);
 
-    await adapter.placeOrder({ ...baseOrder, closePosition: true });
-
-    expect(checkOpeningOrder).not.toHaveBeenCalled();
-    expect(submitOrder).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isIncrease: false,
-        orderType: 4,
-        reduceOnly: true,
-        closePosition: true,
-      })
+    await expect(adapter.placeOrder({ ...baseOrder, closePosition: true })).rejects.toThrow(
+      /dedicated Close Position/i
     );
+
+    expect(checkOpeningOrder).not.toHaveBeenCalled();
+    expect(submitOrder).not.toHaveBeenCalled();
   });
+
+  it.each([{ tpPrice: 110 }, { slPrice: 90 }, { tpPrice: 110, slPrice: 90 }])(
+    "fails closed for unsupported attached protection options %j",
+    async (options) => {
+      render(<Harness />);
+
+      await expect(adapter.placeOrder({ ...baseOrder, ...options })).rejects.toThrow(
+        /attached Take Profit.*Stop Loss/i
+      );
+
+      expect(checkOpeningOrder).not.toHaveBeenCalled();
+      expect(submitOrder).not.toHaveBeenCalled();
+    }
+  );
 
   it("propagates a safe bonus rejection with its code and never submits", async () => {
     mockCheckBonusOrder.mockResolvedValue({

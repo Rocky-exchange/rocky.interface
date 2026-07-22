@@ -6,14 +6,8 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
 
-import {
-  cancelOrder,
-  closePosition,
-  createOrder,
-  createOrderIdempotencyKey,
-  createTriggerOrder,
-  type CreateOrderResponse,
-} from "./client";
+import { cancelOrder, closePosition, createOrder, createTriggerOrder, type CreateOrderResponse } from "./client";
+import { getOrCreatePendingOrderIntentKey } from "./orderIntentRegistry";
 import { useApiOrders } from "./useApiOrders";
 import type {
   BatchCancelRequest,
@@ -94,7 +88,7 @@ function mapSide(isLong: boolean): "buy" | "sell" {
 // used to produce (correct only for the old api.primit.io-shaped backend).
 function getApiSymbol(symbol: string) {
   const upper = symbol.toUpperCase().trim();
-  const base = upper.includes("-USD") ? upper.replace("-USD", "").replace(/USDT?$/, "") : upper.replace(/USDT?$/, "");
+  const base = upper.replace(/[-/]?PERP$/, "").replace(/[-/]?USDT?$/, "");
   return `${base}-PERP`;
 }
 
@@ -115,14 +109,13 @@ export function formatOrderSubmitError(error: any): string {
 
 const DEFAULT_MARKET_AGGRESSION = 0.005;
 
-function resolveIdempotencyKey(clientOrderId?: string): string {
-  const customId = clientOrderId?.trim();
-  return customId || createOrderIdempotencyKey();
-}
-
 function resolveMarketAggression(maxSlippage?: string): number {
+  if (maxSlippage === undefined) return DEFAULT_MARKET_AGGRESSION;
   const parsed = Number(maxSlippage);
-  return Number.isFinite(parsed) && parsed > 0 && parsed <= 1 ? parsed : DEFAULT_MARKET_AGGRESSION;
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
+    throw new Error("maxSlippage must be greater than 0 and less than 1");
+  }
+  return parsed;
 }
 
 export function buildCreateOrderRequest(params: PrimitOrderParams): {
@@ -132,6 +125,13 @@ export function buildCreateOrderRequest(params: PrimitOrderParams): {
   apiOrderType: ApiOrderType;
   apiSymbol: string;
 } {
+  if (params.reduceOnly || params.closePosition) {
+    throw new Error("Reduce Only is unavailable on generic orders. Use the dedicated Close Position action.");
+  }
+  if (params.tpPrice !== undefined || params.slPrice !== undefined) {
+    throw new Error("Attached Take Profit / Stop Loss is not supported for Rocky orders yet.");
+  }
+
   const apiOrderType =
     params.apiOrderTypeOverride ?? mapOrderType(params.orderType, params.isIncrease, params.triggerPrice);
   const usesLimitPrice =
@@ -164,13 +164,19 @@ export function buildCreateOrderRequest(params: PrimitOrderParams): {
       executablePrice = (referencePrice * (params.isLong ? 1 + aggression : 1 - aggression)).toFixed(6);
     }
 
-    request = {
+    const intent: Omit<CreateOrderRequest, "idempotency_key"> = {
       symbol: getApiSymbol(params.symbol),
       side: params.isLong ? "BUY" : "SELL",
       price: executablePrice,
       qty: sizeStr,
       leverage: params.leverage ? Math.round(params.leverage) : 1,
-      idempotency_key: resolveIdempotencyKey(params.clientOrderId),
+    };
+    if (!Number.isFinite(Number(intent.price)) || Number(intent.price) <= 0) {
+      throw new Error("Executable order price must be positive");
+    }
+    request = {
+      ...intent,
+      idempotency_key: getOrCreatePendingOrderIntentKey(intent, params.clientOrderId),
     };
   }
 

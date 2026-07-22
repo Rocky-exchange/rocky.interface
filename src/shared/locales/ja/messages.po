@@ -261,6 +261,11 @@ msgstr "取引履歴"
 msgid "More"
 msgstr "もっと"
 
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+#: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
+msgid "Reduce Only is unavailable here. Use Close Position to reduce an open position."
+msgstr "ここではリデュースオンリーを利用できません。保有ポジションを減らすには「ポジションを決済」を使用してください。"
+
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
@@ -298,8 +303,6 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "SL Price"
 msgstr ""
 
@@ -515,8 +518,6 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Gain"
 msgstr ""
 
@@ -1413,8 +1414,6 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Loss"
 msgstr ""
 
@@ -1612,8 +1611,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Reduce Only"
@@ -1763,8 +1760,6 @@ msgstr ""
 
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/TPSLSection.tsx
 msgid "Take Profit / Stop Loss"
 msgstr "テイクプロフィット / ストップロス"
@@ -2575,8 +2570,6 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
-#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "TP Price"
 msgstr ""
 
@@ -3298,6 +3291,11 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/BottomTabs.tsx
 msgid "Assets ({0})"
 msgstr ""
+
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+#: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
+msgid "Attached Take Profit / Stop Loss is not supported yet."
+msgstr "注文へのテイクプロフィット／ストップロスの追加はまだサポートされていません。"
 
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx

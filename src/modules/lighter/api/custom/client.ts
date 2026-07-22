@@ -14,6 +14,11 @@ import { getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
 
 import { marketDataRequest } from "../marketRequests";
 import {
+  clearPendingOrderIntent,
+  getOrCreatePendingOrderIntentKey,
+  shouldRetainPendingOrderIntent,
+} from "./orderIntentRegistry";
+import {
   mapReferralDashboardToOnChainResponse,
   normalizeReferralDashboardResponse,
 } from "./referralDashboard.normalize";
@@ -1127,26 +1132,28 @@ export interface CreateOrderResponse {
   };
 }
 
-let orderIdempotencySequence = 0;
-
-export function createOrderIdempotencyKey(): string {
-  const nativeUuid = globalThis.crypto?.randomUUID?.();
-  if (nativeUuid) return nativeUuid;
-  orderIdempotencySequence += 1;
-  return `web-${Date.now().toString(36)}-${orderIdempotencySequence.toString(36)}`;
-}
+export { createOrderIdempotencyKey } from "./orderIntentRegistry";
 
 export async function createOrder(
   chainId: number,
   request: CreateOrderRequest,
   address?: string | null
 ): Promise<CreateOrderResponse> {
-  const response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
-    method: "POST",
-    body: JSON.stringify(request),
-    requireAuth: true,
-    address,
-  });
+  let response: Partial<CreateOrderResponse> & { order_id: string };
+  try {
+    response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
+      method: "POST",
+      body: JSON.stringify(request),
+      requireAuth: true,
+      address,
+    });
+    clearPendingOrderIntent(request);
+  } catch (error) {
+    if (!shouldRetainPendingOrderIntent(error)) {
+      clearPendingOrderIntent(request);
+    }
+    throw error;
+  }
 
   return {
     order_id: response.order_id,
@@ -1306,13 +1313,16 @@ export async function closePosition(
   const price =
     closingSide === "sell" ? mark * (1 - CLOSE_POSITION_AGGRESSION) : mark * (1 + CLOSE_POSITION_AGGRESSION);
 
-  const orderRequest: CreateOrderRequest = {
+  const intent: Omit<CreateOrderRequest, "idempotency_key"> = {
     symbol: request.symbol,
     side: closingSide.toUpperCase() as "BUY" | "SELL",
     price: price.toFixed(8),
     qty: request.qty,
     leverage: request.leverage ?? 1,
-    idempotency_key: createOrderIdempotencyKey(),
+  };
+  const orderRequest: CreateOrderRequest = {
+    ...intent,
+    idempotency_key: getOrCreatePendingOrderIntentKey(intent),
   };
 
   return createOrder(chainId, orderRequest, address);

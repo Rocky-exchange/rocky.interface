@@ -124,6 +124,15 @@ describe("OrderBottomSheet preview wiring", () => {
     expect(view.getByText(/Taker: 0\.036% \| Maker: 0%/)).toBeTruthy();
   });
 
+  it("does not expose attached TP/SL controls and explains unsupported basic-order options", () => {
+    const { container } = renderSheet();
+    const view = within(container);
+
+    expect(view.queryByRole("button", { name: /Take Profit \/ Stop Loss/i })).toBeNull();
+    expect(view.getByText(/Reduce Only is unavailable here.*Close Position/i)).toBeTruthy();
+    expect(view.getByText(/Attached Take Profit \/ Stop Loss is not supported yet/i)).toBeTruthy();
+  });
+
   it("renders the mobile-native advanced form (not the desktop ltr-form) when an advanced mode is picked", () => {
     const { container } = renderSheet();
     const view = within(container);

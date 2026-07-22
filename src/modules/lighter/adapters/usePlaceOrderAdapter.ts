@@ -92,6 +92,12 @@ export function usePlaceOrderAdapter() {
         throw new Error("钱包未连接或未认证");
       }
       if (!selectedSymbol) throw new Error("未选择交易对");
+      if (p.reduceOnly || p.closePosition) {
+        throw new Error("Reduce Only is unavailable here. Use the dedicated Close Position action.");
+      }
+      if (p.tpPrice !== undefined || p.slPrice !== undefined) {
+        throw new Error("Attached Take Profit / Stop Loss is not supported yet.");
+      }
       if (inFlightRef.current) return undefined;
 
       inFlightRef.current = true;
