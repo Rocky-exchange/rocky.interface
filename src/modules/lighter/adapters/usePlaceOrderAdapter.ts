@@ -4,6 +4,8 @@ import { usePrimitOrderSubmit } from "modules/lighter/api/custom/usePrimitOrderS
 import type { OrderType as ApiOrderType, PositionModeSide, TimeInForce, WorkingType } from "modules/lighter/api/types";
 import { useTradeState } from "modules/lighter/store/TradeStateContext";
 
+import { useBonusOrderGate } from "../features/bonus/api/useBonusOrderGate";
+
 export type OrderSide = "buy" | "sell";
 export type OrderType = ApiOrderType;
 
@@ -70,6 +72,7 @@ function toDecimalString(value: number, fractionDigits = 6): string | undefined 
 export function usePlaceOrderAdapter() {
   const { submitOrder, isReady } = usePrimitOrderSubmit();
   const { selectedSymbol } = useTradeState();
+  const { checkOpeningOrder } = useBonusOrderGate();
 
   const placeOrder = useCallback(
     async (p: PlaceOrderParams) => {
@@ -77,6 +80,15 @@ export function usePlaceOrderAdapter() {
         throw new Error("钱包未连接或未认证");
       }
       if (!selectedSymbol) throw new Error("未选择交易对");
+
+      if (!p.reduceOnly) {
+        await checkOpeningOrder({
+          symbol: selectedSymbol,
+          side: p.side,
+          is_opening: true,
+          leverage: p.leverage ?? 10,
+        });
+      }
 
       const isLimit = p.type === "limit" || p.type === "stop_limit" || p.type === "take_profit_limit";
       const isDecrease = !!p.reduceOnly;
@@ -114,7 +126,7 @@ export function usePlaceOrderAdapter() {
         clientOrderId: p.newClientOrderId,
       });
     },
-    [isReady, selectedSymbol, submitOrder]
+    [checkOpeningOrder, isReady, selectedSymbol, submitOrder]
   );
 
   return {
