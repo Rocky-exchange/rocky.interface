@@ -260,7 +260,11 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
   }
   const record = isRecord(data) ? data : {};
   const available =
-    typeof record.available === "string" || typeof record.available === "number" ? Number(record.available) : NaN;
+    typeof record.spot_free === "string" || typeof record.spot_free === "number"
+      ? Number(record.spot_free)
+      : typeof record.available === "string" || typeof record.available === "number"
+        ? Number(record.available)
+        : NaN;
   return Number.isFinite(available) ? available : null;
 }
 
@@ -317,9 +321,9 @@ export type SpotTransferResult = {
   spotFree: string;
 };
 
-/** Move balance between the funding account and the spot account. */
+/** Move USDA between the isolated contract and spot accounts. */
 export async function transferSpotBalance(input: {
-  asset: "USDA" | "CBTC" | "cETH" | "CC";
+  asset: "USDA";
   amount: string;
   direction: "toSpot" | "toFunding";
 }): Promise<SpotTransferResult> {

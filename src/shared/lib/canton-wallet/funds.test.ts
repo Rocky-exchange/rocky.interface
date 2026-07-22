@@ -11,6 +11,7 @@ import {
   submitCantonWalletDeposit,
   setUsdaAutoAccept,
   submitPlatformWithdrawal,
+  transferSpotBalance,
   type CantonFundsAsset,
 } from "./funds";
 
@@ -95,6 +96,31 @@ describe("canton wallet funds", () => {
     expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
     expect(result.platform_credit_status).toBe("confirmed");
     expect(result.platform_available).toBe("1.5");
+  });
+
+  it("submits explicit USDA contract-to-spot transfers with exchange session auth", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        asset: "USDA",
+        direction: "toSpot",
+        amount: "1",
+        fundingAvailable: "0",
+        spotFree: "1",
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      transferSpotBalance({ asset: "USDA", amount: "1", direction: "toSpot" })
+    ).resolves.toMatchObject({ spotFree: "1" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/spot/transfer",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
   });
 
   it("disconnects and clears the wallet when the exchange session is invalid", async () => {

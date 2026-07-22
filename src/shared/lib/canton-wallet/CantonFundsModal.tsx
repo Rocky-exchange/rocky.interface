@@ -48,6 +48,7 @@ type LocalHistoryRow = {
   networkFee?: string;
   status: string;
   reference?: string;
+  dedupeKeys?: string[];
   explorerUrl?: string;
 };
 
@@ -229,6 +230,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
         amount: `+${formatEnteredAmount(amount)} ${asset}`,
         status: result.platform_credit_status === "confirmed" ? "Completed" : "Submitted",
         reference: depositUpdateId || result.deposit_ref,
+        dedupeKeys: [result.deposit_ref, depositUpdateId].filter((value): value is string => Boolean(value)),
         explorerUrl: getCantonScanUpdateUrl(depositUpdateId),
       });
       await refreshWalletDashboard();
@@ -820,7 +822,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         item.type === "deposit" ? styles.positiveAmount : styles.negativeAmount
                       )}
                     >
-                      {item.amount}
+                      <HistoryAssetAmount value={item.amount} asset={item.asset} />
                     </span>
                     {historyTab === "withdraw" ? (
                       <span className={styles.feeCell}>{item.networkFee || "-"}</span>
@@ -1014,7 +1016,7 @@ function CompactAssetAmount({
 }) {
   const numeric = value === null || value === undefined ? Number.NaN : Number(value);
   const formatted = Number.isFinite(numeric) ? formatAssetAmount(numeric, asset) : "0.00";
-  const compactMatch = formatted.match(/^([+-]?[\d,]+)\.(0{4,})(\d+)$/);
+  const compactMatch = formatted.match(/^([+-]?[\d,]+)\.(0{3,})(\d+)$/);
 
   if (!compactMatch) return <>{formatted}</>;
   return (
@@ -1022,6 +1024,28 @@ function CompactAssetAmount({
       {compactMatch[1]}.0
       <sub className={styles.tokenZeroCount}>{compactMatch[2].length}</sub>
       {compactMatch[3]}
+    </>
+  );
+}
+
+function HistoryAssetAmount({ value, asset }: { value: string; asset: CantonFundsAsset }) {
+  const match = value.match(/^([+-])([\d,.]+)\s+\S+$/);
+  if (!match) return <>{value}</>;
+  const amount = match[2].replaceAll(",", "");
+  const compactMatch = amount.match(/^(\d+)\.(0{3,})(\d+)$/);
+  return (
+    <>
+      {match[1]}
+      {compactMatch ? (
+        <>
+          {compactMatch[1]}.0
+          <sub className={styles.tokenZeroCount}>{compactMatch[2].length}</sub>
+          {compactMatch[3]}
+        </>
+      ) : (
+        amount
+      )}{" "}
+      {asset}
     </>
   );
 }
@@ -1084,6 +1108,9 @@ function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRo
       amount: formatHistoryAmount("+", item.amount_expected, asset),
       status: formatFundsHistoryStatus(item.status, "Submitted"),
       reference,
+      dedupeKeys: [updateId, item.canton_update_id, item.chain_tx_id, item.deposit_ref, item.deposit_id].filter(
+        (value): value is string => Boolean(value)
+      ),
       explorerUrl: getCantonScanUpdateUrl(updateId),
     };
   });
@@ -1101,6 +1128,9 @@ function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRo
       networkFee: formatNetworkFee(item.fee_amount, item.fee_wallet_symbol || item.fee_asset),
       status: formatFundsHistoryStatus(item.status, "Submitted"),
       reference,
+      dedupeKeys: [updateId, item.withdrawal_id, item.withdrawal_request_id].filter(
+        (value): value is string => Boolean(value)
+      ),
       explorerUrl: getCantonScanUpdateUrl(updateId),
     };
   });
@@ -1110,18 +1140,22 @@ function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRo
 
 function mergeHistoryRows(serverRows: LocalHistoryRow[], currentRows: LocalHistoryRow[]): LocalHistoryRow[] {
   const merged = [...serverRows];
-  const seen = new Set(serverRows.map(historyRowKey));
+  const seen = new Set(serverRows.flatMap(historyRowKeys));
   for (const row of currentRows) {
-    const key = historyRowKey(row);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const keys = historyRowKeys(row);
+    if (keys.some((key) => seen.has(key))) continue;
+    keys.forEach((key) => seen.add(key));
     merged.push(row);
   }
   return merged.sort(compareHistoryRowsDesc).slice(0, 200);
 }
 
-function historyRowKey(row: LocalHistoryRow): string {
-  return `${row.type}:${row.reference || row.id}`;
+function historyRowKeys(row: LocalHistoryRow): string[] {
+  const values = [...(row.dedupeKeys || []), row.reference].filter(
+    (value): value is string => Boolean(value)
+  );
+  if (values.length === 0) return [`${row.type}:${row.id}`];
+  return [...new Set(values.map((value) => `${row.type}:${value}`))];
 }
 
 function compareHistoryRowsDesc(a: LocalHistoryRow, b: LocalHistoryRow): number {

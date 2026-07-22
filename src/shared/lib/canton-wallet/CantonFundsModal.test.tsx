@@ -268,13 +268,72 @@ describe("CantonFundsModal", () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
     await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1));
-    expect(screen.getByText("+0.2 USDA")).toBeTruthy();
+    expect(screen.getByText((_, node) => node?.textContent === "+0.2 USDA")).toBeTruthy();
     expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${depositUpdateId}"]`)).toBeTruthy();
 
     fireEvent.click(screen.getByText("Withdraw History"));
 
     expect(screen.getByText("-0.1 USDA")).toBeTruthy();
     expect(screen.getByText("withdrawal-server-1")).toBeTruthy();
+  });
+
+  it("replaces a local pending deposit with its server-confirmed row", async () => {
+    const updateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
+    mocks.fetchCantonFundsHistory
+      .mockResolvedValueOnce({ deposits: [], withdrawals: [] })
+      .mockResolvedValue({
+        deposits: [
+          {
+            deposit_id: "deposit-ceth-1",
+            deposit_ref: "rocky:deposit:ceth-1",
+            canton_update_id: updateId,
+            asset: "cETH",
+            amount_expected: "0.0001",
+            status: "credited",
+            credited_at: "2026-07-22T06:48:09Z",
+          },
+        ],
+        withdrawals: [],
+      });
+    mocks.submitCantonWalletDeposit.mockResolvedValue({
+      deposit_ref: "rocky:deposit:ceth-1",
+      platform_credit_status: "confirmed",
+      wallet_transfer: "rocky_wallet_submitted",
+    });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Asset" }), { target: { value: "cETH" } });
+    const depositAction = screen.getByText("Deposit", { selector: "strong" }).closest("button");
+    fireEvent.click(depositAction as HTMLButtonElement);
+    const amountInput = screen.getByPlaceholderText("100");
+    fireEvent.change(amountInput, { target: { value: "0.0001" } });
+    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
+
+    await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      const rows = Array.from(document.querySelectorAll("span")).filter((node) => node.textContent === "+0.031 cETH");
+      expect(rows).toHaveLength(1);
+    });
+  });
+
+  it("renders compact leading-zero notation in deposit history", async () => {
+    mocks.fetchCantonFundsHistory.mockResolvedValue({
+      deposits: [
+        {
+          deposit_id: "deposit-ceth-compact",
+          asset: "cETH",
+          amount_expected: "0.0001",
+          status: "credited",
+          created_at: "2026-07-22T06:48:09Z",
+        },
+      ],
+      withdrawals: [],
+    });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    const zeroCount = await screen.findByText("3", { selector: "sub" });
+    expect(zeroCount.parentElement?.textContent).toBe("+0.031 cETH");
   });
 
   it("extracts update hashes from chain ids and rejects withdrawal ids as transaction hashes", async () => {

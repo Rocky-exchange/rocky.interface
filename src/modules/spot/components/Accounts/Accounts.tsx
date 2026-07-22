@@ -27,7 +27,7 @@ async function faucet(party: string): Promise<void> {
   if (!r.ok) throw new Error(`faucet HTTP ${r.status}`);
 }
 
-const TRANSFER_ASSETS = ["USDA", "CBTC", "cETH", "CC"] as const;
+export const TRANSFER_ASSETS = ["USDA"] as const;
 type TransferAsset = (typeof TRANSFER_ASSETS)[number];
 
 export function SpotAccountsPanel() {
@@ -35,7 +35,7 @@ export function SpotAccountsPanel() {
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
-  const [xferAsset, setXferAsset] = useState<TransferAsset>("USDA");
+  const xferAsset: TransferAsset = "USDA";
   const [xferAmount, setXferAmount] = useState("");
   const [xferBusy, setXferBusy] = useState(false);
   const [xferMsg, setXferMsg] = useState<string | null>(null);
@@ -96,7 +96,7 @@ export function SpotAccountsPanel() {
       setXferMsg(
         direction === "toSpot"
           ? `Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
-          : `Moved ${result.amount} ${result.asset} to funding (funding: ${result.fundingAvailable})`,
+          : `Moved ${result.amount} ${result.asset} to contract (contract available: ${result.fundingAvailable})`,
       );
       setXferAmount("");
       refetch();
@@ -133,20 +133,8 @@ export function SpotAccountsPanel() {
         </button>
       )}
       {faucetErr && <div className={styles.err}>{faucetErr}</div>}
-      <div className={styles.title}>Transfer</div>
+      <div className={styles.title}>USDA Transfer</div>
       <div className={styles.transferRow}>
-        <select
-          className={styles.transferSelect}
-          value={xferAsset}
-          onChange={(e) => setXferAsset(e.target.value as TransferAsset)}
-          disabled={xferBusy}
-        >
-          {TRANSFER_ASSETS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
         <input
           className={styles.transferInput}
           inputMode="decimal"
@@ -163,7 +151,7 @@ export function SpotAccountsPanel() {
           disabled={xferBusy || !xferAmount.trim()}
           onClick={() => onTransfer("toSpot")}
         >
-          {xferBusy ? "…" : "Deposit → Spot"}
+          {xferBusy ? "…" : "Contract → Spot"}
         </button>
         <button
           type="button"
@@ -171,7 +159,7 @@ export function SpotAccountsPanel() {
           disabled={xferBusy || !xferAmount.trim()}
           onClick={() => onTransfer("toFunding")}
         >
-          {xferBusy ? "…" : "Spot → Funding"}
+          {xferBusy ? "…" : "Spot → Contract"}
         </button>
       </div>
       {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}
