@@ -144,8 +144,8 @@ export class SpotDataFeed implements IBasicDataFeed {
       listed_exchange: "Rocky",
       format: "price",
       minmov: 1,
-      // rocky-backend tick=0.01 for both pairs → 2 decimals.
-      pricescale: 100,
+      // rocky-backend tick=0.01 for the currently routed public markets.
+      pricescale: resolvedSymbolName === "CC-USDA" ? 100000 : 100,
       has_intraday: true,
       has_daily: true,
       has_weekly_and_monthly: false,
@@ -195,11 +195,14 @@ export class SpotDataFeed implements IBasicDataFeed {
         // Pull the last 2 bars so we can emit both the still-updating current
         // bar and (occasionally) fill in the previous bar's final print.
         const bars = await fetchKlines(symbolInfo.name, interval, 2);
-        for (const b of bars) {
-          onTick(b);
-        }
         const state = this.subs.get(listenerGuid);
-        if (state && bars.length) state.lastBarTime = bars[bars.length - 1].time as number;
+        if (!state) return;
+        for (const b of bars) {
+          if ((b.time as number) >= state.lastBarTime) {
+            onTick(b);
+            state.lastBarTime = b.time as number;
+          }
+        }
       } catch (_error) {
         /* transient — try again next tick */
       }

@@ -1,10 +1,13 @@
 import { useState } from "react";
 
+import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./Accounts.module.scss";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { SPOT_MARKETS, type SpotMarket, toSpotDisplayAsset } from "../../model/spotMarkets";
+
+export const TRANSFER_ASSETS = ["USDA"] as const;
 
 function fmt(v: string, digits = 4): string {
   const n = parseFloat(v);
@@ -46,6 +49,10 @@ export function SpotAccountsPanel({
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
+  const [xferAmount, setXferAmount] = useState("");
+  const [xferBusy, setXferBusy] = useState(false);
+  const [xferMsg, setXferMsg] = useState<string | null>(null);
+  const [xferErr, setXferErr] = useState<string | null>(null);
 
   if (variant === "workspace") {
     return (
@@ -127,6 +134,30 @@ export function SpotAccountsPanel({
     }
   };
 
+  const onTransfer = async (direction: "toSpot" | "toFunding") => {
+    setXferBusy(true);
+    setXferErr(null);
+    setXferMsg(null);
+    try {
+      const result = await transferSpotBalance({
+        asset: "USDA",
+        amount: xferAmount.trim(),
+        direction,
+      });
+      setXferMsg(
+        direction === "toSpot"
+          ? `Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
+          : `Moved ${result.amount} ${result.asset} to futures (futures available: ${result.fundingAvailable})`
+      );
+      setXferAmount("");
+      refetch();
+    } catch (error: unknown) {
+      setXferErr(error instanceof Error ? error.message : String(error));
+    } finally {
+      setXferBusy(false);
+    }
+  };
+
   return (
     <div className={styles.panel}>
       <div className={styles.summary}>
@@ -143,6 +174,42 @@ export function SpotAccountsPanel({
         {faucetErr && (
           <div className={styles.err} role="alert">
             {faucetErr}
+          </div>
+        )}
+        <div className={styles.title}>Transfer</div>
+        <div className={styles.transferRow}>
+          <input
+            aria-label="Transfer amount"
+            className={styles.transferInput}
+            inputMode="decimal"
+            placeholder="Amount"
+            value={xferAmount}
+            onChange={(event) => setXferAmount(event.target.value)}
+            disabled={xferBusy}
+          />
+        </div>
+        <div className={styles.transferRow}>
+          <button
+            type="button"
+            className={styles.connectCta}
+            disabled={xferBusy || !xferAmount.trim()}
+            onClick={() => onTransfer("toSpot")}
+          >
+            {xferBusy ? "…" : "Futures → Spot"}
+          </button>
+          <button
+            type="button"
+            className={styles.connectCta}
+            disabled={xferBusy || !xferAmount.trim()}
+            onClick={() => onTransfer("toFunding")}
+          >
+            {xferBusy ? "…" : "Spot → Futures"}
+          </button>
+        </div>
+        {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}
+        {xferErr && (
+          <div className={styles.err} role="alert">
+            {xferErr}
           </div>
         )}
       </div>

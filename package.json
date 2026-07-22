@@ -42,6 +42,7 @@
     "@radix-ui/react-slot": "1.2.4",
     "@react-three/drei": "9.88.17",
     "@react-three/fiber": "8.15.19",
+    "@rocky-wallet/dapp-sdk": "^1.0.2",
     "@sentry/react": "^10.34.0",
     "@tanstack/react-query": "5.25.0",
     "@taskworld.com/rereselect": "0.3.0",

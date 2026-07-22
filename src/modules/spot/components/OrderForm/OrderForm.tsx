@@ -5,14 +5,17 @@ import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
 import styles from "./OrderForm.module.scss";
 import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
-import { spotApi, SpotApiError } from "../../api/spotClient";
+import { spotApi, SpotApiError, type DepthResp } from "../../api/spotClient";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
+import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
+type OrderType = "LIMIT" | "MARKET";
 
 const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 const FEE_MULTIPLIER = new Decimal("1.001");
+const MARKET_BAND = new Decimal("1.05");
 
 type PercentOrderInput = {
   side: Side;
@@ -74,11 +77,20 @@ function isWithinAvailableBalance(
   return balance.isFinite() && parsedPrice.times(parsedAmount).times(FEE_MULTIPLIER).lte(balance);
 }
 
+function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | undefined): string {
+  const source = positiveDecimal(side === "BUY" ? (bestAsk ?? "") : (bestBid ?? ""));
+  if (source === null) return "";
+  return side === "BUY"
+    ? source.times(MARKET_BAND).toFixed()
+    : source.times(new Decimal(2).minus(MARKET_BAND)).toFixed();
+}
+
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { ready, account, err: accountError, refetch } = useSpotAccount();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
   const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
+  const [orderType, setOrderType] = useState<OrderType>("LIMIT");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [percent, setPercent] = useState(0);
@@ -89,11 +101,21 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const balances = account?.balances ?? [];
   const baseFree = balanceFree(market.apiBase, balances);
   const quoteFree = balanceFree(market.apiQuote, balances);
+  const { data: depth } = usePolling<DepthResp>(
+    () => spotApi.depth(market.apiSymbol, 1),
+    5000,
+    [market.apiSymbol],
+    { enabled: orderType === "MARKET" }
+  );
+  const effectivePrice =
+    orderType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
-  const summary = useMemo(() => calculateOrderSummary(price, amount), [amount, price]);
+  const summary = useMemo(() => calculateOrderSummary(effectivePrice, amount), [amount, effectivePrice]);
 
   const selectSide = (nextSide: Side) => {
+    const nextEffectivePrice =
+      orderType === "LIMIT" ? price : marketPrice(nextSide, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
     setSide(nextSide);
     setAmount(
       percent === 0
@@ -101,10 +123,22 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         : quantityForOrderPercent({
             side: nextSide,
             percent,
-            price,
+            price: nextEffectivePrice,
             baseFree,
             quoteFree,
           })
+    );
+    setMsg(null);
+  };
+
+  const selectOrderType = (nextType: OrderType) => {
+    const nextEffectivePrice =
+      nextType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
+    setOrderType(nextType);
+    setAmount(
+      percent === 0
+        ? ""
+        : quantityForOrderPercent({ side, percent, price: nextEffectivePrice, baseFree, quoteFree })
     );
     setMsg(null);
   };
@@ -148,7 +182,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       quantityForOrderPercent({
         side,
         percent: value,
-        price,
+        price: effectivePrice,
         baseFree,
         quoteFree,
       })
@@ -157,9 +191,9 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
   useEffect(() => {
     if (percent === 0 || busy) return;
-    const nextAmount = quantityForOrderPercent({ side, percent, price, baseFree, quoteFree });
+    const nextAmount = quantityForOrderPercent({ side, percent, price: effectivePrice, baseFree, quoteFree });
     setAmount((currentAmount) => (currentAmount === nextAmount ? currentAmount : nextAmount));
-  }, [baseFree, busy, percent, price, quoteFree, side]);
+  }, [baseFree, busy, effectivePrice, percent, quoteFree, side]);
 
   useLayoutEffect(() => {
     if (marketSession.current.symbol === market.apiSymbol) return;
@@ -168,6 +202,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       generation: marketSession.current.generation + 1,
     };
     setSide("BUY");
+    setOrderType("LIMIT");
     setPrice("");
     setAmount("");
     setPercent(0);
@@ -176,7 +211,10 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   }, [market.apiSymbol]);
 
   const canSubmit =
-    ready && account?.canTrade === true && !busy && isWithinAvailableBalance(side, price, amount, baseFree, quoteFree);
+    ready &&
+    account?.canTrade === true &&
+    !busy &&
+    isWithinAvailableBalance(side, effectivePrice, amount, baseFree, quoteFree);
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -190,13 +228,13 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       const response = await spotApi.placeOrder({
         symbol: market.apiSymbol,
         side,
-        type: "LIMIT",
-        price,
+        type: orderType,
+        ...(orderType === "LIMIT" ? { price } : {}),
         quantity: amount,
       });
       if (!isCurrentSession()) return;
       setMsg({ kind: "ok", text: `${response.status} · ${response.orderId.slice(0, 12)}…` });
-      setPrice("");
+      if (orderType === "LIMIT") setPrice("");
       setAmount("");
       setPercent(0);
       refetch();
@@ -219,17 +257,29 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   return (
     <div className={styles.panel}>
       <div className={styles.orderTypeTabs} role="tablist" aria-label="Order type">
-        <button type="button" role="tab" aria-selected="false" aria-disabled="true" tabIndex={-1} disabled>
+        <button
+          type="button"
+          id="spot-market-tab"
+          role="tab"
+          aria-selected={orderType === "MARKET"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={orderType === "MARKET" && !busy ? 0 : -1}
+          disabled={busy}
+          className={orderType === "MARKET" ? styles.orderTypeActive : undefined}
+          onClick={() => selectOrderType("MARKET")}
+        >
           Market
         </button>
         <button
           type="button"
           id="spot-limit-tab"
           role="tab"
-          aria-selected="true"
+          aria-selected={orderType === "LIMIT"}
           aria-controls="spot-order-form-panel"
-          tabIndex={0}
-          className={styles.orderTypeActive}
+          tabIndex={orderType === "LIMIT" && !busy ? 0 : -1}
+          disabled={busy}
+          className={orderType === "LIMIT" ? styles.orderTypeActive : undefined}
+          onClick={() => selectOrderType("LIMIT")}
         >
           Limit
         </button>
@@ -280,7 +330,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       <div
         id="spot-order-form-panel"
         role="tabpanel"
-        aria-labelledby={`spot-${side.toLowerCase()}-tab spot-limit-tab`}
+        aria-labelledby={`spot-${side.toLowerCase()}-tab spot-${orderType.toLowerCase()}-tab`}
         className={styles.body}
       >
         <div className={styles.available}>
@@ -291,20 +341,22 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         </div>
         {accountError && <div className={styles.accountHint}>{accountError}</div>}
 
-        <div className={styles.field}>
+        <div className={`${styles.field} ${orderType === "MARKET" ? styles.readOnlyShell : ""}`}>
           <label htmlFor="spot-order-price" className={styles.fieldLabel}>
-            Price
+            {orderType === "MARKET" ? "Est. Price" : "Price"}
           </label>
           <input
             id="spot-order-price"
             aria-label={`Price (${quote})`}
             className={styles.input}
-            value={price}
+            value={orderType === "MARKET" && effectivePrice ? effectivePrice : price}
             onChange={(event) => updatePrice(event.target.value)}
             disabled={busy}
-            placeholder="500"
+            placeholder={orderType === "MARKET" ? "—" : "500"}
             inputMode="decimal"
             autoComplete="off"
+            readOnly={orderType === "MARKET"}
+            tabIndex={orderType === "MARKET" ? -1 : undefined}
           />
           <span className={styles.unit}>{quote}</span>
         </div>
@@ -379,7 +431,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             onClick={submit}
             disabled={!canSubmit}
           >
-            {busy ? "Sending…" : `${side} ${base}`}
+            {busy ? "Sending…" : `${side} ${base} · ${orderType === "MARKET" ? "Market" : "Limit"}`}
           </button>
         ) : (
           <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>

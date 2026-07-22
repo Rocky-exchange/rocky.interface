@@ -3,13 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CantonFundsError,
   fetchCantonFundsHistory,
+  fetchFundingAccountBalance,
   fetchPlatformAccountBalance,
-  fetchPendingUsdcxOffers,
-  fetchUsdcxAutoAccept,
+  fetchPlatformAccountBalances,
+  fetchPendingUsdaOffers,
+  fetchSpotTransferHistory,
+  fetchUsdaAutoAccept,
+  platformDepositApiAsset,
   requestDepositReference,
   submitCantonWalletDeposit,
-  setUsdcxAutoAccept,
+  setUsdaAutoAccept,
   submitPlatformWithdrawal,
+  transferSpotBalance,
+  type CantonFundsAsset,
 } from "./funds";
 
 beforeEach(() => {
@@ -20,7 +26,16 @@ beforeEach(() => {
 });
 
 describe("canton wallet funds", () => {
-  it("requests a USDCx deposit reference with exchange session auth", async () => {
+  it("maps all funding assets to backend account symbols", () => {
+    expect((["USDA", "CBTC", "cETH", "CC"] as CantonFundsAsset[]).map(platformDepositApiAsset)).toEqual([
+      "USDC",
+      "CBTC",
+      "cETH",
+      "CC",
+    ]);
+  });
+
+  it("requests a USDA deposit reference with exchange session auth", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
         asset: "USDC",
@@ -32,7 +47,7 @@ describe("canton wallet funds", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const reference = await requestDepositReference({ asset: "USDCx", amount: "12.50" });
+    const reference = await requestDepositReference({ asset: "USDA", amount: "12.50" });
 
     expect(reference.deposit_ref).toBe("dep-1");
     expect(fetchMock).toHaveBeenCalledWith("/v1/deposits/reference", expect.objectContaining({ method: "POST" }));
@@ -76,114 +91,111 @@ describe("canton wallet funds", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/v1/deposits/reference", expect.objectContaining({ method: "POST" }));
     expect(provider.sendTransfer).toHaveBeenCalledWith({
-      from: "party-1",
+      symbol: "CC",
       to: "target-party",
-      token: "CC",
       amount: "1.5",
-      expireDate: expect.any(String),
       memo: "dep-1",
-      waitForFinalization: 5000,
     });
     expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
     expect(result.platform_credit_status).toBe("confirmed");
     expect(result.platform_available).toBe("1.5");
   });
 
-  it("renews stale Rocky exchange sessions before submitting wallet deposits", async () => {
+  it("submits explicit USDA contract-to-spot transfers with exchange session auth", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        asset: "USDA",
+        direction: "toSpot",
+        amount: "1",
+        fundingAvailable: "0",
+        spotFree: "1",
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      transferSpotBalance({ asset: "USDA", amount: "1", direction: "toSpot" })
+    ).resolves.toMatchObject({ spotFree: "1" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/spot/transfer",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
+  });
+
+  it("loads persistent user spot transfer history", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        transfers: [
+          {
+            eventId: "event-1",
+            asset: "USDA",
+            amount: "1",
+            direction: "toSpot",
+            createdAt: "2026-07-22T08:00:00Z",
+          },
+        ],
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchSpotTransferHistory()).resolves.toEqual({
+      transfers: [
+        {
+          eventId: "event-1",
+          asset: "USDA",
+          amount: "1",
+          direction: "toSpot",
+          createdAt: "2026-07-22T08:00:00Z",
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/spot/transfers",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
+  });
+
+  it("disconnects and clears the wallet when the exchange session is invalid", async () => {
     const provider = createRockyWalletProvider();
     window.rockyWallet = provider;
     localStorage.setItem("rocky_exchange_session", "stale-token");
-
-    let refreshedBalanceReads = 0;
-    const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      const requestUrl = String(url);
-      const auth = headerValue(init?.headers, "Authorization");
-
-      if (requestUrl === "/v1/account/me/USDC") {
-        if (auth === "Bearer stale-token") {
-          return jsonResponse({ error: "invalid session" }, 401);
-        }
-        refreshedBalanceReads += 1;
-        return jsonResponse({
-          asset: "USDC",
-          available: refreshedBalanceReads > 1 ? "0.2" : "0",
-          locked: "0",
-        });
-      }
-
-      if (requestUrl === "/v1/deposits/reference") {
-        if (auth === "Bearer stale-token") {
-          return jsonResponse({ error: "invalid session" }, 401);
-        }
-        return jsonResponse({
-          asset: "USDC",
-          target_party_id: "target-party",
-          deposit_ref: "dep-2",
-          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-
-      if (requestUrl === "/v1/wallet/challenge") {
-        return jsonResponse({
-          challenge_id: "challenge-1",
-          message: "Rocky Exchange login challenge",
-        });
-      }
-
-      if (requestUrl === "/v1/wallet/verify") {
-        return jsonResponse({
-          user_id: "user-1",
-          binding_id: "binding-1",
-          provider: "rocky",
-          party_id: "party-1",
-          session_token: "refreshed-token",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-
-      return jsonResponse({ error: "unexpected" }, 500);
-    });
+    localStorage.setItem("mtc_login_method", "rocky");
+    localStorage.setItem("mtc_party", "party-1");
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL) => jsonResponse({ error: "invalid session" }, 401));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitCantonWalletDeposit({
-      provider: "rocky",
-      walletParty: "party-1",
-      asset: "USDCx",
-      amount: "0.2",
+    await expect(requestDepositReference({ asset: "USDA", amount: "0.2" })).rejects.toMatchObject({
+      message: "invalid session",
+      status: 401,
     });
 
-    const depositReferenceCalls = fetchMock.mock.calls.filter(([url]) => String(url) === "/v1/deposits/reference");
-    expect(depositReferenceCalls).toHaveLength(2);
-    expect(headerValue(depositReferenceCalls[0][1]?.headers, "Authorization")).toBe("Bearer stale-token");
-    expect(headerValue(depositReferenceCalls[1][1]?.headers, "Authorization")).toBe("Bearer refreshed-token");
-    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      "/v1/account/me/USDC",
-      "/v1/deposits/reference",
-      "/v1/wallet/challenge",
-      "/v1/wallet/verify",
-      "/v1/deposits/reference",
-      "/v1/account/me/USDC",
-      "/v1/account/me/USDC",
-    ]);
-    expect(provider.connect).toHaveBeenCalledWith({
-      name: "Rocky Exchange",
-      target: "local",
+    expect(provider.disconnect).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("rocky_exchange_session")).toBeNull();
+    expect(localStorage.getItem("mtc_party")).toBeNull();
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/v1/deposits/reference"]);
+  });
+
+  it("preserves the wallet session for unrelated unauthorized responses", async () => {
+    const provider = createRockyWalletProvider();
+    window.rockyWallet = provider;
+    localStorage.setItem("mtc_login_method", "rocky");
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL) => jsonResponse({ error: "permission denied" }, 401));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestDepositReference({ asset: "CC", amount: "1" })).rejects.toMatchObject({
+      message: "permission denied",
+      status: 401,
     });
-    expect(provider.signMessage).toHaveBeenCalled();
-    expect(provider.sendTransfer).toHaveBeenCalledWith({
-      from: "party-1",
-      to: "target-party",
-      token: "USDCx",
-      amount: "0.2",
-      expireDate: expect.any(String),
-      memo: "dep-2",
-      waitForFinalization: 5000,
-    });
-    expect(localStorage.getItem("rocky_exchange_session")).toBe("refreshed-token");
-    expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
-    expect(result.platform_credit_status).toBe("confirmed");
-    expect(result.platform_available).toBe("0.2");
+
+    expect(provider.disconnect).not.toHaveBeenCalled();
+    expect(localStorage.getItem("rocky_exchange_session")).toBe("exchange-token");
   });
 
   it("returns pending deposit metadata when platform credit is delayed", async () => {
@@ -210,7 +222,7 @@ describe("canton wallet funds", () => {
     const pending = submitCantonWalletDeposit({
       provider: "rocky",
       walletParty: "party-1",
-      asset: "USDCx",
+      asset: "USDA",
       amount: "0.2",
     });
     await vi.runAllTimersAsync();
@@ -231,7 +243,7 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await submitPlatformWithdrawal({
-      asset: "USDCx",
+      asset: "USDA",
       amount: "5",
       destinationParty: " party-1 ",
       idempotencyKey: "idempotency-1",
@@ -241,7 +253,7 @@ describe("canton wallet funds", () => {
     expect(fetchMock).toHaveBeenCalledWith("/v1/withdrawals", expect.objectContaining({ method: "POST" }));
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(JSON.parse(init.body as string)).toEqual({
-      asset: "USDCx",
+      asset: "USDA",
       amount: "5",
       dest_user_handle_party: "party-1",
       idempotency_key: "idempotency-1",
@@ -258,14 +270,51 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("maps USDCx platform balances to the USDC backend account", async () => {
+  it("maps USDA platform balances to the USDC backend account", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => jsonResponse({ available: "0.1" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchPlatformAccountBalance("USDCx")).resolves.toBe(0.1);
+    await expect(fetchPlatformAccountBalance("USDA")).resolves.toBe(0.1);
     expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
       headers: { Authorization: "Bearer exchange-token" },
     });
+  });
+
+  it("reads the USDA futures account balance separately from spot", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ available: "8.5", spot_free: "1.25" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchFundingAccountBalance()).resolves.toBe(8.5);
+    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
+      headers: { Authorization: "Bearer exchange-token" },
+    });
+  });
+
+  it("loads all funding asset spot balances and preserves partial results", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      const asset = String(url).split("/").pop();
+      if (asset === "cETH") throw new Error("temporary network failure");
+      return jsonResponse({ spot_free: asset === "USDC" ? "1" : asset === "CBTC" ? "0.1" : "2" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalances()).resolves.toEqual({
+      USDA: 1,
+      CBTC: 0.1,
+      cETH: null,
+      CC: 2,
+    });
+  });
+
+  it("accepts camel-case and nested spot balance responses", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ spotFree: "0.000031" }))
+      .mockResolvedValueOnce(jsonResponse({ data: { spot_free: "0.0001" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalance("CBTC")).resolves.toBe(0.000031);
+    await expect(fetchPlatformAccountBalance("cETH")).resolves.toBe(0.0001);
   });
 
   it("loads deposit and withdrawal history with exchange session auth", async () => {
@@ -291,7 +340,7 @@ describe("canton wallet funds", () => {
               amount: "0.1",
               status: "settled",
               fee_amount: "1",
-              fee_wallet_symbol: "USDCx",
+              fee_wallet_symbol: "USDA",
             },
           ],
         });
@@ -316,7 +365,7 @@ describe("canton wallet funds", () => {
           amount: "0.1",
           status: "settled",
           fee_amount: "1",
-          fee_wallet_symbol: "USDCx",
+          fee_wallet_symbol: "USDA",
         },
       ],
     });
@@ -371,28 +420,28 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("reads and writes Rocky USDCx auto-accept settings", async () => {
+  it("reads and writes Rocky USDA auto-accept settings", async () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      if (String(url) === "/v1/wallet/usdcx/auto-accept" && init?.method === "PUT") {
+      if (String(url) === "/v1/wallet/usda/auto-accept" && init?.method === "PUT") {
         return jsonResponse({ enabled: true });
       }
       return jsonResponse({ enabled: false });
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchUsdcxAutoAccept()).resolves.toMatchObject({ enabled: false });
-    await expect(setUsdcxAutoAccept(true)).resolves.toMatchObject({ enabled: true });
+    await expect(fetchUsdaAutoAccept()).resolves.toMatchObject({ enabled: false });
+    await expect(setUsdaAutoAccept(true)).resolves.toMatchObject({ enabled: true });
 
     const putInit = fetchMock.mock.calls[1][1] as RequestInit;
     expect(putInit.method).toBe("PUT");
     expect(JSON.parse(putInit.body as string)).toEqual({ enabled: true });
   });
 
-  it("does not try to list pending USDCx offers for non-Console wallets", async () => {
+  it("does not try to list pending USDA offers for non-Console wallets", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchPendingUsdcxOffers({ provider: "rocky", party: "party-1" })).resolves.toEqual({
+    await expect(fetchPendingUsdaOffers({ provider: "rocky", party: "party-1" })).resolves.toEqual({
       offers: [],
       listingAvailable: false,
     });
@@ -410,7 +459,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 function createRockyWalletProvider() {
   return {
     isRockyWallet: true,
-    version: "0.1.0",
+    version: "1.0.2",
     connect: vi.fn(async () => ({
       isConnected: true,
       account: {
@@ -419,6 +468,7 @@ function createRockyWalletProvider() {
         networkId: "CANTON_NETWORK",
       },
     })),
+    disconnect: vi.fn(async () => ({ status: true })),
     getPrimaryAccount: vi.fn(async () => ({
       partyId: "party-1",
       displayName: "alice",
@@ -428,6 +478,35 @@ function createRockyWalletProvider() {
     getCoinsBalance: vi.fn(),
     signMessage: vi.fn(async () => "rocky-signature"),
     submitCommands: vi.fn(),
+    getAssetCatalog: vi.fn(async () => [
+      {
+        asset_id: null,
+        asset_type: "canton_coin" as const,
+        symbol: "CC",
+        name: "Canton Coin",
+        display_alias: "CC",
+        registry_name: null,
+        decimals: 10,
+        enabled: true,
+        can_send: true,
+        instrument_admin: null,
+        instrument_id: null,
+      },
+      {
+        asset_id: "usda-asset",
+        asset_type: "token_standard" as const,
+        symbol: "USDCx",
+        name: "USDA",
+        display_alias: "USDA",
+        registry_name: null,
+        decimals: 6,
+        enabled: true,
+        can_send: true,
+        instrument_admin:
+          "party-28dc4516-b5ca-44ff-86c7-2107e90a6807::1220b8301e18aa8a401d6e34e6c20f8b0243183c514373bca8f1b6b9270246341a9e",
+        instrument_id: "3574b536-cad1-4074-9b64-859398713ba0",
+      },
+    ]),
     sendTransfer: vi.fn(async () => ({ status: true, transferId: "transfer-1" })),
     getNodeOffers: vi.fn(),
     submitInstructionChoice: vi.fn(),

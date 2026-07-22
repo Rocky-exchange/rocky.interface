@@ -1,17 +1,23 @@
 import {
-  acceptConsoleWalletUsdcxOffers,
-  getPendingConsoleWalletUsdcxOffers,
+  CANTON_FUNDING_ASSETS,
+  getCantonFundingAsset,
+  walletFacingAssetSymbol,
+  type CantonFundsApiAsset,
+  type CantonFundsAsset,
+} from "./assets";
+import {
+  acceptConsoleWalletUsdaOffers,
+  getPendingConsoleWalletUsdaOffers,
   submitConsoleWalletTransfer,
   type ConsoleWalletPendingOffer,
 } from "./console";
 import { submitLoopWalletTransfer } from "./loop";
-import { connectRockyWallet, submitRockyWalletTransfer } from "./rocky";
-import { createExchangeSession, exchangeSessionHeaders, getExchangeSessionToken } from "./session";
+import { submitRockyWalletTransfer } from "./rocky";
+import { exchangeSessionHeaders, getExchangeSessionToken } from "./session";
+import { disconnectCantonWalletSession } from "./sessionLogout";
 import type { WalletProviderId } from "./types";
-import { notifyCantonSessionChange } from "./useCantonSession";
 
-export type CantonFundsAsset = "CC" | "USDCx";
-export type CantonFundsApiAsset = "CC" | "USDC";
+export type { CantonFundsApiAsset, CantonFundsAsset } from "./assets";
 export type CantonWalletTransferStatus =
   | "submitted"
   | "submitted_and_accepted"
@@ -91,22 +97,36 @@ export type CantonFundsHistory = {
   withdrawals: CantonWithdrawalHistoryItem[];
 };
 
-export type UsdcxAuthorizationResult = {
+export type CantonSpotTransferHistoryItem = {
+  eventId: string;
+  asset: string;
+  amount: string;
+  direction: "toSpot" | "toFunding";
+  createdAt: string;
+};
+
+export type CantonSpotTransferHistory = {
+  transfers: CantonSpotTransferHistoryItem[];
+};
+
+export type PlatformAccountBalances = Record<CantonFundsAsset, number | null>;
+
+export type UsdaAuthorizationResult = {
   status?: string;
   [key: string]: unknown;
 };
 
-export type UsdcxAcceptResult = {
+export type UsdaAcceptResult = {
   acceptedCount: number;
   raw?: unknown;
 };
 
-export type UsdcxPendingOffersResult = {
+export type UsdaPendingOffersResult = {
   offers: ConsoleWalletPendingOffer[];
   listingAvailable: boolean;
 };
 
-export type UsdcxAutoAcceptResult = {
+export type UsdaAutoAcceptResult = {
   enabled: boolean;
   raw?: unknown;
 };
@@ -137,11 +157,11 @@ const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
 
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
-  return asset === "USDCx" ? "USDC" : "CC";
+  return getCantonFundingAsset(asset).apiSymbol;
 }
 
 export function walletFacingDepositAsset(asset: string): CantonFundsAsset {
-  return asset.trim().toUpperCase() === "USDC" ? "USDCx" : "CC";
+  return walletFacingAssetSymbol(asset) || "CC";
 }
 
 export function makeWalletWithdrawalIdempotencyKey(asset: CantonFundsAsset): string {
@@ -175,16 +195,8 @@ export async function submitCantonWalletDeposit(input: {
   const amount = positiveAmount(input.amount);
 
   if (input.provider === "rocky" || input.provider === "console" || input.provider === "loop") {
-    let previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
-    const { reference, refreshedSession } = await requestWalletDepositReference({
-      provider: input.provider,
-      walletParty: input.walletParty,
-      asset: input.asset,
-      amount,
-    });
-    if (refreshedSession) {
-      previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
-    }
+    const previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
+    const reference = await requestDepositReference({ asset: input.asset, amount });
     await submitWalletTransfer({
       provider: input.provider,
       from: input.walletParty,
@@ -252,15 +264,56 @@ export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
   };
 }
 
+export async function fetchSpotTransferHistory(): Promise<CantonSpotTransferHistory> {
+  const data = await requestJson<{ transfers?: CantonSpotTransferHistoryItem[] }>("/v1/spot/transfers", {
+    method: "GET",
+    headers: exchangeSessionHeaders(),
+  });
+  return {
+    transfers: Array.isArray(data.transfers) ? data.transfers : [],
+  };
+}
+
 export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Promise<number | null> {
+  const record = await fetchAccountBalanceRecord(asset);
+  const available = numericRecordField(record, "spot_free", "spotFree", "available");
+  return Number.isFinite(available) ? available : null;
+}
+
+export async function fetchFundingAccountBalance(): Promise<number | null> {
+  const record = await fetchAccountBalanceRecord("USDA");
+  const available = numericRecordField(record, "available");
+  return Number.isFinite(available) ? available : null;
+}
+
+async function fetchAccountBalanceRecord(asset: CantonFundsAsset): Promise<Record<string, unknown>> {
   const response = await fetch(`/v1/account/me/${platformDepositApiAsset(asset)}`, {
     headers: exchangeSessionHeaders(),
   });
-  if (!response.ok) return null;
-  const data = (await response.json().catch(() => ({}))) as { available?: unknown };
-  const available =
-    typeof data.available === "string" || typeof data.available === "number" ? Number(data.available) : NaN;
-  return Number.isFinite(available) ? available : null;
+  const data = await readResponseBody(response);
+  if (!response.ok) {
+    await disconnectForInvalidSession(fundsErrorFromResponse(data, response.status, response.url));
+    return {};
+  }
+  return isRecord(data) ? data : {};
+}
+
+export async function fetchPlatformAccountBalances(): Promise<PlatformAccountBalances> {
+  const rows = await Promise.all(
+    CANTON_FUNDING_ASSETS.map(async ({ symbol }) => {
+      try {
+        return [symbol, await fetchPlatformAccountBalance(symbol)] as const;
+      } catch (_error) {
+        return [symbol, null] as const;
+      }
+    })
+  );
+  return rows.reduce<PlatformAccountBalances>((balances, [asset, value]) => ({ ...balances, [asset]: value }), {
+    USDA: null,
+    CBTC: null,
+    cETH: null,
+    CC: null,
+  });
 }
 
 export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {
@@ -308,24 +361,45 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
-export async function authorizeUsdcxWallet(): Promise<UsdcxAuthorizationResult> {
-  return requestJson<UsdcxAuthorizationResult>("/v1/wallet/usdcx/authorize", {
+export type SpotTransferResult = {
+  asset: string;
+  direction: string;
+  amount: string;
+  fundingAvailable: string;
+  spotFree: string;
+};
+
+/** Move USDA between the isolated contract and spot accounts. */
+export async function transferSpotBalance(input: {
+  asset: "USDA";
+  amount: string;
+  direction: "toSpot" | "toFunding";
+}): Promise<SpotTransferResult> {
+  return requestJson<SpotTransferResult>("/v1/spot/transfer", {
+    method: "POST",
+    headers: sessionJsonHeaders(),
+    body: JSON.stringify(input),
+  });
+}
+
+export async function authorizeUsdaWallet(): Promise<UsdaAuthorizationResult> {
+  return requestJson<UsdaAuthorizationResult>("/v1/wallet/usda/authorize", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
   });
 }
 
-export async function acceptUsdcxWalletTransfers(input: {
+export async function acceptUsdaWalletTransfers(input: {
   provider: WalletProviderId | "";
   party: string;
-}): Promise<UsdcxAcceptResult> {
+}): Promise<UsdaAcceptResult> {
   if (input.provider === "console") {
-    const result = await acceptConsoleWalletUsdcxOffers({ party: input.party });
+    const result = await acceptConsoleWalletUsdaOffers({ party: input.party });
     return { acceptedCount: result.acceptedCount, raw: result };
   }
 
-  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usdcx/accept", {
+  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usda/accept", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -336,28 +410,28 @@ export async function acceptUsdcxWalletTransfers(input: {
   };
 }
 
-export async function fetchPendingUsdcxOffers(input: {
+export async function fetchPendingUsdaOffers(input: {
   provider: WalletProviderId | "";
   party: string;
-}): Promise<UsdcxPendingOffersResult> {
+}): Promise<UsdaPendingOffersResult> {
   if (input.provider !== "console" || !input.party) {
     return { offers: [], listingAvailable: false };
   }
 
-  const result = await getPendingConsoleWalletUsdcxOffers({ party: input.party });
+  const result = await getPendingConsoleWalletUsdaOffers({ party: input.party });
   return { offers: result.offers, listingAvailable: true };
 }
 
-export async function fetchUsdcxAutoAccept(): Promise<UsdcxAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usdcx/auto-accept", {
+export async function fetchUsdaAutoAccept(): Promise<UsdaAutoAcceptResult> {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
     method: "GET",
     headers: exchangeSessionHeaders(),
   });
   return { enabled: data.enabled === true, raw: data };
 }
 
-export async function setUsdcxAutoAccept(enabled: boolean): Promise<UsdcxAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usdcx/auto-accept", {
+export async function setUsdaAutoAccept(enabled: boolean): Promise<UsdaAutoAcceptResult> {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
     method: "PUT",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({ enabled }),
@@ -386,56 +460,6 @@ function positiveAmount(value: string): string {
     throw new CantonFundsError("Amount must be positive", { code: "amount_must_be_positive" });
   }
   return amount;
-}
-
-async function requestWalletDepositReference(input: {
-  provider: "rocky" | "console" | "loop";
-  walletParty: string;
-  asset: CantonFundsAsset;
-  amount: string;
-}): Promise<{ reference: CantonDepositReference; refreshedSession: boolean }> {
-  try {
-    return {
-      reference: await requestDepositReference({ asset: input.asset, amount: input.amount }),
-      refreshedSession: false,
-    };
-  } catch (err) {
-    if (input.provider !== "rocky" || !isInvalidExchangeSessionError(err)) {
-      throw err;
-    }
-    await refreshRockyExchangeSession(input.walletParty);
-    return {
-      reference: await requestDepositReference({ asset: input.asset, amount: input.amount }),
-      refreshedSession: true,
-    };
-  }
-}
-
-async function refreshRockyExchangeSession(expectedParty: string) {
-  const wallet = await connectRockyWallet();
-  const connectedParty = wallet.connection.partyId || "";
-  if (expectedParty && connectedParty && connectedParty !== expectedParty) {
-    throw new CantonFundsError("Rocky Wallet active account does not match the logged-in party", {
-      code: "wallet_party_mismatch",
-    });
-  }
-  await createExchangeSession(wallet.connection, wallet.signMessage);
-  notifyCantonSessionChange();
-}
-
-function isInvalidExchangeSessionError(err: unknown): boolean {
-  if (!(err instanceof CantonFundsError)) return false;
-  if (err.code === "not_logged_in") return true;
-
-  const code = (err.code || "").toLowerCase();
-  const message = err.message.toLowerCase();
-  if (err.status !== 401) return false;
-  return (
-    code.includes("invalid session") ||
-    code.includes("missing bearer") ||
-    message.includes("invalid session") ||
-    message.includes("missing bearer")
-  );
 }
 
 async function submitWalletTransfer(input: {
@@ -487,14 +511,23 @@ async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
   });
   const data = await readResponseBody(response);
   if (!response.ok) {
-    const { code, message } = parseFundsError(data, response.status, url);
-    throw new CantonFundsError(message, {
-      status: response.status,
-      code,
-      data,
-    });
+    const error = fundsErrorFromResponse(data, response.status, url);
+    await disconnectForInvalidSession(error);
+    throw error;
   }
   return data as T;
+}
+
+function fundsErrorFromResponse(data: unknown, status: number, url: string): CantonFundsError {
+  const { code, message } = parseFundsError(data, status, url);
+  return new CantonFundsError(message, { status, code, data });
+}
+
+async function disconnectForInvalidSession(error: CantonFundsError): Promise<void> {
+  if (error.status !== 401) return;
+  const identity = `${error.code || ""} ${error.message}`;
+  if (!/invalid[ _-]+session/iu.test(identity)) return;
+  await disconnectCantonWalletSession();
 }
 
 async function readResponseBody(response: Response): Promise<unknown> {
@@ -543,6 +576,17 @@ function fallbackErrorMessage(status: number, url: string): string {
 
 function stringField(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function numericRecordField(record: Record<string, unknown>, ...keys: string[]): number {
+  const nested = isRecord(record.data) ? record.data : {};
+  for (const key of keys) {
+    const value = record[key] ?? nested[key];
+    if (typeof value !== "string" && typeof value !== "number") continue;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+  }
+  return NaN;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

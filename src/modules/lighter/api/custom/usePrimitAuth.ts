@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import { useSWRConfig } from "swr";
 
 import { getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
-import { notifyCantonSessionChange, useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { disconnectCantonWalletSession } from "@/shared/lib/canton-wallet/sessionLogout";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import type { LoginResponse } from "../types";
 
@@ -17,21 +18,6 @@ export interface UsePrimitAuthReturn extends PrimitAuthState {
   authenticate: () => Promise<LoginResponse | null>;
   logout: () => void;
   clearError: () => void;
-}
-
-function clearCantonSession() {
-  if (typeof window === "undefined") return;
-  [
-    "rocky_exchange_session",
-    "rocky_user_id",
-    "rocky_binding_id",
-    "mtc_token",
-    "mtc_party",
-    "mtc_username",
-    "mtc_avatar",
-    "mtc_email",
-    "mtc_login_method",
-  ].forEach((key) => localStorage.removeItem(key));
 }
 
 export function usePrimitAuth(): UsePrimitAuthReturn {
@@ -60,8 +46,7 @@ export function usePrimitAuth(): UsePrimitAuthReturn {
   }, []);
 
   const logout = useCallback(() => {
-    clearCantonSession();
-    notifyCantonSessionChange();
+    void disconnectCantonWalletSession();
     mutate(() => true, undefined, { revalidate: false });
   }, [mutate]);
 

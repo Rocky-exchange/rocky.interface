@@ -1,21 +1,33 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-describe("CantonFundsModal source", () => {
-  it("does not render the USDCx controls panel", () => {
-    const source = readFileSync(join(process.cwd(), "src/shared/lib/canton-wallet/CantonFundsModal.tsx"), "utf8");
+const fixtureDirectory = dirname(fileURLToPath(import.meta.url));
 
-    expect(source).not.toContain("USDCx Controls");
-    expect(source).not.toContain("Authorize USDCx");
-    expect(source).not.toContain("Accept USDCx offers");
+describe("CantonFundsModal source", () => {
+  it("does not render the USDA controls panel", () => {
+    const source = readFileSync(join(fixtureDirectory, "CantonFundsModal.tsx"), "utf8");
+
+    expect(source).not.toContain("USDA Controls");
+    expect(source).not.toContain("Authorize USDA");
+    expect(source).not.toContain("Accept USDA offers");
   });
 
   it("loads persisted funds history when refreshing the wallet dashboard", () => {
-    const source = readFileSync(join(process.cwd(), "src/shared/lib/canton-wallet/CantonFundsModal.tsx"), "utf8");
+    const source = readFileSync(join(fixtureDirectory, "CantonFundsModal.tsx"), "utf8");
 
     expect(source).toContain("fetchCantonFundsHistory");
     expect(source).toContain("refreshFundsHistory");
     expect(source).toContain("setLocalHistory");
+  });
+
+  it("keeps assets and operation pages in one stable modal shell", () => {
+    const styles = readFileSync(join(fixtureDirectory, "CantonFundsModal.module.scss"), "utf8");
+    const operationModalBlock = styles.match(/\.modal\.operationModal\s*\{([\s\S]*?)\}/)?.[1] || "";
+
+    expect(styles).toContain("width: min(480px, calc(100vw - 32px));");
+    expect(styles).toContain("height: min(680px, calc(100vh - 32px));");
+    expect(operationModalBlock).not.toMatch(/(?:^|\n)\s*height:\s*auto;/);
   });
 });

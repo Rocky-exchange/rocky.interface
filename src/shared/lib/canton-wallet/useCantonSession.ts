@@ -1,26 +1,21 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+import { subscribeRockyWalletAccountChanges } from "./rocky";
 import { getMtcAuthToken } from "./session";
+import { classifyRockyAccountChange, disconnectCantonWalletSession } from "./sessionLogout";
+import {
+  getCantonWalletLocked,
+  setCantonWalletLocked,
+  subscribeCantonSession,
+  subscribeCantonWalletLock,
+} from "./sessionStore";
 import type { WalletProviderId } from "./types";
 
-const EVT = "canton-session-change";
-
-function subscribe(cb: () => void) {
-  if (typeof window === "undefined") return () => undefined;
-  window.addEventListener(EVT, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(EVT, cb);
-    window.removeEventListener("storage", cb);
-  };
-}
-
-export function notifyCantonSessionChange() {
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(EVT));
-}
+export { notifyCantonSessionChange } from "./sessionStore";
 
 export function useCantonSession() {
   const token = useSyncExternalStore(
-    subscribe,
+    subscribeCantonSession,
     () => (typeof window !== "undefined" ? getMtcAuthToken() : ""),
     () => "",
   );
@@ -32,5 +27,23 @@ export function useCantonSession() {
     storedProvider === "rocky" || storedProvider === "loop" || storedProvider === "console" || storedProvider === "other"
       ? storedProvider
       : "";
-  return { connected: Boolean(token), token, party, username, avatar, provider };
+  const connected = Boolean(token);
+  const walletLocked = useSyncExternalStore(subscribeCantonWalletLock, getCantonWalletLocked, () => false);
+  const locked = connected && provider === "rocky" && walletLocked;
+
+  useEffect(() => {
+    if (!connected || provider !== "rocky" || !party) return undefined;
+    return subscribeRockyWalletAccountChanges((account) => {
+      const change = classifyRockyAccountChange(party, account);
+      if (change === "locked") {
+        setCantonWalletLocked(true);
+      } else if (change === "available") {
+        setCantonWalletLocked(false);
+      } else if (change === "account-changed") {
+        void disconnectCantonWalletSession();
+      }
+    });
+  }, [connected, party, provider]);
+
+  return { connected, locked, token, party, username, avatar, provider };
 }

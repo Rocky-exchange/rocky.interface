@@ -106,8 +106,8 @@ export type SpotOrder = {
   executedQty: string;
   cummulativeQuoteQty: string;
   status: "NEW" | "PARTIALLY_FILLED" | "FILLED" | "CANCELED";
-  timeInForce: "GTC";
-  type: "LIMIT";
+  timeInForce: "GTC" | "IOC";
+  type: "LIMIT" | "MARKET";
   side: "BUY" | "SELL";
   time?: number;
   updateTime?: number;
@@ -205,8 +205,8 @@ export const spotApi = {
   placeOrder: (b: {
     symbol: string;
     side: "BUY" | "SELL";
-    type: "LIMIT";
-    price: string;
+    type: "LIMIT" | "MARKET";
+    price?: string;
     quantity: string;
     newClientOrderId?: string;
   }) => {
@@ -214,12 +214,18 @@ export const spotApi = {
       symbol: b.symbol,
       side: b.side,
       type: b.type,
-      price: b.price,
       quantity: b.quantity,
     };
+    if (b.type === "LIMIT" && b.price) p.price = b.price;
     if (b.newClientOrderId) p.newClientOrderId = b.newClientOrderId;
     return signedRequest<SpotOrder>("POST", "/api/v3/order", p);
   },
   cancelOrder: (symbol: string, orderId: string) =>
-    signedRequest<{ status: "CANCELED" }>("DELETE", "/api/v3/order", { symbol, orderId }),
+    signedRequest<{ symbol: string; orderId: string; status: "CANCELED" }>(
+      "DELETE",
+      "/api/v3/order",
+      { symbol, orderId },
+    ),
 };
+
+export { SPOT_MARKETS } from "../markets";

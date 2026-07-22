@@ -1,10 +1,11 @@
 import { fetchRockyWalletBalancesFromSdk } from "./rocky";
 import type { WalletProviderId } from "./types";
+import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol, type CantonFundsAsset } from "./assets";
 
 export type WalletBalanceStatus = "ready" | "disconnected" | "unavailable" | "error";
 
 export type WalletBalanceRow = {
-  symbol: "CC" | "USDCx";
+  symbol: CantonFundsAsset;
   amount: string | null;
 };
 
@@ -25,7 +26,7 @@ type StoredWalletIdentity = {
 type UnknownRecord = Record<string, unknown>;
 type LoopBalanceProvider = { party_id: string; getHolding(): Promise<unknown> };
 
-const TRACKED_WALLET_SYMBOLS: WalletBalanceRow["symbol"][] = ["CC", "USDCx"];
+const TRACKED_WALLET_SYMBOLS: WalletBalanceRow["symbol"][] = CANTON_FUNDING_ASSETS.map((asset) => asset.symbol);
 
 export function emptyWalletBalanceRows(): WalletBalanceRow[] {
   return TRACKED_WALLET_SYMBOLS.map((symbol) => ({ symbol, amount: null }));
@@ -127,7 +128,8 @@ export function normalizeRockyWalletBalance(balance: unknown): WalletBalanceRow[
       const symbol = canonicalWalletSymbol(
         stringField(record, "symbol") ||
           stringField(record, "asset") ||
-          stringField(record, "currency"),
+          stringField(record, "currency") ||
+          stringField(record, "instrument_id"),
       );
       if (!symbol) return null;
       return { symbol, amount: amountFromBalanceRecord(record) || "0" };
@@ -136,10 +138,9 @@ export function normalizeRockyWalletBalance(balance: unknown): WalletBalanceRow[
 
   const record = asRecord(balance);
   const ccAmount = record ? amountFromBalanceRecord(record) : "";
-  return [
-    { symbol: "CC", amount: ccAmount || null },
-    { symbol: "USDCx", amount: null },
-  ];
+  return emptyWalletBalanceRows().map((row) =>
+    row.symbol === "CC" ? { ...row, amount: ccAmount || null } : row
+  );
 }
 
 function normalizeBalanceRows(
@@ -264,15 +265,7 @@ async function fetchRockyWalletBalances(
 }
 
 function canonicalWalletSymbol(value: string): WalletBalanceRow["symbol"] | null {
-  const normalized = value.trim().toUpperCase().replace(/[\s_-]/g, "");
-  if (!normalized) return null;
-  if (normalized === "CC" || normalized.includes("CANTONCOIN") || normalized.includes("AMULET")) {
-    return "CC";
-  }
-  if (normalized === "USDC" || normalized === "USDCX" || normalized.includes("USDCX")) {
-    return "USDCx";
-  }
-  return null;
+  return walletFacingAssetSymbol(value);
 }
 
 function amountFromBalanceRecord(record: UnknownRecord): string {
