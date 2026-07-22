@@ -162,6 +162,29 @@ describe("SpotOrderForm", () => {
     expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/s);
   });
 
+  it("keeps side selection decoration on the shared indicator without an outer focus outline", () => {
+    const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
+    const sideTabBlock = source.slice(source.indexOf(".sideTab {"), source.indexOf(".sideIndicator {"));
+
+    expect(sideTabBlock).not.toContain("focus-visible");
+  });
+
+  it("switches the percentage slider from buy to sell colors with the selected side", () => {
+    const view = render(<SpotOrderForm market={market} />);
+    const slider = view.getByRole("slider", { name: "Order percentage" });
+
+    expect(slider.className).toContain("sliderBuy");
+    fireEvent.click(view.getByRole("tab", { name: `Sell ${market.displayBase}` }));
+    expect(slider.className).toContain("sliderSell");
+    expect(slider.className).not.toContain("sliderBuy");
+
+    const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
+    const sellSliderBlock = source.slice(source.indexOf(".sliderSell {"), source.indexOf(".percentInput {"));
+    expect(sellSliderBlock).toContain("var(--ltr-trade-sell-gradient-start)");
+    expect(sellSliderBlock).toContain("var(--ltr-trade-sell-gradient-end)");
+    expect(sellSliderBlock).toContain("var(--ltr-trade-sell-bright)");
+  });
+
   it("matches the futures Connect Wallet CTA while keeping the spot connection action", () => {
     mUseSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch });
     const { getByRole, queryByRole } = render(<SpotOrderForm market={market} />);
@@ -199,6 +222,17 @@ describe("SpotOrderForm", () => {
     for (const label of ["0%", "25%", "50%", "75%", "100%"]) {
       expect(view.queryByText(label)).toBeNull();
     }
+  });
+
+  it("keeps input focus decoration on the field shell without an inner outline", () => {
+    const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
+    const fieldBlock = source.slice(source.indexOf(".field {"), source.indexOf(".fieldLabel {"));
+    const inputBlock = source.slice(source.indexOf(".input {"), source.indexOf(".unit {"));
+
+    expect(fieldBlock).toContain("&:focus-within");
+    expect(fieldBlock).toContain("box-shadow:");
+    expect(inputBlock).toContain("outline: none;");
+    expect(inputBlock).not.toContain("focus-visible");
   });
 
   it("formats large fractional balances without losing precision or rounding up", () => {

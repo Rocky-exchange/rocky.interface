@@ -382,7 +382,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         <div className={styles.sliderBlock}>
           <input
             aria-label="Order percentage"
-            className={styles.slider}
+            className={`${styles.slider} ${side === "BUY" ? styles.sliderBuy : styles.sliderSell}`}
             style={sliderStyle}
             type="range"
             min="0"

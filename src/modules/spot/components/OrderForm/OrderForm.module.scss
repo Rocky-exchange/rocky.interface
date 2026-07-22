@@ -38,11 +38,6 @@
     opacity: 0.5;
   }
 
-  &:not(:disabled):focus-visible {
-    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
-    outline-offset: -2px;
-  }
-
   &:disabled {
     cursor: default;
     opacity: 0.5;
@@ -237,11 +232,6 @@
     cursor: wait;
     opacity: 0.68;
   }
-
-  &:not(:disabled):focus-visible {
-    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
-    outline-offset: -2px;
-  }
 }
 
 .unit {
@@ -295,7 +285,8 @@
     border-radius: 999px;
     background: linear-gradient(
       to right,
-      var(--ltr-trade-buy-mid, #1bd289) 0 var(--slider-fill),
+      var(--spot-slider-fill-start) 0,
+      var(--spot-slider-fill-end) var(--slider-fill),
       #2b2b30 var(--slider-fill) 100%
     );
   }
@@ -305,7 +296,8 @@
     border-radius: 999px;
     background: linear-gradient(
       to right,
-      var(--ltr-trade-buy-mid, #1bd289) 0 var(--slider-fill),
+      var(--spot-slider-fill-start) 0,
+      var(--spot-slider-fill-end) var(--slider-fill),
       #2b2b30 var(--slider-fill) 100%
     );
   }
@@ -314,18 +306,18 @@
     width: 6px;
     height: 20px;
     margin-top: -6px;
-    border: 1px solid var(--ltr-trade-buy-mid-soft, #4ce0a3);
+    border: 1px solid var(--spot-slider-thumb-border);
     border-radius: 8px;
-    background: var(--ltr-trade-buy-mid, #1bd289);
+    background: var(--spot-slider-thumb);
     appearance: none;
   }
 
   &::-moz-range-thumb {
     width: 6px;
     height: 20px;
-    border: 1px solid var(--ltr-trade-buy-mid-soft, #4ce0a3);
+    border: 1px solid var(--spot-slider-thumb-border);
     border-radius: 8px;
-    background: var(--ltr-trade-buy-mid, #1bd289);
+    background: var(--spot-slider-thumb);
   }
 
   &:not(:disabled):focus-visible {
@@ -337,6 +329,20 @@
     cursor: wait;
     opacity: 0.58;
   }
+}
+
+.sliderBuy {
+  --spot-slider-fill-start: var(--ltr-trade-buy-gradient-start);
+  --spot-slider-fill-end: var(--ltr-trade-buy-gradient-end);
+  --spot-slider-thumb: var(--ltr-trade-buy-mid);
+  --spot-slider-thumb-border: var(--ltr-trade-buy-mid-soft);
+}
+
+.sliderSell {
+  --spot-slider-fill-start: var(--ltr-trade-sell-gradient-start);
+  --spot-slider-fill-end: var(--ltr-trade-sell-gradient-end);
+  --spot-slider-thumb: var(--ltr-trade-sell-gradient-end);
+  --spot-slider-thumb-border: var(--ltr-trade-sell-bright);
 }
 
 .percentInput {
