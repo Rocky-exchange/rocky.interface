@@ -1,6 +1,6 @@
 import {
-  acceptConsoleWalletUsdcxOffers,
-  getPendingConsoleWalletUsdcxOffers,
+  acceptConsoleWalletUsdaOffers,
+  getPendingConsoleWalletUsdaOffers,
   submitConsoleWalletTransfer,
   type ConsoleWalletPendingOffer,
 } from "./console";
@@ -10,7 +10,7 @@ import { createExchangeSession, exchangeSessionHeaders, getExchangeSessionToken 
 import type { WalletProviderId } from "./types";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
-export type CantonFundsAsset = "CC" | "USDCx";
+export type CantonFundsAsset = "CC" | "USDA";
 export type CantonFundsApiAsset = "CC" | "USDC";
 export type CantonWalletTransferStatus =
   | "submitted"
@@ -91,22 +91,22 @@ export type CantonFundsHistory = {
   withdrawals: CantonWithdrawalHistoryItem[];
 };
 
-export type UsdcxAuthorizationResult = {
+export type UsdaAuthorizationResult = {
   status?: string;
   [key: string]: unknown;
 };
 
-export type UsdcxAcceptResult = {
+export type UsdaAcceptResult = {
   acceptedCount: number;
   raw?: unknown;
 };
 
-export type UsdcxPendingOffersResult = {
+export type UsdaPendingOffersResult = {
   offers: ConsoleWalletPendingOffer[];
   listingAvailable: boolean;
 };
 
-export type UsdcxAutoAcceptResult = {
+export type UsdaAutoAcceptResult = {
   enabled: boolean;
   raw?: unknown;
 };
@@ -137,11 +137,11 @@ const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
 
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
-  return asset === "USDCx" ? "USDC" : "CC";
+  return asset === "USDA" ? "USDC" : "CC";
 }
 
 export function walletFacingDepositAsset(asset: string): CantonFundsAsset {
-  return asset.trim().toUpperCase() === "USDC" ? "USDCx" : "CC";
+  return asset.trim().toUpperCase() === "USDC" ? "USDA" : "CC";
 }
 
 export function makeWalletWithdrawalIdempotencyKey(asset: CantonFundsAsset): string {
@@ -308,24 +308,24 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
-export async function authorizeUsdcxWallet(): Promise<UsdcxAuthorizationResult> {
-  return requestJson<UsdcxAuthorizationResult>("/v1/wallet/usdcx/authorize", {
+export async function authorizeUsdaWallet(): Promise<UsdaAuthorizationResult> {
+  return requestJson<UsdaAuthorizationResult>("/v1/wallet/usda/authorize", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
   });
 }
 
-export async function acceptUsdcxWalletTransfers(input: {
+export async function acceptUsdaWalletTransfers(input: {
   provider: WalletProviderId | "";
   party: string;
-}): Promise<UsdcxAcceptResult> {
+}): Promise<UsdaAcceptResult> {
   if (input.provider === "console") {
-    const result = await acceptConsoleWalletUsdcxOffers({ party: input.party });
+    const result = await acceptConsoleWalletUsdaOffers({ party: input.party });
     return { acceptedCount: result.acceptedCount, raw: result };
   }
 
-  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usdcx/accept", {
+  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usda/accept", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -336,28 +336,28 @@ export async function acceptUsdcxWalletTransfers(input: {
   };
 }
 
-export async function fetchPendingUsdcxOffers(input: {
+export async function fetchPendingUsdaOffers(input: {
   provider: WalletProviderId | "";
   party: string;
-}): Promise<UsdcxPendingOffersResult> {
+}): Promise<UsdaPendingOffersResult> {
   if (input.provider !== "console" || !input.party) {
     return { offers: [], listingAvailable: false };
   }
 
-  const result = await getPendingConsoleWalletUsdcxOffers({ party: input.party });
+  const result = await getPendingConsoleWalletUsdaOffers({ party: input.party });
   return { offers: result.offers, listingAvailable: true };
 }
 
-export async function fetchUsdcxAutoAccept(): Promise<UsdcxAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usdcx/auto-accept", {
+export async function fetchUsdaAutoAccept(): Promise<UsdaAutoAcceptResult> {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
     method: "GET",
     headers: exchangeSessionHeaders(),
   });
   return { enabled: data.enabled === true, raw: data };
 }
 
-export async function setUsdcxAutoAccept(enabled: boolean): Promise<UsdcxAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usdcx/auto-accept", {
+export async function setUsdaAutoAccept(enabled: boolean): Promise<UsdaAutoAcceptResult> {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
     method: "PUT",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({ enabled }),

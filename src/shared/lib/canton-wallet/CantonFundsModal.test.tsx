@@ -42,7 +42,7 @@ vi.mock("@lingui/react", () => ({
 vi.mock("./balances", () => ({
   emptyWalletBalanceRows: () => [
     { symbol: "CC", amount: null },
-    { symbol: "USDCx", amount: null },
+    { symbol: "USDA", amount: null },
   ],
   fetchWalletBalanceSnapshot: mocks.fetchWalletBalanceSnapshot,
   getWalletProviderLabel: () => "Rocky Wallet",
@@ -87,7 +87,7 @@ describe("CantonFundsModal", () => {
       status: "ready",
       balances: [
         { symbol: "CC", amount: "0" },
-        { symbol: "USDCx", amount: "5.6" },
+        { symbol: "USDA", amount: "5.6" },
       ],
     });
     mocks.submitPlatformWithdrawal.mockImplementation(async () => {
@@ -106,20 +106,20 @@ describe("CantonFundsModal", () => {
     await submitWithdrawal("0.1", 1);
 
     expect(screen.getByText("Network Fee")).toBeTruthy();
-    expect(screen.getAllByText("1 USDCx").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("1 USDA").length).toBeGreaterThan(1);
   });
 
   it("renders wallet dashboard labels through the active locale", async () => {
     i18nMock.translations = {
       Explorer: "瀏覽器",
       Disconnect: "斷開連線",
-      "USDCx Balances": "USDCx 餘額",
+      "USDA Balances": "USDA 餘額",
       "Wallet Balance": "錢包餘額",
       "Exchange Balance": "交易所餘額",
       "On-chain balance": "鏈上餘額",
       "On connected exchange": "已連接交易所餘額",
       Deposit: "存入",
-      "Deposit USDCx to Rocky Exchange": "存入 USDCx 至 Rocky Exchange",
+      "Deposit USDA to Rocky Exchange": "存入 USDA 至 Rocky Exchange",
       "Transfer funds from the connected wallet to the exchange account.": "從已連接錢包轉入資金至交易所帳戶。",
       Asset: "資產",
       Amount: "金額",
@@ -141,7 +141,7 @@ describe("CantonFundsModal", () => {
           amount: "0.1",
           status: "settled",
           fee_asset: "USDC",
-          fee_wallet_symbol: "USDCx",
+          fee_wallet_symbol: "USDA",
           fee_amount: "1",
           requested_at: "2026-07-06T09:01:00Z",
         },
@@ -150,17 +150,17 @@ describe("CantonFundsModal", () => {
 
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
-    expect(await screen.findByText("USDCx 餘額")).toBeTruthy();
+    expect(await screen.findByText("USDA 餘額")).toBeTruthy();
     expect(screen.getByText("錢包餘額")).toBeTruthy();
     expect(screen.getByText("交易所餘額")).toBeTruthy();
-    expect(screen.getByText("存入 USDCx 至 Rocky Exchange")).toBeTruthy();
+    expect(screen.getByText("存入 USDA 至 Rocky Exchange")).toBeTruthy();
 
     fireEvent.click(screen.getByText("提領歷史"));
 
     expect(screen.getByText("網路費")).toBeTruthy();
     expect(screen.getByText("已完成")).toBeTruthy();
     expect(screen.getByRole("button", { name: /查看全部提領/i })).toBeTruthy();
-    expect(screen.queryByText("USDCx Balances")).toBeNull();
+    expect(screen.queryByText("USDA Balances")).toBeNull();
     expect(screen.queryByText("Wallet Balance")).toBeNull();
     expect(screen.queryByText("Withdraw History")).toBeNull();
   });
@@ -187,7 +187,7 @@ describe("CantonFundsModal", () => {
           amount: "0.1",
           status: "settled",
           fee_asset: "USDC",
-          fee_wallet_symbol: "USDCx",
+          fee_wallet_symbol: "USDA",
           fee_amount: "1",
           requested_at: "2026-07-06T09:01:00Z",
         },
@@ -197,12 +197,12 @@ describe("CantonFundsModal", () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
     await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1));
-    expect(screen.getByText("+0.2 USDCx")).toBeTruthy();
+    expect(screen.getByText("+0.2 USDA")).toBeTruthy();
     expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${depositUpdateId}"]`)).toBeTruthy();
 
     fireEvent.click(screen.getByText("Withdraw History"));
 
-    expect(screen.getByText("-0.1 USDCx")).toBeTruthy();
+    expect(screen.getByText("-0.1 USDA")).toBeTruthy();
     expect(screen.getByText("withdrawal-server-1")).toBeTruthy();
   });
 
@@ -260,7 +260,7 @@ describe("CantonFundsModal", () => {
 });
 
 function openWithdrawForm() {
-  const withdrawAction = screen.getAllByText("Withdraw USDCx to your Wallet")[0].closest("button");
+  const withdrawAction = screen.getAllByText("Withdraw USDA to your Wallet")[0].closest("button");
   fireEvent.click(withdrawAction as HTMLButtonElement);
 }
 

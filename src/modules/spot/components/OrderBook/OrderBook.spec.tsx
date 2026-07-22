@@ -28,7 +28,7 @@ afterEach(() => {
 describe("SpotOrderBookPanel", () => {
   it("shows 'No resting orders' when the book comes back empty", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [], bids: [] });
-    const { findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDCX" />);
+    const { findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />);
     await findByText("No resting orders");
   });
 
@@ -48,7 +48,7 @@ describe("SpotOrderBookPanel", () => {
         ["64970.00", "0.003"],
       ],
     });
-    const { findByText, container } = render(<SpotOrderBookPanel symbol="CBTC-USDCX" />);
+    const { findByText, container } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />);
     // Wait for asks + bids to render
     await findByText("65,010.00");
     await findByText("64,990.00");
@@ -61,7 +61,7 @@ describe("SpotOrderBookPanel", () => {
   it("switches to Trades tab and calls trades() instead of depth()", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [["65010", "0.001"]], bids: [["64990", "0.001"]] });
     mTrades.mockResolvedValue([]);
-    const { getByText, findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDCX" />);
+    const { getByText, findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />);
     await findByText("65,010.00");
     act(() => {
       fireEvent.click(getByText("Trades"));

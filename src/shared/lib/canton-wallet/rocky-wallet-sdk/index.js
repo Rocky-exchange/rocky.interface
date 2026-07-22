@@ -594,7 +594,7 @@ function compareVersions(actual, minimum) {
 
 function tokenFromInstrument(instrument) {
   const id = String(instrument?.instrument_id || instrument?.id || instrument || "CC").toUpperCase();
-  if (id.includes("USDC")) return "USDCx";
+  if (id.includes("USDC")) return "USDA";
   if (id.includes("BTC")) return "CBTC";
   return "CC";
 }

@@ -54,10 +54,10 @@ export function SpotAccountsPanel() {
       </div>
     );
 
-  // Rough total in USDCx-equivalent, treating base assets at 0 mark until we
+  // Rough total in USDA-equivalent, treating base assets at 0 mark until we
   // wire ticker mid-prices per symbol. Users see the real numbers per row.
-  const usdcx = data.balances.find((b) => b.asset === "USDCx");
-  const totalUsdcx = usdcx ? parseFloat(usdcx.free) + parseFloat(usdcx.locked) : 0;
+  const usda = data.balances.find((b) => b.asset === "USDA");
+  const totalUsda = usda ? parseFloat(usda.free) + parseFloat(usda.locked) : 0;
   const allZero = data.balances.every((b) => parseFloat(b.free) === 0 && parseFloat(b.locked) === 0);
 
   const onFaucet = async () => {
@@ -78,8 +78,8 @@ export function SpotAccountsPanel() {
     <div className={styles.panel}>
       <div className={styles.title}>Spot Account</div>
       <div className={styles.totalRow}>
-        <span className={styles.totalLabel}>USDCx (free + locked)</span>
-        <span className={styles.totalValue}>{totalUsdcx.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+        <span className={styles.totalLabel}>USDA (free + locked)</span>
+        <span className={styles.totalValue}>{totalUsda.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
       </div>
       <div className={styles.title}>Balances</div>
       <div className={styles.rows}>

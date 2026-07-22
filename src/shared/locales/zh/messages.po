@@ -613,8 +613,8 @@ msgid "Layer 2"
 msgstr "Layer 2"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "USDCx Balances"
-msgstr "USDCx 餘額"
+msgid "USDA Balances"
+msgstr "USDA 餘額"
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Price Steps:"
@@ -1357,8 +1357,8 @@ msgid "Stop Market price is above mark price"
 msgstr "止損市價高於標記價格"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Deposit USDCx to Rocky Exchange"
-msgstr "存入 USDCx 至 Rocky Exchange"
+msgid "Deposit USDA to Rocky Exchange"
+msgstr "存入 USDA 至 Rocky Exchange"
 
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
@@ -2472,8 +2472,8 @@ msgid "Line"
 msgstr "線圖"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Withdraw USDCx to your Wallet"
-msgstr "提領 USDCx 至你的錢包"
+msgid "Withdraw USDA to your Wallet"
+msgstr "提領 USDA 至你的錢包"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed TWAP Swap Part"

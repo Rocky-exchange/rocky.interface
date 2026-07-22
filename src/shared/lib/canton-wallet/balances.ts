@@ -4,7 +4,7 @@ import type { WalletProviderId } from "./types";
 export type WalletBalanceStatus = "ready" | "disconnected" | "unavailable" | "error";
 
 export type WalletBalanceRow = {
-  symbol: "CC" | "USDCx";
+  symbol: "CC" | "USDA";
   amount: string | null;
 };
 
@@ -25,7 +25,7 @@ type StoredWalletIdentity = {
 type UnknownRecord = Record<string, unknown>;
 type LoopBalanceProvider = { party_id: string; getHolding(): Promise<unknown> };
 
-const TRACKED_WALLET_SYMBOLS: WalletBalanceRow["symbol"][] = ["CC", "USDCx"];
+const TRACKED_WALLET_SYMBOLS: WalletBalanceRow["symbol"][] = ["CC", "USDA"];
 
 export function emptyWalletBalanceRows(): WalletBalanceRow[] {
   return TRACKED_WALLET_SYMBOLS.map((symbol) => ({ symbol, amount: null }));
@@ -138,7 +138,7 @@ export function normalizeRockyWalletBalance(balance: unknown): WalletBalanceRow[
   const ccAmount = record ? amountFromBalanceRecord(record) : "";
   return [
     { symbol: "CC", amount: ccAmount || null },
-    { symbol: "USDCx", amount: null },
+    { symbol: "USDA", amount: null },
   ];
 }
 
@@ -269,8 +269,15 @@ function canonicalWalletSymbol(value: string): WalletBalanceRow["symbol"] | null
   if (normalized === "CC" || normalized.includes("CANTONCOIN") || normalized.includes("AMULET")) {
     return "CC";
   }
-  if (normalized === "USDC" || normalized === "USDCX" || normalized.includes("USDCX")) {
-    return "USDCx";
+  if (
+    normalized === "USDC" ||
+    normalized === "USDA" ||
+    normalized.includes("USDA") ||
+    normalized.includes("USDCX") ||
+    // USDA instrument id (UUID, dashes stripped by the normalizer above)
+    normalized === "3574B536CAD140749B64859398713BA0"
+  ) {
+    return "USDA";
   }
   return null;
 }

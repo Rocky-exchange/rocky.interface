@@ -38,7 +38,7 @@ afterEach(() => {
 describe("SpotOrderForm", () => {
   it("shows Connect wallet CTA and skips submit when auth not ready", () => {
     mReady.mockReturnValue(false);
-    const { getByText, queryByText } = render(<SpotOrderForm symbol="CBTC-USDCX" />);
+    const { getByText, queryByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
     // Uppercase submit buttons ("BUY CBTC" / "SELL CBTC") are only rendered
     // when ready; the case-sensitive queries here distinguish them from the
     // side-tab labels ("Buy CBTC" / "Sell CBTC") that always render.
@@ -50,7 +50,7 @@ describe("SpotOrderForm", () => {
 
   it("disables submit until both price and quantity are provided", () => {
     mReady.mockReturnValue(true);
-    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDCX" />);
+    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
     const submit = getByText("BUY CBTC") as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     fireEvent.change(getByPlaceholderText("500"), { target: { value: "65000" } });
@@ -62,7 +62,7 @@ describe("SpotOrderForm", () => {
   it("sends LIMIT BUY with the entered price/qty and clears the fields on success", async () => {
     mReady.mockReturnValue(true);
     mPlace.mockResolvedValue({
-      symbol: "CBTC-USDCX",
+      symbol: "CBTC-USDA",
       orderId: "abcdef1234567890",
       clientOrderId: "cid",
       price: "65000",
@@ -74,7 +74,7 @@ describe("SpotOrderForm", () => {
       type: "LIMIT",
       side: "BUY",
     });
-    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDCX" />);
+    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
     const priceInput = getByPlaceholderText("500") as HTMLInputElement;
     const qtyInput = getByPlaceholderText("0.1") as HTMLInputElement;
     fireEvent.change(priceInput, { target: { value: "65000" } });
@@ -82,7 +82,7 @@ describe("SpotOrderForm", () => {
     fireEvent.click(getByText("BUY CBTC"));
     await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
     expect(mPlace).toHaveBeenCalledWith({
-      symbol: "CBTC-USDCX",
+      symbol: "CBTC-USDA",
       side: "BUY",
       type: "LIMIT",
       price: "65000",
@@ -98,7 +98,7 @@ describe("SpotOrderForm", () => {
   it("surfaces SpotApiError code + msg to the user on submit failure", async () => {
     mReady.mockReturnValue(true);
     mPlace.mockRejectedValue(new SpotApiError(-2010, "insufficient balance"));
-    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDCX" />);
+    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
     fireEvent.change(getByPlaceholderText("500"), { target: { value: "65000" } });
     fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.001" } });
     fireEvent.click(getByText("BUY CBTC"));

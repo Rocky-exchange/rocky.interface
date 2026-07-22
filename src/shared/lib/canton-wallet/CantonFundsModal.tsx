@@ -49,9 +49,9 @@ type LocalHistoryRow = {
   explorerUrl?: string;
 };
 
-const FIXED_FUNDS_ASSET: CantonFundsAsset = "USDCx";
+const FIXED_FUNDS_ASSET: CantonFundsAsset = "USDA";
 const FIXED_WITHDRAWAL_FEE_AMOUNT = 1;
-const FIXED_WITHDRAWAL_FEE_LABEL = "1 USDCx";
+const FIXED_WITHDRAWAL_FEE_LABEL = "1 USDA";
 const PENDING_DEPOSIT_CONFIRM_ATTEMPTS = 36;
 const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
@@ -92,7 +92,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const walletLabel = snapshot?.label || getWalletProviderLabel(provider);
   const walletLogo = getWalletProviderLogo(walletProvider);
   const walletRows = snapshot?.balances ?? emptyWalletBalanceRows();
-  const usdcxBalance = getBalanceAmount(walletRows, "USDCx");
+  const usdaBalance = getBalanceAmount(walletRows, "USDA");
   const withdrawAmountNumber = Number(withdrawAmount.trim());
   const withdrawAmountIsPositive = Number.isFinite(withdrawAmountNumber) && withdrawAmountNumber > 0;
   const withdrawRequiredAmount = requiredWithdrawalAmount(withdrawAmountNumber);
@@ -579,7 +579,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <section className={styles.balanceCard}>
             <div className={styles.sectionHeader}>
               <h3>
-                {i18n._(t`USDCx Balances`)}
+                {i18n._(t`USDA Balances`)}
                 <button
                   type="button"
                   className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
@@ -597,11 +597,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
             <div className={styles.balanceGrid}>
               <div className={styles.balanceItem}>
-                <UsdcxIcon className={styles.tokenIcon} />
+                <UsdaIcon className={styles.tokenIcon} />
                 <div>
                   <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
                   <div className={styles.balanceValue}>
-                    {formatFixedBalance(usdcxBalance)} <span>USDCx</span>
+                    {formatFixedBalance(usdaBalance)} <span>USDA</span>
                   </div>
                   <div className={styles.balanceCaption}>{i18n._(t`On-chain balance`)}</div>
                 </div>
@@ -635,7 +635,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </span>
               <span>
                 <strong>{i18n._(t`Deposit`)}</strong>
-                <small>{i18n._(t`Deposit USDCx to Rocky Exchange`)}</small>
+                <small>{i18n._(t`Deposit USDA to Rocky Exchange`)}</small>
               </span>
               <span className={styles.actionChevron}>
                 {activeAction === "deposit" ? <ChevronDownIcon /> : <ChevronIcon />}
@@ -655,7 +655,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </span>
               <span>
                 <strong>{i18n._(t`Withdraw`)}</strong>
-                <small>{i18n._(t`Withdraw USDCx to your Wallet`)}</small>
+                <small>{i18n._(t`Withdraw USDA to your Wallet`)}</small>
               </span>
               <span className={styles.actionChevron}>
                 {activeAction === "withdraw" ? <ChevronDownIcon /> : <ChevronIcon />}
@@ -677,7 +677,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <div className={styles.field}>
                       <span>{i18n._(t`Asset`)}</span>
                       <div className={styles.fixedAssetValue}>
-                        <UsdcxIcon />
+                        <UsdaIcon />
                         <strong>{FIXED_FUNDS_ASSET}</strong>
                       </div>
                     </div>
@@ -714,7 +714,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <div className={styles.field}>
                       <span>{i18n._(t`Asset`)}</span>
                       <div className={styles.fixedAssetValue}>
-                        <UsdcxIcon />
+                        <UsdaIcon />
                         <strong>{FIXED_FUNDS_ASSET}</strong>
                       </div>
                     </div>
@@ -790,7 +790,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   >
                     <span>{formatHistoryTime(item.time)}</span>
                     <span className={styles.assetCell}>
-                      <TokenIcon symbol={item.asset === "USDCx" ? "USDC" : item.asset} displaySize={24} />
+                      <TokenIcon symbol={item.asset === "USDA" ? "USDC" : item.asset} displaySize={24} />
                       {item.asset}
                     </span>
                     <span
@@ -1087,7 +1087,7 @@ function historyTimeValue(value: string): number {
 
 function walletFacingHistoryAsset(asset: string | undefined): CantonFundsAsset {
   const symbol = (asset || "").trim().toUpperCase();
-  return symbol === "USDC" || symbol === "USDCX" || symbol === "USDC-X" ? "USDCx" : "CC";
+  return symbol === "USDC" || symbol === "USDA" || symbol === "USDCX" || symbol === "USDC-X" ? "USDA" : "CC";
 }
 
 function formatHistoryAmount(
@@ -1300,10 +1300,10 @@ function RefreshIcon() {
   );
 }
 
-function UsdcxIcon({ className }: { className?: string }) {
+function UsdaIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <circle cx="20" cy="20" r="20" fill="url(#usdcx-icon-bg)" />
+      <circle cx="20" cy="20" r="20" fill="url(#usda-icon-bg)" />
       <path
         d="M13.25 11.9a11 11 0 0 0 0 16.2M26.75 11.9a11 11 0 0 1 0 16.2"
         stroke="#ffffff"
@@ -1319,7 +1319,7 @@ function UsdcxIcon({ className }: { className?: string }) {
       />
       <path d="M20 10.9v18.2" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" />
       <defs>
-        <linearGradient id="usdcx-icon-bg" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+        <linearGradient id="usda-icon-bg" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
           <stop stopColor="#3aa3ff" />
           <stop offset="1" stopColor="#1f6fd8" />
         </linearGradient>

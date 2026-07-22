@@ -32,7 +32,7 @@ function stubFetch(rows: unknown[] | ((url: string) => unknown[])): { urls: stri
 }
 
 // Minimal LibrarySymbolInfo — SpotDataFeed only reads .name.
-function symbolInfo(name = "CBTC-USDCX"): LibrarySymbolInfo {
+function symbolInfo(name = "CBTC-USDA"): LibrarySymbolInfo {
   return { name, ticker: name } as LibrarySymbolInfo;
 }
 
@@ -51,19 +51,19 @@ describe("onReady", () => {
 describe("resolveSymbol", () => {
   it("derives description + pricescale=100 from the pair", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDCX", resolve as never));
-    expect(info.name).toBe("CBTC-USDCX");
-    expect(info.description).toBe("CBTC/USDCX");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDA", resolve as never));
+    expect(info.name).toBe("CBTC-USDA");
+    expect(info.description).toBe("CBTC/USDA");
     expect(info.pricescale).toBe(100); // tick 0.01 → 2 decimals
     expect(info.session).toBe("24x7");
     expect(info.type).toBe("crypto");
   });
 
-  it("defaults quote to USDCX when symbol has no dash", async () => {
+  it("defaults quote to USDA when symbol has no dash", async () => {
     const feed = new SpotDataFeed();
     const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC", resolve as never));
-    expect(info.description).toBe("CBTC/USDCX");
-    expect(info.currency_code).toBe("USDCX");
+    expect(info.description).toBe("CBTC/USDA");
+    expect(info.currency_code).toBe("USDA");
   });
 });
 
@@ -113,7 +113,7 @@ describe("getBars", () => {
       );
     });
     expect(urls[0]).toContain("data-api.binance.vision/api/v3/klines");
-    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDCX → BTCUSDT mapping
+    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDA → BTCUSDT mapping
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
   });

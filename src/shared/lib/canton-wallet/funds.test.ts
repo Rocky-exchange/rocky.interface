@@ -4,11 +4,11 @@ import {
   CantonFundsError,
   fetchCantonFundsHistory,
   fetchPlatformAccountBalance,
-  fetchPendingUsdcxOffers,
-  fetchUsdcxAutoAccept,
+  fetchPendingUsdaOffers,
+  fetchUsdaAutoAccept,
   requestDepositReference,
   submitCantonWalletDeposit,
-  setUsdcxAutoAccept,
+  setUsdaAutoAccept,
   submitPlatformWithdrawal,
 } from "./funds";
 
@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 describe("canton wallet funds", () => {
-  it("requests a USDCx deposit reference with exchange session auth", async () => {
+  it("requests a USDA deposit reference with exchange session auth", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
         asset: "USDC",
@@ -32,7 +32,7 @@ describe("canton wallet funds", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const reference = await requestDepositReference({ asset: "USDCx", amount: "12.50" });
+    const reference = await requestDepositReference({ asset: "USDA", amount: "12.50" });
 
     expect(reference.deposit_ref).toBe("dep-1");
     expect(fetchMock).toHaveBeenCalledWith("/v1/deposits/reference", expect.objectContaining({ method: "POST" }));
@@ -149,7 +149,7 @@ describe("canton wallet funds", () => {
     const result = await submitCantonWalletDeposit({
       provider: "rocky",
       walletParty: "party-1",
-      asset: "USDCx",
+      asset: "USDA",
       amount: "0.2",
     });
 
@@ -174,7 +174,7 @@ describe("canton wallet funds", () => {
     expect(provider.sendTransfer).toHaveBeenCalledWith({
       from: "party-1",
       to: "target-party",
-      token: "USDCx",
+      token: "USDA",
       amount: "0.2",
       expireDate: expect.any(String),
       memo: "dep-2",
@@ -210,7 +210,7 @@ describe("canton wallet funds", () => {
     const pending = submitCantonWalletDeposit({
       provider: "rocky",
       walletParty: "party-1",
-      asset: "USDCx",
+      asset: "USDA",
       amount: "0.2",
     });
     await vi.runAllTimersAsync();
@@ -231,7 +231,7 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await submitPlatformWithdrawal({
-      asset: "USDCx",
+      asset: "USDA",
       amount: "5",
       destinationParty: " party-1 ",
       idempotencyKey: "idempotency-1",
@@ -241,7 +241,7 @@ describe("canton wallet funds", () => {
     expect(fetchMock).toHaveBeenCalledWith("/v1/withdrawals", expect.objectContaining({ method: "POST" }));
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(JSON.parse(init.body as string)).toEqual({
-      asset: "USDCx",
+      asset: "USDA",
       amount: "5",
       dest_user_handle_party: "party-1",
       idempotency_key: "idempotency-1",
@@ -258,11 +258,11 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("maps USDCx platform balances to the USDC backend account", async () => {
+  it("maps USDA platform balances to the USDC backend account", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => jsonResponse({ available: "0.1" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchPlatformAccountBalance("USDCx")).resolves.toBe(0.1);
+    await expect(fetchPlatformAccountBalance("USDA")).resolves.toBe(0.1);
     expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
       headers: { Authorization: "Bearer exchange-token" },
     });
@@ -291,7 +291,7 @@ describe("canton wallet funds", () => {
               amount: "0.1",
               status: "settled",
               fee_amount: "1",
-              fee_wallet_symbol: "USDCx",
+              fee_wallet_symbol: "USDA",
             },
           ],
         });
@@ -316,7 +316,7 @@ describe("canton wallet funds", () => {
           amount: "0.1",
           status: "settled",
           fee_amount: "1",
-          fee_wallet_symbol: "USDCx",
+          fee_wallet_symbol: "USDA",
         },
       ],
     });
@@ -371,28 +371,28 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("reads and writes Rocky USDCx auto-accept settings", async () => {
+  it("reads and writes Rocky USDA auto-accept settings", async () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      if (String(url) === "/v1/wallet/usdcx/auto-accept" && init?.method === "PUT") {
+      if (String(url) === "/v1/wallet/usda/auto-accept" && init?.method === "PUT") {
         return jsonResponse({ enabled: true });
       }
       return jsonResponse({ enabled: false });
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchUsdcxAutoAccept()).resolves.toMatchObject({ enabled: false });
-    await expect(setUsdcxAutoAccept(true)).resolves.toMatchObject({ enabled: true });
+    await expect(fetchUsdaAutoAccept()).resolves.toMatchObject({ enabled: false });
+    await expect(setUsdaAutoAccept(true)).resolves.toMatchObject({ enabled: true });
 
     const putInit = fetchMock.mock.calls[1][1] as RequestInit;
     expect(putInit.method).toBe("PUT");
     expect(JSON.parse(putInit.body as string)).toEqual({ enabled: true });
   });
 
-  it("does not try to list pending USDCx offers for non-Console wallets", async () => {
+  it("does not try to list pending USDA offers for non-Console wallets", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchPendingUsdcxOffers({ provider: "rocky", party: "party-1" })).resolves.toEqual({
+    await expect(fetchPendingUsdaOffers({ provider: "rocky", party: "party-1" })).resolves.toEqual({
       offers: [],
       listingAvailable: false,
     });

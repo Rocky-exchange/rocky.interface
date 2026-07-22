@@ -43,8 +43,8 @@ const SUPPORTED_RESOLUTIONS = {
 
 // Rocky spot symbol → Binance spot symbol for chart data.
 const BINANCE_SYMBOL: Record<string, string> = {
-  "CBTC-USDCX": "BTCUSDT",
-  "CETH-USDCX": "ETHUSDT",
+  "CBTC-USDA": "BTCUSDT",
+  "CETH-USDA": "ETHUSDT",
 };
 
 function tvToBinance(res: ResolutionString): string {
@@ -128,13 +128,13 @@ export class SpotDataFeed implements IBasicDataFeed {
   }
 
   resolveSymbol(symbolName: string, onResolve: ResolveCallback): void {
-    // symbolName === "CBTC-USDCX" or "CETH-USDCX"; description shown in the
+    // symbolName === "CBTC-USDA" or "CETH-USDA"; description shown in the
     // symbol title area.
     const [base, quote] = symbolName.split("-");
     const info: LibrarySymbolInfo = {
       name: symbolName,
       ticker: symbolName,
-      description: `${base}/${quote ?? "USDCX"}`,
+      description: `${base}/${quote ?? "USDA"}`,
       type: "crypto",
       session: "24x7",
       timezone: "Etc/UTC",
@@ -150,7 +150,7 @@ export class SpotDataFeed implements IBasicDataFeed {
       supported_resolutions: Object.keys(SUPPORTED_RESOLUTIONS) as ResolutionString[],
       volume_precision: 4,
       data_status: "streaming",
-      currency_code: quote ?? "USDCX",
+      currency_code: quote ?? "USDA",
     };
     setTimeout(() => onResolve(info), 0);
   }

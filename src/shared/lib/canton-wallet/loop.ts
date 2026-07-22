@@ -62,7 +62,7 @@ type LoopSdk = {
   };
 };
 
-type LoopWalletTransferToken = "CC" | "USDCx";
+type LoopWalletTransferToken = "CC" | "USDA";
 
 type LoopWalletTransferInput = {
   from?: string;
@@ -251,8 +251,15 @@ function loopHoldingMatchesToken(holding: LoopHolding, token: LoopWalletTransfer
     holding.instrument_id?.id,
   ].map(normalizeLoopTokenText);
 
-  if (token === "USDCx") {
-    return values.some((value) => value === "usdcx" || value === "usdc");
+  if (token === "USDA") {
+    // USDA instrument id is a UUID; also match it directly besides symbol text.
+    return values.some(
+      (value) =>
+        value === "usda" ||
+        value === "usdc" ||
+        value === "usdcx" ||
+        value === "3574b536-cad1-4074-9b64-859398713ba0",
+    );
   }
   return values.some(
     (value) => value === "cc" || value === "amulet" || value === "cantoncoin",

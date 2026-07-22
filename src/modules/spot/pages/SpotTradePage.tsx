@@ -24,7 +24,7 @@ import styles from "./SpotTradePage.module.scss";
  */
 export default function SpotTradePage() {
   const params = useParams<{ symbol?: string }>();
-  const symbol = params.symbol ?? "CBTC-USDCX";
+  const symbol = params.symbol ?? "CBTC-USDA";
 
   // Mint / clear per-user HMAC credentials when the Canton wallet connects
   // or disconnects. Downstream components read via useSpotAuthReady().

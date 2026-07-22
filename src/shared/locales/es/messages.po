@@ -613,7 +613,7 @@ msgid "Layer 2"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "USDCx Balances"
+msgid "USDA Balances"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
@@ -1357,7 +1357,7 @@ msgid "Stop Market price is above mark price"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Deposit USDCx to Rocky Exchange"
+msgid "Deposit USDA to Rocky Exchange"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
@@ -2472,7 +2472,7 @@ msgid "Line"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Withdraw USDCx to your Wallet"
+msgid "Withdraw USDA to your Wallet"
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts

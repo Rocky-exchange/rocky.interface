@@ -3,12 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("CantonFundsModal source", () => {
-  it("does not render the USDCx controls panel", () => {
+  it("does not render the USDA controls panel", () => {
     const source = readFileSync(join(process.cwd(), "src/shared/lib/canton-wallet/CantonFundsModal.tsx"), "utf8");
 
-    expect(source).not.toContain("USDCx Controls");
-    expect(source).not.toContain("Authorize USDCx");
-    expect(source).not.toContain("Accept USDCx offers");
+    expect(source).not.toContain("USDA Controls");
+    expect(source).not.toContain("Authorize USDA");
+    expect(source).not.toContain("Accept USDA offers");
   });
 
   it("loads persisted funds history when refreshing the wallet dashboard", () => {

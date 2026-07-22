@@ -1,7 +1,7 @@
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 type ConsoleWalletTarget = "local" | "remote" | "combined";
-type ConsoleWalletTransferToken = "CC" | "USDCx";
+type ConsoleWalletTransferToken = "CC" | "USDA";
 
 type ConsoleWalletTransferInput = {
   from?: string;
@@ -146,36 +146,36 @@ export async function submitConsoleWalletTransfer(input: ConsoleWalletTransferIn
   return result;
 }
 
-export async function acceptConsoleWalletUsdcxOffers(
+export async function acceptConsoleWalletUsdaOffers(
   input: ConsoleWalletAcceptOffersInput = {},
 ): Promise<{ acceptedCount: number }> {
-  const { sdk, offers: pendingUsdcxOffers } = await loadPendingConsoleWalletUsdcxOffers(input);
-  const offer = pendingUsdcxOffers[0];
+  const { sdk, offers: pendingUsdaOffers } = await loadPendingConsoleWalletUsdaOffers(input);
+  const offer = pendingUsdaOffers[0];
   if (!offer?.transferCid) {
     return { acceptedCount: 0 };
   }
 
   const result = await sdk.consoleWallet.submitInstructionChoice({
     transferCid: offer.transferCid,
-    coin: offer.coin || "USDCx",
+    coin: offer.coin || "USDA",
     choice: "Accept",
     instructionData: offer,
   });
   if (!result?.status) {
-    throw new Error("console_wallet_usdcx_accept_failed");
+    throw new Error("console_wallet_usda_accept_failed");
   }
 
   return { acceptedCount: 1 };
 }
 
-export async function getPendingConsoleWalletUsdcxOffers(
+export async function getPendingConsoleWalletUsdaOffers(
   input: ConsoleWalletAcceptOffersInput = {},
 ): Promise<{ offers: ConsoleWalletPendingOffer[] }> {
-  const { offers } = await loadPendingConsoleWalletUsdcxOffers(input);
+  const { offers } = await loadPendingConsoleWalletUsdaOffers(input);
   return { offers };
 }
 
-async function loadPendingConsoleWalletUsdcxOffers(
+async function loadPendingConsoleWalletUsdaOffers(
   input: ConsoleWalletAcceptOffersInput,
 ): Promise<{ sdk: ConsoleWalletSdk; offers: ConsoleWalletPendingOffer[] }> {
   const sdk = (await import("@console-wallet/dapp-sdk")) as unknown as ConsoleWalletSdk;
@@ -202,18 +202,21 @@ async function loadPendingConsoleWalletUsdcxOffers(
     network,
   });
   const offers = Array.isArray(response?.items) ? response.items : [];
-  const pendingUsdcxOffers = offers.filter((offer) => {
+  const pendingUsdaOffers = offers.filter((offer) => {
     const coin = (offer.coin || "").trim().toUpperCase();
     const status = (offer.status || "").trim().toUpperCase();
     return (
       offer.transferCid &&
       offer.receiver === party &&
-      (coin === "USDCX" || coin === "USDC") &&
+      (coin === "USDA" ||
+        coin === "USDC" ||
+        coin === "USDCX" ||
+        coin === "3574B536-CAD1-4074-9B64-859398713BA0") &&
       (status === "PENDING" || status === "")
     );
   });
 
-  return { sdk, offers: pendingUsdcxOffers };
+  return { sdk, offers: pendingUsdaOffers };
 }
 
 function getConsoleWalletTarget(): ConsoleWalletTarget {

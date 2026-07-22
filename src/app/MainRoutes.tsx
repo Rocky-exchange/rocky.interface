@@ -37,7 +37,7 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
         </LighterTradeRuntimeProviders>
       </Route>
 
-      {/* Spot trading — CBTC-USDCX / CETH-USDCX via rocky-backend /api/v3 */}
+      {/* Spot trading — CBTC-USDA / CETH-USDA via rocky-backend /api/v3 */}
       <Route exact path="/spot/:symbol?">
         <SpotTradePage />
       </Route>

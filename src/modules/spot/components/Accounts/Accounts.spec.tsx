@@ -33,14 +33,14 @@ const mAccount = vi.mocked(spotApi.account);
 const mConnect = vi.mocked(openCantonConnect);
 const mSession = vi.mocked(useCantonSession);
 
-const acct = (usdcx: string, cbtc = "0", ceth = "0") => ({
+const acct = (usda: string, cbtc = "0", ceth = "0") => ({
   accountType: "SPOT" as const,
   canTrade: true,
   canWithdraw: false,
   canDeposit: false,
   updateTime: 0,
   balances: [
-    { asset: "USDCx", free: usdcx, locked: "0" },
+    { asset: "USDA", free: usda, locked: "0" },
     { asset: "CBTC", free: cbtc, locked: "0" },
     { asset: "cETH", free: ceth, locked: "0" },
   ],

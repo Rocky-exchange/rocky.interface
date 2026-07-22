@@ -41,7 +41,7 @@ export function SpotSymbolBar({ symbol }: { symbol: string }) {
           <span className={styles.cellValue}>{t ? fmtNum(t.volume, 4) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol USDCx</span>
+          <span className={styles.cellLabel}>24h Vol USDA</span>
           <span className={styles.cellValue}>{t ? fmtNum(t.quoteVolume) : "—"}</span>
         </div>
       </div>
