@@ -105,6 +105,7 @@ let session: ReturnType<typeof useCantonSession>;
 let cache: Cache;
 let firstIsolatedCache: Cache;
 let secondIsolatedCache: Cache;
+let focusCache: Cache;
 const TEST_SWR_CONFIG = {
   provider: () => cache,
   dedupingInterval: 0,
@@ -114,6 +115,13 @@ const TEST_SWR_CONFIG = {
 };
 const FIRST_ISOLATED_SWR_CONFIG = { ...TEST_SWR_CONFIG, provider: () => firstIsolatedCache };
 const SECOND_ISOLATED_SWR_CONFIG = { ...TEST_SWR_CONFIG, provider: () => secondIsolatedCache };
+const FOCUS_SWR_CONFIG = {
+  ...TEST_SWR_CONFIG,
+  provider: () => focusCache,
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+  focusThrottleInterval: 0,
+};
 
 function TestSWRProvider({ children }: { children?: ReactNode }) {
   return <SWRConfig value={TEST_SWR_CONFIG}>{children}</SWRConfig>;
@@ -128,6 +136,15 @@ function DuplicateStatusHarness() {
   useBonusStatus();
   useBonusStatus();
   return null;
+}
+
+function StatusConsumerSet({ second }: { second: boolean }) {
+  return (
+    <>
+      <StatusHarness />
+      {second ? <StatusHarness /> : null}
+    </>
+  );
 }
 
 function PollingHarness() {
@@ -158,6 +175,12 @@ function HistoryHarness({ onRender }: { onRender?: (history: ReturnType<typeof u
   return null;
 }
 
+function HistoryLimitsHarness() {
+  useBonusHistory(20);
+  useBonusHistory(50);
+  return null;
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   cache = new Map();
@@ -178,6 +201,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("Canton-scoped bonus hooks", () => {
@@ -318,6 +342,60 @@ describe("Canton-scoped bonus hooks", () => {
     expect(mStatus).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the event listener until the final same-key consumer unmounts", async () => {
+    const addEventListener = vi.spyOn(window, "addEventListener");
+    const removeEventListener = vi.spyOn(window, "removeEventListener");
+    const rendered = render(<StatusConsumerSet second />, { wrapper: TestSWRProvider });
+    await waitFor(() => expect(mStatus).toHaveBeenCalledTimes(1));
+    expect(eventListenerCalls(addEventListener, BONUS_DATA_CHANGED_EVENT)).toHaveLength(1);
+
+    rendered.rerender(<StatusConsumerSet second={false} />);
+    expect(eventListenerCalls(removeEventListener, BONUS_DATA_CHANGED_EVENT)).toHaveLength(0);
+
+    act(() => invalidateBonusData());
+    await waitFor(() => expect(mStatus).toHaveBeenCalledTimes(2));
+
+    rendered.unmount();
+    expect(eventListenerCalls(removeEventListener, BONUS_DATA_CHANGED_EVENT)).toHaveLength(1);
+
+    act(() => invalidateBonusData());
+    await act(async () => undefined);
+    expect(mStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it("revalidates cached history on window focus with the default freshness behavior", async () => {
+    focusCache = new Map();
+    mHistory.mockResolvedValue(FIRST_HISTORY_PAGE);
+    render(
+      <SWRConfig value={FOCUS_SWR_CONFIG}>
+        <HistoryHarness />
+      </SWRConfig>
+    );
+    await waitFor(() => expect(mHistory).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => expect(mHistory).toHaveBeenCalledTimes(2));
+  });
+
+  it("revalidates history limits independently within one SWR provider", async () => {
+    render(<HistoryLimitsHarness />, { wrapper: TestSWRProvider });
+    await waitFor(() => {
+      expect(historyCallsForLimit(20)).toHaveLength(1);
+      expect(historyCallsForLimit(50)).toHaveLength(1);
+    });
+
+    act(() => invalidateBonusData());
+
+    await waitFor(() => {
+      expect(historyCallsForLimit(20)).toHaveLength(2);
+      expect(historyCallsForLimit(50)).toHaveLength(2);
+    });
+  });
+
   it("loads history by cursor, flattens rows, and stops after the last page", async () => {
     mHistory.mockImplementation((input) =>
       Promise.resolve(input?.before === "cursor-1" ? LAST_HISTORY_PAGE : FIRST_HISTORY_PAGE)
@@ -345,12 +423,17 @@ describe("Canton-scoped bonus hooks", () => {
 
   it("retries the same missing history page after a failed request settles", async () => {
     const pageError = new Error("page unavailable");
+    const requestedCursors: Array<string | undefined> = [];
     let cursorAttempts = 0;
     mHistory.mockImplementation((input) => {
       const before = input?.before;
-      if (before !== "cursor-1") return Promise.resolve(FIRST_HISTORY_PAGE);
-      cursorAttempts += 1;
-      return cursorAttempts === 1 ? Promise.reject(pageError) : Promise.resolve(LAST_HISTORY_PAGE);
+      requestedCursors.push(before);
+      if (before === "cursor-1") {
+        cursorAttempts += 1;
+        return cursorAttempts === 1 ? Promise.reject(pageError) : Promise.resolve(MIDDLE_HISTORY_PAGE);
+      }
+      if (before === "cursor-2") return Promise.resolve(LAST_HISTORY_PAGE);
+      return Promise.resolve(FIRST_HISTORY_PAGE);
     });
     let latest: ReturnType<typeof useBonusHistory> | undefined;
     render(<HistoryHarness onRender={(history) => (latest = history)} />, { wrapper: TestSWRProvider });
@@ -363,12 +446,27 @@ describe("Canton-scoped bonus hooks", () => {
     expect(latest?.hasMore).toBe(true);
     expect(cursorAttempts).toBe(1);
 
+    const requestsBeforeRetry = requestedCursors.length;
     act(() => latest?.loadMore());
     await waitFor(() => {
       expect(cursorAttempts).toBe(2);
-      expect(latest?.rows).toEqual([...FIRST_HISTORY_PAGE.rows, ...LAST_HISTORY_PAGE.rows]);
+      expect(latest?.rows).toEqual([...FIRST_HISTORY_PAGE.rows, ...MIDDLE_HISTORY_PAGE.rows]);
+      expect(latest?.hasMore).toBe(true);
+    });
+    const retryCursors = requestedCursors.slice(requestsBeforeRetry).filter((cursor) => cursor !== undefined);
+    expect(retryCursors).toEqual(["cursor-1"]);
+    expect(requestedCursors).not.toContain("cursor-2");
+
+    act(() => latest?.loadMore());
+    await waitFor(() => {
+      expect(latest?.rows).toEqual([
+        ...FIRST_HISTORY_PAGE.rows,
+        ...MIDDLE_HISTORY_PAGE.rows,
+        ...LAST_HISTORY_PAGE.rows,
+      ]);
       expect(latest?.hasMore).toBe(false);
     });
+    expect(requestedCursors.filter((cursor) => cursor === "cursor-2")).toHaveLength(1);
   });
 
   it("coalesces two synchronous loadMore calls into one page increment", async () => {
@@ -431,4 +529,12 @@ async function advanceTimers(milliseconds: number): Promise<void> {
     vi.advanceTimersByTime(milliseconds);
     await Promise.resolve();
   });
+}
+
+function eventListenerCalls(spy: ReturnType<typeof vi.spyOn>, eventName: string) {
+  return spy.mock.calls.filter(([type]) => type === eventName);
+}
+
+function historyCallsForLimit(limit: number) {
+  return mHistory.mock.calls.filter(([input]) => input?.limit === limit);
 }
