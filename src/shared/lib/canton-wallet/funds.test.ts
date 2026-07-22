@@ -45,6 +45,7 @@ beforeEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.stubGlobal("localStorage", createMemoryStorage());
+  vi.stubGlobal("sessionStorage", createMemoryStorage());
   localStorage.setItem("rocky_exchange_session", "exchange-token");
 });
 
@@ -125,7 +126,7 @@ describe("canton wallet funds", () => {
   });
 
   it("submits explicit USDA contract-to-spot transfers with exchange session auth", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<typeof fetch>(async () =>
       jsonResponse({
         asset: "USDA",
         direction: "toSpot",
@@ -136,9 +137,7 @@ describe("canton wallet funds", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(transferSpotBalance({ asset: "USDA", amount: "1", direction: "toSpot" })).resolves.toMatchObject({
-      spotFree: "1",
-    });
+    await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/spot/transfer",
@@ -147,6 +146,92 @@ describe("canton wallet funds", () => {
         headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
       })
     );
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body).toEqual({
+      asset: "USDA",
+      amount: "1",
+      direction: "toSpot",
+      idempotency_key: expect.any(String),
+    });
+    expect(body.idempotency_key.length).toBeLessThanOrEqual(256);
+    expect(sessionStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
+  });
+
+  it.each([
+    ["a lost network response", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["a request timeout", () => Promise.reject(new DOMException("Timed out", "AbortError"))],
+    ["a 5xx response", () => Promise.resolve(jsonResponse({ error: "temporarily unavailable" }, 503))],
+  ])("reuses the transfer idempotency key after %s", async (_label, firstResponse) => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(firstResponse)
+      .mockResolvedValueOnce(
+        jsonResponse({
+          asset: "USDA",
+          direction: "toSpot",
+          amount: "1",
+          fundingAvailable: "0",
+          spotFree: "1",
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(transferSpotBalance(spotTransferInput())).rejects.toBeTruthy();
+    expect(sessionStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
+    await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
+
+    expect(spotTransferKey(fetchMock, 1)).toBe(spotTransferKey(fetchMock, 0));
+  });
+
+  it("coalesces identical concurrent transfers in the same runtime", async () => {
+    let resolveResponse!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      resolveResponse = resolve;
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockReturnValue(response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = transferSpotBalance(spotTransferInput());
+    const second = transferSpotBalance(spotTransferInput());
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolveResponse(
+      jsonResponse({
+        asset: "USDA",
+        direction: "toSpot",
+        amount: "1",
+        fundingAvailable: "0",
+        spotFree: "1",
+      })
+    );
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+  });
+
+  it.each([
+    [
+      "success",
+      () => jsonResponse({ asset: "USDA", direction: "toSpot", amount: "1", fundingAvailable: "0", spotFree: "1" }),
+    ],
+    ["an explicit 4xx response", () => jsonResponse({ error: "invalid amount" }, 400)],
+  ])("clears the transfer intent after %s", async (_label, firstResponse) => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(firstResponse())
+      .mockResolvedValueOnce(
+        jsonResponse({
+          asset: "USDA",
+          direction: "toSpot",
+          amount: "1",
+          fundingAvailable: "0",
+          spotFree: "1",
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await transferSpotBalance(spotTransferInput()).catch(() => undefined);
+    await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
+
+    expect(spotTransferKey(fetchMock, 1)).not.toBe(spotTransferKey(fetchMock, 0));
   });
 
   it("loads persistent user spot transfer history", async () => {
@@ -760,6 +845,22 @@ function headerValue(headers: HeadersInit | undefined, name: string): string | u
   }
   const record = headers as Record<string, string>;
   return record[name] || record[name.toLowerCase()];
+}
+
+function spotTransferInput() {
+  return {
+    asset: "USDA" as const,
+    amount: "1",
+    direction: "toSpot" as const,
+    walletParty: "wallet-party",
+    sessionParty: "session-party",
+    walletProvider: "rocky" as const,
+  };
+}
+
+function spotTransferKey(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, callIndex: number): string {
+  const init = fetchMock.mock.calls[callIndex]?.[1] as RequestInit;
+  return JSON.parse(init.body as string).idempotency_key as string;
 }
 
 function createMemoryStorage(): Storage {

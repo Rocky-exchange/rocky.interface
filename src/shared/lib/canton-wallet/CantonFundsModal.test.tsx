@@ -361,6 +361,9 @@ describe("CantonFundsModal", () => {
         asset: "USDA",
         amount: "5",
         direction: "toFunding",
+        sessionParty: PARTY_ID,
+        walletParty: PARTY_ID,
+        walletProvider: "rocky",
       })
     );
   });
@@ -383,6 +386,9 @@ describe("CantonFundsModal", () => {
         asset: "USDA",
         amount: "50",
         direction: "toFunding",
+        sessionParty: PARTY_ID,
+        walletParty: PARTY_ID,
+        walletProvider: "rocky",
       })
     );
   });

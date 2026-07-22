@@ -19,6 +19,13 @@ import { submitLoopWalletTransfer } from "./loop";
 import { submitRockyWalletTransfer } from "./rocky";
 import { exchangeSessionHeaders, getExchangeSessionToken } from "./session";
 import { disconnectCantonWalletSession } from "./sessionLogout";
+import {
+  acquireSpotTransferIntentKey,
+  settleSpotTransferIntent,
+  shouldRetainSpotTransferIntent,
+  type SpotTransferIntent,
+  type SpotTransferIntentScope,
+} from "./spotTransferIntentRegistry";
 import type { WalletProviderId } from "./types";
 
 export type { CantonFundsApiAsset, CantonFundsAsset } from "./assets";
@@ -395,17 +402,57 @@ export type SpotTransferResult = {
   spotFree: string;
 };
 
+export type SpotTransferInput = SpotTransferIntent & SpotTransferIntentScope;
+
+const inFlightSpotTransfers = new Map<string, Promise<SpotTransferResult>>();
+
 /** Move USDA between the isolated contract and spot accounts. */
-export async function transferSpotBalance(input: {
-  asset: "USDA";
-  amount: string;
-  direction: "toSpot" | "toFunding";
-}): Promise<SpotTransferResult> {
-  return requestJson<SpotTransferResult>("/v1/spot/transfer", {
+export function transferSpotBalance(input: SpotTransferInput): Promise<SpotTransferResult> {
+  const headers = sessionJsonHeaders();
+  const intent: SpotTransferIntent = {
+    asset: input.asset,
+    amount: positiveAmount(input.amount),
+    direction: input.direction,
+  };
+  const scope = spotTransferScope(input);
+  const idempotencyKey = acquireSpotTransferIntentKey(scope, intent);
+  const existingRequest = inFlightSpotTransfers.get(idempotencyKey);
+  if (existingRequest) return existingRequest;
+
+  const request = { ...intent, idempotency_key: idempotencyKey };
+  let trackedRequest: Promise<SpotTransferResult>;
+  trackedRequest = requestJson<SpotTransferResult>("/v1/spot/transfer", {
     method: "POST",
-    headers: sessionJsonHeaders(),
-    body: JSON.stringify(input),
-  });
+    headers,
+    body: JSON.stringify(request),
+  })
+    .then((result) => {
+      settleSpotTransferIntent(scope, request, "complete");
+      return result;
+    })
+    .catch((error: unknown) => {
+      settleSpotTransferIntent(scope, request, shouldRetainSpotTransferIntent(error) ? "ambiguous" : "complete");
+      throw error;
+    })
+    .finally(() => {
+      if (inFlightSpotTransfers.get(idempotencyKey) === trackedRequest) {
+        inFlightSpotTransfers.delete(idempotencyKey);
+      }
+    });
+  inFlightSpotTransfers.set(idempotencyKey, trackedRequest);
+  return trackedRequest;
+}
+
+function spotTransferScope(input: SpotTransferInput): SpotTransferIntentScope {
+  const scope = {
+    walletParty: input.walletParty.trim(),
+    sessionParty: input.sessionParty.trim(),
+    walletProvider: input.walletProvider.trim(),
+  };
+  if (!scope.walletParty || !scope.sessionParty || !scope.walletProvider) {
+    throw new CantonFundsError("Wallet session identity is unavailable", { code: "wallet_identity_unavailable" });
+  }
+  return scope;
 }
 
 export async function authorizeUsdaWallet(): Promise<UsdaAuthorizationResult> {

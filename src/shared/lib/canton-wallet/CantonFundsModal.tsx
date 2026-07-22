@@ -509,7 +509,14 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setError("");
     setNotice("");
     try {
-      const result = await transferSpotBalance({ asset: "USDA", amount, direction: transferDirection });
+      const result = await transferSpotBalance({
+        asset: "USDA",
+        amount,
+        direction: transferDirection,
+        walletParty,
+        sessionParty: party,
+        walletProvider,
+      });
       setPlatformBalances((current) => ({ ...current, USDA: Number(result.spotFree) }));
       setFundingAvailable(Number(result.fundingAvailable));
       setTransferAmount("");

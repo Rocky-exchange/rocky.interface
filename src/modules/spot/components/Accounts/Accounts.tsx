@@ -33,7 +33,7 @@ type TransferAsset = (typeof TRANSFER_ASSETS)[number];
 
 export function SpotAccountsPanel() {
   const ready = useSpotAuthReady();
-  const { party } = useCantonSession();
+  const { party, provider } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
   const xferAsset: TransferAsset = "USDA";
@@ -97,6 +97,9 @@ export function SpotAccountsPanel() {
         asset: xferAsset,
         amount: xferAmount.trim(),
         direction,
+        walletParty: party,
+        sessionParty: party,
+        walletProvider: provider,
       });
       setXferMsg(
         direction === "toSpot"
