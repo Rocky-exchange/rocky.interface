@@ -1,7 +1,5 @@
-// Component-layer specs for SpotAccountsPanel — connect gate, balance
-// display, and dev faucet flow (shows only on all-zero).
-import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
   openCantonConnect: vi.fn(),
@@ -9,40 +7,32 @@ vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
 vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
   useCantonSession: vi.fn(),
 }));
-vi.mock("../../api/spotSession", () => ({
-  useSpotAuthReady: vi.fn(),
+vi.mock("../../hooks/useSpotAccount", () => ({
+  useSpotAccount: vi.fn(),
 }));
-vi.mock("../../api/spotClient", async () => {
-  const actual = await vi.importActual<typeof import("../../api/spotClient")>("../../api/spotClient");
-  return {
-    ...actual,
-    spotApi: {
-      account: vi.fn(),
-    },
-  };
-});
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
-import { useSpotAuthReady } from "../../api/spotSession";
-import { spotApi } from "../../api/spotClient";
-import { SpotAccountsPanel } from "./Accounts";
 
-const mReady = vi.mocked(useSpotAuthReady);
-const mAccount = vi.mocked(spotApi.account);
+import { SpotAccountsPanel } from "./Accounts";
+import { useSpotAccount } from "../../hooks/useSpotAccount";
+import { resolveSpotMarket } from "../../model/spotMarkets";
+
 const mConnect = vi.mocked(openCantonConnect);
 const mSession = vi.mocked(useCantonSession);
+const mSpotAccount = vi.mocked(useSpotAccount);
+const market = resolveSpotMarket("CBTC-USDA");
 
-const acct = (usdcx: string, cbtc = "0", ceth = "0") => ({
+const account = (usdcx: string, locked = "0", cbtc = "0", ceth = "0") => ({
   accountType: "SPOT" as const,
   canTrade: true,
   canWithdraw: false,
   canDeposit: false,
   updateTime: 0,
   balances: [
-    { asset: "USDCx", free: usdcx, locked: "0" },
+    { asset: "USDCX", free: usdcx, locked },
     { asset: "CBTC", free: cbtc, locked: "0" },
-    { asset: "cETH", free: ceth, locked: "0" },
+    { asset: "CETH", free: ceth, locked: "0" },
   ],
   permissions: ["SPOT"],
 });
@@ -53,8 +43,8 @@ afterEach(() => {
 });
 
 describe("SpotAccountsPanel", () => {
-  it("shows Connect wallet when auth not ready and skips API", () => {
-    mReady.mockReturnValue(false);
+  it("preserves the wallet connect path while account auth is unavailable", () => {
+    mSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch: vi.fn() });
     mSession.mockReturnValue({
       connected: false,
       token: "",
@@ -63,14 +53,20 @@ describe("SpotAccountsPanel", () => {
       avatar: "",
       provider: "",
     });
-    const { getByText } = render(<SpotAccountsPanel />);
-    fireEvent.click(getByText("Connect wallet"));
+
+    const { getByRole } = render(<SpotAccountsPanel market={market} />);
+    fireEvent.click(getByRole("button", { name: "Connect wallet" }));
+
     expect(mConnect).toHaveBeenCalledOnce();
-    expect(mAccount).not.toHaveBeenCalled();
   });
 
-  it("renders balances and hides the faucet button when non-zero", async () => {
-    mReady.mockReturnValue(true);
+  it("renders the account total and backend balances with public USDA and configured asset casing", () => {
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: account("1234.5", "0.5", "0.1", "0.2"),
+      err: null,
+      refetch: vi.fn(),
+    });
     mSession.mockReturnValue({
       connected: true,
       token: "t",
@@ -79,14 +75,40 @@ describe("SpotAccountsPanel", () => {
       avatar: "",
       provider: "",
     });
-    mAccount.mockResolvedValue(acct("1234.5", "0.1"));
-    const { findByText, queryByText } = render(<SpotAccountsPanel />);
-    await findByText("1,234.5000");
+
+    const { getByText, getAllByText, queryByText } = render(<SpotAccountsPanel market={market} />);
+
+    expect(getByText("USDA (free + locked)")).toBeTruthy();
+    expect(getByText("1,235")).toBeTruthy();
+    expect(getAllByText("USDA")).toHaveLength(1);
+    expect(getByText("CBTC")).toBeTruthy();
+    expect(getByText("cETH")).toBeTruthy();
+    expect(queryByText(/USDCx/i)).toBeNull();
     expect(queryByText(/Get test funds/)).toBeNull();
   });
 
-  it("shows faucet CTA when all balances are zero and calls the endpoint on click", async () => {
-    mReady.mockReturnValue(true);
+  it("preserves loading and error states", () => {
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+    mSpotAccount.mockReturnValue({ ready: true, account: null, err: null, refetch: vi.fn() });
+    const loading = render(<SpotAccountsPanel market={market} />);
+    expect(loading.getByText("Loading…")).toBeTruthy();
+    loading.unmount();
+
+    mSpotAccount.mockReturnValue({ ready: true, account: null, err: "account unavailable", refetch: vi.fn() });
+    const failed = render(<SpotAccountsPanel market={market} />);
+    expect(failed.getByText("account unavailable")).toBeTruthy();
+  });
+
+  it("preserves the dev faucet flow and refreshes the shared account state", async () => {
+    const refetch = vi.fn();
+    mSpotAccount.mockReturnValue({ ready: true, account: account("0"), err: null, refetch });
     mSession.mockReturnValue({
       connected: true,
       token: "t",
@@ -95,15 +117,16 @@ describe("SpotAccountsPanel", () => {
       avatar: "",
       provider: "",
     });
-    mAccount.mockResolvedValue(acct("0"));
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
-    const { findByText } = render(<SpotAccountsPanel />);
-    const faucetBtn = await findByText(/Get test funds/);
-    fireEvent.click(faucetBtn);
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+
+    const { findByRole } = render(<SpotAccountsPanel market={market} />);
+    fireEvent.click(await findByRole("button", { name: "Get test funds (dev)" }));
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledOnce());
     const [url, init] = fetchSpy.mock.calls[0];
     expect(url).toBe("/api/v3/dev/faucet");
     expect(JSON.parse((init as RequestInit).body as string)).toEqual({ party: "party-abc" });
+    expect(refetch).toHaveBeenCalledOnce();
     fetchSpy.mockRestore();
   });
 });

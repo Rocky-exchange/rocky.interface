@@ -3,10 +3,9 @@ import { useState } from "react";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
-import { spotApi, type Account } from "../../api/spotClient";
-import { useSpotAuthReady } from "../../api/spotSession";
-import { usePolling } from "../../hooks/usePolling";
 import styles from "./Accounts.module.scss";
+import { useSpotAccount } from "../../hooks/useSpotAccount";
+import { SPOT_MARKETS, type SpotMarket, toSpotDisplayAsset } from "../../model/spotMarkets";
 
 function fmt(v: string, digits = 4): string {
   const n = parseFloat(v);
@@ -26,12 +25,23 @@ async function faucet(party: string): Promise<void> {
   if (!r.ok) throw new Error(`faucet HTTP ${r.status}`);
 }
 
-export function SpotAccountsPanel() {
-  const ready = useSpotAuthReady();
+function displayAsset(asset: string, market: SpotMarket): string {
+  const publicAsset = toSpotDisplayAsset(asset);
+  if (publicAsset !== asset) return publicAsset;
+
+  const normalizedAsset = asset.trim().toUpperCase();
+  return (
+    [market, ...SPOT_MARKETS].find((configuredMarket) => configuredMarket.apiBase.toUpperCase() === normalizedAsset)
+      ?.displayBase ?? asset
+  );
+}
+
+export function SpotAccountsPanel({ market }: { market: SpotMarket }) {
+  const { ready, account, err, refetch } = useSpotAccount();
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
-  const { data, err, refetch } = usePolling<Account>(() => spotApi.account(), 2500, [], { enabled: ready });
+
   if (!ready)
     return (
       <div className={styles.panel}>
@@ -47,18 +57,18 @@ export function SpotAccountsPanel() {
         <div className={styles.err}>{err}</div>
       </div>
     );
-  if (!data)
+  if (!account)
     return (
       <div className={styles.panel}>
         <div className={styles.title}>Loading…</div>
       </div>
     );
 
-  // Rough total in USDCx-equivalent, treating base assets at 0 mark until we
-  // wire ticker mid-prices per symbol. Users see the real numbers per row.
-  const usdcx = data.balances.find((b) => b.asset === "USDCx");
-  const totalUsdcx = usdcx ? parseFloat(usdcx.free) + parseFloat(usdcx.locked) : 0;
-  const allZero = data.balances.every((b) => parseFloat(b.free) === 0 && parseFloat(b.locked) === 0);
+  const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDCX");
+  const totalUsda = quoteBalance ? parseFloat(quoteBalance.free) + parseFloat(quoteBalance.locked) : 0;
+  const allZero = account.balances.every(
+    (balance) => parseFloat(balance.free) === 0 && parseFloat(balance.locked) === 0,
+  );
 
   const onFaucet = async () => {
     if (!party) return;
@@ -76,30 +86,42 @@ export function SpotAccountsPanel() {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.title}>Spot Account</div>
-      <div className={styles.totalRow}>
-        <span className={styles.totalLabel}>USDCx (free + locked)</span>
-        <span className={styles.totalValue}>{totalUsdcx.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+      <div className={styles.summary}>
+        <div className={styles.title}>Spot Account</div>
+        <div className={styles.totalRow}>
+          <span className={styles.totalLabel}>USDA (free + locked)</span>
+          <span className={styles.totalValue}>{totalUsda.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+        </div>
+        {allZero && (
+          <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
+            {faucetBusy ? "Requesting…" : "Get test funds (dev)"}
+          </button>
+        )}
+        {faucetErr && <div className={styles.err}>{faucetErr}</div>}
       </div>
-      <div className={styles.title}>Balances</div>
-      <div className={styles.rows}>
-        <span className={styles.rowHeader}>Asset</span>
-        <span className={`${styles.rowHeader} ${styles.free}`}>Free</span>
-        <span className={`${styles.rowHeader} ${styles.locked}`}>Locked</span>
-        {data.balances.map((b) => (
-          <div key={b.asset} style={{ display: "contents" }}>
-            <span className={styles.asset}>{b.asset}</span>
-            <span className={styles.free}>{fmt(b.free)}</span>
-            <span className={styles.locked}>{fmt(b.locked)}</span>
-          </div>
-        ))}
+      <div className={styles.balanceSection}>
+        <div className={styles.title}>Balances</div>
+        <div className={styles.tableScroll}>
+          <table className={styles.balanceTable}>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Free</th>
+                <th>Locked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {account.balances.map((balance) => (
+                <tr key={balance.asset}>
+                  <td className={styles.asset}>{displayAsset(balance.asset, market)}</td>
+                  <td>{fmt(balance.free)}</td>
+                  <td className={styles.locked}>{fmt(balance.locked)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      {allZero && (
-        <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
-          {faucetBusy ? "Requesting…" : "Get test funds (dev)"}
-        </button>
-      )}
-      {faucetErr && <div className={styles.err}>{faucetErr}</div>}
     </div>
   );
 }

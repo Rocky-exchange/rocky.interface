@@ -7,6 +7,7 @@ import { spotApi, type SpotOrder } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
 import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
+import { SpotAccountsPanel } from "../Accounts/Accounts";
 
 const CONNECT_HINT_STYLE = { marginLeft: 8, color: "var(--ltr-text-muted)" } as const;
 const MUTED_TEXT_STYLE = { color: "var(--ltr-text-muted)" } as const;
@@ -59,59 +60,93 @@ function OpenOrders({ market }: { market: SpotMarket }) {
   };
 
   if (err) return <div className={styles.empty}>{err}</div>;
-  if (!data || data.length === 0) return <div className={styles.empty}>No open orders</div>;
+  if (!data) return <div className={styles.empty}>Loading…</div>;
+  if (data.length === 0) return <div className={styles.empty}>No open orders</div>;
 
   return (
     <div className={styles.body}>
-      <div className={styles.tableHeader}>
-        <span>Time</span>
-        <span>Side</span>
-        <span className={styles.right}>Price</span>
-        <span className={styles.right}>Qty</span>
-        <span className={styles.right}>Filled</span>
-        <span className={styles.right}>Status</span>
-        <span className={styles.right}>Action</span>
-      </div>
-      {data.map((o) => (
-        <div key={o.orderId} className={styles.row}>
-          <span style={MUTED_TEXT_STYLE}>{fmtTime(o.time)}</span>
-          <span className={o.side === "BUY" ? styles.buy : styles.sell}>{o.side}</span>
-          <span className={styles.right}>{fmtNum(o.price, 2)}</span>
-          <span className={styles.right}>{fmtNum(o.origQty, 8)}</span>
-          <span className={styles.right}>{fmtNum(o.executedQty, 8)}</span>
-          <span className={styles.right} style={SECONDARY_TEXT_STYLE}>
-            {o.status}
-          </span>
-          <button
-            type="button"
-            className={styles.cancel}
-            onClick={() => cancel(o.orderId)}
-            disabled={cancellingId === o.orderId}
-          >
-            {cancellingId === o.orderId ? "…" : "Cancel"}
-          </button>
-        </div>
-      ))}
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Side</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Filled</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((order) => (
+            <tr key={order.orderId}>
+              <td style={MUTED_TEXT_STYLE}>{fmtTime(order.time)}</td>
+              <td className={order.side === "BUY" ? styles.buy : styles.sell}>{order.side}</td>
+              <td>{fmtNum(order.price, 2)}</td>
+              <td>{fmtNum(order.origQty, 8)}</td>
+              <td>{fmtNum(order.executedQty, 8)}</td>
+              <td style={SECONDARY_TEXT_STYLE}>{order.status}</td>
+              <td>
+                <button
+                  type="button"
+                  className={styles.cancel}
+                  onClick={() => cancel(order.orderId)}
+                  disabled={cancellingId === order.orderId}
+                >
+                  {cancellingId === order.orderId ? "…" : "Cancel"}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 export function SpotBottomTabs({ market }: { market: SpotMarket }) {
+  const [activeTab, setActiveTab] = useState<"assets" | "open-orders">("assets");
+
   return (
     <div className={styles.panel}>
-      <div className={styles.tabs}>
-        <button type="button" className={`${styles.tab} ${styles.tabActive}`}>
+      <div className={styles.tabs} role="tablist" aria-label="Spot account workspace">
+        <button
+          type="button"
+          id="spot-assets-tab"
+          role="tab"
+          aria-selected={activeTab === "assets"}
+          aria-controls="spot-bottom-panel"
+          className={`${styles.tab} ${activeTab === "assets" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("assets")}
+        >
+          Assets
+        </button>
+        <button
+          type="button"
+          id="spot-open-orders-tab"
+          role="tab"
+          aria-selected={activeTab === "open-orders"}
+          aria-controls="spot-bottom-panel"
+          className={`${styles.tab} ${activeTab === "open-orders" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("open-orders")}
+        >
           Open Orders
         </button>
-        {/* Placeholder tabs — order/trade history are follow-up work */}
-        <button type="button" className={styles.tab} disabled>
+        <button type="button" role="tab" aria-selected="false" aria-disabled="true" className={styles.tab} disabled>
           Order History
         </button>
-        <button type="button" className={styles.tab} disabled>
+        <button type="button" role="tab" aria-selected="false" aria-disabled="true" className={styles.tab} disabled>
           Trade History
         </button>
       </div>
-      <OpenOrders market={market} />
+      <div
+        id="spot-bottom-panel"
+        role="tabpanel"
+        aria-labelledby={activeTab === "assets" ? "spot-assets-tab" : "spot-open-orders-tab"}
+        className={styles.tabPanel}
+      >
+        {activeTab === "assets" ? <SpotAccountsPanel market={market} /> : <OpenOrders market={market} />}
+      </div>
     </div>
   );
 }
