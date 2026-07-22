@@ -21,6 +21,7 @@ vi.mock("../../api/spotClient", async () => {
       placeOrder: vi.fn(),
       account: vi.fn(),
       ticker: vi.fn(),
+      depth: vi.fn(),
     },
   };
 });
@@ -35,6 +36,7 @@ const mReady = vi.mocked(useSpotAuthReady);
 const mPlace = vi.mocked(spotApi.placeOrder);
 const mAccount = vi.mocked(spotApi.account);
 const mTicker = vi.mocked(spotApi.ticker);
+const mDepth = vi.mocked(spotApi.depth);
 const mConnect = vi.mocked(openCantonConnect);
 
 function accountWith(usdaFree: string, cbtcFree = "0"): Account {
@@ -58,6 +60,7 @@ function stubQuietPolls() {
   // Resolve-never keeps usePolling data undefined without unhandled rejects.
   mAccount.mockImplementation(() => new Promise(() => undefined));
   mTicker.mockImplementation(() => new Promise(() => undefined));
+  mDepth.mockImplementation(() => new Promise(() => undefined));
 }
 
 afterEach(() => {
@@ -85,12 +88,12 @@ describe("SpotOrderForm", () => {
     expect(mConnect).toHaveBeenCalledOnce();
   });
 
-  it("renders an explicit Limit order-type tab (Market disabled)", () => {
+  it("renders Limit and Market order-type tabs, defaulting to Limit", () => {
     mReady.mockReturnValue(true);
     stubQuietPolls();
     const { getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     expect(getByText("Limit")).toBeTruthy();
-    expect(getByText("Market").title).toMatch(/not available/i);
+    expect(getByText("Market")).toBeTruthy();
   });
 
   it("disables submit until both price and quantity are provided", () => {
@@ -179,5 +182,41 @@ describe("SpotOrderForm", () => {
     fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.01" } }); // 650 <= 1000
     const submit = getByText("BUY CBTC · Limit") as HTMLButtonElement;
     await waitFor(() => expect(submit.disabled).toBe(false));
+  });
+
+  it("switches to Market: price input hidden, submits type MARKET without price", async () => {
+    mReady.mockReturnValue(true);
+    mAccount.mockResolvedValue(accountWith("10000"));
+    mTicker.mockImplementation(() => new Promise(() => undefined));
+    mDepth.mockResolvedValue({ lastUpdateId: 1, bids: [["1900", "5"]], asks: [["2000", "5"]] });
+    mPlace.mockResolvedValue({ status: "NEW", orderId: "abc123456789xyz" } as never);
+
+    const { getByText, queryByPlaceholderText, getByPlaceholderText } = render(
+      <SpotOrderForm symbol="CETH-USDA" />, { wrapper: I18nWrapper });
+
+    fireEvent.click(getByText("Market"));
+    expect(queryByPlaceholderText("Limit price")).toBeNull();
+
+    fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.5" } });
+    await waitFor(() => expect(getByText("BUY CETH · Market")).not.toHaveProperty("disabled", true));
+    fireEvent.click(getByText("BUY CETH · Market"));
+
+    await waitFor(() => expect(mPlace).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "MARKET", quantity: "0.5", symbol: "CETH-USDA" })));
+    expect(mPlace.mock.calls[0][0]).not.toHaveProperty("price");
+  });
+
+  it("market BUY affordability uses best-ask × 1.05 cap", async () => {
+    mReady.mockReturnValue(true);
+    // 100 USDA available; ask 2000 → cap 2100; qty 0.05 → 105 > 100 → blocked.
+    mAccount.mockResolvedValue(accountWith("100"));
+    mTicker.mockImplementation(() => new Promise(() => undefined));
+    mDepth.mockResolvedValue({ lastUpdateId: 1, bids: [["1900", "5"]], asks: [["2000", "5"]] });
+
+    const { getByText, getByPlaceholderText, findByText } = render(
+      <SpotOrderForm symbol="CETH-USDA" />, { wrapper: I18nWrapper });
+    fireEvent.click(getByText("Market"));
+    fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.05" } });
+    await findByText(/Insufficient USDA/);
   });
 });
