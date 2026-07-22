@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
@@ -77,7 +77,7 @@ function isWithinAvailableBalance(
 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { ready, account, err: accountError, refetch } = useSpotAccount();
-  const activeMarketSymbol = useRef(market.apiSymbol);
+  const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
   const [side, setSide] = useState<Side>("BUY");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
@@ -147,14 +147,18 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setAmount((currentAmount) => (currentAmount === nextAmount ? currentAmount : nextAmount));
   }, [baseFree, busy, percent, price, quoteFree, side]);
 
-  useEffect(() => {
-    if (activeMarketSymbol.current === market.apiSymbol) return;
-    activeMarketSymbol.current = market.apiSymbol;
+  useLayoutEffect(() => {
+    if (marketSession.current.symbol === market.apiSymbol) return;
+    marketSession.current = {
+      symbol: market.apiSymbol,
+      generation: marketSession.current.generation + 1,
+    };
     setSide("BUY");
     setPrice("");
     setAmount("");
     setPercent(0);
     setMsg(null);
+    setBusy(false);
   }, [market.apiSymbol]);
 
   const canSubmit =
@@ -162,7 +166,10 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
   const submit = async () => {
     if (!canSubmit) return;
-    const submittedSymbol = market.apiSymbol;
+    const submittedSession = marketSession.current;
+    const isCurrentSession = () =>
+      marketSession.current.symbol === submittedSession.symbol &&
+      marketSession.current.generation === submittedSession.generation;
     setBusy(true);
     setMsg(null);
     try {
@@ -173,14 +180,14 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         price,
         quantity: amount,
       });
-      if (activeMarketSymbol.current !== submittedSymbol) return;
+      if (!isCurrentSession()) return;
       setMsg({ kind: "ok", text: `${response.status} · ${response.orderId.slice(0, 12)}…` });
       setPrice("");
       setAmount("");
       setPercent(0);
       refetch();
     } catch (error: unknown) {
-      if (activeMarketSymbol.current !== submittedSymbol) return;
+      if (!isCurrentSession()) return;
       const text =
         error instanceof SpotApiError
           ? `[${error.code}] ${error.message}`
@@ -189,7 +196,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             : String(error);
       setMsg({ kind: "err", text });
     } finally {
-      setBusy(false);
+      if (isCurrentSession()) setBusy(false);
     }
   };
 

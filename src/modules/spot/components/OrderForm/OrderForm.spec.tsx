@@ -352,6 +352,88 @@ describe("SpotOrderForm", () => {
     });
   });
 
+  it("ignores an old market success that settles after switching to a new market", async () => {
+    let resolveOldOrder!: (order: SpotOrder) => void;
+    mPlace.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOldOrder = resolve;
+      })
+    );
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
+    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase}` }));
+    await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
+
+    view.rerender(<SpotOrderForm market={cethMarket} />);
+    const cethPrice = view.getByLabelText(`Price (${cethMarket.displayQuote})`) as HTMLInputElement;
+    const cethAmount = view.getByLabelText(`Amount (${cethMarket.displayBase})`) as HTMLInputElement;
+    await waitFor(() => {
+      expect(cethPrice.disabled).toBe(false);
+      expect(cethPrice.value).toBe("");
+      expect(cethAmount.value).toBe("");
+    });
+    fireEvent.change(cethPrice, { target: { value: "300" } });
+    fireEvent.change(cethAmount, { target: { value: "1" } });
+
+    await act(async () => resolveOldOrder(successfulOrder("BUY")));
+    expect(cethPrice.value).toBe("300");
+    expect(cethAmount.value).toBe("1");
+    expect(view.queryByText(/NEW ·/)).toBeNull();
+    expect((view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it("uses market generation to ignore an old A response after switching A to B to A", async () => {
+    let rejectOldOrder!: (error: Error) => void;
+    let resolveNewOrder!: (order: SpotOrder) => void;
+    mPlace
+      .mockReturnValueOnce(
+        new Promise((_resolve, reject) => {
+          rejectOldOrder = reject;
+        })
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveNewOrder = resolve;
+        })
+      );
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
+    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase}` }));
+    await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(1));
+
+    view.rerender(<SpotOrderForm market={cethMarket} />);
+    await waitFor(() =>
+      expect((view.getByLabelText(`Price (${cethMarket.displayQuote})`) as HTMLInputElement).disabled).toBe(false)
+    );
+    view.rerender(<SpotOrderForm market={market} />);
+    const newPrice = view.getByLabelText(`Price (${market.displayQuote})`) as HTMLInputElement;
+    const newAmount = view.getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
+    await waitFor(() => expect(newPrice.disabled).toBe(false));
+    fireEvent.change(newPrice, { target: { value: "400" } });
+    fireEvent.change(newAmount, { target: { value: "1" } });
+    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase}` }));
+    await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(2));
+
+    await act(async () => rejectOldOrder(new SpotApiError(-2010, "stale A error")));
+    expect(newPrice.value).toBe("400");
+    expect(newAmount.value).toBe("1");
+    expect(newPrice.disabled).toBe(true);
+    expect(view.getByRole("button", { name: "Sending…" })).toBeTruthy();
+    expect(view.queryByText(/stale A error/)).toBeNull();
+
+    await act(async () => resolveNewOrder(successfulOrder("BUY")));
+    await waitFor(() => {
+      expect(newPrice.value).toBe("");
+      expect(newAmount.value).toBe("");
+      expect(view.getByText(/NEW ·/)).toBeTruthy();
+    });
+  });
+
   it("surfaces SpotApiError code and message to the user", async () => {
     mPlace.mockRejectedValue(new SpotApiError(-2010, "insufficient balance"));
     const { getByLabelText, getByRole, findByText } = render(<SpotOrderForm market={market} />);
