@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryHistory } from "history";
 import { Router, Route } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -52,6 +52,21 @@ vi.mock("../components/Accounts/Accounts", () => ({
 
 afterEach(cleanup);
 
+function renderSpotRoute(path: string) {
+  const history = createMemoryHistory({ initialEntries: [path] });
+  const replace = vi.spyOn(history, "replace");
+
+  render(
+    <Router history={history}>
+      <Route path="/spot/:symbol?">
+        <SpotTradePage />
+      </Route>
+    </Router>
+  );
+
+  return { history, replace };
+}
+
 describe("SpotTradePage", () => {
   it("coordinates the routed market across the ZTDX trading workspace", () => {
     const history = createMemoryHistory({ initialEntries: ["/spot/CBTC-USDA"] });
@@ -78,5 +93,28 @@ describe("SpotTradePage", () => {
     }
 
     expect(screen.queryByTestId("spot-standalone-account")).toBeNull();
+  });
+
+  it.each([
+    ["legacy CBTC API symbol", "/spot/CBTC-USDCX", "/spot/CBTC-USDA"],
+    ["case-insensitive CETH API symbol", "/spot/ceth-usdcx", "/spot/CETH-USDA"],
+    ["trimmed API symbol", "/spot/%20CBTC-USDCX%20", "/spot/CBTC-USDA"],
+    ["missing symbol", "/spot", "/spot/CBTC-USDA"],
+    ["lowercase public symbol", "/spot/cbtc-usda", "/spot/CBTC-USDA"],
+    ["unknown symbol", "/spot/not-a-market", "/spot/CBTC-USDA"],
+  ])("replaces the %s URL with its public canonical route", async (_name, path, canonicalPath) => {
+    const { history, replace } = renderSpotRoute(path);
+
+    await waitFor(() => expect(history.location.pathname).toBe(canonicalPath));
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith(canonicalPath);
+  });
+
+  it("leaves an already-canonical USDA URL unchanged without a redirect loop", async () => {
+    const { history, replace } = renderSpotRoute("/spot/CBTC-USDA");
+
+    await waitFor(() => expect(screen.getByTestId("symbol-bar-probe")).not.toBeNull());
+    expect(history.location.pathname).toBe("/spot/CBTC-USDA");
+    expect(replace).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import "@/modules/lighter/styles/global.scss";
@@ -24,7 +24,9 @@ import { resolveSpotMarket } from "../model/spotMarkets";
  */
 export default function SpotTradePage() {
   const params = useParams<{ symbol?: string }>();
-  const market = resolveSpotMarket(params.symbol);
+  const history = useHistory();
+  const routeSymbol = params.symbol?.trim().replace(/-USDCX$/i, "-USDA");
+  const market = resolveSpotMarket(routeSymbol);
 
   // Mint / clear per-user HMAC credentials when the Canton wallet connects
   // or disconnects. Downstream components read via useSpotAuthReady().
@@ -34,6 +36,12 @@ export default function SpotTradePage() {
     document.body.classList.add("lighter-active");
     return () => document.body.classList.remove("lighter-active");
   }, []);
+
+  useEffect(() => {
+    if (params.symbol !== market.routeSymbol) {
+      history.replace(`/spot/${market.routeSymbol}`);
+    }
+  }, [history, market.routeSymbol, params.symbol]);
 
   return (
     <div className={`lighter-root ${styles.page}`}>

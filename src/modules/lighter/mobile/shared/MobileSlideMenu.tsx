@@ -12,7 +12,7 @@ type Props = {
 };
 
 const LINKS: { to: string; label: ReactNode }[] = [
-  { to: "/spot/CBTC-USDCX", label: <Trans>Spot</Trans> },
+  { to: "/spot/CBTC-USDA", label: <Trans>Spot</Trans> },
   { to: "/trade", label: <Trans>Futures</Trans> },
 ];
 
