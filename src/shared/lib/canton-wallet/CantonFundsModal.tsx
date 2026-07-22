@@ -27,7 +27,6 @@ import styles from "./CantonFundsModal.module.scss";
 import {
   fetchCantonFundsHistory,
   fetchFundingAccountBalance,
-  fetchPlatformAccountBalance,
   fetchPlatformAccountBalances,
   fetchPlatformWithdrawableBalance,
   fetchSpotTransferHistory,
@@ -49,6 +48,7 @@ import usdaIconSrc from "./token-icons/USDCx.webp";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
+import { hasPendingWithdrawalIntent } from "./withdrawalIntentRegistry";
 
 type Props = {
   open: boolean;
@@ -110,7 +110,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [depositBusy, setDepositBusy] = useState(false);
   const [depositConfirming, setDepositConfirming] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
-  const [withdrawAvailableLoading, setWithdrawAvailableLoading] = useState(false);
   const [platformBalances, setPlatformBalances] = useState<PlatformAccountBalances>(EMPTY_PLATFORM_BALANCES);
   const [fundingAvailable, setFundingAvailable] = useState<number | null>(null);
   const [fundingTransferAvailable, setFundingTransferAvailable] = useState<number | null>(null);
@@ -125,7 +124,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [depositResult, setDepositResult] = useState<CantonDepositResult | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [bonusRecallNotice, setBonusRecallNotice] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -156,8 +154,18 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const withdrawAmountNumber = Number(withdrawAmount.trim());
   const withdrawAmountIsPositive = Number.isFinite(withdrawAmountNumber) && withdrawAmountNumber > 0;
   const withdrawRequiredAmount = requiredWithdrawalAmount(withdrawAmountNumber, selectedAsset);
+  const withdrawalRetryPending =
+    withdrawAmountIsPositive &&
+    Boolean(party && walletProvider) &&
+    hasPendingWithdrawalIntent(
+      { sessionParty: party, walletProvider },
+      { asset: selectedAsset, amount: withdrawAmount, destinationParty: walletParty }
+    );
   const withdrawExceedsAvailable =
-    withdrawAvailable !== null && withdrawAmountIsPositive && withdrawRequiredAmount > withdrawAvailable;
+    !withdrawalRetryPending &&
+    withdrawAvailable !== null &&
+    withdrawAmountIsPositive &&
+    withdrawRequiredAmount > withdrawAvailable;
   const withdrawAvailableError =
     withdrawExceedsAvailable && withdrawAvailable !== null
       ? i18n._(
@@ -167,7 +175,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const dashboardRefreshing =
     walletBalanceLoading ||
     platformBalanceLoading ||
-    withdrawAvailableLoading ||
     fundingTransferAvailableLoading ||
     depositConfirming ||
     historyLoading;
@@ -189,8 +196,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
         (!query || asset.symbol.toLowerCase().includes(query))
     );
   }, [assetFilter, assetSearch]);
-  const transferSourceAvailable =
-    transferDirection === "toFunding" ? platformBalances.USDA : fundingTransferAvailable;
+  const transferSourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingTransferAvailable;
   const isAssetsDashboard = activeView === "assets";
   const operationTitle =
     activeView === "deposit"
@@ -221,18 +227,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
     const fundingRequest = fetchFundingAccountBalance().then(setFundingAvailable);
 
     await Promise.allSettled([walletRequest, platformRequest, fundingRequest]);
-  }, [connected]);
-
-  const refreshWithdrawAvailable = useCallback(async (asset: CantonFundsAsset) => {
-    if (!connected) return null;
-    setWithdrawAvailableLoading(true);
-    try {
-      const available = await fetchPlatformAccountBalance(asset);
-      setPlatformBalances((current) => ({ ...current, [asset]: available }));
-      return available;
-    } finally {
-      setWithdrawAvailableLoading(false);
-    }
   }, [connected]);
 
   const refreshFundingTransferAvailable = useCallback(async () => {
@@ -365,7 +359,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setDepositBusy(true);
     setError("");
     setNotice("");
-    setBonusRecallNotice("");
     setDepositResult(null);
     try {
       const result = await submitCantonWalletDeposit({
@@ -447,35 +440,23 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setWithdrawBusy(true);
     setError("");
     setNotice("");
-    setBonusRecallNotice("");
     try {
-      const latestAvailable = await refreshWithdrawAvailable(asset);
-      const requiredAmount = requiredWithdrawalAmount(Number(amount), asset);
-      const latestAvailableError =
-        latestAvailable !== null && withdrawAmountIsPositive && requiredAmount > latestAvailable
-          ? i18n._(
-              t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(latestAvailable)} ${asset}. Required: ${formatDisplayAmount(requiredAmount)} ${asset} including fee.`
-            )
-          : "";
-      if (latestAvailableError) {
-        setError(latestAvailableError);
+      if (withdrawExceedsAvailable) {
+        setError(withdrawAvailableError);
         return;
       }
       const result = await submitPlatformWithdrawal({
         asset,
         amount,
         destinationParty: walletParty,
+        sessionParty: party,
+        walletProvider,
       });
       setWithdrawAmount("");
       const withdrawalRef = result.withdrawal_id || result.withdrawal_request_id;
       const withdrawalUpdateId =
         stringField(result, "canton_update_id") || stringField(result, "update_id") || stringField(result, "tx_hash");
       setNotice(withdrawalRef ? i18n._(t`Withdrawal submitted: ${withdrawalRef}`) : i18n._(t`Withdrawal submitted`));
-      const recalledAmount = Number(result.bonus_recall?.recalled_amount);
-      if (Number.isFinite(recalledAmount) && recalledAmount > 0) {
-        const recalledAmountLabel = formatFixedAmount(recalledAmount);
-        setBonusRecallNotice(i18n._(t`Recalled ${recalledAmountLabel} USDA in trial funds before withdrawal`));
-      }
       setHistoryFilter("withdraw");
       setShowAllHistory(false);
       prependHistory({
@@ -1216,10 +1197,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
             </section>
           ) : null}
 
-          {notice || bonusRecallNotice || error ? (
+          {notice || error ? (
             <div className={styles.messageStack}>
               {notice ? <div className={styles.noticeText}>{notice}</div> : null}
-              {bonusRecallNotice ? <div className={styles.noticeText}>{bonusRecallNotice}</div> : null}
               {error ? <div className={styles.errorText}>{error}</div> : null}
             </div>
           ) : null}
@@ -1679,14 +1659,6 @@ function formatEnteredAmount(value: string): string {
 function formatDisplayAmount(value: number): string {
   return value.toLocaleString("en-US", {
     maximumFractionDigits: 6,
-  });
-}
-
-function formatFixedAmount(value: number): string {
-  const truncated = Math.trunc(value * 100) / 100;
-  return truncated.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
   });
 }
 

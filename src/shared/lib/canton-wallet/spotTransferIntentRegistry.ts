@@ -1,6 +1,7 @@
+import BigNumber from "bignumber.js";
+import cryptoJs from "crypto-js";
+
 const STORAGE_KEY = "rocky_pending_spot_transfer_intents_v1";
-const INTENT_TTL_MS = 15 * 60 * 1000;
-const MAX_PENDING_INTENTS = 64;
 
 export type SpotTransferIntentScope = {
   walletParty: string;
@@ -15,12 +16,11 @@ export type SpotTransferIntent = {
 };
 
 type PendingIntentState = "in-flight" | "ambiguous";
-type PendingIntentLease = SpotTransferIntentScope & {
+type PendingIntentLease = {
   fingerprint: string;
   key: string;
   state: PendingIntentState;
   createdAt: number;
-  expiresAt: number;
 };
 type PendingIntentRegistry = { entries: PendingIntentLease[] };
 
@@ -29,7 +29,7 @@ let memoryRegistry: PendingIntentRegistry = { entries: [] };
 export function acquireSpotTransferIntentKey(scope: SpotTransferIntentScope, intent: SpotTransferIntent): string {
   const now = Date.now();
   const fingerprint = fingerprintSpotTransferIntent(scope, intent);
-  const registry = pruneRegistry(readRegistry(), now);
+  const registry = sanitizeRegistry(readRegistry());
   const reusableLease = registry.entries.find((entry) => entry.fingerprint === fingerprint);
 
   if (reusableLease) {
@@ -40,14 +40,12 @@ export function acquireSpotTransferIntentKey(scope: SpotTransferIntentScope, int
 
   const key = createSpotTransferIdempotencyKey();
   registry.entries.push({
-    ...scope,
     fingerprint,
     key,
     state: "in-flight",
     createdAt: now,
-    expiresAt: now + INTENT_TTL_MS,
   });
-  writeRegistry(pruneRegistry(registry, now));
+  writeRegistry(registry);
   return key;
 }
 
@@ -56,9 +54,8 @@ export function settleSpotTransferIntent(
   request: SpotTransferIntent & { idempotency_key: string },
   outcome: "complete" | "ambiguous"
 ): void {
-  const now = Date.now();
   const fingerprint = fingerprintSpotTransferIntent(scope, request);
-  const registry = pruneRegistry(readRegistry(), now);
+  const registry = sanitizeRegistry(readRegistry());
   const leaseIndex = registry.entries.findIndex(
     (entry) => entry.fingerprint === fingerprint && entry.key === request.idempotency_key
   );
@@ -78,7 +75,7 @@ export function settleSpotTransferIntent(
 
 export function shouldRetainSpotTransferIntent(error: unknown): boolean {
   const status = Number((error as { status?: unknown } | null)?.status);
-  return !Number.isFinite(status) || status >= 500;
+  return !Number.isFinite(status) || status === 408 || status >= 500;
 }
 
 function createSpotTransferIdempotencyKey(): string {
@@ -95,20 +92,29 @@ function createSpotTransferIdempotencyKey(): string {
 }
 
 function fingerprintSpotTransferIntent(scope: SpotTransferIntentScope, intent: SpotTransferIntent): string {
-  return JSON.stringify([
-    scope.walletParty.trim(),
-    scope.sessionParty.trim(),
-    scope.walletProvider.trim(),
-    intent.direction,
-    intent.asset,
-    intent.amount.trim(),
-  ]);
+  return cryptoJs
+    .SHA256(
+      JSON.stringify([
+        scope.walletParty.trim(),
+        scope.sessionParty.trim(),
+        scope.walletProvider.trim(),
+        intent.direction,
+        intent.asset,
+        canonicalDecimal(intent.amount),
+      ])
+    )
+    .toString();
+}
+
+function canonicalDecimal(value: string): string {
+  const decimal = new BigNumber(value.trim());
+  return decimal.isFinite() ? decimal.toFixed() : value.trim();
 }
 
 function readRegistry(): PendingIntentRegistry {
   try {
-    if (typeof globalThis.sessionStorage === "undefined") return memoryRegistry;
-    const raw = globalThis.sessionStorage.getItem(STORAGE_KEY);
+    const durableStorage = globalThis.localStorage;
+    const raw = durableStorage?.getItem(STORAGE_KEY) ?? globalThis.sessionStorage?.getItem(STORAGE_KEY);
     if (!raw) return { entries: [] };
     const parsed = JSON.parse(raw) as Partial<PendingIntentRegistry> | null;
     return parsed && Array.isArray(parsed.entries)
@@ -122,16 +128,22 @@ function readRegistry(): PendingIntentRegistry {
 function writeRegistry(registry: PendingIntentRegistry): void {
   memoryRegistry = registry;
   try {
-    globalThis.sessionStorage?.setItem(STORAGE_KEY, JSON.stringify(registry));
+    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(registry));
+    globalThis.sessionStorage?.removeItem(STORAGE_KEY);
   } catch (_error) {
     // The bounded in-memory registry remains available when storage is blocked.
   }
 }
 
-function pruneRegistry(registry: PendingIntentRegistry, now: number): PendingIntentRegistry {
+function sanitizeRegistry(registry: PendingIntentRegistry): PendingIntentRegistry {
   const entries = registry.entries
-    .filter((entry) => entry?.key && entry.expiresAt > now)
-    .sort((left, right) => left.createdAt - right.createdAt)
-    .slice(-MAX_PENDING_INTENTS);
+    .filter((entry) => entry?.key && entry.fingerprint)
+    .map((entry) => ({
+      fingerprint: entry.fingerprint,
+      key: entry.key,
+      state: entry.state,
+      createdAt: entry.createdAt,
+    }))
+    .sort((left, right) => left.createdAt - right.createdAt);
   return { entries };
 }

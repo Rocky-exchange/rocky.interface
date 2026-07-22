@@ -10,6 +10,7 @@ const INTENT = { asset: "USDA" as const, amount: "1", direction: "toSpot" as con
 
 beforeEach(() => {
   vi.resetModules();
+  vi.stubGlobal("localStorage", createMemoryStorage());
   vi.stubGlobal("sessionStorage", createMemoryStorage());
 });
 
@@ -36,7 +37,7 @@ describe("spot transfer intent registry", () => {
     );
   });
 
-  it("expires retained transfer keys after fifteen minutes", async () => {
+  it("retains ambiguous transfer keys after fifteen minutes", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-23T00:00:00Z"));
     const registry = await import("./spotTransferIntentRegistry");
@@ -44,18 +45,30 @@ describe("spot transfer intent registry", () => {
 
     vi.advanceTimersByTime(15 * 60 * 1000 + 1);
 
-    expect(registry.acquireSpotTransferIntentKey(SCOPE, INTENT)).not.toBe(firstKey);
+    expect(registry.acquireSpotTransferIntentKey(SCOPE, INTENT)).toBe(firstKey);
     vi.useRealTimers();
   });
 
-  it("bounds the persisted registry", async () => {
+  it("canonicalizes equivalent decimal amount text", async () => {
     const registry = await import("./spotTransferIntentRegistry");
-    for (let index = 1; index <= 70; index += 1) {
-      registry.acquireSpotTransferIntentKey(SCOPE, { ...INTENT, amount: String(index) });
-    }
+    const firstKey = registry.acquireSpotTransferIntentKey(SCOPE, INTENT);
 
-    const persisted = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || "{}") as { entries?: unknown[] };
-    expect(persisted.entries).toHaveLength(64);
+    expect(registry.acquireSpotTransferIntentKey(SCOPE, { ...INTENT, amount: "1.000" })).toBe(firstKey);
+  });
+
+  it("retains uncertain HTTP timeouts but clears definitive client failures", async () => {
+    const registry = await import("./spotTransferIntentRegistry");
+
+    expect(registry.shouldRetainSpotTransferIntent({ status: 408 })).toBe(true);
+    expect(registry.shouldRetainSpotTransferIntent({ status: 409 })).toBe(false);
+  });
+
+  it("persists unresolved intents in durable browser storage", async () => {
+    const registry = await import("./spotTransferIntentRegistry");
+    registry.acquireSpotTransferIntentKey(SCOPE, INTENT);
+
+    expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).not.toContain("wallet-party");
   });
 });
 

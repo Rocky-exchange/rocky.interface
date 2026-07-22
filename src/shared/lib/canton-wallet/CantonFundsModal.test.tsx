@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CantonFundsModal } from "./CantonFundsModal";
+import { acquireWithdrawalIntentKey, settleWithdrawalIntent } from "./withdrawalIntentRegistry";
 
 const PARTY_ID = "rockywallet-etouyang::1220a1af0547f0824e223861619bed56442c73797d14be152f5a48e65598d9fa16fa";
 
@@ -82,6 +83,7 @@ describe("CantonFundsModal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("localStorage", createMemoryStorage());
     sessionMock.connected = true;
     sessionMock.locked = false;
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
@@ -112,8 +114,8 @@ describe("CantonFundsModal", () => {
     });
   });
 
-  it("blocks withdrawals against the latest raw spot balance", async () => {
-    mocks.fetchPlatformAccountBalance.mockResolvedValue(4);
+  it("blocks withdrawals against the displayed raw spot balance", async () => {
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 4, CBTC: 2, cETH: 3, CC: 4 });
     render(<CantonFundsModal open onClose={vi.fn()} />);
     await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
 
@@ -129,8 +131,23 @@ describe("CantonFundsModal", () => {
         )
       ).length
     ).toBeGreaterThan(0);
-    expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledWith("USDA");
     expect(mocks.submitPlatformWithdrawal).not.toHaveBeenCalled();
+  });
+
+  it("allows an ambiguous withdrawal replay even when refreshed balance is now lower", async () => {
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 4, CBTC: 2, cETH: 3, CC: 4 });
+    const scope = { sessionParty: PARTY_ID, walletProvider: "rocky" };
+    const intent = { asset: "USDA", amount: "5", destinationParty: PARTY_ID };
+    const key = acquireWithdrawalIntentKey(scope, intent);
+    settleWithdrawalIntent(scope, { ...intent, idempotency_key: key }, "ambiguous");
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+
+    await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
   });
 
   it("keeps raw spot withdrawals available when the funding transfer limit is unavailable", async () => {
@@ -147,22 +164,14 @@ describe("CantonFundsModal", () => {
     fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
 
     await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
-    expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledWith("USDA");
   });
 
-  it("shows recalled trial funds without replacing the withdrawal result and refreshes the dashboard", async () => {
+  it("shows the authoritative withdrawal result and refreshes the dashboard", async () => {
     const updateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
     mocks.submitPlatformWithdrawal.mockResolvedValueOnce({
       status: "submitted",
       withdrawal_id: "withdrawal-with-recall",
       canton_update_id: updateId,
-      bonus_recall: {
-        recalled_amount: "12.50",
-        bonus_balance_after: "7.50",
-        bonus_locked_after: "0",
-        effective_withdrawable: "87.50",
-        replayed: false,
-      },
     });
     render(<CantonFundsModal open onClose={vi.fn()} />);
     await waitFor(() => {
@@ -177,7 +186,6 @@ describe("CantonFundsModal", () => {
     await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
 
     expect(await screen.findByText("Withdrawal submitted: withdrawal-with-recall")).toBeTruthy();
-    expect(screen.getByText("Recalled 12.50 USDA in trial funds before withdrawal")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Back to assets" }));
     fireEvent.click(screen.getByRole("tab", { name: "History" }));
     expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${updateId}"]`)).toBeTruthy();
@@ -503,12 +511,13 @@ describe("CantonFundsModal", () => {
         asset: "USDA",
         amount: "5",
         destinationParty: PARTY_ID,
+        sessionParty: PARTY_ID,
+        walletProvider: "rocky",
       })
     );
   });
 
   it("keeps non-USDA withdrawals on their selected asset balance", async () => {
-    mocks.fetchPlatformAccountBalance.mockResolvedValueOnce(2);
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
     fireEvent.click(screen.getByRole("button", { name: "Asset" }));
@@ -516,12 +525,15 @@ describe("CantonFundsModal", () => {
     fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
 
-    await waitFor(() => expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledWith("CBTC"));
-    expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledWith({
-      asset: "CBTC",
-      amount: "1",
-      destinationParty: PARTY_ID,
-    });
+    await waitFor(() =>
+      expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledWith({
+        asset: "CBTC",
+        amount: "1",
+        destinationParty: PARTY_ID,
+        sessionParty: PARTY_ID,
+        walletProvider: "rocky",
+      })
+    );
   });
 
   it("closes when the Canton session disconnects or locks", () => {
@@ -532,3 +544,17 @@ describe("CantonFundsModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+    getItem: (key) => store.get(key) ?? null,
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key) => store.delete(key),
+    setItem: (key, value) => store.set(key, String(value)),
+  };
+}

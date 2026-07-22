@@ -21,14 +21,6 @@ import {
   type CantonFundsAsset,
 } from "./funds";
 
-const ZERO_BONUS_RECALL = {
-  recalled_amount: "0",
-  bonus_balance_after: "0",
-  bonus_locked_after: "0",
-  effective_withdrawable: "100",
-  replayed: false,
-};
-
 const BONUS_BALANCE_INFO = {
   total_available: "100",
   available: "100",
@@ -154,12 +146,13 @@ describe("canton wallet funds", () => {
       idempotency_key: expect.any(String),
     });
     expect(body.idempotency_key.length).toBeLessThanOrEqual(256);
-    expect(sessionStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
+    expect(localStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
   });
 
   it.each([
     ["a lost network response", () => Promise.reject(new TypeError("Failed to fetch"))],
     ["a request timeout", () => Promise.reject(new DOMException("Timed out", "AbortError"))],
+    ["an HTTP timeout", () => Promise.resolve(jsonResponse({ error: "request timeout" }, 408))],
     ["a 5xx response", () => Promise.resolve(jsonResponse({ error: "temporarily unavailable" }, 503))],
   ])("reuses the transfer idempotency key after %s", async (_label, firstResponse) => {
     const fetchMock = vi
@@ -177,7 +170,7 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(transferSpotBalance(spotTransferInput())).rejects.toBeTruthy();
-    expect(sessionStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
+    expect(localStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
     await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
 
     expect(spotTransferKey(fetchMock, 1)).toBe(spotTransferKey(fetchMock, 0));
@@ -341,23 +334,10 @@ describe("canton wallet funds", () => {
     expect(result.deposit_ref).toBe("dep-delayed");
   });
 
-  it("recalls bonus funds before withdrawing with one stable key and exchange session auth", async () => {
-    const bonusRecall = {
-      recalled_amount: "12.50",
-      bonus_balance_after: "7.50",
-      bonus_locked_after: "0",
-      effective_withdrawable: "87.50",
-      replayed: false,
-    };
+  it("submits withdrawal and bonus recall through one atomic backend request", async () => {
     const randomUUID = vi.fn(() => "123e4567-e89b-12d3-a456-426614174000");
     vi.stubGlobal("crypto", { randomUUID });
-    const fetchMock = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
-      if (String(url) === "/v1/bonus/recall-for-withdraw") return jsonResponse(bonusRecall);
-      return jsonResponse({
-        withdrawal_id: "wid-1",
-        status: "submitted",
-      });
-    });
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ withdrawal_id: "wid-1", status: "submitted" }));
     vi.stubGlobal("fetch", fetchMock);
     const bonusChanged = vi.fn();
     window.addEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
@@ -367,153 +347,101 @@ describe("canton wallet funds", () => {
         asset: "USDA",
         amount: "5",
         destinationParty: " party-1 ",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
       });
 
       expect(result).toMatchObject({ withdrawal_id: "wid-1", status: "submitted" });
-      expect(result.bonus_recall).toEqual(bonusRecall);
       expect(randomUUID).toHaveBeenCalledTimes(1);
-      expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-        "/v1/bonus/recall-for-withdraw",
-        "/v1/withdrawals",
-      ]);
+      expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/v1/withdrawals"]);
 
-      const recallInit = fetchMock.mock.calls[0][1] as RequestInit;
-      const withdrawalInit = fetchMock.mock.calls[1][1] as RequestInit;
-      expect(recallInit.method).toBe("POST");
+      const withdrawalInit = fetchMock.mock.calls[0][1] as RequestInit;
       expect(withdrawalInit.method).toBe("POST");
-      expect(headerValue(recallInit.headers, "Authorization")).toBe("Bearer exchange-token");
       expect(headerValue(withdrawalInit.headers, "Authorization")).toBe("Bearer exchange-token");
-      expect(JSON.parse(recallInit.body as string)).toEqual({
-        request_id: "withdraw-usda-123e4567-e89b-12d3-a456-426614174000-bonus-recall",
-      });
-      expect(JSON.parse(recallInit.body as string).request_id.length).toBeLessThanOrEqual(64);
       expect(JSON.parse(withdrawalInit.body as string)).toEqual({
         asset: "USDA",
         amount: "5",
         dest_user_handle_party: "party-1",
         idempotency_key: "withdraw-usda-123e4567-e89b-12d3-a456-426614174000",
       });
+      expect(localStorage.getItem("rocky_pending_withdrawal_intents_v1")).not.toContain("exchange-token");
       expect(bonusChanged).toHaveBeenCalledTimes(1);
     } finally {
       window.removeEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
     }
   });
 
-  it("continues withdrawals when bonus recall returns zero", async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      if (String(url) === "/v1/bonus/recall-for-withdraw") return jsonResponse(ZERO_BONUS_RECALL);
-      return jsonResponse({ withdrawal_id: "wid-no-bonus", status: "submitted" });
-    });
+  it("reuses the same withdrawal key after a lost response", async () => {
+    const randomUUID = vi.fn(() => "123e4567-e89b-12d3-a456-426614174000");
+    vi.stubGlobal("crypto", { randomUUID });
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network response lost"))
+      .mockResolvedValueOnce(jsonResponse({ withdrawal_id: "wid-replayed", status: "submitted" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      submitPlatformWithdrawal({
-        asset: "USDA",
-        amount: "5",
-        destinationParty: "party-1",
-        idempotencyKey: "idempotency-1",
-      })
-    ).resolves.toMatchObject({ withdrawal_id: "wid-no-bonus", bonus_recall: ZERO_BONUS_RECALL });
-    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      "/v1/bonus/recall-for-withdraw",
-      "/v1/withdrawals",
-    ]);
+    const input = {
+      asset: "USDA" as const,
+      amount: "5",
+      destinationParty: "party-1",
+      sessionParty: "session-party",
+      walletProvider: "rocky",
+    };
+    await expect(submitPlatformWithdrawal(input)).rejects.toThrow("network response lost");
+    await expect(submitPlatformWithdrawal(input)).resolves.toMatchObject({ withdrawal_id: "wid-replayed" });
+
+    const firstBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    const retryBody = JSON.parse(fetchMock.mock.calls[1][1]?.body as string);
+    expect(retryBody.idempotency_key).toBe(firstBody.idempotency_key);
+    expect(randomUUID).toHaveBeenCalledTimes(1);
   });
 
-  it("preserves the exact recall suffix for a maximum-length safe provided withdrawal key", async () => {
-    const withdrawalKey = "a".repeat(51);
-    const fetchMock = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
-      if (String(url) === "/v1/bonus/recall-for-withdraw") return jsonResponse(ZERO_BONUS_RECALL);
-      return jsonResponse({ withdrawal_id: "wid-safe-key", status: "submitted" });
+  it("coalesces identical concurrent withdrawals in the same runtime", async () => {
+    let resolveResponse!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      resolveResponse = resolve;
     });
+    const fetchMock = vi.fn<typeof fetch>().mockReturnValue(response);
     vi.stubGlobal("fetch", fetchMock);
+    const input = {
+      asset: "USDA" as const,
+      amount: "5",
+      destinationParty: "party-1",
+      sessionParty: "session-party",
+      walletProvider: "rocky",
+    };
 
-    await expect(
-      submitPlatformWithdrawal({
-        asset: "USDA",
-        amount: "5",
-        destinationParty: "party-1",
-        idempotencyKey: withdrawalKey,
-      })
-    ).resolves.toMatchObject({ withdrawal_id: "wid-safe-key" });
+    const first = submitPlatformWithdrawal(input);
+    const second = submitPlatformWithdrawal(input);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolveResponse(jsonResponse({ withdrawal_id: "wid-one", status: "submitted" }));
 
-    const recallBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
-    const withdrawalBody = JSON.parse(fetchMock.mock.calls[1][1]?.body as string);
-    expect(recallBody).toEqual({ request_id: `${withdrawalKey}-bonus-recall` });
-    expect(recallBody.request_id).toHaveLength(64);
-    expect(withdrawalBody.idempotency_key).toBe(withdrawalKey);
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
   });
 
-  it.each([
-    ["a provided withdrawal key longer than the recall limit", "a".repeat(52)],
-    ["a provided withdrawal key containing unsafe recall characters", "withdrawal/key"],
-  ])("rejects %s before making a request", async (_case, idempotencyKey) => {
-    const fetchMock = vi.fn();
+  it("clears a definitive withdrawal rejection before a new attempt", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ error: "insufficient balance" }, 409))
+      .mockResolvedValueOnce(jsonResponse({ withdrawal_id: "wid-next", status: "submitted" }));
     vi.stubGlobal("fetch", fetchMock);
+    const input = {
+      asset: "USDA" as const,
+      amount: "5",
+      destinationParty: "party-1",
+      sessionParty: "session-party",
+      walletProvider: "rocky",
+    };
 
-    await expect(
-      submitPlatformWithdrawal({
-        asset: "USDA",
-        amount: "5",
-        destinationParty: "party-1",
-        idempotencyKey,
-      })
-    ).rejects.toMatchObject({
-      code: "invalid_withdrawal_idempotency_key",
-      message: "Withdrawal request could not be prepared.",
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+    await expect(submitPlatformWithdrawal(input)).rejects.toMatchObject({ status: 409 });
+    await expect(submitPlatformWithdrawal(input)).resolves.toMatchObject({ withdrawal_id: "wid-next" });
 
-  it.each([409, 503])("fails closed when bonus recall returns %i", async (status) => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({ error: "bonus_recall_failed" }, status)
+    expect(JSON.parse(fetchMock.mock.calls[1][1]?.body as string).idempotency_key).not.toBe(
+      JSON.parse(fetchMock.mock.calls[0][1]?.body as string).idempotency_key
     );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      submitPlatformWithdrawal({
-        asset: "USDA",
-        amount: "5",
-        destinationParty: "party-1",
-        idempotencyKey: "idempotency-1",
-      })
-    ).rejects.toMatchObject({ status });
-    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/v1/bonus/recall-for-withdraw"]);
   });
 
-  it("invalidates bonus data when recall succeeds even if withdrawal fails", async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      if (String(url) === "/v1/bonus/recall-for-withdraw") {
-        return jsonResponse({
-          ...ZERO_BONUS_RECALL,
-          recalled_amount: "12.50",
-          bonus_balance_after: "7.50",
-          effective_withdrawable: "87.50",
-        });
-      }
-      return jsonResponse({ error: "withdrawal_failed" }, 500);
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const bonusChanged = vi.fn();
-    window.addEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
-
-    try {
-      await expect(
-        submitPlatformWithdrawal({
-          asset: "USDA",
-          amount: "5",
-          destinationParty: "party-1",
-          idempotencyKey: "idempotency-1",
-        })
-      ).rejects.toMatchObject({ status: 500 });
-      expect(bonusChanged).toHaveBeenCalledTimes(1);
-    } finally {
-      window.removeEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
-    }
-  });
-
-  it("requires an exchange session before attempting bonus recall for withdrawals", async () => {
+  it("requires an exchange session before attempting withdrawals", async () => {
     localStorage.removeItem("rocky_exchange_session");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -523,6 +451,8 @@ describe("canton wallet funds", () => {
         asset: "USDA",
         amount: "5",
         destinationParty: "party-1",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
       })
     ).rejects.toMatchObject({ code: "not_logged_in" });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -693,11 +623,7 @@ describe("canton wallet funds", () => {
   });
 
   it("surfaces withdrawal API error messages from non-error fields", async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
-      String(url) === "/v1/bonus/recall-for-withdraw"
-        ? jsonResponse(ZERO_BONUS_RECALL)
-        : jsonResponse({ message: "Insufficient balance for this withdraw." }, 409)
-    );
+    const fetchMock = vi.fn(async () => jsonResponse({ message: "Insufficient balance for this withdraw." }, 409));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
@@ -705,7 +631,8 @@ describe("canton wallet funds", () => {
         asset: "CC",
         amount: "5",
         destinationParty: "party-1",
-        idempotencyKey: "idempotency-1",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
       })
     ).rejects.toMatchObject({
       message: "Insufficient balance for this withdraw.",
@@ -714,11 +641,7 @@ describe("canton wallet funds", () => {
   });
 
   it("uses a withdrawal-specific fallback for empty 409 responses", async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
-      String(url) === "/v1/bonus/recall-for-withdraw"
-        ? jsonResponse(ZERO_BONUS_RECALL)
-        : new Response("", { status: 409 })
-    );
+    const fetchMock = vi.fn(async () => new Response("", { status: 409 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
@@ -726,7 +649,8 @@ describe("canton wallet funds", () => {
         asset: "CC",
         amount: "5",
         destinationParty: "party-1",
-        idempotencyKey: "idempotency-1",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
       })
     ).rejects.toMatchObject({
       message: "Withdrawal could not be submitted. Check available platform balance and retry.",

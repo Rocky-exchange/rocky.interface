@@ -1,5 +1,4 @@
-import { fetchBonusBalanceInfo, recallBonusForWithdraw } from "@/modules/lighter/features/bonus/api/bonus.api";
-import type { BonusRecallResponse } from "@/modules/lighter/features/bonus/api/bonus.types";
+import { fetchBonusBalanceInfo } from "@/modules/lighter/features/bonus/api/bonus.api";
 import { notifyBonusDataChanged } from "@/modules/lighter/features/bonus/api/useBonus";
 
 import {
@@ -27,6 +26,13 @@ import {
   type SpotTransferIntentScope,
 } from "./spotTransferIntentRegistry";
 import type { WalletProviderId } from "./types";
+import {
+  acquireWithdrawalIntentKey,
+  settleWithdrawalIntent,
+  shouldRetainWithdrawalIntent,
+  type WithdrawalIntent,
+  type WithdrawalIntentScope,
+} from "./withdrawalIntentRegistry";
 
 export type { CantonFundsApiAsset, CantonFundsAsset } from "./assets";
 export type CantonWalletTransferStatus =
@@ -67,7 +73,6 @@ export type CantonWithdrawalResult = {
   withdrawal_id?: string;
   withdrawal_request_id?: string;
   status?: string;
-  bonus_recall?: BonusRecallResponse;
   fee_amount?: string;
   fee_asset?: string;
   fee_wallet_symbol?: string;
@@ -167,8 +172,6 @@ export class CantonFundsError extends Error {
 
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
-const BONUS_RECALL_REQUEST_SUFFIX = "-bonus-recall";
-const MAX_WITHDRAWAL_RECALL_KEY_LENGTH = 64 - BONUS_RECALL_REQUEST_SUFFIX.length;
 
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
   return getCantonFundingAsset(asset).apiSymbol;
@@ -236,11 +239,14 @@ export async function submitCantonWalletDeposit(input: {
   return requestDepositReference({ asset: input.asset, amount });
 }
 
+const inFlightWithdrawals = new Map<string, Promise<CantonWithdrawalResult>>();
+
 export async function submitPlatformWithdrawal(input: {
   asset: CantonFundsAsset;
   amount: string;
   destinationParty: string;
-  idempotencyKey?: string;
+  sessionParty: string;
+  walletProvider: string;
 }): Promise<CantonWithdrawalResult> {
   const destinationParty = input.destinationParty.trim();
   if (!destinationParty) {
@@ -249,11 +255,15 @@ export async function submitPlatformWithdrawal(input: {
 
   ensureExchangeSession();
   const amount = positiveAmount(input.amount);
-  const withdrawalKey = input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset);
-  const bonusRecallRequestId = withdrawalRecallRequestId(withdrawalKey);
-  const bonusRecall = await recallBonusForWithdraw({ request_id: bonusRecallRequestId });
-  notifyBonusDataChanged();
-  const withdrawal = await requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
+  const scope = withdrawalScope(input);
+  const intent: WithdrawalIntent = { asset: input.asset, amount, destinationParty };
+  const withdrawalKey = acquireWithdrawalIntentKey(scope, intent);
+  const existingRequest = inFlightWithdrawals.get(withdrawalKey);
+  if (existingRequest) return existingRequest;
+
+  const request = { ...intent, idempotency_key: withdrawalKey };
+  let trackedRequest: Promise<CantonWithdrawalResult>;
+  trackedRequest = requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({
@@ -262,8 +272,36 @@ export async function submitPlatformWithdrawal(input: {
       dest_user_handle_party: destinationParty,
       idempotency_key: withdrawalKey,
     }),
-  });
-  return { ...withdrawal, bonus_recall: bonusRecall };
+  })
+    .then((result) => {
+      settleWithdrawalIntent(scope, request, "complete");
+      notifyBonusDataChanged();
+      return result;
+    })
+    .catch((error: unknown) => {
+      const ambiguous = shouldRetainWithdrawalIntent(error);
+      settleWithdrawalIntent(scope, request, ambiguous ? "ambiguous" : "complete");
+      if (ambiguous) notifyBonusDataChanged();
+      throw error;
+    })
+    .finally(() => {
+      if (inFlightWithdrawals.get(withdrawalKey) === trackedRequest) {
+        inFlightWithdrawals.delete(withdrawalKey);
+      }
+    });
+  inFlightWithdrawals.set(withdrawalKey, trackedRequest);
+  return trackedRequest;
+}
+
+function withdrawalScope(input: { sessionParty: string; walletProvider: string }): WithdrawalIntentScope {
+  const scope = {
+    sessionParty: input.sessionParty.trim(),
+    walletProvider: input.walletProvider.trim(),
+  };
+  if (!scope.sessionParty || !scope.walletProvider) {
+    throw new CantonFundsError("Wallet session identity is unavailable", { code: "wallet_identity_unavailable" });
+  }
+  return scope;
 }
 
 export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
@@ -535,14 +573,6 @@ function positiveAmount(value: string): string {
   return amount;
 }
 
-function withdrawalRecallRequestId(withdrawalKey: string): string {
-  if (withdrawalKey.length > MAX_WITHDRAWAL_RECALL_KEY_LENGTH || !/^[A-Za-z0-9._:-]+$/.test(withdrawalKey)) {
-    throw new CantonFundsError("Withdrawal request could not be prepared.", {
-      code: "invalid_withdrawal_idempotency_key",
-    });
-  }
-  return `${withdrawalKey}${BONUS_RECALL_REQUEST_SUFFIX}`;
-}
 async function submitWalletTransfer(input: {
   provider: "rocky" | "console" | "loop";
   from: string;
