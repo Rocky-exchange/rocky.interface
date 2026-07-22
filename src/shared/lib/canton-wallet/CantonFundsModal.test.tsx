@@ -28,10 +28,6 @@ const sessionMock = vi.hoisted(() => ({
   avatar: "",
 }));
 
-vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
-  default: ({ symbol }: { symbol: string }) => <span data-testid={`icon-${symbol}`}>{symbol}</span>,
-}));
-
 vi.mock("@lingui/react", () => ({
   useLingui: () => ({
     i18n: {
@@ -132,7 +128,7 @@ describe("CantonFundsModal", () => {
 
     expect(screen.queryByRole("listbox", { name: "Asset filter" })).toBeNull();
     expect(screen.getByRole("button", { name: "Asset filter" }).textContent).toContain("CBTC");
-    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    expect(screen.getByTestId("canton-asset-icon-CBTC").tagName).toBe("IMG");
     expect(screen.queryByText("cETH")).toBeNull();
   });
 
@@ -170,7 +166,7 @@ describe("CantonFundsModal", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(screen.getByRole("textbox", { name: "Search asset" })).toBeTruthy();
-    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    expect(screen.getByTestId("canton-asset-icon-CBTC")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Deposit" }));
 
     expect(screen.getByRole("dialog")).toBe(dialog);
@@ -178,14 +174,14 @@ describe("CantonFundsModal", () => {
     expect(screen.queryByRole("button", { name: "Edit display name" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Withdraw" })).toBeNull();
     expect(screen.queryByRole("textbox", { name: "Search asset" })).toBeNull();
-    expect(screen.queryByTestId("icon-btc")).toBeNull();
+    expect(screen.queryByTestId("canton-asset-icon-CBTC")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Back to assets" }));
     expect(screen.getByRole("dialog")).toBe(dialog);
     expect(screen.getByRole("button", { name: "Edit display name" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Deposit" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Search asset" })).toBeTruthy();
-    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    expect(screen.getByTestId("canton-asset-icon-CBTC")).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -211,7 +207,7 @@ describe("CantonFundsModal", () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
     const dialog = screen.getByRole("dialog");
-    const assetRow = screen.getByTestId("icon-btc").closest("button");
+    const assetRow = screen.getByTestId("canton-asset-icon-CBTC").closest("button");
     expect(assetRow).toBeTruthy();
     assetRow?.focus();
     expect(document.activeElement).toBe(assetRow);
@@ -222,7 +218,7 @@ describe("CantonFundsModal", () => {
     expect(document.activeElement).toBe(backButton);
 
     fireEvent.click(backButton);
-    const restoredAssetRow = screen.getByTestId("icon-btc").closest("button");
+    const restoredAssetRow = screen.getByTestId("canton-asset-icon-CBTC").closest("button");
     expect(document.activeElement).toBe(restoredAssetRow);
   });
 
@@ -282,14 +278,17 @@ describe("CantonFundsModal", () => {
     );
   });
 
-  it("renders wrapped balances with compact leading-zero notation and market icons", async () => {
+  it("renders wrapped balances with compact leading-zero notation and extension asset icons", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByText("4", { selector: "sub" })).toBeTruthy());
     expect(screen.getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.045459");
     expect(screen.getByText("5", { selector: "sub" }).parentElement?.textContent).toContain("0.0519");
-    expect(screen.getByTestId("icon-btc")).toBeTruthy();
-    expect(screen.getByTestId("icon-eth")).toBeTruthy();
+    for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
+      const icon = screen.getByTestId(`canton-asset-icon-${asset}`);
+      expect(icon.tagName).toBe("IMG");
+      expect(icon.getAttribute("src")).toBeTruthy();
+    }
   });
 
   it("shows exchange balances without waiting for the wallet balance request", async () => {

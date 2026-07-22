@@ -1714,6 +1714,13 @@
   }
 }
 
+.cantonAssetIcon {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
 .assetBalanceValue {
   overflow: hidden;
   font: 500 17px/24px var(--font-tech);

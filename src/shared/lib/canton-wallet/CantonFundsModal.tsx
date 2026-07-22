@@ -14,9 +14,6 @@ import {
   useState,
 } from "react";
 
-import { spotMarketAssetIconSymbol } from "@/modules/spot/markets";
-import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
-
 import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol } from "./assets";
 import { fileToAvatarDataUrl } from "./avatarImage";
 import {
@@ -44,6 +41,10 @@ import {
   type PlatformAccountBalances,
 } from "./funds";
 import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDisplayNameError } from "./profile";
+import cbtcIconSrc from "./token-icons/cBTC.webp";
+import ccIconSrc from "./token-icons/CC.webp";
+import cethIconSrc from "./token-icons/cETH.webp";
+import usdaIconSrc from "./token-icons/USDCx.webp";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
@@ -79,6 +80,12 @@ const EMPTY_PLATFORM_BALANCES: PlatformAccountBalances = {
   CBTC: null,
   cETH: null,
   CC: null,
+};
+const CANTON_ASSET_ICON_SOURCES: Record<CantonFundsAsset, string> = {
+  USDA: usdaIconSrc,
+  CBTC: cbtcIconSrc,
+  cETH: cethIconSrc,
+  CC: ccIconSrc,
 };
 
 export function CantonFundsModal({ open, onClose }: Props) {
@@ -852,7 +859,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       aria-label={i18n._(t`Deposit ${asset.symbol}`)}
                     >
                       <span className={styles.assetIdentity}>
-                        <TokenIcon symbol={spotMarketAssetIconSymbol(asset.symbol)} displaySize={36} />
+                        <CantonAssetIcon asset={asset.symbol} displaySize={36} />
                         <strong>{asset.symbol}</strong>
                       </span>
                       <span className={styles.assetBalanceValue}>
@@ -1230,11 +1237,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
 
               <div className={styles.balanceGrid}>
                 <div className={styles.balanceItem}>
-                  <TokenIcon
-                    symbol={spotMarketAssetIconSymbol(selectedAsset)}
-                    displaySize={40}
-                    className={styles.tokenIcon}
-                  />
+                  <CantonAssetIcon asset={selectedAsset} displaySize={40} className={styles.tokenIcon} />
                   <div>
                     <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
                     <div className={styles.balanceValue}>
@@ -1422,7 +1425,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     >
                       <span>{formatHistoryTime(item.time)}</span>
                       <span className={styles.assetCell}>
-                        <TokenIcon symbol={spotMarketAssetIconSymbol(item.asset)} displaySize={24} />
+                        <CantonAssetIcon asset={item.asset} displaySize={24} />
                         {item.asset}
                       </span>
                       <span
@@ -1663,6 +1666,28 @@ function formatAssetAmount(value: number, asset: CantonFundsAsset): string {
     minimumFractionDigits: 2,
     maximumFractionDigits,
   });
+}
+
+function CantonAssetIcon({
+  asset,
+  displaySize,
+  className,
+}: {
+  asset: CantonFundsAsset;
+  displaySize: number;
+  className?: string;
+}) {
+  return (
+    <img
+      src={CANTON_ASSET_ICON_SOURCES[asset]}
+      alt=""
+      aria-hidden="true"
+      width={displaySize}
+      height={displaySize}
+      className={cx(styles.cantonAssetIcon, className)}
+      data-testid={`canton-asset-icon-${asset}`}
+    />
+  );
 }
 
 function CompactAssetAmount({ value, asset }: { value: string | number | null | undefined; asset: CantonFundsAsset }) {
