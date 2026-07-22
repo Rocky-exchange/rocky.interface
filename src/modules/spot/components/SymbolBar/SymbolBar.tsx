@@ -10,7 +10,7 @@ function fmtNum(v: string, digits = 2): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
-export function SpotSymbolBar({ market }: { market: SpotMarket }) {
+function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
   const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.apiSymbol), 3000, [market.apiSymbol]);
   const pct = t ? parseFloat(t.priceChangePercent) : 0;
   const pctCls = pct > 0 ? styles.up : pct < 0 ? styles.down : styles.muted;
@@ -50,4 +50,8 @@ export function SpotSymbolBar({ market }: { market: SpotMarket }) {
       </div>
     </div>
   );
+}
+
+export function SpotSymbolBar({ market }: { market: SpotMarket }) {
+  return <SpotSymbolBarContent key={market.apiSymbol} market={market} />;
 }
