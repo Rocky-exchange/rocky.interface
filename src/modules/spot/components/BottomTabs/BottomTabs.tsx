@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type KeyboardEvent, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
@@ -32,13 +32,14 @@ function fmtNum(v: string, maxDigits = 8): string {
 
 function OpenOrders({ market }: { market: SpotMarket }) {
   const ready = useSpotAuthReady();
-  const { data, err } = usePolling<SpotOrder[]>(
+  const { data, err, refetch } = usePolling<SpotOrder[]>(
     () => spotApi.openOrders(market.apiSymbol),
     2000,
     [market.apiSymbol],
     { enabled: ready },
   );
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancellingIds, setCancellingIds] = useState<Set<string>>(() => new Set());
+  const [cancelErr, setCancelErr] = useState<string | null>(null);
 
   if (!ready)
     return (
@@ -51,20 +52,48 @@ function OpenOrders({ market }: { market: SpotMarket }) {
     );
 
   const cancel = async (orderId: string) => {
-    setCancellingId(orderId);
+    setCancelErr(null);
+    setCancellingIds((current) => new Set(current).add(orderId));
     try {
       await spotApi.cancelOrder(market.apiSymbol, orderId);
+      refetch();
+    } catch (error: unknown) {
+      setCancelErr(error instanceof Error ? error.message : String(error));
     } finally {
-      setCancellingId(null);
+      setCancellingIds((current) => {
+        const next = new Set(current);
+        next.delete(orderId);
+        return next;
+      });
     }
   };
 
-  if (err) return <div className={styles.empty}>{err}</div>;
-  if (!data) return <div className={styles.empty}>Loading…</div>;
-  if (data.length === 0) return <div className={styles.empty}>No open orders</div>;
+  if (err)
+    return (
+      <div className={styles.empty} role="alert">
+        {err}
+      </div>
+    );
+  if (!data)
+    return (
+      <div className={styles.empty} role="status">
+        Loading…
+      </div>
+    );
+  if (data.length === 0)
+    return (
+      <div className={styles.empty} role="status">
+        No open orders
+      </div>
+    );
 
   return (
     <div className={styles.body}>
+      {cancelErr && (
+        <div className={styles.inlineError} role="alert">
+          {cancelErr}
+        </div>
+      )}
       <table className={styles.table}>
         <thead>
           <tr>
@@ -91,9 +120,9 @@ function OpenOrders({ market }: { market: SpotMarket }) {
                   type="button"
                   className={styles.cancel}
                   onClick={() => cancel(order.orderId)}
-                  disabled={cancellingId === order.orderId}
+                  disabled={cancellingIds.has(order.orderId)}
                 >
-                  {cancellingId === order.orderId ? "…" : "Cancel"}
+                  {cancellingIds.has(order.orderId) ? "…" : "Cancel"}
                 </button>
               </td>
             </tr>
@@ -104,8 +133,27 @@ function OpenOrders({ market }: { market: SpotMarket }) {
   );
 }
 
+type EnabledTab = "assets" | "open-orders";
+
 export function SpotBottomTabs({ market }: { market: SpotMarket }) {
-  const [activeTab, setActiveTab] = useState<"assets" | "open-orders">("assets");
+  const [activeTab, setActiveTab] = useState<EnabledTab>("assets");
+  const tabRefs = useRef<Record<EnabledTab, HTMLButtonElement | null>>({
+    assets: null,
+    "open-orders": null,
+  });
+
+  const activateFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentTab: EnabledTab) => {
+    let nextTab: EnabledTab | null = null;
+    if (event.key === "Home") nextTab = "assets";
+    if (event.key === "End") nextTab = "open-orders";
+    if (event.key === "ArrowRight") nextTab = currentTab === "assets" ? "open-orders" : "assets";
+    if (event.key === "ArrowLeft") nextTab = currentTab === "assets" ? "open-orders" : "assets";
+    if (!nextTab) return;
+
+    event.preventDefault();
+    setActiveTab(nextTab);
+    tabRefs.current[nextTab]?.focus();
+  };
 
   return (
     <div className={styles.panel}>
@@ -116,8 +164,13 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
           role="tab"
           aria-selected={activeTab === "assets"}
           aria-controls="spot-bottom-panel"
+          tabIndex={activeTab === "assets" ? 0 : -1}
           className={`${styles.tab} ${activeTab === "assets" ? styles.tabActive : ""}`}
           onClick={() => setActiveTab("assets")}
+          onKeyDown={(event) => activateFromKeyboard(event, "assets")}
+          ref={(node) => {
+            tabRefs.current.assets = node;
+          }}
         >
           Assets
         </button>
@@ -127,15 +180,36 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
           role="tab"
           aria-selected={activeTab === "open-orders"}
           aria-controls="spot-bottom-panel"
+          tabIndex={activeTab === "open-orders" ? 0 : -1}
           className={`${styles.tab} ${activeTab === "open-orders" ? styles.tabActive : ""}`}
           onClick={() => setActiveTab("open-orders")}
+          onKeyDown={(event) => activateFromKeyboard(event, "open-orders")}
+          ref={(node) => {
+            tabRefs.current["open-orders"] = node;
+          }}
         >
           Open Orders
         </button>
-        <button type="button" role="tab" aria-selected="false" aria-disabled="true" className={styles.tab} disabled>
+        <button
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-disabled="true"
+          tabIndex={-1}
+          className={styles.tab}
+          disabled
+        >
           Order History
         </button>
-        <button type="button" role="tab" aria-selected="false" aria-disabled="true" className={styles.tab} disabled>
+        <button
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-disabled="true"
+          tabIndex={-1}
+          className={styles.tab}
+          disabled
+        >
           Trade History
         </button>
       </div>
@@ -145,7 +219,11 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         aria-labelledby={activeTab === "assets" ? "spot-assets-tab" : "spot-open-orders-tab"}
         className={styles.tabPanel}
       >
-        {activeTab === "assets" ? <SpotAccountsPanel market={market} /> : <OpenOrders market={market} />}
+        {activeTab === "assets" ? (
+          <SpotAccountsPanel market={market} />
+        ) : (
+          <OpenOrders key={market.apiSymbol} market={market} />
+        )}
       </div>
     </div>
   );

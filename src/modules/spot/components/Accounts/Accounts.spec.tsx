@@ -98,12 +98,12 @@ describe("SpotAccountsPanel", () => {
     });
     mSpotAccount.mockReturnValue({ ready: true, account: null, err: null, refetch: vi.fn() });
     const loading = render(<SpotAccountsPanel market={market} />);
-    expect(loading.getByText("Loading…")).toBeTruthy();
+    expect(loading.getByRole("status").textContent).toBe("Loading…");
     loading.unmount();
 
     mSpotAccount.mockReturnValue({ ready: true, account: null, err: "account unavailable", refetch: vi.fn() });
     const failed = render(<SpotAccountsPanel market={market} />);
-    expect(failed.getByText("account unavailable")).toBeTruthy();
+    expect(failed.getByRole("alert").textContent).toBe("account unavailable");
   });
 
   it("preserves the dev faucet flow and refreshes the shared account state", async () => {
@@ -127,6 +127,25 @@ describe("SpotAccountsPanel", () => {
     expect(url).toBe("/api/v3/dev/faucet");
     expect(JSON.parse((init as RequestInit).body as string)).toEqual({ party: "party-abc" });
     expect(refetch).toHaveBeenCalledOnce();
+    fetchSpy.mockRestore();
+  });
+
+  it("announces faucet request failures", async () => {
+    mSpotAccount.mockReturnValue({ ready: true, account: account("0"), err: null, refetch: vi.fn() });
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "party-abc",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("", { status: 500 }));
+
+    const { findByRole } = render(<SpotAccountsPanel market={market} />);
+    fireEvent.click(await findByRole("button", { name: "Get test funds (dev)" }));
+
+    expect((await findByRole("alert")).textContent).toBe("faucet HTTP 500");
     fetchSpy.mockRestore();
   });
 });

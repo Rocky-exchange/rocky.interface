@@ -61,6 +61,18 @@
   overflow: auto;
 }
 
+.inlineError {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 6px 12px;
+  color: var(--ltr-down, #ff384f);
+  background: var(--ltr-bg-panel);
+  border-bottom: 1px solid var(--ltr-down, #ff384f);
+  font-size: 11px;
+  word-break: break-word;
+}
+
 .table {
   width: 100%;
   min-width: 760px;

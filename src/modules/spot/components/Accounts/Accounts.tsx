@@ -54,13 +54,17 @@ export function SpotAccountsPanel({ market }: { market: SpotMarket }) {
   if (err)
     return (
       <div className={styles.panel}>
-        <div className={styles.err}>{err}</div>
+        <div className={styles.err} role="alert">
+          {err}
+        </div>
       </div>
     );
   if (!account)
     return (
       <div className={styles.panel}>
-        <div className={styles.title}>Loading…</div>
+        <div className={styles.title} role="status">
+          Loading…
+        </div>
       </div>
     );
 
@@ -97,7 +101,11 @@ export function SpotAccountsPanel({ market }: { market: SpotMarket }) {
             {faucetBusy ? "Requesting…" : "Get test funds (dev)"}
           </button>
         )}
-        {faucetErr && <div className={styles.err}>{faucetErr}</div>}
+        {faucetErr && (
+          <div className={styles.err} role="alert">
+            {faucetErr}
+          </div>
+        )}
       </div>
       <div className={styles.balanceSection}>
         <div className={styles.title}>Balances</div>
