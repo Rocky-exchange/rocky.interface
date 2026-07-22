@@ -1,7 +1,7 @@
 // Component-layer specs for SpotOrderBookPanel — renders levels, spread,
 // cumulative totals, and switches to Trades tab.
-import { afterEach, describe, it, expect, vi } from "vitest";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
 
 vi.mock("../../api/spotClient", async () => {
   const actual = await vi.importActual<typeof import("../../api/spotClient")>("../../api/spotClient");
@@ -14,11 +14,13 @@ vi.mock("../../api/spotClient", async () => {
   };
 });
 
-import { spotApi } from "../../api/spotClient";
 import { SpotOrderBookPanel } from "./OrderBook";
+import { spotApi } from "../../api/spotClient";
+import { resolveSpotMarket } from "../../model/spotMarkets";
 
 const mDepth = vi.mocked(spotApi.depth);
 const mTrades = vi.mocked(spotApi.trades);
+const market = resolveSpotMarket("CBTC-USDA");
 
 afterEach(() => {
   cleanup();
@@ -28,7 +30,7 @@ afterEach(() => {
 describe("SpotOrderBookPanel", () => {
   it("shows 'No resting orders' when the book comes back empty", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [], bids: [] });
-    const { findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDCX" />);
+    const { findByText } = render(<SpotOrderBookPanel market={market} />);
     await findByText("No resting orders");
   });
 
@@ -48,7 +50,7 @@ describe("SpotOrderBookPanel", () => {
         ["64970.00", "0.003"],
       ],
     });
-    const { findByText, container } = render(<SpotOrderBookPanel symbol="CBTC-USDCX" />);
+    const { findByText, container } = render(<SpotOrderBookPanel market={market} />);
     // Wait for asks + bids to render
     await findByText("65,010.00");
     await findByText("64,990.00");
@@ -61,7 +63,7 @@ describe("SpotOrderBookPanel", () => {
   it("switches to Trades tab and calls trades() instead of depth()", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [["65010", "0.001"]], bids: [["64990", "0.001"]] });
     mTrades.mockResolvedValue([]);
-    const { getByText, findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDCX" />);
+    const { getByText, findByText } = render(<SpotOrderBookPanel market={market} />);
     await findByText("65,010.00");
     act(() => {
       fireEvent.click(getByText("Trades"));

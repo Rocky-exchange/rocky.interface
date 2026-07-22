@@ -2,10 +2,15 @@ import { useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
+import styles from "./BottomTabs.module.scss";
 import { spotApi, type SpotOrder } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
 import { usePolling } from "../../hooks/usePolling";
-import styles from "./BottomTabs.module.scss";
+import type { SpotMarket } from "../../model/spotMarkets";
+
+const CONNECT_HINT_STYLE = { marginLeft: 8, color: "var(--ltr-text-muted)" } as const;
+const MUTED_TEXT_STYLE = { color: "var(--ltr-text-muted)" } as const;
+const SECONDARY_TEXT_STYLE = { color: "var(--ltr-text-secondary)" } as const;
 
 function fmtTime(ts: number | undefined): string {
   if (!ts) return "—";
@@ -24,12 +29,12 @@ function fmtNum(v: string, maxDigits = 8): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: maxDigits });
 }
 
-function OpenOrders({ symbol }: { symbol: string }) {
+function OpenOrders({ market }: { market: SpotMarket }) {
   const ready = useSpotAuthReady();
   const { data, err } = usePolling<SpotOrder[]>(
-    () => spotApi.openOrders(symbol),
+    () => spotApi.openOrders(market.apiSymbol),
     2000,
-    [symbol],
+    [market.apiSymbol],
     { enabled: ready },
   );
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -40,14 +45,14 @@ function OpenOrders({ symbol }: { symbol: string }) {
         <button type="button" className={styles.connectCta} onClick={openCantonConnect}>
           Connect wallet
         </button>
-        <span style={{ marginLeft: 8, color: "var(--ltr-text-muted)" }}>to view your open orders</span>
+        <span style={CONNECT_HINT_STYLE}>to view your open orders</span>
       </div>
     );
 
   const cancel = async (orderId: string) => {
     setCancellingId(orderId);
     try {
-      await spotApi.cancelOrder(symbol, orderId);
+      await spotApi.cancelOrder(market.apiSymbol, orderId);
     } finally {
       setCancellingId(null);
     }
@@ -69,12 +74,12 @@ function OpenOrders({ symbol }: { symbol: string }) {
       </div>
       {data.map((o) => (
         <div key={o.orderId} className={styles.row}>
-          <span style={{ color: "var(--ltr-text-muted)" }}>{fmtTime(o.time)}</span>
+          <span style={MUTED_TEXT_STYLE}>{fmtTime(o.time)}</span>
           <span className={o.side === "BUY" ? styles.buy : styles.sell}>{o.side}</span>
           <span className={styles.right}>{fmtNum(o.price, 2)}</span>
           <span className={styles.right}>{fmtNum(o.origQty, 8)}</span>
           <span className={styles.right}>{fmtNum(o.executedQty, 8)}</span>
-          <span className={styles.right} style={{ color: "var(--ltr-text-secondary)" }}>
+          <span className={styles.right} style={SECONDARY_TEXT_STYLE}>
             {o.status}
           </span>
           <button
@@ -91,7 +96,7 @@ function OpenOrders({ symbol }: { symbol: string }) {
   );
 }
 
-export function SpotBottomTabs({ symbol }: { symbol: string }) {
+export function SpotBottomTabs({ market }: { market: SpotMarket }) {
   return (
     <div className={styles.panel}>
       <div className={styles.tabs}>
@@ -106,7 +111,7 @@ export function SpotBottomTabs({ symbol }: { symbol: string }) {
           Trade History
         </button>
       </div>
-      <OpenOrders symbol={symbol} />
+      <OpenOrders market={market} />
     </div>
   );
 }

@@ -14,8 +14,9 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ChartingLibraryWidgetOptions, IChartingLibraryWidget, ResolutionString } from "charting_library";
 
-import { SpotDataFeed } from "./SpotDataFeed";
 import styles from "./SpotChart.module.scss";
+import { SpotDataFeed } from "./SpotDataFeed";
+import type { SpotMarket } from "../../model/spotMarkets";
 
 // Wait up to 10s for the async <script> in index.html to attach the widget factory.
 const POLL_INTERVAL_MS = 100;
@@ -41,7 +42,7 @@ function loadTVWidget(): Promise<TVFactory> {
 
 const DEFAULT_INTERVAL: ResolutionString = "5" as ResolutionString;
 
-export function SpotChart({ symbol }: { symbol: string }) {
+export function SpotChart({ market }: { market: SpotMarket }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetRef = useRef<IChartingLibraryWidget | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export function SpotChart({ symbol }: { symbol: string }) {
       if (cancelled) return;
 
       const options: ChartingLibraryWidgetOptions = {
-        symbol,
+        symbol: market.routeSymbol,
         interval: DEFAULT_INTERVAL,
         container,
         datafeed: new SpotDataFeed(),
@@ -112,13 +113,13 @@ export function SpotChart({ symbol }: { symbol: string }) {
       if (w) {
         try {
           w.remove();
-        } catch {
+        } catch (_error) {
           /* removed already */
         }
         widgetRef.current = null;
       }
     };
-  }, [symbol]);
+  }, [market.routeSymbol]);
 
   return (
     <div className={styles.wrap}>

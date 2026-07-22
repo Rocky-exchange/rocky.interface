@@ -34,13 +34,6 @@ async function importFreshApi() {
   return await import("./spotClient");
 }
 
-describe("SPOT_MARKETS", () => {
-  it("has exactly the v1 spot pairs — matches rocky-backend seed", async () => {
-    const { SPOT_MARKETS } = await importFreshApi();
-    expect(SPOT_MARKETS.map((m) => m.symbol)).toEqual(["CBTC-USDCX", "CETH-USDCX"]);
-  });
-});
-
 describe("spotApi.depth (public)", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_SPOT_API_KEY", "");

@@ -223,8 +223,3 @@ export const spotApi = {
   cancelOrder: (symbol: string, orderId: string) =>
     signedRequest<{ status: "CANCELED" }>("DELETE", "/api/v3/order", { symbol, orderId }),
 };
-
-export const SPOT_MARKETS = [
-  { symbol: "CBTC-USDCX", base: "CBTC", quote: "USDCx" },
-  { symbol: "CETH-USDCX", base: "cETH", quote: "USDCx" },
-] as const;

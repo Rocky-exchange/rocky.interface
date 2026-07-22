@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 
+import styles from "./OrderBook.module.scss";
 import { spotApi, type DepthResp, type Trade } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
-import styles from "./OrderBook.module.scss";
+import type { SpotMarket } from "../../model/spotMarkets";
 
 type Tab = "book" | "trades";
+
+function barWidthStyle(total: number, maxTotal: number): CSSProperties {
+  return { width: `${(total / maxTotal) * 100}%` };
+}
 
 function fmtNum(v: string | number, digits = 2): string {
   const n = typeof v === "string" ? parseFloat(v) : v;
@@ -15,8 +20,12 @@ function fmtNum(v: string | number, digits = 2): string {
   });
 }
 
-function BookBody({ symbol }: { symbol: string }) {
-  const { data, err } = usePolling<DepthResp>(() => spotApi.depth(symbol, 20), 1000, [symbol]);
+function BookBody({ market }: { market: SpotMarket }) {
+  const { data, err } = usePolling<DepthResp>(
+    () => spotApi.depth(market.apiSymbol, 20),
+    1000,
+    [market.apiSymbol]
+  );
   if (err) return <div className={styles.err}>{err}</div>;
   if (!data) return <div className={styles.empty}>Loading…</div>;
 
@@ -53,7 +62,7 @@ function BookBody({ symbol }: { symbol: string }) {
             <div key={`a${i}`} className={styles.row}>
               <div
                 className={`${styles.rowBar} ${styles.askBar}`}
-                style={{ width: `${(r.total / maxTotal) * 100}%` }}
+                style={barWidthStyle(r.total, maxTotal)}
               />
               <span className={`${styles.rowText} ${styles.ask}`}>{fmtNum(r.p)}</span>
               <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
@@ -70,7 +79,7 @@ function BookBody({ symbol }: { symbol: string }) {
       <div className={styles.rows}>
         {bidRows.map((r, i) => (
           <div key={`b${i}`} className={styles.row}>
-            <div className={`${styles.rowBar} ${styles.bidBar}`} style={{ width: `${(r.total / maxTotal) * 100}%` }} />
+            <div className={`${styles.rowBar} ${styles.bidBar}`} style={barWidthStyle(r.total, maxTotal)} />
             <span className={`${styles.rowText} ${styles.bid}`}>{fmtNum(r.p)}</span>
             <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
             <span className={`${styles.rowText} ${styles.right}`}>{r.total.toFixed(4)}</span>
@@ -81,8 +90,8 @@ function BookBody({ symbol }: { symbol: string }) {
   );
 }
 
-function TradesBody({ symbol }: { symbol: string }) {
-  const { data } = usePolling<Trade[]>(() => spotApi.trades(symbol, 30), 1500, [symbol]);
+function TradesBody({ market }: { market: SpotMarket }) {
+  const { data } = usePolling<Trade[]>(() => spotApi.trades(market.apiSymbol, 30), 1500, [market.apiSymbol]);
   if (!data || data.length === 0) return <div className={styles.empty}>No trades yet</div>;
   return (
     <div className={styles.rows}>
@@ -107,7 +116,7 @@ function TradesBody({ symbol }: { symbol: string }) {
   );
 }
 
-export function SpotOrderBookPanel({ symbol }: { symbol: string }) {
+export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
   const [tab, setTab] = useState<Tab>("book");
   return (
     <div className={styles.panel}>
@@ -128,7 +137,7 @@ export function SpotOrderBookPanel({ symbol }: { symbol: string }) {
         <span className={styles.right}>Size</span>
         <span className={styles.right}>{tab === "book" ? "Total" : "Time"}</span>
       </div>
-      {tab === "book" ? <BookBody symbol={symbol} /> : <TradesBody symbol={symbol} />}
+      {tab === "book" ? <BookBody market={market} /> : <TradesBody market={market} />}
     </div>
   );
 }

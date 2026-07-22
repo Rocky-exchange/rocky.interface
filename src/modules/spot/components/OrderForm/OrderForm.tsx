@@ -2,13 +2,15 @@ import { useMemo, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
+import styles from "./OrderForm.module.scss";
 import { spotApi, SpotApiError } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
-import styles from "./OrderForm.module.scss";
+import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
+const MUTED_TEXT_STYLE = { color: "var(--ltr-text-muted)" } as const;
 
-export function SpotOrderForm({ symbol }: { symbol: string }) {
+export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const ready = useSpotAuthReady();
   const [side, setSide] = useState<Side>("BUY");
   const [price, setPrice] = useState("");
@@ -16,7 +18,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
-  const [base, quote] = useMemo(() => symbol.split("-"), [symbol]);
+  const { displayBase: base, displayQuote: quote } = market;
   const notional = useMemo(() => {
     const p = parseFloat(price);
     const q = parseFloat(qty);
@@ -29,7 +31,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
     setMsg(null);
     try {
       const r = await spotApi.placeOrder({
-        symbol,
+        symbol: market.apiSymbol,
         side,
         type: "LIMIT",
         price,
@@ -90,7 +92,7 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
         <div className={styles.summary}>
           <span>Notional</span>
           <span className={styles.summaryValue}>
-            {notional} <span style={{ color: "var(--ltr-text-muted)" }}>{quote}</span>
+            {notional} <span style={MUTED_TEXT_STYLE}>{quote}</span>
           </span>
         </div>
         {ready ? (

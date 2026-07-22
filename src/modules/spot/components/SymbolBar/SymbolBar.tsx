@@ -1,7 +1,8 @@
-import { spotApi, type Ticker24h } from "../../api/spotClient";
-import { usePolling } from "../../hooks/usePolling";
 import { SpotMarketDropdown } from "./MarketDropdown";
 import styles from "./SymbolBar.module.scss";
+import { spotApi, type Ticker24h } from "../../api/spotClient";
+import { usePolling } from "../../hooks/usePolling";
+import type { SpotMarket } from "../../model/spotMarkets";
 
 function fmtNum(v: string, digits = 2): string {
   const n = parseFloat(v);
@@ -9,18 +10,20 @@ function fmtNum(v: string, digits = 2): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
-export function SpotSymbolBar({ symbol }: { symbol: string }) {
-  const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(symbol), 3000, [symbol]);
+export function SpotSymbolBar({ market }: { market: SpotMarket }) {
+  const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.apiSymbol), 3000, [market.apiSymbol]);
   const pct = t ? parseFloat(t.priceChangePercent) : 0;
   const pctCls = pct > 0 ? styles.up : pct < 0 ? styles.down : styles.muted;
-  const base = symbol.split("-")[0];
 
   return (
     <div className={styles.bar}>
-      <SpotMarketDropdown symbol={symbol} />
+      <SpotMarketDropdown market={market} />
       <div className={styles.divider} />
       <div className={styles.stats}>
-        <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
+        <div className={styles.priceBlock}>
+          <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
+          <span className={styles.priceQuote}>{market.displayQuote}</span>
+        </div>
         <div className={styles.cell}>
           <span className={styles.cellLabel}>24h Change</span>
           <span className={`${styles.cellValue} ${pctCls}`}>
@@ -37,11 +40,11 @@ export function SpotSymbolBar({ symbol }: { symbol: string }) {
           <span className={styles.cellValue}>{t ? fmtNum(t.lowPrice) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol {base}</span>
+          <span className={styles.cellLabel}>24h Vol {market.displayBase}</span>
           <span className={styles.cellValue}>{t ? fmtNum(t.volume, 4) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol USDCx</span>
+          <span className={styles.cellLabel}>24h Vol {market.displayQuote}</span>
           <span className={styles.cellValue}>{t ? fmtNum(t.quoteVolume) : "—"}</span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 // Component-layer specs for SpotBottomTabs — connect gate + Open Orders
 // render + cancel action.
-import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
 
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
   openCantonConnect: vi.fn(),
@@ -21,14 +21,17 @@ vi.mock("../../api/spotClient", async () => {
 });
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
-import { useSpotAuthReady } from "../../api/spotSession";
-import { spotApi } from "../../api/spotClient";
+
 import { SpotBottomTabs } from "./BottomTabs";
+import { spotApi } from "../../api/spotClient";
+import { useSpotAuthReady } from "../../api/spotSession";
+import { resolveSpotMarket } from "../../model/spotMarkets";
 
 const mReady = vi.mocked(useSpotAuthReady);
 const mOpen = vi.mocked(spotApi.openOrders);
 const mCancel = vi.mocked(spotApi.cancelOrder);
 const mConnect = vi.mocked(openCantonConnect);
+const market = resolveSpotMarket("CBTC-USDA");
 
 afterEach(() => {
   cleanup();
@@ -38,7 +41,7 @@ afterEach(() => {
 describe("SpotBottomTabs", () => {
   it("shows Connect wallet placeholder when auth not ready and skips API calls", () => {
     mReady.mockReturnValue(false);
-    const { getByText } = render(<SpotBottomTabs symbol="CBTC-USDCX" />);
+    const { getByText } = render(<SpotBottomTabs market={market} />);
     fireEvent.click(getByText("Connect wallet"));
     expect(mConnect).toHaveBeenCalledOnce();
     expect(mOpen).not.toHaveBeenCalled();
@@ -47,7 +50,7 @@ describe("SpotBottomTabs", () => {
   it("shows 'No open orders' when ready and empty", async () => {
     mReady.mockReturnValue(true);
     mOpen.mockResolvedValue([]);
-    const { findByText } = render(<SpotBottomTabs symbol="CBTC-USDCX" />);
+    const { findByText } = render(<SpotBottomTabs market={market} />);
     await findByText("No open orders");
   });
 
@@ -70,11 +73,9 @@ describe("SpotBottomTabs", () => {
       },
     ]);
     mCancel.mockResolvedValue({
-      symbol: "CBTC-USDCX",
-      orderId: "019f64e35ff175d18108787dd7af24f2",
       status: "CANCELED",
     });
-    const { findByText, getByText } = render(<SpotBottomTabs symbol="CBTC-USDCX" />);
+    const { findByText, getByText } = render(<SpotBottomTabs market={market} />);
     await findByText("SELL");
     await findByText("65,000");
     fireEvent.click(getByText("Cancel"));

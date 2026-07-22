@@ -52,7 +52,8 @@
 // className to widen it and set the panel background).
 
 .floatingPanel {
-  min-width: 560px;
+  width: min(560px, calc(100vw - 16px));
+  min-width: min(560px, calc(100vw - 16px));
   padding: 0;
   background: var(--ltr-bg-panel);
   border: 1px solid var(--ltr-border);
@@ -199,4 +200,31 @@
 }
 .muted {
   color: var(--ltr-text-muted);
+}
+
+@media (max-width: 640px) {
+  .trigger {
+    gap: 6px;
+    padding: 4px 2px;
+  }
+
+  .triggerLev,
+  .rowBadgeSpot {
+    display: none;
+  }
+
+  .floatingPanel {
+    width: calc(100vw - 8px);
+    min-width: 0;
+  }
+
+  .header,
+  .row {
+    grid-template-columns: minmax(0, 1.5fr) 1fr 0.8fr;
+  }
+
+  .header > :last-child,
+  .rowVol {
+    display: none;
+  }
 }

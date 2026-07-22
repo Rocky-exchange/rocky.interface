@@ -4,19 +4,19 @@ import { useParams } from "react-router-dom";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import "@/modules/lighter/styles/global.scss";
 
+import styles from "./SpotTradePage.module.scss";
 import { useSpotSession } from "../api/spotSession";
-import { SpotSymbolBar } from "../components/SymbolBar/SymbolBar";
+import { SpotBottomTabs } from "../components/BottomTabs/BottomTabs";
+import { SpotChart } from "../components/Chart/SpotChart";
 import { SpotOrderBookPanel } from "../components/OrderBook/OrderBook";
 import { SpotOrderForm } from "../components/OrderForm/OrderForm";
-import { SpotBottomTabs } from "../components/BottomTabs/BottomTabs";
-import { SpotAccountsPanel } from "../components/Accounts/Accounts";
-import { SpotChart } from "../components/Chart/SpotChart";
-import styles from "./SpotTradePage.module.scss";
+import { SpotSymbolBar } from "../components/SymbolBar/SymbolBar";
+import { resolveSpotMarket } from "../model/spotMarkets";
 
 /**
- * Spot trading page — layout grid mirrors LighterTradePage.module.scss so the
- * visual rhythm (row heights, col widths, borders, panel look) matches perp
- * exactly. Content in each cell talks to rocky-backend /api/v3/* directly.
+ * Spot trading page — a route-coordinated workspace using the same panel
+ * tokens and dense visual rhythm as the perp terminal. Content in each cell
+ * talks to rocky-backend /api/v3/* directly.
  *
  * Reuses Rocky's TopNav + global.scss (`.lighter-active` body class) so the
  * app chrome (logo, nav pills, wallet button, language selector) is identical
@@ -24,7 +24,7 @@ import styles from "./SpotTradePage.module.scss";
  */
 export default function SpotTradePage() {
   const params = useParams<{ symbol?: string }>();
-  const symbol = params.symbol ?? "CBTC-USDCX";
+  const market = resolveSpotMarket(params.symbol);
 
   // Mint / clear per-user HMAC credentials when the Canton wallet connects
   // or disconnects. Downstream components read via useSpotAuthReady().
@@ -40,28 +40,31 @@ export default function SpotTradePage() {
       <div className={styles.topnav}>
         <TopNav />
       </div>
-      <div className={styles.main}>
-        <div className={styles.chartCol}>
-          <SpotSymbolBar symbol={symbol} />
-          <div className={styles.chart}>
-            <SpotChart symbol={symbol} />
+      <main className={styles.workspace}>
+        <section className={styles.marketWorkspace} data-testid="spot-market-workspace">
+          <SpotSymbolBar market={market} />
+          <div className={styles.chartPanel}>
+            <div className={styles.chartTabs} role="tablist" aria-label="Market view">
+              <button type="button" role="tab" aria-selected="true">
+                Chart
+              </button>
+              <button type="button" role="tab" aria-selected="false" disabled>
+                Market Info
+              </button>
+            </div>
+            <div className={styles.chart}>
+              <SpotChart market={market} />
+            </div>
           </div>
-        </div>
-        <div className={styles.orderbook}>
-          <SpotOrderBookPanel symbol={symbol} />
-        </div>
-        <div className={styles.orderform}>
-          <SpotOrderForm symbol={symbol} />
-        </div>
-      </div>
-      <div className={styles.bottom}>
-        <div>
-          <SpotBottomTabs symbol={symbol} />
-        </div>
-        <div>
-          <SpotAccountsPanel />
-        </div>
-      </div>
+          <SpotBottomTabs market={market} />
+        </section>
+        <aside className={styles.orderbook} data-testid="spot-orderbook-region">
+          <SpotOrderBookPanel market={market} />
+        </aside>
+        <aside className={styles.orderform} data-testid="spot-orderform-region">
+          <SpotOrderForm market={market} />
+        </aside>
+      </main>
     </div>
   );
 }

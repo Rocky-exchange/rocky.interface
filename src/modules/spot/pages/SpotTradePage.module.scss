@@ -1,68 +1,107 @@
-// Spot trading page — grid is verbatim from LighterTradePage.module.scss so
-// the visual rhythm (row heights, col widths, borders) exactly matches perp.
-// Only the *content* of each cell is spot-specific.
-
 .page {
-  --ltr-side-col: 321px;
+  --spot-side-col: var(--ltr-side-col, 321px);
   position: relative;
+  display: grid;
+  grid-template-rows: var(--ltr-topnav-h, 56px) minmax(0, 1fr);
+  gap: 4px;
   width: 100%;
   max-width: none;
-  margin: 0;
-  min-width: 0;
   height: 100vh;
   min-height: 0;
-  background: var(--ltr-bg-root, #06060c);
+  margin: 0;
   padding: 4px;
-  display: grid;
-  grid-template-rows: var(--ltr-topnav-h, 56px) minmax(0, 1fr) var(--ltr-bottom-h, 220px);
-  row-gap: 4px;
   overflow: hidden;
-  font-family: var(--ltr-font-family);
+  background: var(--ltr-bg-root, #06060c);
   color: var(--ltr-text-primary);
+  font-family: var(--ltr-font-family);
 }
 
 .topnav {
   position: relative;
   z-index: 200;
+  min-width: 0;
   border-bottom: 1px solid var(--ltr-border);
 }
 
-.main {
+.workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col);
-  grid-template-rows: minmax(0, 1fr);
-  column-gap: 4px;
+  grid-template-columns: minmax(0, 1fr) var(--spot-side-col) var(--spot-side-col);
+  gap: 4px;
+  min-width: 0;
   min-height: 0;
+}
 
-  > div {
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
+.marketWorkspace {
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr) 220px;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.chartPanel {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ltr-bg-panel);
+  border: 1px solid var(--ltr-border);
+  border-radius: var(--ltr-radius, 2px);
+}
+
+.chartTabs {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--ltr-border);
+
+  button {
+    position: relative;
+    padding: 0;
+    color: var(--ltr-text-muted);
+    font: 500 var(--ltr-font-body, 12px) / 1 var(--ltr-font-family);
+    background: transparent;
+    border: 0;
+  }
+
+  button[aria-selected="true"] {
+    color: var(--ltr-text-primary);
+
+    &::after {
+      position: absolute;
+      right: 0;
+      bottom: -1px;
+      left: 0;
+      height: 2px;
+      content: "";
+      background: var(--ltr-accent-cyan, #ff8a3d);
+    }
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.55;
   }
 }
 
-.chartCol {
-  display: grid;
-  grid-template-rows: 40px minmax(0, 1fr);
-  row-gap: 4px;
-  background: var(--ltr-bg-root, #000);
-}
-
 .chart {
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
-  // TradingView widget fills the container via `autosize:true`; no bg/border
-  // needed here (SpotChart's inner .wrap paints them).
 }
 
 .orderbook,
 .orderform {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: var(--ltr-bg-panel);
   border: 1px solid var(--ltr-border);
   border-radius: var(--ltr-radius, 2px);
-  overflow: hidden;
 }
 
 .orderbook > *,
@@ -71,19 +110,45 @@
   min-height: 0;
 }
 
-.bottom {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--ltr-side-col);
-  grid-template-rows: var(--ltr-bottom-h, 220px);
-  column-gap: 4px;
-  min-height: 0;
+@media (max-width: 1024px) {
+  .page {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    grid-template-rows: var(--ltr-topnav-h, 56px) auto;
+  }
 
-  > div {
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    background: var(--ltr-bg-panel);
-    border: 1px solid var(--ltr-border);
-    border-radius: var(--ltr-radius, 2px);
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(520px, auto) minmax(520px, auto);
+  }
+
+  .marketWorkspace {
+    grid-template-rows: 64px minmax(520px, 1fr) 220px;
+    min-height: 812px;
+  }
+
+  .orderbook,
+  .orderform {
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    gap: 2px;
+    width: calc(100dvw - 4px);
+    padding: 2px;
+    overflow-x: hidden;
+  }
+
+  .workspace,
+  .marketWorkspace {
+    gap: 2px;
+  }
+
+  .marketWorkspace {
+    grid-template-rows: 64px minmax(420px, 1fr) 220px;
+    min-height: 706px;
   }
 }
