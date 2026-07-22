@@ -218,6 +218,8 @@ export const spotApi = {
   ticker: (symbol: string) => publicGet<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`),
   account: () => signedRequest<Account>("GET", "/api/v3/account"),
   openOrders: (symbol: string) => signedRequest<SpotOrder[]>("GET", "/api/v3/openOrders", { symbol }),
+  allOrders: (symbol: string, limit = 500) =>
+    signedRequest<SpotOrder[]>("GET", "/api/v3/allOrders", { symbol, limit: String(limit) }),
   myTrades: (symbol: string, limit = 500) =>
     signedRequest<MyTrade[]>("GET", "/api/v3/myTrades", { symbol, limit: String(limit) }),
   placeOrder: (b: {

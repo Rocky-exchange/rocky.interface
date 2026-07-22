@@ -191,17 +191,77 @@ function TradeHistory({ market }: { market: SpotMarket }) {
   );
 }
 
-type EnabledTab = "assets" | "open-orders" | "trade-history";
+function OrderHistory({ market }: { market: SpotMarket }) {
+  const ready = useSpotAuthReady();
+  const { data, err } = usePolling<SpotOrder[]>(
+    () => spotApi.allOrders(market.apiSymbol),
+    3000,
+    [market.apiSymbol],
+    { enabled: ready },
+  );
 
-// Roving-focus order of the ENABLED tabs (Order History is a disabled
-// placeholder skipped by keyboard nav until /api/v3/allOrders exists).
-const ENABLED_TABS: EnabledTab[] = ["assets", "open-orders", "trade-history"];
+  if (!ready)
+    return <div className={styles.empty}>Connect wallet from the header to view your order history</div>;
+
+  if (err)
+    return (
+      <div className={styles.empty} role="alert">
+        {err}
+      </div>
+    );
+  if (!data)
+    return (
+      <div className={styles.empty} role="status">
+        Loading…
+      </div>
+    );
+  if (data.length === 0)
+    return (
+      <div className={styles.empty} role="status">
+        No order history
+      </div>
+    );
+
+  return (
+    <div className={styles.body}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Side</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Filled</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((order) => (
+            <tr key={order.orderId}>
+              <td style={MUTED_TEXT_STYLE}>{fmtTime(order.time ?? order.updateTime)}</td>
+              <td className={order.side === "BUY" ? styles.buy : styles.sell}>{order.side}</td>
+              <td>{fmtNum(order.price, 2)}</td>
+              <td>{fmtNum(order.origQty, 8)}</td>
+              <td>{fmtNum(order.executedQty, 8)}</td>
+              <td style={SECONDARY_TEXT_STYLE}>{order.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+type EnabledTab = "assets" | "open-orders" | "order-history" | "trade-history";
+
+const ENABLED_TABS: EnabledTab[] = ["assets", "open-orders", "order-history", "trade-history"];
 
 export function SpotBottomTabs({ market }: { market: SpotMarket }) {
   const [activeTab, setActiveTab] = useState<EnabledTab>("assets");
   const tabRefs = useRef<Record<EnabledTab, HTMLButtonElement | null>>({
     assets: null,
     "open-orders": null,
+    "order-history": null,
     "trade-history": null,
   });
 
@@ -257,12 +317,17 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         </button>
         <button
           type="button"
+          id="spot-order-history-tab"
           role="tab"
-          aria-selected="false"
-          aria-disabled="true"
-          tabIndex={-1}
-          className={styles.tab}
-          disabled
+          aria-selected={activeTab === "order-history"}
+          aria-controls="spot-bottom-panel"
+          tabIndex={activeTab === "order-history" ? 0 : -1}
+          className={`${styles.tab} ${activeTab === "order-history" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("order-history")}
+          onKeyDown={(event) => activateFromKeyboard(event, "order-history")}
+          ref={(node) => {
+            tabRefs.current["order-history"] = node;
+          }}
         >
           Order History
         </button>
@@ -303,6 +368,8 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         aria-labelledby={
           activeTab === "assets"
             ? "spot-assets-tab"
+            : activeTab === "order-history"
+              ? "spot-order-history-tab"
             : activeTab === "trade-history"
               ? "spot-trade-history-tab"
               : "spot-open-orders-tab"
@@ -311,6 +378,7 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
       >
         {activeTab === "assets" && <SpotAccountsPanel market={market} variant="workspace" />}
         {activeTab === "open-orders" && <OpenOrders key={market.apiSymbol} market={market} />}
+        {activeTab === "order-history" && <OrderHistory key={market.apiSymbol} market={market} />}
         {activeTab === "trade-history" && <TradeHistory key={market.apiSymbol} market={market} />}
       </div>
     </div>

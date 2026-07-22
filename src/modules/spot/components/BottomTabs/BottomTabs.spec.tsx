@@ -11,6 +11,7 @@ vi.mock("../../api/spotClient", async () => {
     spotApi: {
       openOrders: vi.fn(),
       cancelOrder: vi.fn(),
+      allOrders: vi.fn(),
       myTrades: vi.fn(),
     },
   };
@@ -29,6 +30,9 @@ import { resolveSpotMarket } from "../../model/spotMarkets";
 const mReady = vi.mocked(useSpotAuthReady);
 const mOpen = vi.mocked(spotApi.openOrders);
 const mCancel = vi.mocked(spotApi.cancelOrder);
+const mAllOrders = vi.mocked(
+  (spotApi as typeof spotApi & { allOrders: typeof spotApi.openOrders }).allOrders,
+);
 const mTrades = vi.mocked(spotApi.myTrades);
 const market = resolveSpotMarket("CBTC-USDA");
 const cethMarket = resolveSpotMarket("CETH-USDA");
@@ -66,7 +70,7 @@ afterEach(() => {
 });
 
 describe("SpotBottomTabs", () => {
-  it("shows Assets by default; Order History disabled, Trade History enabled", () => {
+  it("shows Assets by default with every account tab enabled", () => {
     mReady.mockReturnValue(true);
 
     const { getAllByRole, getByTestId } = render(<SpotBottomTabs market={market} />);
@@ -75,12 +79,10 @@ describe("SpotBottomTabs", () => {
     expect(tabs.map((tab) => tab.textContent)).toEqual(["Assets", "Open Orders", "Order History", "Trade History"]);
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
     expect(tabs[1].getAttribute("aria-selected")).toBe("false");
-    // Order History still needs /api/v3/allOrders (unbuilt) → disabled.
-    expect((tabs[2] as HTMLButtonElement).disabled).toBe(true);
-    // Trade History is now backed by /api/v3/myTrades → enabled.
-    expect((tabs[3] as HTMLButtonElement).disabled).toBe(false);
+    expect(tabs.every((tab) => !(tab as HTMLButtonElement).disabled)).toBe(true);
     expect(getByTestId("assets-view").textContent).toBe("Assets for CBTC-USDA");
     expect(mOpen).not.toHaveBeenCalled();
+    expect(mAllOrders).not.toHaveBeenCalled();
     expect(mTrades).not.toHaveBeenCalled();
   });
 
@@ -92,7 +94,7 @@ describe("SpotBottomTabs", () => {
     expect(getByTestId("spot-bottom-view-controls").children).toHaveLength(3);
   });
 
-  it("uses roving focus over the 3 enabled tabs and skips disabled Order History", () => {
+  it("uses roving focus over all 4 enabled tabs", () => {
     mReady.mockReturnValue(false);
 
     const { getByRole } = render(<SpotBottomTabs market={market} />);
@@ -111,20 +113,43 @@ describe("SpotBottomTabs", () => {
     expect(document.activeElement).toBe(openOrders);
     expect(openOrders.getAttribute("aria-selected")).toBe("true");
 
+    fireEvent.keyDown(openOrders, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(orderHistory);
+    expect(orderHistory.getAttribute("aria-selected")).toBe("true");
+
     fireEvent.keyDown(openOrders, { key: "Home" });
     expect(document.activeElement).toBe(assets);
     expect(assets.getAttribute("aria-selected")).toBe("true");
 
-    // ArrowLeft from the first tab wraps to the last ENABLED tab (Trade History),
-    // skipping the disabled Order History.
+    // ArrowLeft from the first tab wraps to the last tab (Trade History).
     fireEvent.keyDown(assets, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(tradeHistory);
     expect(tradeHistory.getAttribute("aria-selected")).toBe("true");
 
-    // End jumps to the last enabled tab too.
+    // End jumps to the last tab too.
     fireEvent.keyDown(tradeHistory, { key: "End" });
     expect(document.activeElement).toBe(tradeHistory);
-    expect(orderHistory.disabled).toBe(true);
+    expect(orderHistory.disabled).toBe(false);
+  });
+
+  it("switches to Order History and renders allOrders rows for the API symbol", async () => {
+    mReady.mockReturnValue(true);
+    mAllOrders.mockResolvedValue([
+      {
+        ...order("history-filled", "BUY"),
+        executedQty: "0.001",
+        cummulativeQuoteQty: "65.00",
+        status: "FILLED",
+        isWorking: false,
+      },
+    ]);
+
+    const { getByRole, findByRole } = render(<SpotBottomTabs market={market} />);
+    fireEvent.click(getByRole("tab", { name: "Order History" }));
+
+    const row = await findByRole("row", { name: /BUY.*65,000.*0.001.*FILLED/ });
+    expect(within(row).getByText("FILLED")).toBeTruthy();
+    expect(mAllOrders).toHaveBeenCalledWith("CBTC-USDA");
   });
 
   it("switches to Open Orders without rendering a panel-level wallet CTA", () => {

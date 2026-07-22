@@ -201,6 +201,22 @@ describe("spotApi signed endpoints", () => {
     expect(calls[0].url).toContain("limit=500");
   });
 
+  it("allOrders: GET /api/v3/allOrders with symbol + limit", async () => {
+    const calls = stubFetch(() => ({ body: [] }));
+    const { spotApi } = await importFreshApi();
+    const allOrders = (spotApi as typeof spotApi & {
+      allOrders?: (symbol: string, limit?: number) => Promise<unknown>;
+    }).allOrders;
+
+    expect(typeof allOrders).toBe("function");
+    if (!allOrders) return;
+
+    await allOrders("CBTC-USDA", 200);
+    expect(calls[0].url).toMatch(/^\/api\/v3\/allOrders\?/);
+    expect(calls[0].url).toContain("symbol=CBTC-USDA");
+    expect(calls[0].url).toContain("limit=200");
+  });
+
   it("throws -401 SpotApiError when no session credentials are set", async () => {
     // No env fallback + no setSpotCredentials call → signedRequest must reject
     // with a wallet-connect hint rather than firing an unsigned HTTP call.
