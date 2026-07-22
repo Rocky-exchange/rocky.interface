@@ -175,6 +175,25 @@ describe("spotApi signed endpoints", () => {
     expect(calls[0].url).toContain("quantity=0.001");
   });
 
+  it("placeOrder MARKET omits price and sends type=MARKET", async () => {
+    const calls = stubFetch(() => ({
+      body: { orderId: "abc", status: "NEW", symbol: "CETH-USDA", type: "MARKET", timeInForce: "IOC", price: "0" },
+    }));
+    const { spotApi } = await importFreshApi();
+    await spotApi.placeOrder({
+      symbol: "CETH-USDA",
+      side: "BUY",
+      type: "MARKET",
+      quantity: "0.5",
+    });
+    expect(calls[0].init?.method).toBe("POST");
+    expect(calls[0].url).toContain("symbol=CETH-USDA");
+    expect(calls[0].url).toContain("side=BUY");
+    expect(calls[0].url).toContain("type=MARKET");
+    expect(calls[0].url).toContain("quantity=0.5");
+    expect(calls[0].url).not.toContain("price=");
+  });
+
   it("cancelOrder: DELETE /api/v3/order", async () => {
     const calls = stubFetch(() => ({ body: { status: "CANCELED" } }));
     const { spotApi } = await importFreshApi();
