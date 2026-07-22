@@ -193,7 +193,7 @@ export function RedeemCodePage() {
                 </span>
               </div>
               <div>
-                <span className={styles.policyValue}>USDCx</span>
+                <span className={styles.policyValue}>USDA</span>
                 <span className={styles.policyLabel}>
                   <Trans>Display asset</Trans>
                 </span>

@@ -9,7 +9,7 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import "../../../styles/global.scss";
 import styles from "./BonusPage.module.scss";
 import { useBonusBalance, useBonusHistory, useBonusStatus } from "../api/useBonus";
-import { BonusBalanceCard, formatUsdcx } from "../components/BonusBalanceCard";
+import { BonusBalanceCard, formatUsda } from "../components/BonusBalanceCard";
 import { BonusCountdown } from "../components/BonusCountdown";
 import { BonusHistoryList } from "../components/BonusHistoryList";
 
@@ -185,12 +185,12 @@ function BonusDashboard({
           <p className={styles.balanceLabel}>
             <Trans>Remaining trial funds</Trans>
           </p>
-          <div className={styles.heroBalance}>{formatUsdcx(status.bonus_balance)}</div>
+          <div className={styles.heroBalance}>{formatUsda(status.bonus_balance)}</div>
           <div className={styles.lifecycleMeta}>
             <span>
               <Trans>Initial grant</Trans>
             </span>
-            <strong>{formatUsdcx(status.bonus_initial)}</strong>
+            <strong>{formatUsda(status.bonus_initial)}</strong>
           </div>
 
           <div className={styles.expiryRail}>

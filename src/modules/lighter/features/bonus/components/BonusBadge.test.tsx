@@ -121,15 +121,15 @@ describe("BonusBadge", () => {
     expect(screen.getByRole("link", { name: "Redeem" }).getAttribute("href")).toBe("/bonus/redeem");
   });
 
-  it("formats the active remaining amount with the shared USDCx formatter", () => {
+  it("formats the active remaining amount with the shared USDA formatter", () => {
     mockStatus({ data: ACTIVE_STATUS });
 
     renderBadge();
 
-    const link = screen.getByRole("link", { name: "Trial funds: 1,500.56 USDCx" });
+    const link = screen.getByRole("link", { name: "Trial funds: 1,500.56 USDA" });
     expect(link.getAttribute("href")).toBe("/bonus");
     expect(link.getAttribute("data-status")).toBe("active");
-    expect(link.textContent).toContain("1,500.56 USDCx");
+    expect(link.textContent).toContain("1,500.56 USDA");
   });
 
   it("does not mark the parent bonus destination current from the redeem route", () => {
@@ -137,7 +137,7 @@ describe("BonusBadge", () => {
 
     renderBadgeAt("/bonus/redeem");
 
-    expect(screen.getByRole("link", { name: "Trial funds: 1,500.56 USDCx" }).getAttribute("aria-current")).toBeNull();
+    expect(screen.getByRole("link", { name: "Trial funds: 1,500.56 USDA" }).getAttribute("aria-current")).toBeNull();
   });
 
   it("marks the exact redeem destination current for an account without trial funds", () => {
@@ -208,7 +208,7 @@ describe("BonusBadge", () => {
 
     renderBadge();
 
-    expect(screen.getByRole("link", { name: "Trial funds: 1,500.56 USDCx" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Trial funds: 1,500.56 USDA" })).not.toBeNull();
   });
 
   it("uses resilient compact styles without low-contrast badge copy", () => {

@@ -21,7 +21,7 @@ import {
   type BonusStatusResponse,
 } from "../api/bonus.types";
 import { notifyBonusDataChanged, useBonusBalance, useBonusHistory, useBonusStatus } from "../api/useBonus";
-import { BonusBalanceCard, formatUsdcx } from "../components/BonusBalanceCard";
+import { BonusBalanceCard, formatUsda } from "../components/BonusBalanceCard";
 import { BonusCountdown } from "../components/BonusCountdown";
 import { BonusHistoryList } from "../components/BonusHistoryList";
 
@@ -204,7 +204,7 @@ afterEach(() => {
 });
 
 describe("BonusPage", () => {
-  it("shows a Canton connect action while disconnected without inventing a zero USDCx balance", () => {
+  it("shows a Canton connect action while disconnected without inventing a zero USDA balance", () => {
     mUseCantonSession.mockReturnValue({
       connected: false,
       token: "",
@@ -222,7 +222,7 @@ describe("BonusPage", () => {
 
     const connect = screen.getByRole("button", { name: "Connect wallet" });
     expect(screen.queryByText(/999/)).toBeNull();
-    expect(screen.queryByText("0 USDCx")).toBeNull();
+    expect(screen.queryByText("0 USDA")).toBeNull();
     expect(mUseBonusBalance).not.toHaveBeenCalled();
     expect(mUseBonusHistory).not.toHaveBeenCalled();
     fireEvent.click(connect);
@@ -271,7 +271,7 @@ describe("BonusPage", () => {
 
     renderAt(<BonusPage />, "/bonus");
 
-    expect(screen.getByText("87.5 USDCx")).not.toBeNull();
+    expect(screen.getByText("87.5 USDA")).not.toBeNull();
     expect(screen.getByText("Trading fee")).not.toBeNull();
     expect(screen.getByText("Showing saved trial-funds data while the latest refresh is unavailable.")).not.toBeNull();
     expect(
@@ -298,13 +298,13 @@ describe("BonusPage", () => {
     expect(mUseBonusHistory).not.toHaveBeenCalled();
   });
 
-  it("renders the active USDCx lifecycle, risk rules, API leverage, and attribution ledger", () => {
+  it("renders the active USDA lifecycle, risk rules, API leverage, and attribution ledger", () => {
     renderAt(<BonusPage />, "/bonus");
 
-    expect(screen.getByText("87.5 USDCx")).not.toBeNull();
-    expect(screen.getByText("70.25 USDCx")).not.toBeNull();
-    expect(screen.getByText("17.25 USDCx")).not.toBeNull();
-    expect(screen.getByText("63 USDCx")).not.toBeNull();
+    expect(screen.getByText("87.5 USDA")).not.toBeNull();
+    expect(screen.getByText("70.25 USDA")).not.toBeNull();
+    expect(screen.getByText("17.25 USDA")).not.toBeNull();
+    expect(screen.getByText("63 USDA")).not.toBeNull();
     expect(screen.getByLabelText("Bonus expiry countdown")).not.toBeNull();
     expect(screen.getByText(/50%.*trial funds.*50%.*principal/i)).not.toBeNull();
     expect(screen.getByText(/capped by remaining trial funds/i)).not.toBeNull();
@@ -335,12 +335,12 @@ describe("BonusPage", () => {
 });
 
 describe("Bonus visual components", () => {
-  it("formats all balance values through one safe USDCx formatter and renders exactly four rows", () => {
+  it("formats all balance values through one safe USDA formatter and renders exactly four rows", () => {
     const { container } = renderI18n(<BonusBalanceCard balance={BALANCE} />);
 
-    expect(formatUsdcx("1500.555")).toBe("1,500.56 USDCx");
-    expect(formatUsdcx("not-a-number")).toBe("0 USDCx");
-    expect(within(screen.getByRole("list", { name: "USDCx account breakdown" })).getAllByRole("listitem")).toHaveLength(
+    expect(formatUsda("1500.555")).toBe("1,500.56 USDA");
+    expect(formatUsda("not-a-number")).toBe("0 USDA");
+    expect(within(screen.getByRole("list", { name: "USDA account breakdown" })).getAllByRole("listitem")).toHaveLength(
       4
     );
     expect(container.textContent).toContain("Total platform balance");
@@ -420,7 +420,7 @@ describe("Bonus visual components", () => {
     renderI18n(<BonusHistoryList rows={rows} error={undefined} isLoading={false} hasMore={false} loadMore={vi.fn()} />);
 
     expect(screen.getByText(label)).not.toBeNull();
-    expect(screen.getAllByText("2 USDCx")).toHaveLength(2);
+    expect(screen.getAllByText("2 USDA")).toHaveLength(2);
   });
 
   it("exposes accessible loading, error, empty, and paginated history states", () => {
