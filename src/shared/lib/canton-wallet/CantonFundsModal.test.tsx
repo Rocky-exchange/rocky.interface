@@ -136,6 +136,23 @@ describe("CantonFundsModal", () => {
     expect(screen.queryByText("cETH")).toBeNull();
   });
 
+  it.each(["Deposit", "Withdraw"])("uses the shared custom asset menu on %s", (page) => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: page }));
+
+    expect(screen.queryByRole("combobox", { name: "Asset" })).toBeNull();
+    const assetButton = screen.getByRole("button", { name: "Asset" });
+    expect(assetButton.textContent).toContain("USDA");
+
+    fireEvent.click(assetButton);
+    expect(screen.getByRole("listbox", { name: "Asset" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "CBTC" }));
+
+    expect(screen.queryByRole("listbox", { name: "Asset" })).toBeNull();
+    expect(assetButton.textContent).toContain("CBTC");
+    expect(document.activeElement).toBe(assetButton);
+  });
+
   it("shows a direct disconnect action instead of the profile overflow menu", async () => {
     const onClose = vi.fn();
     render(<CantonFundsModal open onClose={onClose} />);

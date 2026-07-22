@@ -109,6 +109,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [assetSearch, setAssetSearch] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | CantonFundsAsset>("all");
   const [assetFilterOpen, setAssetFilterOpen] = useState(false);
+  const [operationAssetOpen, setOperationAssetOpen] = useState(false);
   const [transferAmount, setTransferAmount] = useState("");
   const [transferDirection, setTransferDirection] = useState<"toSpot" | "toFunding">("toFunding");
   const [transferBusy, setTransferBusy] = useState(false);
@@ -125,6 +126,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const assetFilterRef = useRef<HTMLDivElement>(null);
   const assetFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const operationAssetRef = useRef<HTMLDivElement>(null);
+  const operationAssetButtonRef = useRef<HTMLButtonElement>(null);
   const operationBackButtonRef = useRef<HTMLButtonElement>(null);
   const operationActionRefs = useRef<Partial<Record<OperationView, HTMLButtonElement | null>>>({});
   const assetRowRefs = useRef<Partial<Record<CantonFundsAsset, HTMLButtonElement | null>>>({});
@@ -274,6 +277,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     depositConfirmationIdRef.current += 1;
     setDepositConfirming(false);
     setAssetFilterOpen(false);
+    setOperationAssetOpen(false);
   }, [open]);
 
   useEffect(() => {
@@ -285,11 +289,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
         assetFilterButtonRef.current?.focus();
         return;
       }
+      if (operationAssetOpen) {
+        setOperationAssetOpen(false);
+        operationAssetButtonRef.current?.focus();
+        return;
+      }
       onClose();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [assetFilterOpen, onClose, open]);
+  }, [assetFilterOpen, onClose, open, operationAssetOpen]);
 
   useEffect(() => {
     if (!assetFilterOpen) return;
@@ -299,6 +308,19 @@ export function CantonFundsModal({ open, onClose }: Props) {
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [assetFilterOpen]);
+
+  useEffect(() => {
+    if (!operationAssetOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!operationAssetRef.current?.contains(event.target as Node)) setOperationAssetOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [operationAssetOpen]);
+
+  useEffect(() => {
+    if (activeView !== "deposit" && activeView !== "withdraw") setOperationAssetOpen(false);
+  }, [activeView]);
 
   useEffect(() => {
     if (!open) return;
@@ -867,24 +889,49 @@ export function CantonFundsModal({ open, onClose }: Props) {
           {activeView === "deposit" || activeView === "withdraw" ? (
             <section className={styles.taskView}>
               <form className={styles.compactForm} onSubmit={activeView === "deposit" ? handleDeposit : handleWithdraw}>
-                <label className={styles.field}>
+                <div className={styles.field}>
                   <span>{i18n._(t`Asset`)}</span>
-                  <select
-                    value={selectedAsset}
-                    onChange={(event) => {
-                      setSelectedAsset(event.target.value as CantonFundsAsset);
-                      setDepositAmount("");
-                      setWithdrawAmount("");
-                    }}
-                    aria-label={i18n._(t`Asset`)}
-                  >
-                    {CANTON_FUNDING_ASSETS.map((asset) => (
-                      <option key={asset.symbol} value={asset.symbol}>
-                        {asset.symbol}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <div className={cx(styles.assetFilter, styles.operationAssetSelect)} ref={operationAssetRef}>
+                    <button
+                      ref={operationAssetButtonRef}
+                      type="button"
+                      className={styles.assetFilterButton}
+                      aria-label={i18n._(t`Asset`)}
+                      aria-haspopup="listbox"
+                      aria-expanded={operationAssetOpen}
+                      onClick={() => setOperationAssetOpen((current) => !current)}
+                    >
+                      <span>{selectedAsset}</span>
+                      <ChevronDownIcon />
+                    </button>
+                    {operationAssetOpen ? (
+                      <div className={styles.assetFilterMenu} role="listbox" aria-label={i18n._(t`Asset`)}>
+                        {CANTON_FUNDING_ASSETS.map((asset) => (
+                          <button
+                            key={asset.symbol}
+                            type="button"
+                            role="option"
+                            aria-selected={selectedAsset === asset.symbol}
+                            className={cx(
+                              styles.assetFilterOption,
+                              selectedAsset === asset.symbol && styles.assetFilterOptionActive
+                            )}
+                            onClick={() => {
+                              setSelectedAsset(asset.symbol);
+                              setDepositAmount("");
+                              setWithdrawAmount("");
+                              setOperationAssetOpen(false);
+                              operationAssetButtonRef.current?.focus();
+                            }}
+                          >
+                            <span>{asset.symbol}</span>
+                            {selectedAsset === asset.symbol ? <CheckIcon /> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
                 <label className={styles.field}>
                   <span className={styles.fieldHeading}>
                     <span>{i18n._(t`Amount`)}</span>
