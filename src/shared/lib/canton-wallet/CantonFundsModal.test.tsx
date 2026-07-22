@@ -64,6 +64,14 @@ vi.mock("./funds", () => ({
   waitForPlatformDepositCredit: mocks.waitForPlatformDepositCredit,
 }));
 
+vi.mock("./profile", () => ({
+  hydrateOwnProfile: vi.fn(),
+  setAvatar: vi.fn(),
+  setDisplayName: vi.fn(),
+  SetAvatarError: class SetAvatarError extends Error {},
+  SetDisplayNameError: class SetDisplayNameError extends Error {},
+}));
+
 vi.mock("./useCantonSession", () => ({
   useCantonSession: () => sessionMock,
 }));
@@ -133,6 +141,33 @@ describe("CantonFundsModal", () => {
     expect(form?.querySelectorAll("select")).toHaveLength(0);
     expect(form?.querySelectorAll("input")).toHaveLength(1);
     expect(form?.textContent).not.toContain("Asset");
+  });
+
+  it("shows wrapped spot balances at six-decimal precision with market icons", async () => {
+    mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
+      provider: "rocky",
+      label: "Rocky Wallet",
+      party: PARTY_ID,
+      status: "ready",
+      balances: [
+        { symbol: "CBTC", amount: "0.00005459" },
+        { symbol: "cETH", amount: "0.0000019" },
+      ],
+    });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    const assetSelect = screen.getByRole("combobox", { name: "Asset" });
+    fireEvent.change(assetSelect, { target: { value: "CBTC" } });
+
+    await waitFor(() => expect(screen.getByText("4", { selector: "sub" })).toBeTruthy());
+    expect(screen.getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.045459");
+    expect(screen.getByText("btc")).toBeTruthy();
+
+    fireEvent.change(assetSelect, { target: { value: "cETH" } });
+
+    expect(screen.getByText("5", { selector: "sub" }).parentElement?.textContent).toContain("0.0519");
+    expect(screen.getByText("eth")).toBeTruthy();
   });
 
   it("shows the fixed network fee in withdrawal history", async () => {
