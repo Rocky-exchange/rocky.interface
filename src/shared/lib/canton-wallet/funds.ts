@@ -308,6 +308,27 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
+export type SpotTransferResult = {
+  asset: string;
+  direction: string;
+  amount: string;
+  fundingAvailable: string;
+  spotFree: string;
+};
+
+/** Move balance between the funding account and the spot account. */
+export async function transferSpotBalance(input: {
+  asset: "USDA" | "CBTC" | "cETH" | "CC";
+  amount: string;
+  direction: "toSpot" | "toFunding";
+}): Promise<SpotTransferResult> {
+  return requestJson<SpotTransferResult>("/v1/spot/transfer", {
+    method: "POST",
+    headers: sessionJsonHeaders(),
+    body: JSON.stringify(input),
+  });
+}
+
 export async function authorizeUsdaWallet(): Promise<UsdaAuthorizationResult> {
   return requestJson<UsdaAuthorizationResult>("/v1/wallet/usda/authorize", {
     method: "POST",

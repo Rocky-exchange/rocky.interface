@@ -37,7 +37,7 @@ async function importFreshApi() {
 describe("SPOT_MARKETS", () => {
   it("has exactly the v1 spot pairs — matches rocky-backend seed", async () => {
     const { SPOT_MARKETS } = await importFreshApi();
-    expect(SPOT_MARKETS.map((m) => m.symbol)).toEqual(["CBTC-USDA", "CETH-USDA"]);
+    expect(SPOT_MARKETS.map((m) => m.symbol)).toEqual(["CBTC-USDA", "CETH-USDA", "CC-USDA"]);
   });
 });
 

@@ -82,3 +82,24 @@
   font-weight: 600;
   font-size: 12px;
 }
+
+.transferRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+
+  > * {
+    flex: 1;
+  }
+}
+
+.transferSelect,
+.transferInput {
+  background: var(--bg-secondary, #17181c);
+  border: 1px solid var(--border-color, #2a2c33);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  min-width: 0;
+}

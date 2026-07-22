@@ -231,4 +231,5 @@ export const spotApi = {
 export const SPOT_MARKETS = [
   { symbol: "CBTC-USDA", base: "CBTC", quote: "USDA" },
   { symbol: "CETH-USDA", base: "cETH", quote: "USDA" },
+  { symbol: "CC-USDA", base: "CC", quote: "USDA" },
 ] as const;

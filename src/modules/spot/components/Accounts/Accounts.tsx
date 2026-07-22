@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { spotApi, type Account } from "../../api/spotClient";
@@ -26,11 +27,19 @@ async function faucet(party: string): Promise<void> {
   if (!r.ok) throw new Error(`faucet HTTP ${r.status}`);
 }
 
+const TRANSFER_ASSETS = ["USDA", "CBTC", "cETH", "CC"] as const;
+type TransferAsset = (typeof TRANSFER_ASSETS)[number];
+
 export function SpotAccountsPanel() {
   const ready = useSpotAuthReady();
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
+  const [xferAsset, setXferAsset] = useState<TransferAsset>("USDA");
+  const [xferAmount, setXferAmount] = useState("");
+  const [xferBusy, setXferBusy] = useState(false);
+  const [xferMsg, setXferMsg] = useState<string | null>(null);
+  const [xferErr, setXferErr] = useState<string | null>(null);
   const { data, err, refetch } = usePolling<Account>(() => spotApi.account(), 2500, [], { enabled: ready });
   if (!ready)
     return (
@@ -74,6 +83,30 @@ export function SpotAccountsPanel() {
     }
   };
 
+  const onTransfer = async (direction: "toSpot" | "toFunding") => {
+    setXferBusy(true);
+    setXferErr(null);
+    setXferMsg(null);
+    try {
+      const result = await transferSpotBalance({
+        asset: xferAsset,
+        amount: xferAmount.trim(),
+        direction,
+      });
+      setXferMsg(
+        direction === "toSpot"
+          ? `Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
+          : `Moved ${result.amount} ${result.asset} to funding (funding: ${result.fundingAvailable})`,
+      );
+      setXferAmount("");
+      refetch();
+    } catch (e: unknown) {
+      setXferErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setXferBusy(false);
+    }
+  };
+
   return (
     <div className={styles.panel}>
       <div className={styles.title}>Spot Account</div>
@@ -100,6 +133,49 @@ export function SpotAccountsPanel() {
         </button>
       )}
       {faucetErr && <div className={styles.err}>{faucetErr}</div>}
+      <div className={styles.title}>Transfer</div>
+      <div className={styles.transferRow}>
+        <select
+          className={styles.transferSelect}
+          value={xferAsset}
+          onChange={(e) => setXferAsset(e.target.value as TransferAsset)}
+          disabled={xferBusy}
+        >
+          {TRANSFER_ASSETS.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+        <input
+          className={styles.transferInput}
+          inputMode="decimal"
+          placeholder="Amount"
+          value={xferAmount}
+          onChange={(e) => setXferAmount(e.target.value)}
+          disabled={xferBusy}
+        />
+      </div>
+      <div className={styles.transferRow}>
+        <button
+          type="button"
+          className={styles.connectCta}
+          disabled={xferBusy || !xferAmount.trim()}
+          onClick={() => onTransfer("toSpot")}
+        >
+          {xferBusy ? "…" : "Deposit → Spot"}
+        </button>
+        <button
+          type="button"
+          className={styles.connectCta}
+          disabled={xferBusy || !xferAmount.trim()}
+          onClick={() => onTransfer("toFunding")}
+        >
+          {xferBusy ? "…" : "Spot → Funding"}
+        </button>
+      </div>
+      {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}
+      {xferErr && <div className={styles.err}>{xferErr}</div>}
     </div>
   );
 }
