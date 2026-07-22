@@ -100,7 +100,7 @@ describe("getBars", () => {
     });
   });
 
-  it("hits Binance data-api with the mapped symbol/interval/countBack limit", async () => {
+  it("hits Rocky's own /api/v3/klines only — no third-party endpoints", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
     await new Promise<void>((resolve) => {
@@ -112,10 +112,11 @@ describe("getBars", () => {
         () => resolve()
       );
     });
-    expect(urls[0]).toContain("data-api.binance.vision/api/v3/klines");
-    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDA → BTCUSDT mapping
+    expect(urls[0].startsWith("/api/v3/klines?")).toBe(true);
+    expect(urls[0]).toContain("symbol=CBTC-USDA"); // Rocky symbol, no mapping
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
+    expect(urls[0]).not.toContain("binance");
   });
 
   it("clamps limit to [100, 1000]", async () => {
