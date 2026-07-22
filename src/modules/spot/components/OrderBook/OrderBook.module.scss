@@ -7,15 +7,19 @@
   font-size: var(--ltr-font-body, 12px);
 }
 
+.topBar {
+  flex: 0 0 auto;
+}
+
 .tabs {
   display: flex;
-  height: 32px;
+  height: 40px;
   border-bottom: 1px solid var(--ltr-border);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .tab {
-  padding: 0 14px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   cursor: pointer;
@@ -37,10 +41,72 @@
   border-bottom-color: var(--ltr-accent-cyan, #ff8a3d);
 }
 
+.bookViews {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 11px;
+  border-bottom: 1px solid var(--ltr-border);
+}
+
+.bookViewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.62;
+
+  &:hover {
+    background: var(--ltr-bg-hover, rgba(255, 255, 255, 0.05));
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: 1px;
+  }
+}
+
+.bookViewActive {
+  border-color: var(--ltr-border);
+  background: var(--ltr-bg-panel-2, #0e0e14);
+  opacity: 1;
+}
+
+.bookViewIcon {
+  display: grid;
+  gap: 2px;
+  width: 14px;
+}
+
+.askLine,
+.bidLine {
+  display: block;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.askLine {
+  background: var(--ltr-down, #ff384f);
+}
+
+.bidLine {
+  background: var(--ltr-up, #1bd289);
+}
+
 .header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  padding: 4px 12px;
+  min-height: 24px;
+  align-items: center;
+  padding: 3px 12px;
   color: var(--ltr-text-muted);
   font-size: 11px;
   border-bottom: 1px solid var(--ltr-border);
