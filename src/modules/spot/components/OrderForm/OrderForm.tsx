@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
@@ -77,6 +77,7 @@ function isWithinAvailableBalance(
 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { ready, account, err: accountError, refetch } = useSpotAccount();
+  const activeMarketSymbol = useRef(market.apiSymbol);
   const [side, setSide] = useState<Side>("BUY");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
@@ -146,11 +147,22 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setAmount((currentAmount) => (currentAmount === nextAmount ? currentAmount : nextAmount));
   }, [baseFree, busy, percent, price, quoteFree, side]);
 
+  useEffect(() => {
+    if (activeMarketSymbol.current === market.apiSymbol) return;
+    activeMarketSymbol.current = market.apiSymbol;
+    setSide("BUY");
+    setPrice("");
+    setAmount("");
+    setPercent(0);
+    setMsg(null);
+  }, [market.apiSymbol]);
+
   const canSubmit =
     ready && account?.canTrade === true && !busy && isWithinAvailableBalance(side, price, amount, baseFree, quoteFree);
 
   const submit = async () => {
     if (!canSubmit) return;
+    const submittedSymbol = market.apiSymbol;
     setBusy(true);
     setMsg(null);
     try {
@@ -161,12 +173,14 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         price,
         quantity: amount,
       });
+      if (activeMarketSymbol.current !== submittedSymbol) return;
       setMsg({ kind: "ok", text: `${response.status} · ${response.orderId.slice(0, 12)}…` });
       setPrice("");
       setAmount("");
       setPercent(0);
       refetch();
     } catch (error: unknown) {
+      if (activeMarketSymbol.current !== submittedSymbol) return;
       const text =
         error instanceof SpotApiError
           ? `[${error.code}] ${error.message}`

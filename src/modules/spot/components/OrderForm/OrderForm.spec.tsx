@@ -28,6 +28,7 @@ const mUseSpotAccount = vi.mocked(useSpotAccount);
 const mPlace = vi.mocked(spotApi.placeOrder);
 const mConnect = vi.mocked(openCantonConnect);
 const market = resolveSpotMarket("CBTC-USDA");
+const cethMarket = resolveSpotMarket("CETH-USDA");
 const refetch = vi.fn();
 
 const account: Account = {
@@ -81,6 +82,7 @@ function successfulOrder(side: "BUY" | "SELL"): SpotOrder {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  mPlace.mockReset();
 });
 
 beforeEach(() => {
@@ -304,6 +306,50 @@ describe("SpotOrderForm", () => {
     expect((getByRole("slider", { name: "Order percentage" }) as HTMLInputElement).disabled).toBe(true);
 
     await act(async () => resolveOrder(successfulOrder("BUY")));
+  });
+
+  it("clears the market draft on symbol change and only submits newly entered values to the new market", async () => {
+    mPlace
+      .mockRejectedValueOnce(new SpotApiError(-2010, "insufficient balance"))
+      .mockResolvedValueOnce({ ...successfulOrder("BUY"), symbol: cethMarket.apiSymbol });
+    const view = render(<SpotOrderForm market={market} />);
+
+    fireEvent.click(view.getByRole("tab", { name: `Sell ${market.displayBase}` }));
+    fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
+    fireEvent.click(view.getByRole("button", { name: `SELL ${market.displayBase}` }));
+    await view.findByText(/-2010.*insufficient balance/);
+    fireEvent.change(view.getByRole("slider", { name: "Order percentage" }), { target: { value: "50" } });
+    expect((view.getByLabelText(`Total (${market.displayQuote})`) as HTMLInputElement).value).not.toBe("");
+
+    view.rerender(<SpotOrderForm market={cethMarket} />);
+    const cethPrice = view.getByLabelText(`Price (${cethMarket.displayQuote})`) as HTMLInputElement;
+    const cethAmount = view.getByLabelText(`Amount (${cethMarket.displayBase})`) as HTMLInputElement;
+    const cethTotal = view.getByLabelText(`Total (${cethMarket.displayQuote})`) as HTMLInputElement;
+    const slider = view.getByRole("slider", { name: "Order percentage" }) as HTMLInputElement;
+    await waitFor(() => {
+      expect(cethPrice.value).toBe("");
+      expect(cethAmount.value).toBe("");
+      expect(cethTotal.value).toBe("");
+      expect(slider.value).toBe("0");
+      expect(view.queryByText(/insufficient balance/)).toBeNull();
+      expect(view.getByText("— USDA")).toBeTruthy();
+      expect(view.getByRole("tab", { name: `Buy ${cethMarket.displayBase}` }).getAttribute("aria-selected")).toBe(
+        "true"
+      );
+    });
+
+    fireEvent.change(cethPrice, { target: { value: "250" } });
+    fireEvent.change(cethAmount, { target: { value: "1" } });
+    fireEvent.click(view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }));
+    await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(2));
+    expect(mPlace).toHaveBeenLastCalledWith({
+      symbol: "CETH-USDCX",
+      side: "BUY",
+      type: "LIMIT",
+      price: "250",
+      quantity: "1",
+    });
   });
 
   it("surfaces SpotApiError code and message to the user", async () => {
