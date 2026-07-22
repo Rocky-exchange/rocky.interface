@@ -123,6 +123,17 @@ describe("CantonFundsModal", () => {
     }
   });
 
+  it("shows a direct disconnect action instead of the profile overflow menu", async () => {
+    const onClose = vi.fn();
+    render(<CantonFundsModal open onClose={onClose} />);
+
+    expect(screen.queryByLabelText("More profile actions")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+
+    await waitFor(() => expect(mocks.disconnect).toHaveBeenCalledTimes(1));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("opens operation pages inside the existing modal and returns to Assets", () => {
     const onClose = vi.fn();
     render(<CantonFundsModal open onClose={onClose} />);

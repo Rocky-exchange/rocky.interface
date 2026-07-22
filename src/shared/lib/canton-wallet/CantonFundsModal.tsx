@@ -536,19 +536,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }
 
-  async function handleRemoveAvatar() {
-    if (avatarBusy) return;
-    setAvatarBusy(true);
-    setAvatarError("");
-    try {
-      await setAvatar(null);
-    } catch (_error) {
-      setAvatarError(i18n._(t`Could not remove avatar. Try again.`));
-    } finally {
-      setAvatarBusy(false);
-    }
-  }
-
   function selectHistoryTab(nextTab: HistoryFilter) {
     setHistoryFilter(nextTab);
     setShowAllHistory(false);
@@ -668,36 +655,15 @@ export function CantonFundsModal({ open, onClose }: Props) {
               >
                 <ExternalIcon />
               </a>
-              <details className={styles.moreMenu}>
-                <summary
-                  className={styles.headerIconButton}
-                  aria-label={i18n._(t`More profile actions`)}
-                  title={i18n._(t`More profile actions`)}
-                >
-                  <MoreIcon />
-                </summary>
-                <div className={styles.moreMenuPanel}>
-                  {connected && avatar ? (
-                    <button
-                      type="button"
-                      className={styles.menuAction}
-                      onClick={() => void handleRemoveAvatar()}
-                      disabled={avatarBusy}
-                    >
-                      <RemoveAvatarIcon />
-                      <span>{i18n._(t`Remove avatar`)}</span>
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={cx(styles.menuAction, styles.disconnectMenuAction)}
-                    onClick={handleDisconnect}
-                  >
-                    <LogoutIcon />
-                    <span>{i18n._(t`Disconnect`)}</span>
-                  </button>
-                </div>
-              </details>
+              <button
+                type="button"
+                className={cx(styles.headerIconButton, styles.disconnectButton)}
+                onClick={() => void handleDisconnect()}
+                aria-label={i18n._(t`Disconnect`)}
+                title={i18n._(t`Disconnect`)}
+              >
+                <LogoutIcon />
+              </button>
               <button
                 type="button"
                 className={styles.closeButton}
@@ -1944,31 +1910,6 @@ function CloseIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M18 6 6 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <path d="m6 6 12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.8" />
-      <circle cx="12" cy="12" r="1.8" />
-      <circle cx="19" cy="12" r="1.8" />
-    </svg>
-  );
-}
-
-function RemoveAvatarIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M4.5 20c1.2-4 4-6 7.5-6 1.7 0 3.2.5 4.4 1.4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path d="m17 18 4 4m0-4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
