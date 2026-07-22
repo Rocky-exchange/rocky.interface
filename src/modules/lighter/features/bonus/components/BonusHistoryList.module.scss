@@ -1,0 +1,191 @@
+.card {
+  min-width: 0;
+  background: #09090f;
+  border: 1px solid var(--ltr-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.header {
+  min-height: 74px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--ltr-bg-panel-2);
+  border-bottom: 1px solid var(--ltr-border);
+}
+
+.kicker {
+  margin: 0 0 5px;
+  color: var(--ltr-text-muted);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0;
+  color: var(--ltr-text-primary);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 650;
+}
+
+.rowCount {
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ltr-text-secondary);
+  background: #14141a;
+  border: 1px solid var(--ltr-border);
+  border-radius: 3px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.state {
+  min-height: 112px;
+  margin: 0;
+  padding: 24px 18px;
+  display: flex;
+  align-items: center;
+  color: var(--ltr-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.error {
+  color: #ff6975;
+}
+
+.tableViewport {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 710px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 11px 12px;
+  overflow-wrap: anywhere;
+}
+
+.table th {
+  color: var(--ltr-text-muted);
+  background: #0d0d13;
+  border-bottom: 1px solid var(--ltr-border);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.table td {
+  color: var(--ltr-text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.table th:first-child,
+.table td:first-child {
+  width: 18%;
+  padding-left: 18px;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 22%;
+}
+
+.numeric {
+  text-align: right !important;
+}
+
+.time {
+  color: var(--ltr-text-muted) !important;
+}
+
+.cost,
+.gain,
+.recall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ltr-text-primary);
+
+  &::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--ltr-down);
+  }
+}
+
+.gain::before {
+  background: var(--ltr-up);
+}
+
+.recall::before {
+  background: var(--rocky-theme-accent-end);
+}
+
+.loadMore {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  color: var(--ltr-text-primary);
+  background: var(--ltr-bg-panel-2);
+  border: 0;
+  border-top: 1px solid var(--ltr-border);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 650;
+
+  &:hover:not(:disabled) {
+    background: var(--ltr-bg-hover);
+  }
+
+  &:disabled {
+    color: var(--ltr-text-muted);
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .table th:first-child,
+  .table td:first-child {
+    padding-left: 16px;
+  }
+}
