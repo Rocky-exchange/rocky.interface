@@ -166,6 +166,25 @@ describe("CantonFundsModal", () => {
     }
   );
 
+  it("restores focus to the asset row that opened Deposit", () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole("dialog");
+    const assetRow = screen.getByTestId("icon-btc").closest("button");
+    expect(assetRow).toBeTruthy();
+    assetRow?.focus();
+    expect(document.activeElement).toBe(assetRow);
+
+    fireEvent.click(assetRow as HTMLButtonElement);
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    const backButton = screen.getByRole("button", { name: "Back to assets" });
+    expect(document.activeElement).toBe(backButton);
+
+    fireEvent.click(backButton);
+    const restoredAssetRow = screen.getByTestId("icon-btc").closest("button");
+    expect(document.activeElement).toBe(restoredAssetRow);
+  });
+
   it("uses a title id owned by each modal instance", () => {
     render(
       <>

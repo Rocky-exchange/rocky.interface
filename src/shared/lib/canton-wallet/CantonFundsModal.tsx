@@ -124,7 +124,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const operationBackButtonRef = useRef<HTMLButtonElement>(null);
   const operationActionRefs = useRef<Partial<Record<OperationView, HTMLButtonElement | null>>>({});
+  const assetRowRefs = useRef<Partial<Record<CantonFundsAsset, HTMLButtonElement | null>>>({});
   const originatingActionRef = useRef<OperationView | null>(null);
+  const originatingAssetRowRef = useRef<CantonFundsAsset | null>(null);
   const didRefreshOnOpenRef = useRef(false);
   const depositConfirmationIdRef = useRef(0);
 
@@ -283,8 +285,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
     if (!open) return;
     if (activeView === "assets") {
       const originatingAction = originatingActionRef.current;
+      const originatingAssetRow = originatingAssetRowRef.current;
       originatingActionRef.current = null;
+      originatingAssetRowRef.current = null;
       if (originatingAction) operationActionRefs.current[originatingAction]?.focus();
+      else if (originatingAssetRow) assetRowRefs.current[originatingAssetRow]?.focus();
       return;
     }
     operationBackButtonRef.current?.focus();
@@ -730,6 +735,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   className={cx(styles.primaryTab, activeView === view && styles.primaryTabActive)}
                   onClick={() => {
                     originatingActionRef.current = view as OperationView;
+                    originatingAssetRowRef.current = null;
                     setActiveView(view);
                     setError("");
                     setNotice("");
@@ -799,7 +805,12 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       type="button"
                       className={styles.assetRow}
                       key={asset.symbol}
+                      ref={(element) => {
+                        assetRowRefs.current[asset.symbol] = element;
+                      }}
                       onClick={() => {
+                        originatingActionRef.current = null;
+                        originatingAssetRowRef.current = asset.symbol;
                         setSelectedAsset(asset.symbol);
                         setActiveView("deposit");
                       }}
