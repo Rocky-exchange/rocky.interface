@@ -14,8 +14,8 @@ import { getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
 
 import { marketDataRequest } from "../marketRequests";
 import {
-  clearPendingOrderIntent,
-  getOrCreatePendingOrderIntentKey,
+  acquirePendingOrderIntentKey,
+  settlePendingOrderIntent,
   shouldRetainPendingOrderIntent,
 } from "./orderIntentRegistry";
 import {
@@ -1139,6 +1139,7 @@ export async function createOrder(
   request: CreateOrderRequest,
   address?: string | null
 ): Promise<CreateOrderResponse> {
+  const intentScope = { chainId, accountKey: address ?? "" };
   let response: Partial<CreateOrderResponse> & { order_id: string };
   try {
     response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
@@ -1147,11 +1148,9 @@ export async function createOrder(
       requireAuth: true,
       address,
     });
-    clearPendingOrderIntent(request);
+    settlePendingOrderIntent(intentScope, request, "complete");
   } catch (error) {
-    if (!shouldRetainPendingOrderIntent(error)) {
-      clearPendingOrderIntent(request);
-    }
+    settlePendingOrderIntent(intentScope, request, shouldRetainPendingOrderIntent(error) ? "ambiguous" : "complete");
     throw error;
   }
 
@@ -1322,7 +1321,7 @@ export async function closePosition(
   };
   const orderRequest: CreateOrderRequest = {
     ...intent,
-    idempotency_key: getOrCreatePendingOrderIntentKey(intent),
+    idempotency_key: acquirePendingOrderIntentKey({ chainId, accountKey: address ?? "" }, intent),
   };
 
   return createOrder(chainId, orderRequest, address);

@@ -9,26 +9,38 @@ const store = new Map<string, string>();
 const sessionStore = new Map<string, string>();
 let orderSubmit: typeof import("./usePrimitOrderSubmit");
 
-function buildRequest(overrides: Record<string, unknown> = {}): CreateOrderRequest {
+type OrderIntentScope = { chainId: number; accountKey: string };
+const DEFAULT_SCOPE: OrderIntentScope = { chainId: 1, accountKey: "party-1" };
+
+function buildRequest(
+  overrides: Record<string, unknown> = {},
+  scope: OrderIntentScope = DEFAULT_SCOPE
+): CreateOrderRequest {
   const buildCreateOrderRequest = (
     orderSubmit as unknown as {
-      buildCreateOrderRequest: (params: Record<string, unknown>) => { request: CreateOrderRequest };
+      buildCreateOrderRequest: (
+        params: Record<string, unknown>,
+        scope: OrderIntentScope
+      ) => { request: CreateOrderRequest };
     }
   ).buildCreateOrderRequest;
 
-  return buildCreateOrderRequest({
-    symbol: "BTC-USD",
-    isLong: true,
-    isIncrease: true,
-    sizeDeltaUsd: (125n * UNIT_18) / 100n,
-    indexTokenDecimals: 18,
-    triggerPrice: 100n * UNIT_30,
-    orderType: 1,
-    apiOrderTypeOverride: "limit",
-    leverage: 10,
-    clientOrderId: "client-42",
-    ...overrides,
-  }).request;
+  return buildCreateOrderRequest(
+    {
+      symbol: "BTC-USD",
+      isLong: true,
+      isIncrease: true,
+      sizeDeltaUsd: (125n * UNIT_18) / 100n,
+      indexTokenDecimals: 18,
+      triggerPrice: 100n * UNIT_30,
+      orderType: 1,
+      apiOrderTypeOverride: "limit",
+      leverage: 10,
+      clientOrderId: "client-42",
+      ...overrides,
+    },
+    scope
+  ).request;
 }
 
 describe("Rocky order request contract", () => {
@@ -65,6 +77,7 @@ describe("Rocky order request contract", () => {
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -129,15 +142,20 @@ describe("Rocky order request contract", () => {
 
   it("uses the custom client id without replacing it", () => {
     expect(buildRequest().idempotency_key).toBe("client-42");
+    expect(buildRequest({ clientOrderId: "  client-verbatim  " }).idempotency_key).toBe("  client-verbatim  ");
   });
 
-  it("reuses one generated id for the same pending intent and separates different payloads", () => {
+  it("rejects a custom client id containing only whitespace", () => {
+    expect(() => buildRequest({ clientOrderId: "   " })).toThrow(/clientOrderId/i);
+  });
+
+  it("assigns separate leases to simultaneous identical intents and separates different payloads", () => {
     const first = buildRequest({ clientOrderId: undefined, triggerPrice: 101n * UNIT_30 }).idempotency_key;
-    const retry = buildRequest({ clientOrderId: undefined, triggerPrice: 101n * UNIT_30 }).idempotency_key;
+    const concurrent = buildRequest({ clientOrderId: undefined, triggerPrice: 101n * UNIT_30 }).idempotency_key;
     const different = buildRequest({ clientOrderId: undefined, triggerPrice: 102n * UNIT_30 }).idempotency_key;
 
     expect(first).toBeTruthy();
-    expect(retry).toBe(first);
+    expect(concurrent).not.toBe(first);
     expect(different).not.toBe(first);
   });
 
@@ -232,6 +250,104 @@ describe("Rocky order request contract", () => {
     );
   });
 
+  it("isolates identical intents by chain and Canton account", async () => {
+    const payload = { clientOrderId: undefined, triggerPrice: 106n * UNIT_30 };
+    const chainOnePartyA = buildRequest(payload, { chainId: 1, accountKey: "party-a" });
+    const chainOnePartyB = buildRequest(payload, { chainId: 1, accountKey: "party-b" });
+    const chainTwoPartyA = buildRequest(payload, { chainId: 2, accountKey: "party-a" });
+
+    expect(
+      new Set([chainOnePartyA.idempotency_key, chainOnePartyB.idempotency_key, chainTwoPartyA.idempotency_key]).size
+    ).toBe(3);
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("party-a timeout")));
+    await expect(createOrder(1, chainOnePartyA, "party-a")).rejects.toThrow("party-a timeout");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ order_id: "party-b-ok" }))
+    );
+    await createOrder(1, chainOnePartyB, "party-b");
+
+    expect(buildRequest(payload, { chainId: 1, accountKey: "party-a" }).idempotency_key).toBe(
+      chainOnePartyA.idempotency_key
+    );
+    expect(buildRequest(payload, { chainId: 1, accountKey: "party-b" }).idempotency_key).not.toBe(
+      chainOnePartyB.idempotency_key
+    );
+  });
+
+  it("keeps an ambiguous concurrent lease when an older success settles later", async () => {
+    const payload = { clientOrderId: undefined, triggerPrice: 107n * UNIT_30 };
+    const older = buildRequest(payload);
+    const concurrent = buildRequest(payload);
+    expect(concurrent.idempotency_key).not.toBe(older.idempotency_key);
+
+    let resolveOlder!: (response: Response) => void;
+    let rejectConcurrentRetry!: (error: Error) => void;
+    const olderResponse = new Promise<Response>((resolve) => {
+      resolveOlder = resolve;
+    });
+    const concurrentRetryResponse = new Promise<Response>((_resolve, reject) => {
+      rejectConcurrentRetry = reject;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => olderResponse)
+      .mockRejectedValueOnce(new Error("concurrent timeout"))
+      .mockImplementationOnce(() => concurrentRetryResponse);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const olderSubmission = createOrder(1, older, "party-1");
+    await expect(createOrder(1, concurrent, "party-1")).rejects.toThrow("concurrent timeout");
+
+    const concurrentRetry = buildRequest(payload);
+    expect(concurrentRetry.idempotency_key).toBe(concurrent.idempotency_key);
+    const retrySubmission = createOrder(1, concurrentRetry, "party-1");
+
+    resolveOlder(jsonResponse({ order_id: "older-ok" }));
+    await olderSubmission;
+    rejectConcurrentRetry(new Error("retry timeout"));
+    await expect(retrySubmission).rejects.toThrow("retry timeout");
+
+    expect(buildRequest(payload).idempotency_key).toBe(concurrent.idempotency_key);
+  });
+
+  it("expires an ambiguous lease after fifteen minutes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T00:00:00Z"));
+    const payload = { clientOrderId: undefined, triggerPrice: 108n * UNIT_30 };
+    const first = buildRequest(payload);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("timeout")));
+    await expect(createOrder(1, first, "party-1")).rejects.toThrow("timeout");
+
+    vi.advanceTimersByTime(15 * 60 * 1000 + 1);
+    expect(buildRequest(payload).idempotency_key).not.toBe(first.idempotency_key);
+  });
+
+  it("evicts the oldest lease when the session registry exceeds 64 entries", async () => {
+    const oldestPayload = { clientOrderId: undefined, triggerPrice: 109n * UNIT_30 };
+    const oldest = buildRequest(oldestPayload);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("timeout")));
+    await expect(createOrder(1, oldest, "party-1")).rejects.toThrow("timeout");
+
+    for (let index = 0; index < 64; index += 1) {
+      buildRequest({ clientOrderId: undefined, triggerPrice: BigInt(200 + index) * UNIT_30 });
+    }
+
+    expect(buildRequest(oldestPayload).idempotency_key).not.toBe(oldest.idempotency_key);
+  });
+
+  it("falls back to the bounded in-memory leases when sessionStorage is corrupted", async () => {
+    const payload = { clientOrderId: undefined, triggerPrice: 110n * UNIT_30 };
+    const first = buildRequest(payload);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("timeout")));
+    await expect(createOrder(1, first, "party-1")).rejects.toThrow("timeout");
+
+    sessionStorage.setItem("rocky_pending_order_intents_v2", "{not-json");
+    expect(buildRequest(payload).idempotency_key).toBe(first.idempotency_key);
+  });
+
   it("sends only native fields and normalizes Rocky's sparse response", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({ order_id: "order-7" })
@@ -296,6 +412,52 @@ describe("Rocky order request contract", () => {
       idempotency_key: expect.any(String),
     });
     expect(body.idempotency_key).not.toBe("");
+  });
+
+  it("keeps an ambiguous close lease isolated from another Canton account", async () => {
+    const request = { symbol: "BTC-PERP", side: "long" as const, qty: "0.5", markPrice: "100", leverage: 20 };
+    const bodies: CreateOrderRequest[] = [];
+    const captureBody = (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as CreateOrderRequest);
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        captureBody(input, init);
+        return Promise.reject(new Error("party-a timeout"));
+      })
+    );
+    await expect(closePosition(1, "position-a", request, "party-a")).rejects.toThrow("party-a timeout");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        captureBody(input, init);
+        return Promise.resolve(jsonResponse({ order_id: "party-b-close" }));
+      })
+    );
+    await closePosition(1, "position-b", request, "party-b");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        captureBody(input, init);
+        return Promise.resolve(jsonResponse({ order_id: "party-a-retry" }));
+      })
+    );
+    await closePosition(1, "position-a", request, "party-a");
+
+    expect(bodies[0]).toEqual({
+      symbol: "BTC-PERP",
+      side: "SELL",
+      price: "99.50000000",
+      qty: "0.5",
+      leverage: 20,
+      idempotency_key: expect.any(String),
+    });
+    expect(bodies[1]?.idempotency_key).not.toBe(bodies[0]?.idempotency_key);
+    expect(bodies[2]?.idempotency_key).toBe(bodies[0]?.idempotency_key);
   });
 });
 

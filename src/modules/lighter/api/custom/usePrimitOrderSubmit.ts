@@ -7,7 +7,7 @@ import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
 
 import { cancelOrder, closePosition, createOrder, createTriggerOrder, type CreateOrderResponse } from "./client";
-import { getOrCreatePendingOrderIntentKey } from "./orderIntentRegistry";
+import { acquirePendingOrderIntentKey, type OrderIntentScope } from "./orderIntentRegistry";
 import { useApiOrders } from "./useApiOrders";
 import type {
   BatchCancelRequest,
@@ -118,7 +118,10 @@ function resolveMarketAggression(maxSlippage?: string): number {
   return parsed;
 }
 
-export function buildCreateOrderRequest(params: PrimitOrderParams): {
+export function buildCreateOrderRequest(
+  params: PrimitOrderParams,
+  intentScope: OrderIntentScope
+): {
   request: CreateOrderRequest | undefined;
   priceStr: string;
   sizeStr: string;
@@ -176,7 +179,7 @@ export function buildCreateOrderRequest(params: PrimitOrderParams): {
     }
     request = {
       ...intent,
-      idempotency_key: getOrCreatePendingOrderIntentKey(intent, params.clientOrderId),
+      idempotency_key: acquirePendingOrderIntentKey(intentScope, intent, params.clientOrderId),
     };
   }
 
@@ -292,7 +295,10 @@ export function usePrimitOrderSubmit(): UsePrimitOrderSubmitResult {
   const submitOrder = useCallback(
     async (params: PrimitOrderParams): Promise<CreateOrderResponse> => {
       const authAccountKey = requireAccountKey();
-      const { request, priceStr, sizeStr, apiOrderType, apiSymbol } = buildCreateOrderRequest(params);
+      const { request, priceStr, sizeStr, apiOrderType, apiSymbol } = buildCreateOrderRequest(params, {
+        chainId,
+        accountKey: authAccountKey,
+      });
 
       try {
         const triggerType = TRIGGER_TYPE_MAP[apiOrderType];
