@@ -1,6 +1,6 @@
+import { usePolling } from "./usePolling";
 import { spotApi, type Account } from "../api/spotClient";
 import { useSpotAuthReady } from "../api/spotSession";
-import { usePolling } from "./usePolling";
 
 export function useSpotAccount() {
   const ready = useSpotAuthReady();

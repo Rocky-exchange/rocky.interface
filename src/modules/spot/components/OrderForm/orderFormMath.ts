@@ -17,7 +17,7 @@ function positiveNumber(value: string): number | null {
 
 function format(value: number): string {
   if (!Number.isFinite(value)) return "";
-  return value.toFixed(8).replace(/\.0+$|(?<=\..*?)0+$/, "");
+  return value.toFixed(8).replace(/\.?0+$/, "");
 }
 
 function clampPercent(percent: number): number {
