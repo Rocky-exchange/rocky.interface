@@ -2377,6 +2377,11 @@
     suspend-react "^0.1.3"
     zustand "^3.7.1"
 
+"@rocky-wallet/dapp-sdk@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@rocky-wallet/dapp-sdk/-/dapp-sdk-1.0.2.tgz#67076c0032692771bb15ebc89c0e759e864aa902"
+  integrity sha512-ZB2WA3aFRHZ7sG0SGU5cgFLTj2s3wG+HaTFp7hREmzVA+6zBYeM5DwpzNa68UOURHOOl1DK6FCwTEIlHCUiwkA==
+
 "@rollup/pluginutils@^5.0.5":
   version "5.4.0"
   resolved "https://registry.npmjs.org/@rollup/pluginutils/-/pluginutils-5.4.0.tgz#ac23a29ced0247060a210815fca39c17de4d2f26"

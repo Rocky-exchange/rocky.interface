@@ -1,4 +1,5 @@
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
+import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
 
 type LoopProvider = {
   party_id: string;
@@ -62,12 +63,10 @@ type LoopSdk = {
   };
 };
 
-type LoopWalletTransferToken = "CC" | "USDA";
-
 type LoopWalletTransferInput = {
   from?: string;
   to: string;
-  token: LoopWalletTransferToken;
+  token: CantonFundsAsset;
   amount: string;
   memo: string;
   message?: string;
@@ -211,7 +210,7 @@ async function getConnectedLoopProvider(): Promise<LoopProvider> {
 
 async function refreshLoopWalletHoldings(
   provider: LoopProvider,
-  token: LoopWalletTransferToken,
+  token: CantonFundsAsset,
 ): Promise<LoopHolding[]> {
   await refreshActiveContracts(provider, token);
   return provider.getHolding();
@@ -219,7 +218,7 @@ async function refreshLoopWalletHoldings(
 
 async function refreshActiveContracts(
   provider: LoopProvider,
-  token: LoopWalletTransferToken,
+  token: CantonFundsAsset,
 ): Promise<void> {
   if (!provider.getActiveContracts) return;
   if (token === "CC") {
@@ -231,7 +230,7 @@ async function refreshActiveContracts(
 
 function findLoopWalletInstrument(
   holdings: LoopHolding[],
-  token: LoopWalletTransferToken,
+  token: CantonFundsAsset,
 ): LoopInstrumentSpec {
   const holding = holdings.find((item) => loopHoldingMatchesToken(item, token));
   const instrument = holding?.instrument_id;
@@ -244,23 +243,20 @@ function findLoopWalletInstrument(
   };
 }
 
-function loopHoldingMatchesToken(holding: LoopHolding, token: LoopWalletTransferToken): boolean {
+function loopHoldingMatchesToken(holding: LoopHolding, token: CantonFundsAsset): boolean {
+  const asset = getCantonFundingAsset(token);
+  if (asset.instrumentId) {
+    return (
+      holding.instrument_id?.admin === asset.instrumentAdmin &&
+      holding.instrument_id?.id?.trim().toUpperCase() === asset.instrumentId.toUpperCase()
+    );
+  }
   const values = [
     holding.symbol,
     holding.org_name,
     holding.instrument_id?.id,
   ].map(normalizeLoopTokenText);
 
-  if (token === "USDA") {
-    // USDA instrument id is a UUID; also match it directly besides symbol text.
-    return values.some(
-      (value) =>
-        value === "usda" ||
-        value === "usdc" ||
-        value === "usdcx" ||
-        value === "3574b536-cad1-4074-9b64-859398713ba0",
-    );
-  }
   return values.some(
     (value) => value === "cc" || value === "amulet" || value === "cantoncoin",
   );

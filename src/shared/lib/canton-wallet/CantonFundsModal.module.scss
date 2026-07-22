@@ -616,6 +616,32 @@
   gap: 8px;
 }
 
+.assetSelect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+
+  select {
+    min-width: 104px;
+    height: 40px;
+    padding: 0 32px 0 12px;
+    color: var(--text-primary);
+    font: inherit;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:focus-visible {
+      border-color: var(--brand-cool-muted);
+      outline: 2px solid rgba(176, 214, 234, 0.14);
+      outline-offset: 1px;
+    }
+  }
+}
+
 .refreshButton {
   display: inline-grid;
   width: 40px;

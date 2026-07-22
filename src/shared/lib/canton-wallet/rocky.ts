@@ -1,14 +1,13 @@
-import { createRockyWalletSdk } from "./rocky-wallet-sdk";
-import type { GetCoinsResponse, RockyAccount, RockyWalletSdk } from "./rocky-wallet-sdk";
+import { createRockyWalletSdk } from "@rocky-wallet/dapp-sdk";
+import type { GetCoinsResponse, RockyAccount, RockyAssetDescriptor, RockyWalletSdk } from "@rocky-wallet/dapp-sdk";
+import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 type RockyWalletTarget = "local";
-type RockyWalletTransferToken = "CC" | "USDA";
-
 type RockyWalletTransferInput = {
   from?: string;
   to: string;
-  token: RockyWalletTransferToken;
+  token: CantonFundsAsset;
   amount: string;
   memo: string;
   waitForFinalization?: number;
@@ -75,14 +74,17 @@ export async function submitRockyWalletTransfer(input: RockyWalletTransferInput)
     throw new Error("Rocky Wallet active account does not match the logged-in party");
   }
 
-  const result = await sdk.sendTransfer({
-    from: account.partyId,
+  const asset = getCantonFundingAsset(input.token);
+  const catalog = await sdk.getAssetCatalog();
+  const descriptor = findRockyAssetDescriptor(catalog, input.token);
+  if (!descriptor) {
+    throw new Error(`Rocky Wallet ${input.token} asset is unavailable`);
+  }
+  const result = await sdk.transfer({
+    ...(descriptor.asset_id ? { asset_id: descriptor.asset_id } : { symbol: descriptor.symbol || asset.symbol }),
     to: input.to,
-    token: input.token,
     amount: input.amount,
-    expireDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     memo: input.memo,
-    waitForFinalization: input.waitForFinalization ?? 5000,
   });
   if (!result?.status) {
     throw new Error("rocky_wallet_transfer_failed");
@@ -90,9 +92,26 @@ export async function submitRockyWalletTransfer(input: RockyWalletTransferInput)
   return result;
 }
 
-export async function fetchRockyWalletBalancesFromSdk(input: {
-  party?: string;
-} = {}): Promise<RockyWalletBalanceResult> {
+function findRockyAssetDescriptor(
+  catalog: RockyAssetDescriptor[],
+  symbol: CantonFundsAsset
+): RockyAssetDescriptor | undefined {
+  const asset = getCantonFundingAsset(symbol);
+  if (!asset.instrumentAdmin || !asset.instrumentId) {
+    return catalog.find((item) => item.symbol?.trim().toUpperCase() === "CC");
+  }
+  return catalog.find(
+    (item) =>
+      item.instrument_admin === asset.instrumentAdmin &&
+      item.instrument_id?.trim().toUpperCase() === asset.instrumentId?.trim().toUpperCase()
+  );
+}
+
+export async function fetchRockyWalletBalancesFromSdk(
+  input: {
+    party?: string;
+  } = {}
+): Promise<RockyWalletBalanceResult> {
   const sdk = getRockyWalletSdk();
   const account = await resolveRockyAccount(sdk);
   const network = await resolveRockyNetwork(sdk, account);
@@ -141,7 +160,7 @@ function getRockyWalletSdk(): RockyWalletSdk {
 
 async function resolveRockyAccount(
   sdk: RockyWalletSdk,
-  connectedAccount?: RockyAccount,
+  connectedAccount?: RockyAccount
 ): Promise<RockyAccount & { partyId: string }> {
   const account = connectedAccount?.partyId ? connectedAccount : await sdk.getPrimaryAccount();
   if (!account?.partyId) {
@@ -150,17 +169,9 @@ async function resolveRockyAccount(
   return account as RockyAccount & { partyId: string };
 }
 
-async function resolveRockyNetwork(
-  sdk: RockyWalletSdk,
-  account: RockyAccount,
-): Promise<string> {
+async function resolveRockyNetwork(sdk: RockyWalletSdk, account: RockyAccount): Promise<string> {
   const activeNetwork = await sdk.getActiveNetwork().catch(() => undefined);
-  return (
-    activeNetwork?.id ||
-    activeNetwork?.networkId ||
-    account.networkId ||
-    ROCKY_MAINNET_NETWORK_ID
-  );
+  return activeNetwork?.id || activeNetwork?.networkId || account.networkId || ROCKY_MAINNET_NETWORK_ID;
 }
 
 function assertRockyMainnet(network: string) {
