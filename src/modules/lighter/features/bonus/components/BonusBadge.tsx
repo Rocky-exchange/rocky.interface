@@ -18,6 +18,7 @@ export function BonusBadge() {
   if (!data && isLoading) {
     return (
       <NavLink
+        exact
         to="/bonus"
         className={`${styles.badge} ${styles.loading}`}
         data-status="loading"
@@ -32,6 +33,7 @@ export function BonusBadge() {
 
   return (
     <NavLink
+      exact
       to={presentation.to}
       className={styles.badge}
       data-status={presentation.status}

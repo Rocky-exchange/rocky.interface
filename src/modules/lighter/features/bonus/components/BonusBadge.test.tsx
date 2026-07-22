@@ -1,9 +1,10 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { cleanup, render, screen } from "@testing-library/react";
+import { createMemoryHistory } from "history";
 import { readFileSync } from "node:fs";
 import type { PropsWithChildren } from "react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Router } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
@@ -66,6 +67,17 @@ function renderBadge() {
   return render(<BonusBadge />, { wrapper: TestShell });
 }
 
+function renderBadgeAt(path: string) {
+  const history = createMemoryHistory({ initialEntries: [path] });
+  return render(
+    <I18nProvider i18n={i18n}>
+      <Router history={history}>
+        <BonusBadge />
+      </Router>
+    </I18nProvider>
+  );
+}
+
 function mockStatus(response: Partial<ReturnType<typeof useBonusStatus>>) {
   mUseBonusStatus.mockReturnValue({
     data: undefined,
@@ -118,6 +130,22 @@ describe("BonusBadge", () => {
     expect(link.getAttribute("href")).toBe("/bonus");
     expect(link.getAttribute("data-status")).toBe("active");
     expect(link.textContent).toContain("1,500.56 USDCx");
+  });
+
+  it("does not mark the parent bonus destination current from the redeem route", () => {
+    mockStatus({ data: ACTIVE_STATUS });
+
+    renderBadgeAt("/bonus/redeem");
+
+    expect(screen.getByRole("link", { name: "Trial funds: 1,500.56 USDCx" }).getAttribute("aria-current")).toBeNull();
+  });
+
+  it("marks the exact redeem destination current for an account without trial funds", () => {
+    mockStatus({ data: { ...ACTIVE_STATUS, has_bonus: false, bonus_account_id: "", status: "" } });
+
+    renderBadgeAt("/bonus/redeem");
+
+    expect(screen.getByRole("link", { name: "Redeem" }).getAttribute("aria-current")).toBe("page");
   });
 
   it.each([
