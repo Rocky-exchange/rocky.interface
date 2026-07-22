@@ -182,3 +182,23 @@
 .summaryUnit {
   color: var(--ltr-text-muted, #848e9c);
 }
+
+.sliderRow {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.slider {
+  accent-color: var(--ltr-accent, #f0b90b);
+  flex: 1;
+  min-width: 0;
+}
+
+.sliderValue {
+  color: var(--ltr-text-muted, #848e9c);
+  font-size: 11px;
+  min-width: 34px;
+  text-align: right;
+}

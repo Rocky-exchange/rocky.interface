@@ -1,3 +1,4 @@
+import { Trans, t } from "@lingui/macro";
 import { useMemo, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
@@ -98,6 +99,24 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
     }
   };
 
+  const [pct, setPct] = useState(0);
+
+  // %-of-available slider (mirrors the Futures form): BUY sizes qty from
+  // available quote at the entered price; SELL sizes qty from available base.
+  const applyPct = (nextPct: number) => {
+    setPct(nextPct);
+    if (nextPct <= 0) return;
+    if (side === "SELL") {
+      if (baseAvail !== null && baseAvail > 0) {
+        setQty((Math.floor(baseAvail * (nextPct / 100) * 1e8) / 1e8).toString());
+      }
+      return;
+    }
+    if (quoteAvail !== null && quoteAvail > 0 && isFinite(priceNum) && priceNum > 0) {
+      setQty((Math.floor(((quoteAvail * (nextPct / 100)) / priceNum) * 1e8) / 1e8).toString());
+    }
+  };
+
   const disabled = busy || !price || !qty || !ready || insufficient;
   const available = side === "BUY" ? quoteAvail : baseAvail;
   const availableAsset = side === "BUY" ? quote : base;
@@ -110,29 +129,31 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
           className={`${styles.sideTab} ${side === "BUY" ? styles.sideTabBuyActive : ""}`}
           onClick={() => setSide("BUY")}
         >
-          Buy {base}
+          <Trans>Buy</Trans> {base}
         </button>
         <button
           type="button"
           className={`${styles.sideTab} ${side === "SELL" ? styles.sideTabSellActive : ""}`}
           onClick={() => setSide("SELL")}
         >
-          Sell {base}
+          <Trans>Sell</Trans> {base}
         </button>
       </div>
       <div className={styles.typeTabs}>
-        <span className={styles.typeTabActive}>Limit</span>
-        <span className={styles.typeTabDisabled} title="Market orders are not available yet">
-          Market
+        <span className={styles.typeTabActive}>
+          <Trans>Limit</Trans>
+        </span>
+        <span className={styles.typeTabDisabled} title={t`Market orders are not available yet`}>
+          <Trans>Market</Trans>
         </span>
       </div>
       <div className={styles.body}>
         <div className={styles.field}>
           <span className={styles.fieldLabel}>
-            Price ({quote})
+            <Trans>Price</Trans> ({quote})
             {lastPrice && (
               <button type="button" className={styles.fillChip} onClick={() => setPrice(lastPrice)}>
-                Last {parseFloat(lastPrice).toLocaleString("en-US", { maximumFractionDigits: 8 })}
+                <Trans>Last</Trans> {parseFloat(lastPrice).toLocaleString("en-US", { maximumFractionDigits: 8 })}
               </button>
             )}
           </span>
@@ -140,16 +161,16 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
             className={styles.input}
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            placeholder="Limit price"
+            placeholder={t`Limit price`}
             inputMode="decimal"
           />
         </div>
         <div className={styles.field}>
           <span className={styles.fieldLabel}>
-            Quantity ({base})
+            <Trans>Quantity</Trans> ({base})
             {ready && available !== null && (
               <button type="button" className={styles.fillChip} onClick={fillMax}>
-                Max
+                <Trans>Max</Trans>
               </button>
             )}
           </span>
@@ -162,22 +183,50 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
           />
         </div>
         {ready && (
+          <div className={styles.sliderRow}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={pct}
+              onChange={(e) => applyPct(Number(e.target.value))}
+              className={styles.slider}
+              aria-label="percent of available"
+            />
+            <span className={styles.sliderValue}>{pct}%</span>
+          </div>
+        )}
+        {ready && (
           <div className={styles.summary}>
-            <span>Available</span>
+            <span>
+              <Trans>Available</Trans>
+            </span>
             <span className={styles.summaryValue}>
               {fmtAmount(available)} <span className={styles.summaryUnit}>{availableAsset}</span>
             </span>
           </div>
         )}
         <div className={styles.summary}>
-          <span>Notional</span>
+          <span>
+            <Trans>Notional</Trans>
+          </span>
           <span className={styles.summaryValue}>
             {notional} <span className={styles.summaryUnit}>{quote}</span>
           </span>
         </div>
+        <div className={styles.summary}>
+          <span>
+            <Trans>Fees</Trans>
+          </span>
+          <span className={styles.summaryValue}>
+            {/* Spot T1 tier (fee_tiers): maker 4 bps / taker 10 bps */}
+            <span className={styles.summaryUnit}>Maker 0.04% · Taker 0.10%</span>
+          </span>
+        </div>
         {insufficient && (
           <div className={`${styles.msg} ${styles.msgErr}`}>
-            Insufficient {availableAsset} — transfer funds to spot first (Account panel below).
+            <Trans>Insufficient {availableAsset} — transfer funds to spot first (Account panel below).</Trans>
           </div>
         )}
         {ready ? (
@@ -187,11 +236,11 @@ export function SpotOrderForm({ symbol }: { symbol: string }) {
             onClick={submit}
             disabled={disabled}
           >
-            {busy ? "Sending…" : `${side} ${base} · Limit`}
+            {busy ? <Trans>Sending…</Trans> : `${side} ${base} · Limit`}
           </button>
         ) : (
           <button type="button" className={styles.submit} onClick={openCantonConnect}>
-            Connect wallet
+            <Trans>Connect wallet</Trans>
           </button>
         )}
         {msg && <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`}>{msg.text}</div>}

@@ -1,6 +1,8 @@
 // Component-layer specs for SpotOrderForm — covers the connect gate,
 // submit flow, error surfacing, and the affordability guard.
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { i18n } from "@lingui/core";
+import { I18nProvider } from "@lingui/react";
 import { afterEach, describe, it, expect, vi } from "vitest";
 
 import { SpotApiError, type Account } from "../../api/spotClient";
@@ -63,11 +65,18 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+
+i18n.load("en", {});
+i18n.activate("en");
+const I18nWrapper = ({ children }: { children?: React.ReactNode }) => (
+  <I18nProvider i18n={i18n}>{children}</I18nProvider>
+);
+
 describe("SpotOrderForm", () => {
   it("shows Connect wallet CTA and skips submit when auth not ready", () => {
     mReady.mockReturnValue(false);
     stubQuietPolls();
-    const { getByText, queryByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByText, queryByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     // Uppercase submit buttons are only rendered when ready; the side tabs
     // ("Buy CBTC" / "Sell CBTC") always render.
     expect(queryByText("BUY CBTC · Limit")).toBeNull();
@@ -79,7 +88,7 @@ describe("SpotOrderForm", () => {
   it("renders an explicit Limit order-type tab (Market disabled)", () => {
     mReady.mockReturnValue(true);
     stubQuietPolls();
-    const { getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     expect(getByText("Limit")).toBeTruthy();
     expect(getByText("Market").title).toMatch(/not available/i);
   });
@@ -87,7 +96,7 @@ describe("SpotOrderForm", () => {
   it("disables submit until both price and quantity are provided", () => {
     mReady.mockReturnValue(true);
     stubQuietPolls();
-    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     const submit = getByText("BUY CBTC · Limit") as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     fireEvent.change(getByPlaceholderText("Limit price"), { target: { value: "65000" } });
@@ -112,7 +121,7 @@ describe("SpotOrderForm", () => {
       type: "LIMIT",
       side: "BUY",
     });
-    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByPlaceholderText, getByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     const priceInput = getByPlaceholderText("Limit price") as HTMLInputElement;
     const qtyInput = getByPlaceholderText("0.1") as HTMLInputElement;
     fireEvent.change(priceInput, { target: { value: "65000" } });
@@ -137,7 +146,7 @@ describe("SpotOrderForm", () => {
     mReady.mockReturnValue(true);
     stubQuietPolls();
     mPlace.mockRejectedValue(new SpotApiError(-2010, "insufficient balance"));
-    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     fireEvent.change(getByPlaceholderText("Limit price"), { target: { value: "65000" } });
     fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.001" } });
     fireEvent.click(getByText("BUY CBTC · Limit"));
@@ -149,7 +158,7 @@ describe("SpotOrderForm", () => {
     mReady.mockReturnValue(true);
     mAccount.mockResolvedValue(accountWith("100")); // 100 USDA free
     mTicker.mockImplementation(() => new Promise(() => undefined));
-    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     // Wait for the balance row so the guard has data.
     await findByText("Available");
     fireEvent.change(getByPlaceholderText("Limit price"), { target: { value: "65000" } });
@@ -164,7 +173,7 @@ describe("SpotOrderForm", () => {
     mReady.mockReturnValue(true);
     mAccount.mockResolvedValue(accountWith("1000"));
     mTicker.mockImplementation(() => new Promise(() => undefined));
-    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />);
+    const { getByPlaceholderText, getByText, findByText } = render(<SpotOrderForm symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
     await findByText("Available");
     fireEvent.change(getByPlaceholderText("Limit price"), { target: { value: "65000" } });
     fireEvent.change(getByPlaceholderText("0.1"), { target: { value: "0.01" } }); // 650 <= 1000
