@@ -47,7 +47,6 @@ export function acquirePendingOrderIntentKey(scope: OrderIntentScope, intent: Or
 
   if (ambiguousLease) {
     ambiguousLease.state = "in-flight";
-    ambiguousLease.expiresAt = now + INTENT_TTL_MS;
     writeRegistry(registry);
     return ambiguousLease.key;
   }
@@ -85,7 +84,6 @@ export function settlePendingOrderIntent(
   if (outcome === "ambiguous") {
     const lease = registry.entries[leaseIndex]!;
     lease.state = "ambiguous";
-    lease.expiresAt = now + INTENT_TTL_MS;
   } else {
     registry.entries.splice(leaseIndex, 1);
   }

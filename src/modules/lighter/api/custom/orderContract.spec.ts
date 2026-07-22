@@ -313,7 +313,7 @@ describe("Rocky order request contract", () => {
     expect(buildRequest(payload).idempotency_key).toBe(concurrent.idempotency_key);
   });
 
-  it("expires an ambiguous lease after fifteen minutes", async () => {
+  it("keeps the original fifteen-minute deadline across ambiguous retries and ignores an expired settle", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-22T00:00:00Z"));
     const payload = { clientOrderId: undefined, triggerPrice: 108n * UNIT_30 };
@@ -321,8 +321,25 @@ describe("Rocky order request contract", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("timeout")));
     await expect(createOrder(1, first, "party-1")).rejects.toThrow("timeout");
 
-    vi.advanceTimersByTime(15 * 60 * 1000 + 1);
-    expect(buildRequest(payload).idempotency_key).not.toBe(first.idempotency_key);
+    vi.advanceTimersByTime(14 * 60 * 1000);
+    const nearDeadlineRetry = buildRequest(payload);
+    expect(nearDeadlineRetry.idempotency_key).toBe(first.idempotency_key);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("retry timeout")));
+    await expect(createOrder(1, nearDeadlineRetry, "party-1")).rejects.toThrow("retry timeout");
+
+    vi.advanceTimersByTime(2 * 60 * 1000);
+    const replacement = buildRequest(payload);
+    expect(replacement.idempotency_key).not.toBe(first.idempotency_key);
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("replacement timeout")));
+    await expect(createOrder(1, replacement, "party-1")).rejects.toThrow("replacement timeout");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ order_id: "expired-old-response" }))
+    );
+    await createOrder(1, first, "party-1");
+    expect(buildRequest(payload).idempotency_key).toBe(replacement.idempotency_key);
   });
 
   it("evicts the oldest lease when the session registry exceeds 64 entries", async () => {
