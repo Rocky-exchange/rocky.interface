@@ -1392,14 +1392,10 @@
 
 /* Wallet funds workspace */
 .modal {
-  width: min(480px, calc(100vw - 32px));
-}
-
-.modal.operationModal {
   display: flex;
+  height: min(680px, calc(100vh - 32px));
   flex-direction: column;
-  width: min(460px, calc(100vw - 32px));
-  max-height: min(760px, calc(100vh - 32px));
+  width: min(480px, calc(100vw - 32px));
   overflow: hidden;
 }
 
@@ -1455,22 +1451,20 @@
 }
 
 .walletWorkspace {
-  min-height: 560px;
-  background: var(--bg-surface);
-}
-
-.operationModal .walletWorkspace {
   min-height: 0;
+  flex: 1;
   overflow-y: auto;
+  background: var(--bg-surface);
 }
 
 .primaryTabs {
   position: sticky;
-  top: 87px;
+  top: 0;
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 0 20px;
+  gap: 8px;
+  padding: 16px 24px;
   background: var(--bg-glass);
   border-bottom: 1px solid var(--border-subtle);
   backdrop-filter: blur(12px);
@@ -1479,44 +1473,54 @@
 .primaryTab {
   display: inline-flex;
   min-width: 0;
-  height: 62px;
+  height: 48px;
   align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 0 12px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 10px;
   color: var(--text-secondary);
-  font: 500 14px/20px var(--font-body);
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
+  font: 500 13px/20px var(--font-body);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
   cursor: pointer;
   transition:
     color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
 
   &:hover {
     color: var(--text-primary);
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-cool);
+    outline-offset: 2px;
   }
 }
 
 .primaryTabActive {
   color: var(--text-primary);
-  border-bottom-color: var(--brand-cool);
-}
-
-.primaryTab:nth-child(-n + 2):not(.primaryTabActive) {
-  border-bottom-color: var(--border-subtle);
+  background: var(--bg-surface-hover);
+  border-color: var(--brand-cool-muted);
 }
 
 .primaryTabIcon {
   display: inline-grid;
-  width: 20px;
-  height: 20px;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
   place-items: center;
+  color: var(--brand-cool);
+  background: rgba(130, 174, 194, 0.08);
+  border: 1px solid rgba(130, 174, 194, 0.24);
+  border-radius: 3px;
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 17px;
+    height: 17px;
   }
 }
 
@@ -1960,22 +1964,7 @@
 
 @media (max-width: 760px) {
   .modal {
-    width: calc(100vw - 24px);
-  }
-
-  .primaryTabs {
-    top: 78px;
-    padding: 0 6px;
-  }
-
-  .primaryTab {
-    height: 56px;
-    padding: 0 6px;
-    font-size: 11px;
-  }
-
-  .primaryTabIcon {
-    display: none;
+    width: min(480px, calc(100vw - 24px));
   }
 
   .assetsView,
@@ -2020,7 +2009,7 @@
 
   .modal.operationModal {
     width: 100vw;
-    height: auto;
+    height: 100vh;
     max-height: 100vh;
   }
 
@@ -2040,10 +2029,6 @@
 
   .operationModal .unifiedHistoryRow {
     grid-template-columns: 34px minmax(0, 1fr) minmax(100px, auto);
-  }
-
-  .primaryTabs {
-    top: 78px;
   }
 
   .assetsToolbar {
