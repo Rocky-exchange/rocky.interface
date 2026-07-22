@@ -42,6 +42,7 @@ function Harness({
     <div>
       <span data-testid="amount">{String(s.amountNum)}</span>
       <span data-testid="can">{s.canSubmit ? "yes" : "no"}</span>
+      <span data-testid="submitting">{s.submitting ? "yes" : "no"}</span>
       <span data-testid="submission-rejection">{s.submissionRejection}</span>
       <button onClick={() => s.setTriggerPrice("100")}>set-trigger</button>
       <button onClick={() => s.onAmountInput("200")}>set-amt</button>
@@ -130,7 +131,7 @@ describe("useMobileAdvancedOrder", () => {
     );
   });
 
-  it("stores a bonus rejection message and resolves without repeating placeOrder", async () => {
+  it("stores a bonus rejection, resolves, and releases the submission lock for retry", async () => {
     const rejection = new BonusOrderRejectedError("bonus_direction_restricted", "Safe mobile rejection");
     placeOrder.mockRejectedValueOnce(rejection);
     let state!: ReturnType<typeof useMobileAdvancedOrder>;
@@ -142,7 +143,13 @@ describe("useMobileAdvancedOrder", () => {
     });
 
     expect(view.getByTestId("submission-rejection").textContent).toBe("Safe mobile rejection");
+    expect(view.getByTestId("submitting").textContent).toBe("no");
     expect(placeOrder).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await state.submit();
+    });
+    expect(placeOrder).toHaveBeenCalledTimes(2);
   });
 
   it("clears an earlier bonus rejection when the next submission starts", async () => {
@@ -174,8 +181,42 @@ describe("useMobileAdvancedOrder", () => {
     const error = new Error("signature failed");
     placeOrder.mockRejectedValueOnce(error);
     let state!: ReturnType<typeof useMobileAdvancedOrder>;
-    render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const { container } = render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const view = within(container);
 
-    await expect(state.submit()).rejects.toBe(error);
+    await act(async () => {
+      await expect(state.submit()).rejects.toBe(error);
+    });
+    expect(view.getByTestId("submitting").textContent).toBe("no");
+
+    await act(async () => {
+      await state.submit();
+    });
+    expect(placeOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it("prevents synchronous duplicate submits and reports pending until settlement", async () => {
+    const pendingOrder = deferred<void>();
+    placeOrder.mockReturnValue(pendingOrder.promise);
+    let state!: ReturnType<typeof useMobileAdvancedOrder>;
+    const { container } = render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const view = within(container);
+    let firstAttempt!: Promise<void>;
+    let duplicateAttempt!: Promise<void>;
+
+    act(() => {
+      firstAttempt = state.submit();
+      duplicateAttempt = state.submit();
+    });
+
+    expect(placeOrder).toHaveBeenCalledTimes(1);
+    expect(view.getByTestId("submitting").textContent).toBe("yes");
+    await expect(duplicateAttempt).resolves.toBeUndefined();
+
+    await act(async () => {
+      pendingOrder.resolve();
+      await firstAttempt;
+    });
+    expect(view.getByTestId("submitting").textContent).toBe("no");
   });
 });

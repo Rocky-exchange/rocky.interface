@@ -1,5 +1,5 @@
 // src/modules/lighter/features/orderForm/useMobileAdvancedOrder.ts
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getCurrentOrderFormPosition } from "./desktop/orderFormPosition";
 import type { AdvancedMode, Side, SizeUnit } from "./types";
@@ -88,8 +88,10 @@ export function useMobileAdvancedOrder({
   const [pct, setPct] = useState(0);
   const [reduceOnly, setReduceOnly] = useState(false);
   const [submissionRejection, setSubmissionRejection] = useState<string | null>(null);
+  const [localSubmitting, setLocalSubmitting] = useState(false);
+  const inFlightRef = useRef(false);
 
-  const { placeOrder, submitting } = usePlaceOrderAdapter();
+  const { placeOrder, submitting: adapterSubmitting } = usePlaceOrderAdapter();
   const { available } = useAvailableBalanceAdapter();
   const market = useMarketInfoAdapter();
   const positions = usePositionsAdapter();
@@ -182,6 +184,9 @@ export function useMobileAdvancedOrder({
   const canSubmit = triggerPriceNum > 0 && amountNum > 0;
 
   const submit = async (): Promise<void> => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setLocalSubmitting(true);
     setSubmissionRejection(null);
     try {
       await placeOrder({
@@ -202,6 +207,9 @@ export function useMobileAdvancedOrder({
         return;
       }
       throw error;
+    } finally {
+      inFlightRef.current = false;
+      setLocalSubmitting(false);
     }
   };
 
@@ -222,7 +230,7 @@ export function useMobileAdvancedOrder({
     setReduceOnly,
     amountNum,
     canSubmit,
-    submitting,
+    submitting: adapterSubmitting || localSubmitting,
     preview,
     orderSizeText,
     maxOrderValueText,
