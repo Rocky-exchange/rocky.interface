@@ -115,7 +115,7 @@
     height: auto;
     min-height: 100vh;
     overflow: visible;
-    grid-template-rows: var(--ltr-topnav-h, 56px) auto;
+    grid-template-rows: auto auto;
   }
 
   .workspace {
