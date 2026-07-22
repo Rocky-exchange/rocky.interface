@@ -1,3 +1,6 @@
+import { i18n } from "@lingui/core";
+import { t } from "@lingui/macro";
+
 import { exchangeSessionHeaders } from "@/shared/lib/canton-wallet/session";
 
 import {
@@ -85,7 +88,7 @@ async function bonusRequest<T>(
       headers: headersToRecord(headers),
     });
   } catch (_error) {
-    throw new BonusApiError("Bonus request failed", {
+    throw new BonusApiError(i18n._(t`Bonus request failed`), {
       status: 0,
       code: "bonus_request_failed",
       data: {},
@@ -94,14 +97,14 @@ async function bonusRequest<T>(
   const data: unknown = await response.json().catch(() => ({}));
   if (!response.ok) {
     const errorData = isRecord(data) ? data : {};
-    throw new BonusApiError(stringField(errorData.message) || "Bonus request failed", {
+    throw new BonusApiError(stringField(errorData.message) || i18n._(t`Bonus request failed`), {
       status: response.status,
       code: stringField(errorData.error) || "bonus_request_failed",
       data: errorData,
     });
   }
   if (!isValidResponse(data)) {
-    throw new BonusApiError("Invalid bonus response", {
+    throw new BonusApiError(i18n._(t`Invalid bonus response`), {
       status: response.status,
       code: "bonus_invalid_response",
       data: {},

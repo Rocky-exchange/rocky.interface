@@ -1,4 +1,8 @@
+import { setupI18n, type Messages } from "@lingui/core";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { runInNewContext } from "node:vm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CantonFundsModal } from "./CantonFundsModal";
@@ -100,6 +104,21 @@ describe("CantonFundsModal", () => {
         withdrawal_id: `withdrawal-${index}`,
       };
     });
+  });
+
+  it("ships the withdrawal recall notice in the compiled Traditional Chinese catalog", () => {
+    const catalogSource = readFileSync(resolve("src/shared/locales/zh/messages.js"), "utf8");
+    const catalogModule = { exports: {} as { messages?: Messages } };
+    runInNewContext(catalogSource, { module: catalogModule });
+    const catalog = setupI18n({ locale: "zh", messages: { zh: catalogModule.exports.messages ?? {} } });
+
+    expect(catalog._("KB9R16", { recalledAmountLabel: "12.50" })).toBe(
+      "提領前已收回 12.50 USDCx 試用資金"
+    );
+    expect(catalog._("SGjkVa")).toBe("試用資金不允許此訂單");
+    expect(catalog._("F98vMm")).toBe("試用資金請求失敗");
+    expect(catalog._("E9hc0Z")).toBe("試用資金回應格式無效");
+    expect(catalog._("Fr4zpm")).toBe("01 / 兌換");
   });
 
   it("shows the fixed network fee in withdrawal history", async () => {

@@ -1,3 +1,5 @@
+import { i18n } from "@lingui/core";
+import { t } from "@lingui/macro";
 import { useCallback } from "react";
 
 import { checkBonusOrder } from "./bonus.api";
@@ -20,7 +22,7 @@ export function useBonusOrderGate() {
       if (result.decision === "reject") {
         throw new BonusOrderRejectedError(
           result.reason_code || "bonus_order_rejected",
-          result.message || "Order is not allowed for trial funds"
+          result.message || i18n._(t`Order is not allowed for trial funds`)
         );
       }
     } catch (error) {

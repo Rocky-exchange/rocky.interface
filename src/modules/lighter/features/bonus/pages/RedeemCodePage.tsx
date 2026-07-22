@@ -92,7 +92,7 @@ export function RedeemCodePage() {
         <div className={styles.redeemGrid}>
           <section className={styles.intro}>
             <div className={styles.stationMark} aria-hidden="true">
-              01 / CLAIM
+              <Trans>01 / CLAIM</Trans>
             </div>
             <p className={styles.eyebrow}>
               <Trans>Rocky trial funds</Trans>
