@@ -76,6 +76,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [depositResult, setDepositResult] = useState<CantonDepositResult | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [bonusRecallNotice, setBonusRecallNotice] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -200,6 +201,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setDepositBusy(true);
     setError("");
     setNotice("");
+    setBonusRecallNotice("");
     setDepositResult(null);
     try {
       const result = await submitCantonWalletDeposit({
@@ -280,6 +282,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setWithdrawBusy(true);
     setError("");
     setNotice("");
+    setBonusRecallNotice("");
     try {
       const latestAvailable = await refreshWithdrawAvailable();
       const requiredAmount = requiredWithdrawalAmount(Number(amount));
@@ -303,6 +306,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
       const withdrawalUpdateId =
         stringField(result, "canton_update_id") || stringField(result, "update_id") || stringField(result, "tx_hash");
       setNotice(withdrawalRef ? i18n._(t`Withdrawal submitted: ${withdrawalRef}`) : i18n._(t`Withdrawal submitted`));
+      const recalledAmount = Number(result.bonus_recall?.recalled_amount);
+      if (Number.isFinite(recalledAmount) && recalledAmount > 0) {
+        const recalledAmountLabel = formatFixedAmount(recalledAmount);
+        setBonusRecallNotice(i18n._(t`Recalled ${recalledAmountLabel} USDCx in trial funds before withdrawal`));
+      }
       setHistoryTab("withdraw");
       setShowAllHistory(false);
       prependHistory({
@@ -749,9 +757,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
             </section>
           ) : null}
 
-          {notice || error ? (
+          {notice || bonusRecallNotice || error ? (
             <div className={styles.messageStack}>
               {notice ? <div className={styles.noticeText}>{notice}</div> : null}
+              {bonusRecallNotice ? <div className={styles.noticeText}>{bonusRecallNotice}</div> : null}
               {error ? <div className={styles.errorText}>{error}</div> : null}
             </div>
           ) : null}

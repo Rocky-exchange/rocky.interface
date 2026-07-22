@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BONUS_DATA_CHANGED_EVENT } from "@/modules/lighter/features/bonus/api/useBonus";
+
 import {
   CantonFundsError,
   fetchCantonFundsHistory,
@@ -11,6 +13,14 @@ import {
   setUsdcxAutoAccept,
   submitPlatformWithdrawal,
 } from "./funds";
+
+const ZERO_BONUS_RECALL = {
+  recalled_amount: "0",
+  bonus_balance_after: "0",
+  bonus_locked_after: "0",
+  effective_withdrawable: "100",
+  replayed: false,
+};
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -221,31 +231,146 @@ describe("canton wallet funds", () => {
     expect(result.deposit_ref).toBe("dep-delayed");
   });
 
-  it("submits withdrawals to the connected wallet party", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({
+  it("recalls bonus funds before withdrawing with one stable key and exchange session auth", async () => {
+    const bonusRecall = {
+      recalled_amount: "12.50",
+      bonus_balance_after: "7.50",
+      bonus_locked_after: "0",
+      effective_withdrawable: "87.50",
+      replayed: false,
+    };
+    const randomUUID = vi.fn(() => "123e4567-e89b-12d3-a456-426614174000");
+    vi.stubGlobal("crypto", { randomUUID });
+    const fetchMock = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
+      if (String(url) === "/v1/bonus/recall-for-withdraw") return jsonResponse(bonusRecall);
+      return jsonResponse({
         withdrawal_id: "wid-1",
         status: "submitted",
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const bonusChanged = vi.fn();
+    window.addEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
+
+    try {
+      const result = await submitPlatformWithdrawal({
+        asset: "USDCx",
+        amount: "5",
+        destinationParty: " party-1 ",
+      });
+
+      expect(result).toMatchObject({ withdrawal_id: "wid-1", status: "submitted" });
+      expect(result.bonus_recall).toEqual(bonusRecall);
+      expect(randomUUID).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+        "/v1/bonus/recall-for-withdraw",
+        "/v1/withdrawals",
+      ]);
+
+      const recallInit = fetchMock.mock.calls[0][1] as RequestInit;
+      const withdrawalInit = fetchMock.mock.calls[1][1] as RequestInit;
+      expect(recallInit.method).toBe("POST");
+      expect(withdrawalInit.method).toBe("POST");
+      expect(headerValue(recallInit.headers, "Authorization")).toBe("Bearer exchange-token");
+      expect(headerValue(withdrawalInit.headers, "Authorization")).toBe("Bearer exchange-token");
+      expect(JSON.parse(recallInit.body as string)).toEqual({
+        request_id: "withdraw-usdcx-123e4567-e89b-12d3-a456-426614174000-bonus-recall",
+      });
+      expect(JSON.parse(recallInit.body as string).request_id).toHaveLength(64);
+      expect(JSON.parse(withdrawalInit.body as string)).toEqual({
+        asset: "USDCx",
+        amount: "5",
+        dest_user_handle_party: "party-1",
+        idempotency_key: "withdraw-usdcx-123e4567-e89b-12d3-a456-426614174000",
+      });
+      expect(bonusChanged).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
+    }
+  });
+
+  it("continues withdrawals when bonus recall returns zero", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/v1/bonus/recall-for-withdraw") return jsonResponse(ZERO_BONUS_RECALL);
+      return jsonResponse({ withdrawal_id: "wid-no-bonus", status: "submitted" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "USDCx",
+        amount: "5",
+        destinationParty: "party-1",
+        idempotencyKey: "idempotency-1",
       })
+    ).resolves.toMatchObject({ withdrawal_id: "wid-no-bonus", bonus_recall: ZERO_BONUS_RECALL });
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      "/v1/bonus/recall-for-withdraw",
+      "/v1/withdrawals",
+    ]);
+  });
+
+  it.each([409, 503])("fails closed when bonus recall returns %i", async (status) => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse({ error: "bonus_recall_failed" }, status)
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitPlatformWithdrawal({
-      asset: "USDCx",
-      amount: "5",
-      destinationParty: " party-1 ",
-      idempotencyKey: "idempotency-1",
-    });
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "USDCx",
+        amount: "5",
+        destinationParty: "party-1",
+        idempotencyKey: "idempotency-1",
+      })
+    ).rejects.toMatchObject({ status });
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/v1/bonus/recall-for-withdraw"]);
+  });
 
-    expect(result.withdrawal_id).toBe("wid-1");
-    expect(fetchMock).toHaveBeenCalledWith("/v1/withdrawals", expect.objectContaining({ method: "POST" }));
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(init.body as string)).toEqual({
-      asset: "USDCx",
-      amount: "5",
-      dest_user_handle_party: "party-1",
-      idempotency_key: "idempotency-1",
+  it("invalidates bonus data when recall succeeds even if withdrawal fails", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/v1/bonus/recall-for-withdraw") {
+        return jsonResponse({
+          ...ZERO_BONUS_RECALL,
+          recalled_amount: "12.50",
+          bonus_balance_after: "7.50",
+          effective_withdrawable: "87.50",
+        });
+      }
+      return jsonResponse({ error: "withdrawal_failed" }, 500);
     });
+    vi.stubGlobal("fetch", fetchMock);
+    const bonusChanged = vi.fn();
+    window.addEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
+
+    try {
+      await expect(
+        submitPlatformWithdrawal({
+          asset: "USDCx",
+          amount: "5",
+          destinationParty: "party-1",
+          idempotencyKey: "idempotency-1",
+        })
+      ).rejects.toMatchObject({ status: 500 });
+      expect(bonusChanged).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
+    }
+  });
+
+  it("requires an exchange session before attempting bonus recall for withdrawals", async () => {
+    localStorage.removeItem("rocky_exchange_session");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "USDCx",
+        amount: "5",
+        destinationParty: "party-1",
+      })
+    ).rejects.toMatchObject({ code: "not_logged_in" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("reads the platform balance used for withdrawals", async () => {
@@ -327,8 +452,10 @@ describe("canton wallet funds", () => {
   });
 
   it("surfaces withdrawal API error messages from non-error fields", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({ message: "Insufficient balance for this withdraw." }, 409)
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
+      String(url) === "/v1/bonus/recall-for-withdraw"
+        ? jsonResponse(ZERO_BONUS_RECALL)
+        : jsonResponse({ message: "Insufficient balance for this withdraw." }, 409)
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -346,7 +473,11 @@ describe("canton wallet funds", () => {
   });
 
   it("uses a withdrawal-specific fallback for empty 409 responses", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => new Response("", { status: 409 }));
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
+      String(url) === "/v1/bonus/recall-for-withdraw"
+        ? jsonResponse(ZERO_BONUS_RECALL)
+        : new Response("", { status: 409 })
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(

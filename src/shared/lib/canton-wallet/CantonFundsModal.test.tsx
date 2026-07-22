@@ -29,11 +29,12 @@ vi.mock("@lingui/react", () => ({
       _: (message: unknown) => {
         const descriptor =
           typeof message === "object" && message !== null
-            ? (message as { id?: string; message?: string })
+            ? (message as { id?: string; message?: string; values?: Record<string, unknown> })
             : undefined;
         const id = typeof message === "string" ? message : descriptor?.id || String(message);
         const defaultMessage = descriptor?.message || id;
-        return i18nMock.translations[defaultMessage] || i18nMock.translations[id] || defaultMessage;
+        const translatedMessage = i18nMock.translations[defaultMessage] || i18nMock.translations[id] || defaultMessage;
+        return interpolateMessage(translatedMessage, descriptor?.values);
       },
     },
   }),
@@ -73,10 +74,12 @@ vi.mock("./useCantonWallet", () => ({
 describe("CantonFundsModal", () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("localStorage", createMemoryStorage());
     i18nMock.translations = {};
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
@@ -107,6 +110,40 @@ describe("CantonFundsModal", () => {
 
     expect(screen.getByText("Network Fee")).toBeTruthy();
     expect(screen.getAllByText("1 USDCx").length).toBeGreaterThan(1);
+  });
+
+  it("shows recalled trial funds without replacing the withdrawal result and refreshes the dashboard", async () => {
+    const updateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
+    mocks.submitPlatformWithdrawal.mockResolvedValueOnce({
+      status: "submitted",
+      withdrawal_id: "withdrawal-with-recall",
+      canton_update_id: updateId,
+      bonus_recall: {
+        recalled_amount: "12.50",
+        bonus_balance_after: "7.50",
+        bonus_locked_after: "0",
+        effective_withdrawable: "87.50",
+        replayed: false,
+      },
+    });
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => {
+      expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(1);
+      expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledTimes(1);
+      expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1);
+    });
+
+    openWithdrawForm();
+    await submitWithdrawal("5", 1);
+
+    expect(await screen.findByText("Withdrawal submitted: withdrawal-with-recall")).toBeTruthy();
+    expect(screen.getByText("Recalled 12.50 USDCx in trial funds before withdrawal")).toBeTruthy();
+    expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${updateId}"]`)).toBeTruthy();
+    await waitFor(() => {
+      expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(2);
+      expect(mocks.fetchPlatformAccountBalance).toHaveBeenCalledTimes(3);
+      expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("renders wallet dashboard labels through the active locale", async () => {
@@ -215,8 +252,7 @@ describe("CantonFundsModal", () => {
           asset: "USDC",
           amount_expected: "0.2",
           status: "credited",
-          chain_tx_id:
-            `token-standard:${depositUpdateId}:0`,
+          chain_tx_id: `token-standard:${depositUpdateId}:0`,
           created_at: "2026-07-06T09:00:00Z",
         },
       ],
@@ -269,4 +305,34 @@ async function submitWithdrawal(amount: string, expectedSubmitCount: number) {
   fireEvent.change(amountInput, { target: { value: amount } });
   fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
   await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(expectedSubmitCount));
+}
+
+function interpolateMessage(message: string, values: Record<string, unknown> | undefined): string {
+  return message.replace(/\{([^}]+)\}/g, (placeholder, key: string) =>
+    values && key in values ? String(values[key]) : placeholder
+  );
+}
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear() {
+      store.clear();
+    },
+    getItem(key: string) {
+      return store.get(key) ?? null;
+    },
+    key(index: number) {
+      return Array.from(store.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      store.delete(key);
+    },
+    setItem(key: string, value: string) {
+      store.set(key, String(value));
+    },
+  };
 }

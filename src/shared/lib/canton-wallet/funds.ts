@@ -1,3 +1,7 @@
+import { recallBonusForWithdraw } from "@/modules/lighter/features/bonus/api/bonus.api";
+import type { BonusRecallResponse } from "@/modules/lighter/features/bonus/api/bonus.types";
+import { notifyBonusDataChanged } from "@/modules/lighter/features/bonus/api/useBonus";
+
 import {
   acceptConsoleWalletUsdcxOffers,
   getPendingConsoleWalletUsdcxOffers,
@@ -50,6 +54,7 @@ export type CantonWithdrawalResult = {
   withdrawal_id?: string;
   withdrawal_request_id?: string;
   status?: string;
+  bonus_recall?: BonusRecallResponse;
   fee_amount?: string;
   fee_asset?: string;
   fee_wallet_symbol?: string;
@@ -149,7 +154,7 @@ export function makeWalletWithdrawalIdempotencyKey(asset: CantonFundsAsset): str
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `wallet-withdraw-${asset.toLowerCase()}-${nonce}`;
+  return `withdraw-${asset.toLowerCase()}-${nonce}`;
 }
 
 export async function requestDepositReference(input: {
@@ -221,16 +226,22 @@ export async function submitPlatformWithdrawal(input: {
     throw new CantonFundsError("Destination party is required", { code: "destination_party_required" });
   }
 
-  return requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
+  ensureExchangeSession();
+  const amount = positiveAmount(input.amount);
+  const withdrawalKey = input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset);
+  const bonusRecall = await recallBonusForWithdraw({ request_id: `${withdrawalKey}-bonus-recall` });
+  notifyBonusDataChanged();
+  const withdrawal = await requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({
       asset: input.asset,
-      amount: positiveAmount(input.amount),
+      amount,
       dest_user_handle_party: destinationParty,
-      idempotency_key: input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset),
+      idempotency_key: withdrawalKey,
     }),
   });
+  return { ...withdrawal, bonus_recall: bonusRecall };
 }
 
 export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
