@@ -14,6 +14,7 @@ describe("SPOT_MARKETS", () => {
 describe("resolveSpotMarket", () => {
   it("resolves routes case-insensitively and defaults safely", () => {
     expect(resolveSpotMarket("cbtc-usda").routeSymbol).toBe("CBTC-USDA");
+    expect(resolveSpotMarket("  cbtc-usda  ").apiSymbol).toBe("CBTC-USDCX");
     expect(resolveSpotMarket("unknown").routeSymbol).toBe("CBTC-USDA");
     expect(resolveSpotMarket(undefined).routeSymbol).toBe("CBTC-USDA");
   });
