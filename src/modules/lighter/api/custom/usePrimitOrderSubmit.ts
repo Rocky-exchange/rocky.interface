@@ -6,7 +6,14 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
 
-import { cancelOrder, closePosition, createOrder, createTriggerOrder, type CreateOrderResponse } from "./client";
+import {
+  cancelOrder,
+  closePosition,
+  createOrder,
+  createOrderIdempotencyKey,
+  createTriggerOrder,
+  type CreateOrderResponse,
+} from "./client";
 import { useApiOrders } from "./useApiOrders";
 import type {
   BatchCancelRequest,
@@ -82,32 +89,6 @@ function mapSide(isLong: boolean): "buy" | "sell" {
   return isLong ? "buy" : "sell";
 }
 
-function appendOptionalOrderFields(
-  request: CreateOrderRequest,
-  params: PrimitOrderParams,
-  apiOrderType: ApiOrderType,
-  priceStr: string
-) {
-  if (apiOrderType === "limit" && priceStr !== "market") {
-    request.price = priceStr;
-  }
-
-  if ((apiOrderType === "stop_limit" || apiOrderType === "take_profit_limit") && priceStr !== "0") {
-    request.price = priceStr;
-  }
-
-  if (params.reduceOnly) request.reduce_only = true;
-  if (params.tpPrice) request.tp_price = params.tpPrice;
-  if (params.slPrice) request.sl_price = params.slPrice;
-  if (params.maxSlippage) request.max_slippage = params.maxSlippage;
-  if (params.stopPrice) request.trigger_price = params.stopPrice;
-  if (params.timeInForce) request.time_in_force = params.timeInForce;
-  if (params.workingType) request.working_type = params.workingType;
-  if (params.positionSide) request.position_side = params.positionSide;
-  if (params.closePosition != null) request.close_position = params.closePosition;
-  if (params.clientOrderId) request.client_order_id = params.clientOrderId;
-}
-
 // rocky-backend's POST /v1/orders expects its own native symbol shape
 // ("BTC-PERP", "ETH-PERP", "CC-PERP"), not the Binance-style "BTCUSDT" this
 // used to produce (correct only for the old api.primit.io-shaped backend).
@@ -132,42 +113,73 @@ export function formatOrderSubmitError(error: any): string {
   return error?.message || "Failed to submit order";
 }
 
-function buildCreateOrderRequest(params: PrimitOrderParams): {
-  request: CreateOrderRequest;
+const DEFAULT_MARKET_AGGRESSION = 0.005;
+
+function resolveIdempotencyKey(clientOrderId?: string): string {
+  const customId = clientOrderId?.trim();
+  return customId || createOrderIdempotencyKey();
+}
+
+function resolveMarketAggression(maxSlippage?: string): number {
+  const parsed = Number(maxSlippage);
+  return Number.isFinite(parsed) && parsed > 0 && parsed <= 1 ? parsed : DEFAULT_MARKET_AGGRESSION;
+}
+
+export function buildCreateOrderRequest(params: PrimitOrderParams): {
+  request: CreateOrderRequest | undefined;
   priceStr: string;
   sizeStr: string;
   apiOrderType: ApiOrderType;
   apiSymbol: string;
 } {
-  const apiOrderType = params.apiOrderTypeOverride ?? mapOrderType(params.orderType, params.isIncrease, params.triggerPrice);
+  const apiOrderType =
+    params.apiOrderTypeOverride ?? mapOrderType(params.orderType, params.isIncrease, params.triggerPrice);
   const usesLimitPrice =
     apiOrderType === "limit" || apiOrderType === "stop_limit" || apiOrderType === "take_profit_limit";
   const sizeStr = formatFixedDecimal(params.sizeDeltaUsd, params.indexTokenDecimals, 8);
+  if (!Number.isFinite(Number(sizeStr)) || Number(sizeStr) <= 0) {
+    throw new Error("Order quantity must be positive");
+  }
 
   const priceStr =
     usesLimitPrice && params.triggerPrice !== undefined && params.triggerPrice > 0n
       ? formatFixedDecimal(params.triggerPrice, 30, 6)
       : "0";
 
-  const request: CreateOrderRequest = {
-    symbol: getApiSymbol(params.symbol),
-    side: mapSide(params.isLong),
-    order_type: apiOrderType,
-    amount: sizeStr,
-    leverage: params.leverage ? Math.round(params.leverage) : 1,
-    margin_mode: params.marginMode ?? "cross",
-    signature: "canton-session",
-    timestamp: Math.floor(Date.now() / 1000),
-  };
+  const isNativeOrder = apiOrderType === "market" || apiOrderType === "limit";
+  let request: CreateOrderRequest | undefined;
+  if (isNativeOrder) {
+    let executablePrice: string;
+    if (apiOrderType === "limit") {
+      if (priceStr === "0") throw new Error("Limit order requires a positive price");
+      executablePrice = priceStr;
+    } else {
+      const referencePrice = Number(
+        params.acceptablePrice !== undefined ? formatFixedDecimal(params.acceptablePrice, 30, 6) : "0"
+      );
+      if (!Number.isFinite(referencePrice) || referencePrice <= 0) {
+        throw new Error("Market order requires a positive reference price");
+      }
+      const aggression = resolveMarketAggression(params.maxSlippage);
+      executablePrice = (referencePrice * (params.isLong ? 1 + aggression : 1 - aggression)).toFixed(6);
+    }
 
-  appendOptionalOrderFields(request, params, apiOrderType, priceStr);
+    request = {
+      symbol: getApiSymbol(params.symbol),
+      side: params.isLong ? "BUY" : "SELL",
+      price: executablePrice,
+      qty: sizeStr,
+      leverage: params.leverage ? Math.round(params.leverage) : 1,
+      idempotency_key: resolveIdempotencyKey(params.clientOrderId),
+    };
+  }
 
   return {
     request,
     priceStr,
     sizeStr,
     apiOrderType,
-    apiSymbol: request.symbol,
+    apiSymbol: getApiSymbol(params.symbol),
   };
 }
 
@@ -285,6 +297,10 @@ export function usePrimitOrderSubmit(): UsePrimitOrderSubmitResult {
           refreshOrders();
           refreshBalances();
           return toCreateOrderResponse(triggerResponse, sizeStr);
+        }
+
+        if (!request) {
+          throw new Error(`Unsupported order type: ${apiOrderType}`);
         }
 
         const response = await createOrder(chainId, request, authAccountKey);

@@ -42,6 +42,7 @@ function Harness({
     <div>
       <span data-testid="amount">{String(state.amountNum)}</span>
       <span data-testid="ready">{state.amountReady ? "ready" : "not-ready"}</span>
+      <span data-testid="effective-price">{String(state.effectivePrice)}</span>
       <span data-testid="cost">{String(state.costMargin)}</span>
       <span data-testid="liq">{String(state.liqPrice)}</span>
       <span data-testid="err">{String(state.previewErrorMessage)}</span>
@@ -84,6 +85,7 @@ describe("useOrderAmountPreview", () => {
     const view = within(container);
     expect(view.getByTestId("amount").textContent).toBe("2"); // 200 / 100
     expect(view.getByTestId("ready").textContent).toBe("ready");
+    expect(view.getByTestId("effective-price").textContent).toBe("100");
   });
 
   it("Market USD with no price available: amount 0, not ready", () => {
@@ -108,6 +110,7 @@ describe("useOrderAmountPreview", () => {
     );
     const view = within(container);
     expect(view.getByTestId("amount").textContent).toBe("4"); // 200 / 50
+    expect(view.getByTestId("effective-price").textContent).toBe("50");
     expect(mPreview).toHaveBeenCalledWith(expect.objectContaining({ orderType: "limit", price: 50, amount: 4 }));
   });
 

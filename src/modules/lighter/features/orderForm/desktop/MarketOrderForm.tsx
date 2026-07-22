@@ -92,7 +92,7 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
   // 不再在 USD 换算失败时回退成 rawAmount —— 那会把 USD 数值当成 BTC 发出去(曾让 /orders 发出 amount=13.70 "BTC")
   const amountNum =
     amountUnit === "USD" ? (effectivePrice && effectivePrice > 0 ? rawAmount / effectivePrice : 0) : rawAmount;
-  const amountReady = amountNum > 0;
+  const amountReady = amountNum > 0 && effectivePrice != null && effectivePrice > 0;
   const p = tentativePreview.data;
   const availableBalance = p?.available_balance ? Number(p.available_balance) : available ?? 0;
   const buyingPowerUsd = availableBalance > 0 ? availableBalance * leverage : 0;
@@ -161,6 +161,7 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
         side,
         type: "market",
         amount: amountNum,
+        effectivePrice: effectivePrice ?? undefined,
         leverage,
         marginMode,
         reduceOnly,

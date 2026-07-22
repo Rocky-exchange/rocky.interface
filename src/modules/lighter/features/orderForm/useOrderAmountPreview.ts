@@ -24,6 +24,7 @@ export type UseOrderAmountPreviewArgs = {
 export type UseOrderAmountPreviewReturn = {
   amountNum: number;
   amountReady: boolean;
+  effectivePrice: number | null;
   preview: PreviewState;
   costMargin: number | null;
   liqPrice: number | null;
@@ -99,11 +100,16 @@ export function useOrderAmountPreview({
 
   const amountNum =
     sizeUnit === "USD" ? (effectivePrice && effectivePrice > 0 ? rawSizeNum / effectivePrice : 0) : rawSizeNum;
-  const amountReady = Number.isFinite(amountNum) && amountNum > 0;
+  const amountReady =
+    Number.isFinite(amountNum) &&
+    amountNum > 0 &&
+    effectivePrice != null &&
+    Number.isFinite(effectivePrice) &&
+    effectivePrice > 0;
 
   const costMargin = preview.data?.position_margin_after ? Number(preview.data.position_margin_after) : null;
   const liqPrice = preview.data?.est_liq_price ? Number(preview.data.est_liq_price) : null;
   const previewErrorMessage = usePreviewErrorMessage(preview);
 
-  return { amountNum, amountReady, preview, costMargin, liqPrice, previewErrorMessage };
+  return { amountNum, amountReady, effectivePrice, preview, costMargin, liqPrice, previewErrorMessage };
 }

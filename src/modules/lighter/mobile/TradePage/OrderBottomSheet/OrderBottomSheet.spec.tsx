@@ -7,7 +7,7 @@ import { I18nProvider } from "@lingui/react";
 import { useOrderAmountPreview } from "@/modules/lighter/features/orderForm/useOrderAmountPreview";
 import { useOrderInfoRows } from "@/modules/lighter/features/orderForm/useOrderInfoRows";
 import { usePlaceOrderAdapter } from "@/modules/lighter/adapters/usePlaceOrderAdapter";
-import useWallet from "@/shared/lib/wallets/useWallet";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { OrderBottomSheet } from "./OrderBottomSheet";
 
 vi.mock("@/modules/lighter/features/orderForm/useOrderAmountPreview", () => ({
@@ -19,7 +19,7 @@ vi.mock("@/modules/lighter/features/orderForm/useOrderInfoRows", () => ({
 vi.mock("@/modules/lighter/adapters/usePlaceOrderAdapter", () => ({
   usePlaceOrderAdapter: vi.fn(),
 }));
-vi.mock("@/shared/lib/wallets/useWallet", () => ({ default: vi.fn() }));
+vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({ useCantonSession: vi.fn() }));
 vi.mock("@/modules/lighter/mobile/shared/BottomSheet", () => ({
   BottomSheet: ({ title, children }: { title: React.ReactNode; children: React.ReactNode }) => (
     <div>
@@ -35,13 +35,14 @@ vi.mock("./MobileAdvancedForm", () => ({
 const mPreview = vi.mocked(useOrderAmountPreview);
 const mInfo = vi.mocked(useOrderInfoRows);
 const mPlace = vi.mocked(usePlaceOrderAdapter);
-const mWallet = vi.mocked(useWallet);
+const mCantonSession = vi.mocked(useCantonSession);
 const placeOrder = vi.fn().mockResolvedValue(undefined);
 
 function previewReturn(over: Partial<ReturnType<typeof useOrderAmountPreview>> = {}) {
   return {
     amountNum: 2,
     amountReady: true,
+    effectivePrice: 100,
     preview: { data: null, loading: false, error: null, errorCode: null },
     costMargin: 12.5,
     liqPrice: 98765.4,
@@ -52,7 +53,7 @@ function previewReturn(over: Partial<ReturnType<typeof useOrderAmountPreview>> =
 
 beforeEach(() => {
   mPlace.mockReturnValue({ placeOrder, submitting: false } as unknown as ReturnType<typeof usePlaceOrderAdapter>);
-  mWallet.mockReturnValue({ active: true, account: "0xabc" } as unknown as ReturnType<typeof useWallet>);
+  mCantonSession.mockReturnValue({ connected: true } as ReturnType<typeof useCantonSession>);
   mPreview.mockReturnValue(previewReturn());
   mInfo.mockReturnValue({
     availableToTrade: "$1,234.50",
@@ -110,7 +111,7 @@ describe("OrderBottomSheet preview wiring", () => {
     const view = within(container);
     fireEvent.change(view.getByPlaceholderText("0.00"), { target: { value: "200" } });
     fireEvent.click(view.getByRole("button", { name: /Place Long/i }));
-    expect(placeOrder).toHaveBeenCalledWith(expect.objectContaining({ amount: 2 }));
+    expect(placeOrder).toHaveBeenCalledWith(expect.objectContaining({ amount: 2, effectivePrice: 100 }));
   });
 
   it("renders the Lighter-parity info rows", () => {

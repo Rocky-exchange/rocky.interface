@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { usePrimitOrderSubmit } from "modules/lighter/api/custom/usePrimitOrderSubmit";
 import type { OrderType as ApiOrderType, PositionModeSide, TimeInForce, WorkingType } from "modules/lighter/api/types";
@@ -16,6 +16,8 @@ export type PlaceOrderParams = {
   amount: number;
   /** 限价单价格(限价时必填) */
   price?: number;
+  /** 市价单真实 mark/preview 参考价；shared boundary 会据此生成 crossing limit。 */
+  effectivePrice?: number;
   /** 条件单触发价 */
   triggerPrice?: number;
   /** 杠杆倍数(默认 10) */
@@ -73,6 +75,16 @@ export function usePlaceOrderAdapter() {
   const { submitOrder, isReady } = usePrimitOrderSubmit();
   const { selectedSymbol } = useTradeState();
   const { checkOpeningOrder } = useBonusOrderGate();
+  const [submitting, setSubmitting] = useState(false);
+  const inFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const placeOrder = useCallback(
     async (p: PlaceOrderParams) => {
@@ -80,58 +92,71 @@ export function usePlaceOrderAdapter() {
         throw new Error("钱包未连接或未认证");
       }
       if (!selectedSymbol) throw new Error("未选择交易对");
+      if (inFlightRef.current) return undefined;
 
-      if (!p.reduceOnly) {
-        await checkOpeningOrder({
+      inFlightRef.current = true;
+      if (mountedRef.current) setSubmitting(true);
+
+      try {
+        const isDecrease = Boolean(p.reduceOnly || p.closePosition);
+
+        if (!isDecrease) {
+          await checkOpeningOrder({
+            symbol: selectedSymbol,
+            side: p.side,
+            is_opening: true,
+            leverage: p.leverage ?? 10,
+          });
+        }
+
+        const isLimit = p.type === "limit" || p.type === "stop_limit" || p.type === "take_profit_limit";
+        const orderTypeNum = isLimit
+          ? isDecrease
+            ? ORDER_TYPE_LIMIT_DECREASE
+            : ORDER_TYPE_LIMIT_INCREASE
+          : isDecrease
+            ? ORDER_TYPE_MARKET_DECREASE
+            : ORDER_TYPE_MARKET_INCREASE;
+
+        const sizeDeltaUsd = toBigIntScaled(p.amount, BASE_TOKEN_DECIMALS);
+        const limitPrice = isLimit && p.price != null ? toBigIntScaled(p.price, USD_DECIMALS) : undefined;
+        const marketReferencePrice = !isLimit ? toBigIntScaled(p.effectivePrice ?? NaN, USD_DECIMALS) : undefined;
+
+        const result = await submitOrder({
           symbol: selectedSymbol,
-          side: p.side,
-          is_opening: true,
+          isLong: p.side === "buy",
+          isIncrease: !isDecrease,
+          sizeDeltaUsd,
+          indexTokenDecimals: BASE_TOKEN_DECIMALS,
+          triggerPrice: limitPrice,
+          acceptablePrice: marketReferencePrice,
+          orderType: orderTypeNum,
+          apiOrderTypeOverride: p.type,
+          reduceOnly: isDecrease,
           leverage: p.leverage ?? 10,
+          marginMode: p.marginMode ?? "cross",
+          tpPrice: toDecimalString(p.tpPrice ?? NaN),
+          slPrice: toDecimalString(p.slPrice ?? NaN),
+          maxSlippage: toDecimalString(p.maxSlippage ?? NaN, 4),
+          stopPrice: toDecimalString(p.triggerPrice ?? NaN),
+          timeInForce: p.timeInForce,
+          workingType: p.workingType,
+          positionSide: p.positionSide,
+          closePosition: p.closePosition,
+          clientOrderId: p.newClientOrderId,
         });
+        return result;
+      } finally {
+        inFlightRef.current = false;
+        if (mountedRef.current) setSubmitting(false);
       }
-
-      const isLimit = p.type === "limit" || p.type === "stop_limit" || p.type === "take_profit_limit";
-      const isDecrease = !!p.reduceOnly;
-      const orderTypeNum = isLimit
-        ? isDecrease
-          ? ORDER_TYPE_LIMIT_DECREASE
-          : ORDER_TYPE_LIMIT_INCREASE
-        : isDecrease
-          ? ORDER_TYPE_MARKET_DECREASE
-          : ORDER_TYPE_MARKET_INCREASE;
-
-      const sizeDeltaUsd = toBigIntScaled(p.amount, BASE_TOKEN_DECIMALS);
-      const limitPrice = isLimit && p.price != null ? toBigIntScaled(p.price, USD_DECIMALS) : undefined;
-
-      return submitOrder({
-        symbol: selectedSymbol,
-        isLong: p.side === "buy",
-        isIncrease: !isDecrease,
-        sizeDeltaUsd,
-        indexTokenDecimals: BASE_TOKEN_DECIMALS,
-        triggerPrice: limitPrice,
-        orderType: orderTypeNum,
-        apiOrderTypeOverride: p.type,
-        reduceOnly: p.reduceOnly,
-        leverage: p.leverage ?? 10,
-        marginMode: p.marginMode ?? "cross",
-        tpPrice: toDecimalString(p.tpPrice ?? NaN),
-        slPrice: toDecimalString(p.slPrice ?? NaN),
-        maxSlippage: toDecimalString(p.maxSlippage ?? NaN, 4),
-        stopPrice: toDecimalString(p.triggerPrice ?? NaN),
-        timeInForce: p.timeInForce,
-        workingType: p.workingType,
-        positionSide: p.positionSide,
-        closePosition: p.closePosition,
-        clientOrderId: p.newClientOrderId,
-      });
     },
     [checkOpeningOrder, isReady, selectedSymbol, submitOrder]
   );
 
   return {
     placeOrder,
-    submitting: false, // 如需细粒度 loading 状态可扩展成 useState 追踪
+    submitting,
     isReady,
   };
 }

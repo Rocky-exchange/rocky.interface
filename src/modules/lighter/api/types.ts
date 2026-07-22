@@ -153,36 +153,15 @@ export type WorkingType = "MARK_PRICE" | "CONTRACT_PRICE";
 export type PositionModeSide = "BOTH" | "LONG" | "SHORT";
 
 export interface CreateOrderRequest {
+  /** Rocky-native perpetual symbol, e.g. BTC-PERP. */
   symbol: string;
-  side: OrderSide;
-  order_type: OrderType;
-  price?: string; // Required for limit orders
-  amount: string; // Order size (was "size" in old API)
-  leverage: number; // 1-50, required
-  margin_mode?: "cross" | "isolated";
-  signature: string; // EIP-712 signature, required
-  timestamp: number; // Unix timestamp, required
-  // --- 可选扩展(后端 2026-04 新增) ---
-  /** 只减仓 */
-  reduce_only?: boolean;
-  /** 止盈触发价(成交后后台自动创建条件平仓单) */
-  tp_price?: string;
-  /** 止损触发价(成交后后台自动创建条件平仓单) */
-  sl_price?: string;
-  /** 最大滑点宽容度(市价单,例 "0.01" = 1%) */
-  max_slippage?: string;
-  /** 条件单触发价 */
-  trigger_price?: string;
-  /** 有效方式 */
-  time_in_force?: TimeInForce;
-  /** 触发类型 */
-  working_type?: WorkingType;
-  /** 持仓方向 */
-  position_side?: PositionModeSide;
-  /** 触发后是否全平 */
-  close_position?: boolean;
-  /** 自定义客户端订单 ID */
-  client_order_id?: string;
+  side: "BUY" | "SELL";
+  /** Positive executable limit price. Market intent is represented by a crossing limit. */
+  price: string;
+  /** Positive base-token quantity. */
+  qty: string;
+  leverage: number;
+  idempotency_key: string;
 }
 
 /** 订单预估请求(不需要签名) */
