@@ -114,6 +114,27 @@ describe("CantonFundsModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("selects the funding asset from the balance heading and keeps operation forms amount-only", () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    const assetSelect = screen.getByRole("combobox", { name: "Asset" }) as HTMLSelectElement;
+    expect(assetSelect.closest("h3")).toBeTruthy();
+
+    fireEvent.change(assetSelect, { target: { value: "CBTC" } });
+
+    expect(assetSelect.value).toBe("CBTC");
+    expect(assetSelect.closest("h3")?.textContent).toContain("Balances");
+
+    const depositAction = screen.getByText("Deposit", { selector: "strong" }).closest("button");
+    fireEvent.click(depositAction as HTMLButtonElement);
+
+    const amountInput = screen.getByPlaceholderText("100");
+    const form = amountInput.closest("form");
+    expect(form?.querySelectorAll("select")).toHaveLength(0);
+    expect(form?.querySelectorAll("input")).toHaveLength(1);
+    expect(form?.textContent).not.toContain("Asset");
+  });
+
   it("shows the fixed network fee in withdrawal history", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
@@ -121,20 +142,19 @@ describe("CantonFundsModal", () => {
     await submitWithdrawal("0.1", 1);
 
     expect(screen.getByText("Network Fee")).toBeTruthy();
-    expect(screen.getAllByText("1 USDA").length).toBeGreaterThan(1);
+    expect(screen.getByText("1 USDA")).toBeTruthy();
   });
 
   it("renders wallet dashboard labels through the active locale", async () => {
     i18nMock.translations = {
       Explorer: "瀏覽器",
       Disconnect: "斷開連線",
-      "USDA Balances": "USDA 餘額",
+      Balances: "餘額",
       "Wallet Balance": "錢包餘額",
       "Exchange Balance": "交易所餘額",
       "On-chain balance": "鏈上餘額",
       "On connected exchange": "已連接交易所餘額",
       Deposit: "存入",
-      "Deposit USDA to Rocky Exchange": "存入 USDA 至 Rocky Exchange",
       "Transfer funds from the connected wallet to the exchange account.": "從已連接錢包轉入資金至交易所帳戶。",
       Asset: "資產",
       Amount: "金額",
@@ -165,10 +185,11 @@ describe("CantonFundsModal", () => {
 
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
-    expect(await screen.findByText("USDA 餘額")).toBeTruthy();
+    expect(await screen.findByText("餘額")).toBeTruthy();
+    expect((screen.getByRole("combobox", { name: "資產" }) as HTMLSelectElement).value).toBe("USDA");
     expect(screen.getByText("錢包餘額")).toBeTruthy();
     expect(screen.getByText("交易所餘額")).toBeTruthy();
-    expect(screen.getByText("存入 USDA 至 Rocky Exchange")).toBeTruthy();
+    expect(screen.getByText("存入", { selector: "strong" })).toBeTruthy();
 
     fireEvent.click(screen.getByText("提領歷史"));
 
@@ -275,7 +296,7 @@ describe("CantonFundsModal", () => {
 });
 
 function openWithdrawForm() {
-  const withdrawAction = screen.getAllByText("Withdraw USDA to your Wallet")[0].closest("button");
+  const withdrawAction = screen.getByText("Withdraw", { selector: "strong" }).closest("button");
   fireEvent.click(withdrawAction as HTMLButtonElement);
 }
 

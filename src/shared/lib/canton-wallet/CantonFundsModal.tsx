@@ -587,23 +587,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <section className={styles.balanceCard}>
             <div className={styles.sectionHeader}>
               <h3>
-                {selectedAsset} {i18n._(t`Balances`)}
-                <button
-                  type="button"
-                  className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
-                  onClick={() => {
-                    void refreshWalletDashboard();
-                  }}
-                  disabled={dashboardRefreshing}
-                  aria-label={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
-                  title={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
-                >
-                  <RefreshIcon />
-                </button>
-              </h3>
-              <label className={styles.assetSelect}>
-                <span>{i18n._(t`Asset`)}</span>
                 <select
+                  className={styles.headingAssetSelect}
+                  aria-label={i18n._(t`Asset`)}
                   value={selectedAsset}
                   onChange={(event) => {
                     setSelectedAsset(event.target.value as CantonFundsAsset);
@@ -618,7 +604,20 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </option>
                   ))}
                 </select>
-              </label>
+                {i18n._(t`Balances`)}
+                <button
+                  type="button"
+                  className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
+                  onClick={() => {
+                    void refreshWalletDashboard();
+                  }}
+                  disabled={dashboardRefreshing}
+                  aria-label={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                  title={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                >
+                  <RefreshIcon />
+                </button>
+              </h3>
             </div>
 
             <div className={styles.balanceGrid}>
@@ -704,13 +703,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </div>
                   </div>
                   <div className={styles.formGrid}>
-                    <div className={styles.field}>
-                      <span>{i18n._(t`Asset`)}</span>
-                      <div className={styles.fixedAssetValue}>
-                        <TokenIcon symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset} displaySize={24} />
-                        <strong>{selectedAsset}</strong>
-                      </div>
-                    </div>
                     <label className={styles.field}>
                       <span>{i18n._(t`Amount`)}</span>
                       <input
@@ -741,13 +733,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </div>
                   </div>
                   <div className={styles.formGrid}>
-                    <div className={styles.field}>
-                      <span>{i18n._(t`Asset`)}</span>
-                      <div className={styles.fixedAssetValue}>
-                        <TokenIcon symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset} displaySize={24} />
-                        <strong>{selectedAsset}</strong>
-                      </div>
-                    </div>
                     <label className={styles.field}>
                       <span>{i18n._(t`Amount`)}</span>
                       <input
