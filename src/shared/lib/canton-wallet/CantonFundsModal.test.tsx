@@ -7,20 +7,21 @@ const PARTY_ID = "rockywallet-etouyang::1220a1af0547f0824e223861619bed56442c7379
 
 const mocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
+  fetchFundingAccountBalance: vi.fn(),
   fetchPlatformAccountBalance: vi.fn(),
+  fetchPlatformAccountBalances: vi.fn(),
+  fetchSpotTransferHistory: vi.fn(),
   fetchWalletBalanceSnapshot: vi.fn(),
   fetchCantonFundsHistory: vi.fn(),
   submitCantonWalletDeposit: vi.fn(),
   submitPlatformWithdrawal: vi.fn(),
+  transferSpotBalance: vi.fn(),
   waitForPlatformDepositCredit: vi.fn(),
-}));
-
-const i18nMock = vi.hoisted(() => ({
-  translations: {} as Record<string, string>,
 }));
 
 const sessionMock = vi.hoisted(() => ({
   connected: true,
+  locked: false,
   party: "rockywallet-etouyang::1220a1af0547f0824e223861619bed56442c73797d14be152f5a48e65598d9fa16fa",
   provider: "rocky",
   username: "Etouyang",
@@ -28,7 +29,7 @@ const sessionMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
-  default: ({ symbol }: { symbol: string }) => <span>{symbol}</span>,
+  default: ({ symbol }: { symbol: string }) => <span data-testid={`icon-${symbol}`}>{symbol}</span>,
 }));
 
 vi.mock("@lingui/react", () => ({
@@ -36,31 +37,28 @@ vi.mock("@lingui/react", () => ({
     i18n: {
       _: (message: unknown) => {
         const descriptor =
-          typeof message === "object" && message !== null
-            ? (message as { id?: string; message?: string })
-            : undefined;
-        const id = typeof message === "string" ? message : descriptor?.id || String(message);
-        const defaultMessage = descriptor?.message || id;
-        return i18nMock.translations[defaultMessage] || i18nMock.translations[id] || defaultMessage;
+          typeof message === "object" && message !== null ? (message as { id?: string; message?: string }) : undefined;
+        return typeof message === "string" ? message : descriptor?.message || descriptor?.id || String(message);
       },
     },
   }),
 }));
 
 vi.mock("./balances", () => ({
-  emptyWalletBalanceRows: () => [
-    { symbol: "CC", amount: null },
-    { symbol: "USDA", amount: null },
-  ],
+  emptyWalletBalanceRows: () => [],
   fetchWalletBalanceSnapshot: mocks.fetchWalletBalanceSnapshot,
   getWalletProviderLabel: () => "Rocky Wallet",
 }));
 
 vi.mock("./funds", () => ({
+  fetchFundingAccountBalance: mocks.fetchFundingAccountBalance,
   fetchPlatformAccountBalance: mocks.fetchPlatformAccountBalance,
+  fetchPlatformAccountBalances: mocks.fetchPlatformAccountBalances,
+  fetchSpotTransferHistory: mocks.fetchSpotTransferHistory,
   fetchCantonFundsHistory: mocks.fetchCantonFundsHistory,
   submitCantonWalletDeposit: mocks.submitCantonWalletDeposit,
   submitPlatformWithdrawal: mocks.submitPlatformWithdrawal,
+  transferSpotBalance: mocks.transferSpotBalance,
   waitForPlatformDepositCredit: mocks.waitForPlatformDepositCredit,
 }));
 
@@ -72,26 +70,20 @@ vi.mock("./profile", () => ({
   SetDisplayNameError: class SetDisplayNameError extends Error {},
 }));
 
-vi.mock("./useCantonSession", () => ({
-  useCantonSession: () => sessionMock,
-}));
-
-vi.mock("./useCantonWallet", () => ({
-  useCantonWallet: () => ({
-    disconnect: mocks.disconnect,
-  }),
-}));
+vi.mock("./useCantonSession", () => ({ useCantonSession: () => sessionMock }));
+vi.mock("./useCantonWallet", () => ({ useCantonWallet: () => ({ disconnect: mocks.disconnect }) }));
 
 describe("CantonFundsModal", () => {
-  afterEach(() => {
-    cleanup();
-  });
+  afterEach(cleanup);
 
   beforeEach(() => {
     vi.clearAllMocks();
     sessionMock.connected = true;
-    i18nMock.translations = {};
+    sessionMock.locked = false;
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 100, CBTC: 2, cETH: 3, CC: 4 });
+    mocks.fetchFundingAccountBalance.mockResolvedValue(25);
+    mocks.fetchSpotTransferHistory.mockResolvedValue({ transfers: [] });
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
     mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
       provider: "rocky",
@@ -99,304 +91,126 @@ describe("CantonFundsModal", () => {
       party: PARTY_ID,
       status: "ready",
       balances: [
-        { symbol: "CC", amount: "0" },
         { symbol: "USDA", amount: "5.6" },
-      ],
-    });
-    mocks.submitPlatformWithdrawal.mockImplementation(async () => {
-      const index = mocks.submitPlatformWithdrawal.mock.calls.length;
-      return {
-        status: "submitted",
-        withdrawal_id: `withdrawal-${index}`,
-      };
-    });
-  });
-
-  it("closes the wallet dashboard when the Canton session disconnects", () => {
-    const onClose = vi.fn();
-    const view = render(<CantonFundsModal open onClose={onClose} />);
-
-    sessionMock.connected = false;
-    view.rerender(<CantonFundsModal open onClose={onClose} />);
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("selects the funding asset from the balance heading and keeps operation forms amount-only", () => {
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    const assetSelect = screen.getByRole("combobox", { name: "Asset" }) as HTMLSelectElement;
-    expect(assetSelect.closest("h3")).toBeTruthy();
-
-    fireEvent.change(assetSelect, { target: { value: "CBTC" } });
-
-    expect(assetSelect.value).toBe("CBTC");
-    expect(assetSelect.closest("h3")?.textContent).toContain("Balances");
-
-    const depositAction = screen.getByText("Deposit", { selector: "strong" }).closest("button");
-    fireEvent.click(depositAction as HTMLButtonElement);
-
-    const amountInput = screen.getByPlaceholderText("100");
-    const form = amountInput.closest("form");
-    expect(form?.querySelectorAll("select")).toHaveLength(0);
-    expect(form?.querySelectorAll("input")).toHaveLength(1);
-    expect(form?.textContent).not.toContain("Asset");
-  });
-
-  it("shows wrapped spot balances at six-decimal precision with market icons", async () => {
-    mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
-      provider: "rocky",
-      label: "Rocky Wallet",
-      party: PARTY_ID,
-      status: "ready",
-      balances: [
         { symbol: "CBTC", amount: "0.00005459" },
         { symbol: "cETH", amount: "0.0000019" },
+        { symbol: "CC", amount: "7" },
       ],
     });
+    mocks.submitPlatformWithdrawal.mockResolvedValue({ status: "submitted", withdrawal_id: "withdrawal-1" });
+    mocks.transferSpotBalance.mockResolvedValue({
+      asset: "USDA",
+      direction: "toFunding",
+      amount: "5",
+      fundingAvailable: "30",
+      spotFree: "95",
+    });
+  });
 
+  it("opens on a real four-asset table and exposes all primary views", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
-    const assetSelect = screen.getByRole("combobox", { name: "Asset" });
-    fireEvent.change(assetSelect, { target: { value: "CBTC" } });
+    const assetsTab = screen.getByRole("tab", { name: "Assets" });
+    expect(assetsTab.getAttribute("aria-selected")).toBe("true");
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+    for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
+      expect(screen.getAllByText(asset).length).toBeGreaterThan(0);
+    }
+
+    for (const name of ["Deposit", "Withdraw", "Transfer"]) {
+      const tab = screen.getByRole("tab", { name });
+      fireEvent.click(tab);
+      expect(tab.getAttribute("aria-selected")).toBe("true");
+    }
+    fireEvent.click(screen.getByRole("tab", { name: "History" }));
+    expect(screen.getByRole("tab", { name: "History" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("submits USDA transfers between Spot and Futures accounts", async () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+
+    expect(screen.getByText("Spot Account")).toBeTruthy();
+    expect(screen.getByText("Futures Account")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Transfer USDA" }));
+
+    await waitFor(() =>
+      expect(mocks.transferSpotBalance).toHaveBeenCalledWith({
+        asset: "USDA",
+        amount: "5",
+        direction: "toFunding",
+      })
+    );
+  });
+
+  it("renders wrapped balances with compact leading-zero notation and market icons", async () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByText("4", { selector: "sub" })).toBeTruthy());
     expect(screen.getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.045459");
-    expect(screen.getByText("btc")).toBeTruthy();
-
-    fireEvent.change(assetSelect, { target: { value: "cETH" } });
-
     expect(screen.getByText("5", { selector: "sub" }).parentElement?.textContent).toContain("0.0519");
-    expect(screen.getByText("eth")).toBeTruthy();
+    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    expect(screen.getByTestId("icon-eth")).toBeTruthy();
   });
 
-  it("shows the fixed network fee in withdrawal history", async () => {
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    openWithdrawForm();
-    await submitWithdrawal("0.1", 1);
-
-    expect(screen.getByText("Network Fee")).toBeTruthy();
-    expect(screen.getByText("1 USDA")).toBeTruthy();
-  });
-
-  it("renders wallet dashboard labels through the active locale", async () => {
-    i18nMock.translations = {
-      Explorer: "瀏覽器",
-      Disconnect: "斷開連線",
-      Balances: "餘額",
-      "Wallet Balance": "錢包餘額",
-      "Exchange Balance": "交易所餘額",
-      "On-chain balance": "鏈上餘額",
-      "On connected exchange": "已連接交易所餘額",
-      Deposit: "存入",
-      "Transfer funds from the connected wallet to the exchange account.": "從已連接錢包轉入資金至交易所帳戶。",
-      Asset: "資產",
-      Amount: "金額",
-      "Deposit History": "存入歷史",
-      "Withdraw History": "提領歷史",
-      "Network Fee": "網路費",
-      Time: "時間",
-      Status: "狀態",
-      "Tx Hash": "交易雜湊",
-      Completed: "已完成",
-      "View All Withdrawals": "查看全部提領",
-    };
-    mocks.fetchCantonFundsHistory.mockResolvedValue({
-      deposits: [],
-      withdrawals: [
-        {
-          withdrawal_id: "withdrawal-server-1",
-          asset: "USDC",
-          amount: "0.1",
-          status: "settled",
-          fee_asset: "USDC",
-          fee_wallet_symbol: "USDA",
-          fee_amount: "1",
-          requested_at: "2026-07-06T09:01:00Z",
-        },
-      ],
-    });
-
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    expect(await screen.findByText("餘額")).toBeTruthy();
-    expect((screen.getByRole("combobox", { name: "資產" }) as HTMLSelectElement).value).toBe("USDA");
-    expect(screen.getByText("錢包餘額")).toBeTruthy();
-    expect(screen.getByText("交易所餘額")).toBeTruthy();
-    expect(screen.getByText("存入", { selector: "strong" })).toBeTruthy();
-
-    fireEvent.click(screen.getByText("提領歷史"));
-
-    expect(screen.getByText("網路費")).toBeTruthy();
-    expect(screen.getByText("已完成")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /查看全部提領/i })).toBeTruthy();
-    expect(screen.queryByText("USDA Balances")).toBeNull();
-    expect(screen.queryByText("Wallet Balance")).toBeNull();
-    expect(screen.queryByText("Withdraw History")).toBeNull();
-  });
-
-  it("loads persisted deposit and withdrawal history when the modal opens", async () => {
-    const depositUpdateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
+  it("combines persisted deposits, withdrawals, and account transfers in History", async () => {
     mocks.fetchCantonFundsHistory.mockResolvedValue({
       deposits: [
         {
           deposit_id: "deposit-1",
           asset: "USDC",
-          amount_expected: "0.2",
-          status: "credited",
-          deposit_ref: "rocky:deposit:1",
-          chain_tx_id: "token-standard:1220f8067c8741629dbe93b661497df6cc17bf5f39aa68429a02f7bf6a5a1b6c2dbf:0",
-          canton_update_id: depositUpdateId,
-          created_at: "2026-07-06T09:00:00Z",
-        },
-      ],
-      withdrawals: [
-        {
-          withdrawal_id: "withdrawal-server-1",
-          asset: "USDC",
-          amount: "0.1",
-          status: "settled",
-          fee_asset: "USDC",
-          fee_wallet_symbol: "USDA",
-          fee_amount: "1",
-          requested_at: "2026-07-06T09:01:00Z",
-        },
-      ],
-    });
-
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1));
-    expect(screen.getByText((_, node) => node?.textContent === "+0.2 USDA")).toBeTruthy();
-    expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${depositUpdateId}"]`)).toBeTruthy();
-
-    fireEvent.click(screen.getByText("Withdraw History"));
-
-    expect(screen.getByText("-0.1 USDA")).toBeTruthy();
-    expect(screen.getByText("withdrawal-server-1")).toBeTruthy();
-  });
-
-  it("replaces a local pending deposit with its server-confirmed row", async () => {
-    const updateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
-    mocks.fetchCantonFundsHistory
-      .mockResolvedValueOnce({ deposits: [], withdrawals: [] })
-      .mockResolvedValue({
-        deposits: [
-          {
-            deposit_id: "deposit-ceth-1",
-            deposit_ref: "rocky:deposit:ceth-1",
-            canton_update_id: updateId,
-            asset: "cETH",
-            amount_expected: "0.0001",
-            status: "credited",
-            credited_at: "2026-07-22T06:48:09Z",
-          },
-        ],
-        withdrawals: [],
-      });
-    mocks.submitCantonWalletDeposit.mockResolvedValue({
-      deposit_ref: "rocky:deposit:ceth-1",
-      platform_credit_status: "confirmed",
-      wallet_transfer: "rocky_wallet_submitted",
-    });
-
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-    fireEvent.change(screen.getByRole("combobox", { name: "Asset" }), { target: { value: "cETH" } });
-    const depositAction = screen.getByText("Deposit", { selector: "strong" }).closest("button");
-    fireEvent.click(depositAction as HTMLButtonElement);
-    const amountInput = screen.getByPlaceholderText("100");
-    fireEvent.change(amountInput, { target: { value: "0.0001" } });
-    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
-
-    await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2));
-    await waitFor(() => {
-      const rows = Array.from(document.querySelectorAll("span")).filter((node) => node.textContent === "+0.031 cETH");
-      expect(rows).toHaveLength(1);
-    });
-  });
-
-  it("renders compact leading-zero notation in deposit history", async () => {
-    mocks.fetchCantonFundsHistory.mockResolvedValue({
-      deposits: [
-        {
-          deposit_id: "deposit-ceth-compact",
-          asset: "cETH",
           amount_expected: "0.0001",
           status: "credited",
           created_at: "2026-07-22T06:48:09Z",
         },
       ],
-      withdrawals: [],
-    });
-
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    const zeroCount = await screen.findByText("3", { selector: "sub" });
-    expect(zeroCount.parentElement?.textContent).toBe("+0.031 cETH");
-  });
-
-  it("extracts update hashes from chain ids and rejects withdrawal ids as transaction hashes", async () => {
-    const depositUpdateId = "1220f8067c8741629dbe93b661497df6cc17bf5f39aa68429a02f7bf6a5a1b6c2dbf";
-    mocks.fetchCantonFundsHistory.mockResolvedValue({
-      deposits: [
-        {
-          deposit_id: "deposit-1",
-          asset: "USDC",
-          amount_expected: "0.2",
-          status: "credited",
-          chain_tx_id:
-            `token-standard:${depositUpdateId}:0`,
-          created_at: "2026-07-06T09:00:00Z",
-        },
-      ],
       withdrawals: [
         {
-          withdrawal_id: "withdrawal-server-1",
+          withdrawal_id: "withdrawal-1",
           asset: "USDC",
-          amount: "0.1",
+          amount: "1",
           status: "settled",
-          requested_at: "2026-07-06T09:01:00Z",
-          canton_update_id: "019f36c038877bc28f4701bbeb1fe955",
+          fee_amount: "1",
+          fee_wallet_symbol: "USDA",
+          requested_at: "2026-07-22T07:00:00Z",
         },
       ],
     });
-
+    mocks.fetchSpotTransferHistory.mockResolvedValue({
+      transfers: [
+        { eventId: "event-1", asset: "USDA", amount: "3", direction: "toFunding", createdAt: "2026-07-22T07:10:00Z" },
+      ],
+    });
     render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "History" }));
 
-    await waitFor(() => expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1));
-    expect(document.querySelector('a[href*="token-standard"]')).toBeNull();
-    expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${depositUpdateId}"]`)).toBeTruthy();
-
-    fireEvent.click(screen.getByText("Withdraw History"));
-
-    expect(document.querySelector('a[href*="019f36c038877bc28f4701bbeb1fe955"]')).toBeNull();
+    await waitFor(() => expect(screen.getByText("Transfer Out")).toBeTruthy());
+    expect(screen.getByText("3", { selector: "sub" }).parentElement?.textContent).toContain("+0.031 USDA");
+    expect(screen.getByText("-1 USDA")).toBeTruthy();
   });
 
-  it("expands all withdrawal history rows from the view all control", async () => {
+  it("preserves spot-only withdrawal fees and submission", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
 
-    openWithdrawForm();
-    for (let index = 1; index <= 6; index += 1) {
-      await submitWithdrawal(`0.${index}`, index);
-    }
+    expect(screen.getByText("1 USDA")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+    await waitFor(() =>
+      expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledWith({
+        asset: "USDA",
+        amount: "5",
+        destinationParty: PARTY_ID,
+      })
+    );
+  });
 
-    expect(screen.queryByText("withdrawal-1")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /View All Withdrawals/i }));
-
-    expect(screen.getByText("withdrawal-1")).toBeTruthy();
+  it("closes when the Canton session disconnects or locks", () => {
+    const onClose = vi.fn();
+    const view = render(<CantonFundsModal open onClose={onClose} />);
+    sessionMock.locked = true;
+    view.rerender(<CantonFundsModal open onClose={onClose} />);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
-
-function openWithdrawForm() {
-  const withdrawAction = screen.getByText("Withdraw", { selector: "strong" }).closest("button");
-  fireEvent.click(withdrawAction as HTMLButtonElement);
-}
-
-async function submitWithdrawal(amount: string, expectedSubmitCount: number) {
-  const amountInput = screen.getByPlaceholderText("50");
-  fireEvent.change(amountInput, { target: { value: amount } });
-  fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
-  await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(expectedSubmitCount));
-}

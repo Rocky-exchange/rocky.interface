@@ -19,13 +19,19 @@ import {
 import styles from "./CantonFundsModal.module.scss";
 import {
   fetchCantonFundsHistory,
+  fetchFundingAccountBalance,
   fetchPlatformAccountBalance,
+  fetchPlatformAccountBalances,
+  fetchSpotTransferHistory,
   submitCantonWalletDeposit,
   submitPlatformWithdrawal,
+  transferSpotBalance,
   waitForPlatformDepositCredit,
   type CantonDepositResult,
   type CantonFundsHistory,
   type CantonFundsAsset,
+  type CantonSpotTransferHistory,
+  type PlatformAccountBalances,
 } from "./funds";
 import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDisplayNameError } from "./profile";
 import { useCantonSession } from "./useCantonSession";
@@ -37,14 +43,16 @@ type Props = {
   onClose: () => void;
 };
 
-type FundsAction = "deposit" | "withdraw";
-type HistoryTab = "deposit" | "withdraw";
+type WalletView = "assets" | "deposit" | "withdraw" | "history" | "transfer";
+type HistoryType = "deposit" | "withdraw" | "transfer";
+type HistoryFilter = "all" | HistoryType;
 type LocalHistoryRow = {
   id: string;
-  type: HistoryTab;
+  type: HistoryType;
   time: string;
   asset: CantonFundsAsset;
   amount: string;
+  direction?: "toSpot" | "toFunding";
   networkFee?: string;
   status: string;
   reference?: string;
@@ -55,6 +63,12 @@ type LocalHistoryRow = {
 const FIXED_WITHDRAWAL_FEE_AMOUNT = 1;
 const PENDING_DEPOSIT_CONFIRM_ATTEMPTS = 36;
 const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
+const EMPTY_PLATFORM_BALANCES: PlatformAccountBalances = {
+  USDA: null,
+  CBTC: null,
+  cETH: null,
+  CC: null,
+};
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
@@ -65,8 +79,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [activeAction, setActiveAction] = useState<FundsAction | "">("");
-  const [historyTab, setHistoryTab] = useState<HistoryTab>("deposit");
+  const [activeView, setActiveView] = useState<WalletView>("assets");
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
+  const [activeAction, setActiveAction] = useState<"deposit" | "withdraw" | "">("");
+  const historyTab: "deposit" | "withdraw" = "deposit";
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [localHistory, setLocalHistory] = useState<LocalHistoryRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -75,6 +91,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawAvailable, setWithdrawAvailable] = useState<number | null>(null);
   const [withdrawAvailableLoading, setWithdrawAvailableLoading] = useState(false);
+  const [platformBalances, setPlatformBalances] = useState<PlatformAccountBalances>(EMPTY_PLATFORM_BALANCES);
+  const [fundingAvailable, setFundingAvailable] = useState<number | null>(null);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assetFilter, setAssetFilter] = useState<"all" | CantonFundsAsset>("all");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDirection, setTransferDirection] = useState<"toSpot" | "toFunding">("toFunding");
+  const [transferBusy, setTransferBusy] = useState(false);
   const [depositResult, setDepositResult] = useState<CantonDepositResult | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -108,15 +131,24 @@ export function CantonFundsModal({ open, onClose }: Props) {
       : "";
   const dashboardRefreshing = balanceLoading || withdrawAvailableLoading || depositConfirming || historyLoading;
   const historyItems = useMemo(
-    () => localHistory.filter((item) => item.type === historyTab),
-    [historyTab, localHistory]
+    () => localHistory.filter((item) => historyFilter === "all" || item.type === historyFilter),
+    [historyFilter, localHistory]
   );
   const visibleHistory = useMemo(
-    () => (showAllHistory ? historyItems : historyItems.slice(0, 3)),
+    () => (showAllHistory ? historyItems : historyItems.slice(0, 8)),
     [historyItems, showAllHistory]
   );
-  const canToggleHistory = historyItems.length > 3;
+  const canToggleHistory = historyItems.length > 8;
   const walletExplorerUrl = getCantonScanPartyUrl(walletParty);
+  const filteredAssets = useMemo(() => {
+    const query = assetSearch.trim().toLowerCase();
+    return CANTON_FUNDING_ASSETS.filter(
+      (asset) =>
+        (assetFilter === "all" || asset.symbol === assetFilter) &&
+        (!query || asset.symbol.toLowerCase().includes(query))
+    );
+  }, [assetFilter, assetSearch]);
+  const transferSourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingAvailable;
 
   useEffect(() => {
     if (open && (!connected || locked)) onClose();
@@ -126,11 +158,21 @@ export function CantonFundsModal({ open, onClose }: Props) {
     if (!connected) return;
     setBalanceLoading(true);
     try {
-      setSnapshot(await fetchWalletBalanceSnapshot());
+      const [snapshotResult, platformResult, fundingResult] = await Promise.allSettled([
+        fetchWalletBalanceSnapshot(),
+        fetchPlatformAccountBalances(),
+        fetchFundingAccountBalance(),
+      ]);
+      if (snapshotResult.status === "fulfilled") setSnapshot(snapshotResult.value);
+      if (platformResult.status === "fulfilled") {
+        setPlatformBalances(platformResult.value);
+        setWithdrawAvailable(platformResult.value[selectedAsset]);
+      }
+      if (fundingResult.status === "fulfilled") setFundingAvailable(fundingResult.value);
     } finally {
       setBalanceLoading(false);
     }
-  }, [connected]);
+  }, [connected, selectedAsset]);
 
   const refreshWithdrawAvailable = useCallback(async () => {
     if (!connected) {
@@ -141,6 +183,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     try {
       const available = await fetchPlatformAccountBalance(selectedAsset);
       setWithdrawAvailable(available);
+      setPlatformBalances((current) => ({ ...current, [selectedAsset]: available }));
       return available;
     } finally {
       setWithdrawAvailableLoading(false);
@@ -151,8 +194,15 @@ export function CantonFundsModal({ open, onClose }: Props) {
     if (!connected) return;
     setHistoryLoading(true);
     try {
-      const history = await fetchCantonFundsHistory();
-      const serverRows = mapFundsHistoryToLocalRows(history);
+      const [fundsResult, transfersResult] = await Promise.allSettled([
+        fetchCantonFundsHistory(),
+        fetchSpotTransferHistory(),
+      ]);
+      if (fundsResult.status === "rejected" && transfersResult.status === "rejected") throw fundsResult.reason;
+      const serverRows = [
+        ...(fundsResult.status === "fulfilled" ? mapFundsHistoryToLocalRows(fundsResult.value) : []),
+        ...(transfersResult.status === "fulfilled" ? mapSpotTransferHistoryToLocalRows(transfersResult.value) : []),
+      ].sort((left, right) => Date.parse(right.time) - Date.parse(left.time));
       setLocalHistory((currentRows) => mergeHistoryRows(serverRows, currentRows));
     } catch (err) {
       setError(errorMessage(err));
@@ -162,8 +212,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   }, [connected]);
 
   const refreshWalletDashboard = useCallback(async () => {
-    await Promise.all([refreshBalances(), refreshWithdrawAvailable(), refreshFundsHistory()]);
-  }, [refreshBalances, refreshFundsHistory, refreshWithdrawAvailable]);
+    await Promise.all([refreshBalances(), refreshFundsHistory()]);
+  }, [refreshBalances, refreshFundsHistory]);
 
   useEffect(() => {
     if (!open || !connected) {
@@ -177,8 +227,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
   }, [connected, open, refreshWalletDashboard]);
 
   useEffect(() => {
-    if (open && connected) void refreshWithdrawAvailable();
-  }, [connected, open, refreshWithdrawAvailable, selectedAsset]);
+    if (!open || !connected) return;
+    setWithdrawAvailable(platformBalances[selectedAsset]);
+  }, [connected, open, platformBalances, selectedAsset]);
 
   useEffect(() => {
     if (!copiedKey) return;
@@ -221,7 +272,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setDepositResult(result);
       setDepositAmount("");
       setNotice(depositNotice(result));
-      setHistoryTab("deposit");
+      setHistoryFilter("deposit");
       setShowAllHistory(false);
       const depositUpdateId = result.canton_update_id || result.accept_update_id;
       prependHistory({
@@ -314,7 +365,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       const withdrawalUpdateId =
         stringField(result, "canton_update_id") || stringField(result, "update_id") || stringField(result, "tx_hash");
       setNotice(withdrawalRef ? i18n._(t`Withdrawal submitted: ${withdrawalRef}`) : i18n._(t`Withdrawal submitted`));
-      setHistoryTab("withdraw");
+      setHistoryFilter("withdraw");
       setShowAllHistory(false);
       prependHistory({
         type: "withdraw",
@@ -330,6 +381,34 @@ export function CantonFundsModal({ open, onClose }: Props) {
       setError(errorMessage(err));
     } finally {
       setWithdrawBusy(false);
+    }
+  }
+
+  async function handleTransfer(event: FormEvent) {
+    event.preventDefault();
+    const amount = transferAmount.trim();
+    const amountNumber = Number(amount);
+    const sourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingAvailable;
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) return;
+    if (sourceAvailable !== null && amountNumber > sourceAvailable) {
+      setError(i18n._(t`Insufficient balance for this transfer.`));
+      return;
+    }
+    setTransferBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await transferSpotBalance({ asset: "USDA", amount, direction: transferDirection });
+      setPlatformBalances((current) => ({ ...current, USDA: Number(result.spotFree) }));
+      setFundingAvailable(Number(result.fundingAvailable));
+      setTransferAmount("");
+      setNotice(i18n._(t`Transfer completed.`));
+      setHistoryFilter("transfer");
+      await refreshWalletDashboard();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setTransferBusy(false);
     }
   }
 
@@ -427,8 +506,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
   }
 
-  function selectHistoryTab(nextTab: HistoryTab) {
-    setHistoryTab(nextTab);
+  function selectHistoryTab(nextTab: HistoryFilter) {
+    setHistoryFilter(nextTab);
     setShowAllHistory(false);
   }
 
@@ -586,189 +665,423 @@ export function CantonFundsModal({ open, onClose }: Props) {
           </div>
         </header>
 
-        <div className={styles.content}>
-          <section className={styles.balanceCard}>
-            <div className={styles.sectionHeader}>
-              <h3>
+        <main className={styles.walletWorkspace}>
+          <nav className={styles.primaryTabs} role="tablist" aria-label={i18n._(t`Wallet funds`)}>
+            {(["assets", "deposit", "withdraw", "history", "transfer"] as WalletView[]).map((view) => (
+              <button
+                key={view}
+                type="button"
+                role="tab"
+                aria-selected={activeView === view}
+                className={cx(styles.primaryTab, activeView === view && styles.primaryTabActive)}
+                onClick={() => {
+                  setActiveView(view);
+                  setError("");
+                  setNotice("");
+                }}
+              >
+                <span className={styles.primaryTabIcon} aria-hidden="true">
+                  {view === "assets" ? <AssetsIcon /> : null}
+                  {view === "deposit" ? <DepositIcon /> : null}
+                  {view === "withdraw" ? <WithdrawIcon /> : null}
+                  {view === "history" ? <HistoryIcon /> : null}
+                  {view === "transfer" ? <TransferIcon /> : null}
+                </span>
+                {view === "assets" ? i18n._(t`Assets`) : null}
+                {view === "deposit" ? i18n._(t`Deposit`) : null}
+                {view === "withdraw" ? i18n._(t`Withdraw`) : null}
+                {view === "history" ? i18n._(t`History`) : null}
+                {view === "transfer" ? i18n._(t`Transfer`) : null}
+              </button>
+            ))}
+          </nav>
+
+          {activeView === "assets" ? (
+            <section className={styles.assetsView}>
+              <div className={styles.assetsToolbar}>
                 <select
-                  className={styles.headingAssetSelect}
-                  aria-label={i18n._(t`Asset`)}
-                  value={selectedAsset}
-                  onChange={(event) => {
-                    setSelectedAsset(event.target.value as CantonFundsAsset);
-                    setDepositAmount("");
-                    setWithdrawAmount("");
-                    setError("");
-                  }}
+                  value={assetFilter}
+                  onChange={(event) => setAssetFilter(event.target.value as "all" | CantonFundsAsset)}
+                  aria-label={i18n._(t`Asset filter`)}
                 >
+                  <option value="all">{i18n._(t`All Assets`)}</option>
                   {CANTON_FUNDING_ASSETS.map((asset) => (
                     <option key={asset.symbol} value={asset.symbol}>
                       {asset.symbol}
                     </option>
                   ))}
                 </select>
-                {i18n._(t`Balances`)}
+                <div className={styles.assetSearch}>
+                  <SearchIcon />
+                  <input
+                    value={assetSearch}
+                    onChange={(event) => setAssetSearch(event.target.value)}
+                    placeholder={i18n._(t`Search asset`)}
+                    aria-label={i18n._(t`Search asset`)}
+                  />
+                </div>
                 <button
                   type="button"
                   className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
-                  onClick={() => {
-                    void refreshWalletDashboard();
-                  }}
+                  onClick={() => void refreshWalletDashboard()}
                   disabled={dashboardRefreshing}
-                  aria-label={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
-                  title={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                  aria-label={i18n._(t`Refresh balances`)}
                 >
                   <RefreshIcon />
                 </button>
-              </h3>
-            </div>
+              </div>
+              <div className={styles.assetTable}>
+                <div className={styles.assetTableHead}>
+                  <span>{i18n._(t`Asset`)}</span>
+                  <span>{i18n._(t`Wallet Balance`)}</span>
+                  <span>{i18n._(t`Exchange Balance`)}</span>
+                  <span aria-hidden="true" />
+                </div>
+                {filteredAssets.map((asset) => {
+                  const walletBalance = getBalanceAmount(walletRows, asset.symbol);
+                  const exchangeBalance = platformBalances[asset.symbol];
+                  return (
+                    <button
+                      type="button"
+                      className={styles.assetRow}
+                      key={asset.symbol}
+                      onClick={() => {
+                        setSelectedAsset(asset.symbol);
+                        setActiveView("deposit");
+                      }}
+                      aria-label={i18n._(t`Deposit ${asset.symbol}`)}
+                    >
+                      <span className={styles.assetIdentity}>
+                        <TokenIcon symbol={spotMarketAssetIconSymbol(asset.symbol)} displaySize={36} />
+                        <strong>{asset.symbol}</strong>
+                      </span>
+                      <span className={styles.assetBalanceValue}>
+                        {walletBalance === null ? (
+                          "-"
+                        ) : (
+                          <CompactAssetAmount value={walletBalance} asset={asset.symbol} />
+                        )}{" "}
+                        {walletBalance === null ? null : <small>{asset.symbol}</small>}
+                      </span>
+                      <span className={styles.assetBalanceValue}>
+                        {exchangeBalance === null ? (
+                          "-"
+                        ) : (
+                          <CompactAssetAmount value={exchangeBalance} asset={asset.symbol} />
+                        )}{" "}
+                        {exchangeBalance === null ? null : <small>{asset.symbol}</small>}
+                      </span>
+                      <ChevronIcon />
+                    </button>
+                  );
+                })}
+                {filteredAssets.length === 0 ? (
+                  <div className={styles.historyEmpty}>{i18n._(t`No assets found`)}</div>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
 
-            <div className={styles.balanceGrid}>
-              <div className={styles.balanceItem}>
-                <TokenIcon
-                  symbol={spotMarketAssetIconSymbol(selectedAsset)}
-                  displaySize={40}
-                  className={styles.tokenIcon}
-                />
+          {activeView === "deposit" || activeView === "withdraw" ? (
+            <section className={styles.taskView}>
+              <div className={styles.taskHeader}>
+                <button
+                  type="button"
+                  className={styles.backButton}
+                  onClick={() => setActiveView("assets")}
+                  aria-label={i18n._(t`Back to assets`)}
+                >
+                  <BackIcon />
+                </button>
                 <div>
-                  <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
-                  <div className={styles.balanceValue}>
-                    <CompactAssetAmount value={selectedWalletBalance} asset={selectedAsset} />{" "}
-                    <span>{selectedAsset}</span>
-                  </div>
-                  <div className={styles.balanceCaption}>{i18n._(t`On-chain balance`)}</div>
+                  <h3>{activeView === "deposit" ? i18n._(t`Deposit`) : i18n._(t`Withdraw`)}</h3>
+                  <p>
+                    {activeView === "deposit"
+                      ? i18n._(t`Transfer funds from the connected wallet to the exchange account.`)
+                      : i18n._(t`Move platform available balance back to the connected wallet party.`)}
+                  </p>
                 </div>
               </div>
-              <div className={styles.balanceItem}>
-                <div className={cx(styles.exchangeIcon, logoFitClass(styles, walletLogo.fit))}>
-                  <img src="/favicon.svg" alt="" className={styles.providerLogo} />
-                </div>
+              <form className={styles.compactForm} onSubmit={activeView === "deposit" ? handleDeposit : handleWithdraw}>
+                <label className={styles.field}>
+                  <span>{i18n._(t`Asset`)}</span>
+                  <select
+                    value={selectedAsset}
+                    onChange={(event) => {
+                      setSelectedAsset(event.target.value as CantonFundsAsset);
+                      setDepositAmount("");
+                      setWithdrawAmount("");
+                    }}
+                    aria-label={i18n._(t`Asset`)}
+                  >
+                    {CANTON_FUNDING_ASSETS.map((asset) => (
+                      <option key={asset.symbol} value={asset.symbol}>
+                        {asset.symbol}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.fieldHeading}>
+                    <span>{i18n._(t`Amount`)}</span>
+                    <small>
+                      {i18n._(t`Available`)}:{" "}
+                      {activeView === "deposit" ? (
+                        <CompactAssetAmount value={selectedWalletBalance} asset={selectedAsset} />
+                      ) : withdrawAvailable === null ? (
+                        "-"
+                      ) : (
+                        <CompactAssetAmount value={withdrawAvailable} asset={selectedAsset} />
+                      )}{" "}
+                      {selectedAsset}
+                    </small>
+                  </span>
+                  <span className={styles.amountInput}>
+                    <input
+                      value={activeView === "deposit" ? depositAmount : withdrawAmount}
+                      onChange={(event) =>
+                        activeView === "deposit"
+                          ? setDepositAmount(event.target.value)
+                          : setWithdrawAmount(event.target.value)
+                      }
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      aria-label={activeView === "deposit" ? i18n._(t`Deposit amount`) : i18n._(t`Withdraw amount`)}
+                    />
+                    <strong>{selectedAsset}</strong>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const available = activeView === "deposit" ? selectedWalletBalance : withdrawAvailable;
+                        if (available !== null && available !== undefined) {
+                          const numeric = Number(available);
+                          const next =
+                            activeView === "withdraw" && selectedAsset === "USDA"
+                              ? Math.max(0, numeric - FIXED_WITHDRAWAL_FEE_AMOUNT)
+                              : numeric;
+                          if (activeView === "deposit") setDepositAmount(String(next));
+                          else setWithdrawAmount(String(next));
+                        }
+                      }}
+                    >
+                      {i18n._(t`Max`)}
+                    </button>
+                  </span>
+                </label>
+                {activeView === "withdraw" ? (
+                  <>
+                    <div className={styles.detailLine}>
+                      <span>{i18n._(t`Destination`)}</span>
+                      <strong title={walletParty || ""}>{abbreviateMiddle(walletParty, 34)}</strong>
+                    </div>
+                    <div className={styles.detailLine}>
+                      <span>{i18n._(t`Network Fee`)}</span>
+                      <strong>{withdrawalFeeLabel(selectedAsset)}</strong>
+                    </div>
+                    {withdrawAvailableError ? <div className={styles.errorText}>{withdrawAvailableError}</div> : null}
+                  </>
+                ) : null}
+                <button
+                  type="submit"
+                  className={styles.primarySubmit}
+                  disabled={
+                    activeView === "deposit"
+                      ? depositBusy || !depositAmount.trim() || !walletParty
+                      : withdrawBusy || !withdrawAmount.trim() || !walletParty || withdrawExceedsAvailable
+                  }
+                >
+                  {activeView === "deposit"
+                    ? depositBusy
+                      ? i18n._(t`Depositing...`)
+                      : i18n._(t`Deposit`)
+                    : withdrawBusy
+                      ? i18n._(t`Withdrawing...`)
+                      : i18n._(t`Withdraw`)}
+                </button>
+                {activeView === "deposit" && depositResult?.deposit_ref ? (
+                  <DepositReferenceView result={depositResult} copiedKey={copiedKey} onCopy={copyValue} />
+                ) : null}
+              </form>
+            </section>
+          ) : null}
+
+          {activeView === "transfer" ? (
+            <section className={styles.taskView}>
+              <div className={styles.taskHeader}>
+                <button
+                  type="button"
+                  className={styles.backButton}
+                  onClick={() => setActiveView("assets")}
+                  aria-label={i18n._(t`Back to assets`)}
+                >
+                  <BackIcon />
+                </button>
                 <div>
-                  <div className={styles.balanceLabel}>{i18n._(t`Exchange Balance`)}</div>
-                  <div className={styles.balanceValue}>
-                    {withdrawAvailable === null ? (
-                      "-"
-                    ) : (
-                      <CompactAssetAmount value={withdrawAvailable} asset={selectedAsset} />
-                    )}{" "}
-                    <span>{selectedAsset}</span>
-                  </div>
-                  <div className={styles.balanceCaption}>{i18n._(t`On connected exchange`)}</div>
+                  <h3>{i18n._(t`Transfer`)}</h3>
+                  <p>{i18n._(t`Move USDA between Spot and Futures accounts.`)}</p>
                 </div>
               </div>
-            </div>
-
-            {snapshot?.message ? <div className={styles.snapshotMessage}>{snapshot.message}</div> : null}
-          </section>
-
-          <section className={styles.actionGrid}>
-            <button
-              type="button"
-              className={cx(styles.actionCard, styles.depositAction, activeAction === "deposit" && styles.actionActive)}
-              onClick={() => setActiveAction((prev) => (prev === "deposit" ? "" : "deposit"))}
-            >
-              <span className={styles.actionIcon}>
-                <DepositIcon />
-              </span>
-              <span>
-                <strong>{i18n._(t`Deposit`)}</strong>
-                <small>{i18n._(t`Deposit ${selectedAsset} to Rocky Exchange`)}</small>
-              </span>
-              <span className={styles.actionChevron}>
-                {activeAction === "deposit" ? <ChevronDownIcon /> : <ChevronIcon />}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={cx(
-                styles.actionCard,
-                styles.withdrawAction,
-                activeAction === "withdraw" && styles.actionActive
-              )}
-              onClick={() => setActiveAction((prev) => (prev === "withdraw" ? "" : "withdraw"))}
-            >
-              <span className={styles.actionIcon}>
-                <WithdrawIcon />
-              </span>
-              <span>
-                <strong>{i18n._(t`Withdraw`)}</strong>
-                <small>{i18n._(t`Withdraw ${selectedAsset} to your Wallet`)}</small>
-              </span>
-              <span className={styles.actionChevron}>
-                {activeAction === "withdraw" ? <ChevronDownIcon /> : <ChevronIcon />}
-              </span>
-            </button>
-          </section>
-
-          {activeAction ? (
-            <section className={styles.operationPanel}>
-              {activeAction === "deposit" ? (
-                <form className={styles.operationForm} onSubmit={handleDeposit}>
-                  <div className={styles.operationHeader}>
-                    <div>
-                      <h3>{i18n._(t`Deposit`)}</h3>
-                      <p>{i18n._(t`Transfer funds from the connected wallet to the exchange account.`)}</p>
-                    </div>
-                  </div>
-                  <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      <span>{i18n._(t`Amount`)}</span>
-                      <input
-                        value={depositAmount}
-                        onChange={(event) => setDepositAmount(event.target.value)}
-                        inputMode="decimal"
-                        placeholder="100"
-                      />
-                    </label>
+              <form className={styles.compactForm} onSubmit={handleTransfer}>
+                <div className={styles.accountRoute}>
+                  <div className={styles.accountBox}>
+                    <small>{i18n._(t`From`)}</small>
+                    <strong>
+                      {transferDirection === "toFunding" ? i18n._(t`Spot Account`) : i18n._(t`Futures Account`)}
+                    </strong>
+                    <span>
+                      {transferSourceAvailable === null ? "-" : formatDisplayAmount(transferSourceAvailable)} USDA
+                    </span>
                   </div>
                   <button
-                    type="submit"
-                    className={styles.primarySubmit}
-                    disabled={depositBusy || !depositAmount.trim() || !walletParty}
+                    type="button"
+                    className={styles.swapButton}
+                    onClick={() => setTransferDirection((value) => (value === "toFunding" ? "toSpot" : "toFunding"))}
+                    aria-label={i18n._(t`Swap accounts`)}
                   >
-                    {depositBusy ? i18n._(t`Depositing...`) : i18n._(t`Deposit`)}
+                    <TransferIcon />
                   </button>
-                  {depositResult?.deposit_ref ? (
-                    <DepositReferenceView result={depositResult} copiedKey={copiedKey} onCopy={copyValue} />
-                  ) : null}
-                </form>
-              ) : (
-                <form className={styles.operationForm} onSubmit={handleWithdraw}>
-                  <div className={styles.operationHeader}>
-                    <div>
-                      <h3>{i18n._(t`Withdraw`)}</h3>
-                      <p>{i18n._(t`Move platform available balance back to the connected wallet party.`)}</p>
-                    </div>
+                  <div className={styles.accountBox}>
+                    <small>{i18n._(t`To`)}</small>
+                    <strong>
+                      {transferDirection === "toFunding" ? i18n._(t`Futures Account`) : i18n._(t`Spot Account`)}
+                    </strong>
+                    <span>
+                      {transferDirection === "toFunding"
+                        ? fundingAvailable === null
+                          ? "-"
+                          : formatDisplayAmount(fundingAvailable)
+                        : platformBalances.USDA === null
+                          ? "-"
+                          : formatDisplayAmount(platformBalances.USDA)}{" "}
+                      USDA
+                    </span>
                   </div>
-                  <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      <span>{i18n._(t`Amount`)}</span>
-                      <input
-                        value={withdrawAmount}
-                        onChange={(event) => setWithdrawAmount(event.target.value)}
-                        inputMode="decimal"
-                        placeholder="50"
-                      />
-                    </label>
-                  </div>
-                  <div className={styles.destinationLine}>
-                    <span>{i18n._(t`Destination`)}</span>
-                    <strong title={walletParty || ""}>{abbreviateMiddle(walletParty, 42)}</strong>
-                  </div>
-                  <div className={styles.destinationLine}>
-                    <span>{i18n._(t`Fee`)}</span>
-                    <strong>{withdrawalFeeLabel(selectedAsset)}</strong>
-                  </div>
-                  {withdrawAvailableError ? <div className={styles.errorText}>{withdrawAvailableError}</div> : null}
+                </div>
+                <label className={styles.field}>
+                  <span className={styles.fieldHeading}>
+                    <span>{i18n._(t`Amount`)}</span>
+                    <small>
+                      {i18n._(t`Available`)}:{" "}
+                      {transferSourceAvailable === null ? "-" : formatDisplayAmount(transferSourceAvailable)} USDA
+                    </small>
+                  </span>
+                  <span className={styles.amountInput}>
+                    <input
+                      value={transferAmount}
+                      onChange={(event) => setTransferAmount(event.target.value)}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      aria-label={i18n._(t`Transfer amount`)}
+                    />
+                    <strong>USDA</strong>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        transferSourceAvailable !== null && setTransferAmount(String(transferSourceAvailable))
+                      }
+                    >
+                      {i18n._(t`Max`)}
+                    </button>
+                  </span>
+                </label>
+                <button
+                  type="submit"
+                  className={styles.primarySubmit}
+                  disabled={transferBusy || !transferAmount.trim()}
+                  aria-label={i18n._(t`Transfer USDA`)}
+                >
+                  {transferBusy ? i18n._(t`Transferring...`) : i18n._(t`Transfer`)}
+                </button>
+              </form>
+            </section>
+          ) : null}
+
+          {activeView === "history" ? (
+            <section className={styles.historyView}>
+              <div className={styles.historyFilters} role="tablist" aria-label={i18n._(t`History type`)}>
+                {(["all", "deposit", "withdraw", "transfer"] as HistoryFilter[]).map((filter) => (
                   <button
-                    type="submit"
-                    className={styles.primarySubmit}
-                    disabled={withdrawBusy || !withdrawAmount.trim() || !walletParty || withdrawExceedsAvailable}
+                    key={filter}
+                    type="button"
+                    role="tab"
+                    aria-selected={historyFilter === filter}
+                    className={cx(historyFilter === filter && styles.historyFilterActive)}
+                    onClick={() => selectHistoryTab(filter)}
                   >
-                    {withdrawBusy ? i18n._(t`Withdrawing...`) : i18n._(t`Withdraw`)}
+                    {filter === "all"
+                      ? i18n._(t`All`)
+                      : filter === "deposit"
+                        ? i18n._(t`Deposit`)
+                        : filter === "withdraw"
+                          ? i18n._(t`Withdraw`)
+                          : i18n._(t`Transfer`)}
                   </button>
-                </form>
-              )}
+                ))}
+              </div>
+              <div className={styles.unifiedHistory}>
+                {visibleHistory.length ? (
+                  visibleHistory.map((item) => (
+                    <div className={styles.unifiedHistoryRow} key={item.id}>
+                      <span
+                        className={cx(
+                          styles.historyTypeIcon,
+                          item.type === "deposit" && styles.historyTypeDeposit,
+                          item.type === "withdraw" && styles.historyTypeWithdraw
+                        )}
+                      >
+                        {item.type === "deposit" ? (
+                          <DepositIcon />
+                        ) : item.type === "withdraw" ? (
+                          <WithdrawIcon />
+                        ) : (
+                          <TransferIcon />
+                        )}
+                      </span>
+                      <span className={styles.historySummary}>
+                        <strong>
+                          {item.type === "deposit"
+                            ? i18n._(t`Deposit`)
+                            : item.type === "withdraw"
+                              ? i18n._(t`Withdraw`)
+                              : item.direction === "toSpot"
+                                ? i18n._(t`Transfer In`)
+                                : i18n._(t`Transfer Out`)}
+                        </strong>
+                        <small>{formatHistoryTime(item.time)}</small>
+                      </span>
+                      <span className={cx(styles.historyAmount, item.amount.startsWith("+") && styles.positiveAmount)}>
+                        <HistoryAssetAmount value={item.amount} asset={item.asset} />
+                        <small>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</small>
+                      </span>
+                      <span className={styles.historyReference}>
+                        {item.reference ? (
+                          item.explorerUrl ? (
+                            <a href={item.explorerUrl} target="_blank" rel="noreferrer">
+                              <ExternalIcon />
+                            </a>
+                          ) : (
+                            <button type="button" onClick={() => copyValue(item.reference, `history-${item.id}`)}>
+                              <CopyIcon />
+                            </button>
+                          )
+                        ) : null}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.historyEmpty}>{i18n._(t`No history yet`)}</div>
+                )}
+              </div>
+              {canToggleHistory ? (
+                <button
+                  type="button"
+                  className={styles.viewAllButton}
+                  onClick={() => setShowAllHistory((value) => !value)}
+                >
+                  {showAllHistory ? i18n._(t`Show Less`) : i18n._(t`View All History`)}
+                  <ChevronDownIcon />
+                </button>
+              ) : null}
             </section>
           ) : null}
 
@@ -778,106 +1091,313 @@ export function CantonFundsModal({ open, onClose }: Props) {
               {error ? <div className={styles.errorText}>{error}</div> : null}
             </div>
           ) : null}
+        </main>
 
-          <section className={styles.historyCard}>
-            <div className={styles.historyTabs}>
-              <button
-                type="button"
-                className={cx(historyTab === "deposit" && styles.historyTabActive)}
-                onClick={() => selectHistoryTab("deposit")}
-              >
-                {i18n._(t`Deposit History`)}
-              </button>
-              <button
-                type="button"
-                className={cx(historyTab === "withdraw" && styles.historyTabActive)}
-                onClick={() => selectHistoryTab("withdraw")}
-              >
-                {i18n._(t`Withdraw History`)}
-              </button>
-            </div>
-            <div className={styles.historyTable}>
-              <div className={cx(styles.historyHead, historyTab === "withdraw" && styles.historyRowWithFee)}>
-                <span>{i18n._(t`Time`)}</span>
-                <span>{i18n._(t`Asset`)}</span>
-                <span>{i18n._(t`Amount`)}</span>
-                {historyTab === "withdraw" ? <span>{i18n._(t`Network Fee`)}</span> : null}
-                <span>{i18n._(t`Status`)}</span>
-                <span>{i18n._(t`Tx Hash`)}</span>
-              </div>
-              {visibleHistory.length > 0 ? (
-                visibleHistory.map((item) => (
-                  <div
-                    key={item.id}
-                    className={cx(styles.historyRow, historyTab === "withdraw" && styles.historyRowWithFee)}
+        {false && (
+          <div className={styles.content}>
+            <section className={styles.balanceCard}>
+              <div className={styles.sectionHeader}>
+                <h3>
+                  <select
+                    className={styles.headingAssetSelect}
+                    aria-label={i18n._(t`Asset`)}
+                    value={selectedAsset}
+                    onChange={(event) => {
+                      setSelectedAsset(event.target.value as CantonFundsAsset);
+                      setDepositAmount("");
+                      setWithdrawAmount("");
+                      setError("");
+                    }}
                   >
-                    <span>{formatHistoryTime(item.time)}</span>
-                    <span className={styles.assetCell}>
-                      <TokenIcon symbol={spotMarketAssetIconSymbol(item.asset)} displaySize={24} />
-                      {item.asset}
-                    </span>
-                    <span
-                      className={cx(
-                        styles.amountCell,
-                        item.type === "deposit" ? styles.positiveAmount : styles.negativeAmount
-                      )}
-                    >
-                      <HistoryAssetAmount value={item.amount} asset={item.asset} />
-                    </span>
-                    {historyTab === "withdraw" ? (
-                      <span className={styles.feeCell}>{item.networkFee || "-"}</span>
-                    ) : null}
-                    <span>
-                      <em>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</em>
-                    </span>
-                    <span>
-                      {item.reference && item.explorerUrl ? (
-                        <a className={styles.referenceButton} href={item.explorerUrl} target="_blank" rel="noreferrer">
-                          <span className={styles.referenceText}>{abbreviateMiddle(item.reference, 22)}</span>
-                          <ExternalIcon />
-                        </a>
-                      ) : item.reference ? (
-                        <button
-                          type="button"
-                          className={styles.referenceButton}
-                          onClick={() => copyValue(item.reference, `history-${item.id}`)}
-                        >
-                          <span className={styles.referenceText}>
-                            {copiedKey === `history-${item.id}`
-                              ? i18n._(t`Copied`)
-                              : abbreviateMiddle(item.reference, 22)}
-                          </span>
-                          <CopyIcon />
-                        </button>
-                      ) : (
-                        "-"
-                      )}
-                    </span>
+                    {CANTON_FUNDING_ASSETS.map((asset) => (
+                      <option key={asset.symbol} value={asset.symbol}>
+                        {asset.symbol}
+                      </option>
+                    ))}
+                  </select>
+                  {i18n._(t`Balances`)}
+                  <button
+                    type="button"
+                    className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
+                    onClick={() => {
+                      void refreshWalletDashboard();
+                    }}
+                    disabled={dashboardRefreshing}
+                    aria-label={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                    title={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                  >
+                    <RefreshIcon />
+                  </button>
+                </h3>
+              </div>
+
+              <div className={styles.balanceGrid}>
+                <div className={styles.balanceItem}>
+                  <TokenIcon
+                    symbol={spotMarketAssetIconSymbol(selectedAsset)}
+                    displaySize={40}
+                    className={styles.tokenIcon}
+                  />
+                  <div>
+                    <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
+                    <div className={styles.balanceValue}>
+                      <CompactAssetAmount value={selectedWalletBalance} asset={selectedAsset} />{" "}
+                      <span>{selectedAsset}</span>
+                    </div>
+                    <div className={styles.balanceCaption}>{i18n._(t`On-chain balance`)}</div>
                   </div>
-                ))
-              ) : (
-                <div className={styles.historyEmpty}>
-                  {historyTab === "deposit" ? i18n._(t`No deposit history yet`) : i18n._(t`No withdrawal history yet`)}
                 </div>
-              )}
-            </div>
-            <button
-              type="button"
-              className={styles.viewAllButton}
-              disabled={!canToggleHistory}
-              onClick={() => setShowAllHistory((value) => !value)}
-            >
-              {historyTab === "deposit"
-                ? showAllHistory
-                  ? i18n._(t`Show Fewer Deposits`)
-                  : i18n._(t`View All Deposits`)
-                : showAllHistory
-                  ? i18n._(t`Show Fewer Withdrawals`)
-                  : i18n._(t`View All Withdrawals`)}
-              <ChevronDownIcon />
-            </button>
-          </section>
-        </div>
+                <div className={styles.balanceItem}>
+                  <div className={cx(styles.exchangeIcon, logoFitClass(styles, walletLogo.fit))}>
+                    <img src="/favicon.svg" alt="" className={styles.providerLogo} />
+                  </div>
+                  <div>
+                    <div className={styles.balanceLabel}>{i18n._(t`Exchange Balance`)}</div>
+                    <div className={styles.balanceValue}>
+                      {withdrawAvailable === null ? (
+                        "-"
+                      ) : (
+                        <CompactAssetAmount value={withdrawAvailable} asset={selectedAsset} />
+                      )}{" "}
+                      <span>{selectedAsset}</span>
+                    </div>
+                    <div className={styles.balanceCaption}>{i18n._(t`On connected exchange`)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {snapshot?.message ? <div className={styles.snapshotMessage}>{snapshot?.message}</div> : null}
+            </section>
+
+            <section className={styles.actionGrid}>
+              <button
+                type="button"
+                className={cx(
+                  styles.actionCard,
+                  styles.depositAction,
+                  activeAction === "deposit" && styles.actionActive
+                )}
+                onClick={() => setActiveAction((prev) => (prev === "deposit" ? "" : "deposit"))}
+              >
+                <span className={styles.actionIcon}>
+                  <DepositIcon />
+                </span>
+                <span>
+                  <strong>{i18n._(t`Deposit`)}</strong>
+                  <small>{i18n._(t`Deposit ${selectedAsset} to Rocky Exchange`)}</small>
+                </span>
+                <span className={styles.actionChevron}>
+                  {activeAction === "deposit" ? <ChevronDownIcon /> : <ChevronIcon />}
+                </span>
+              </button>
+              <button
+                type="button"
+                className={cx(
+                  styles.actionCard,
+                  styles.withdrawAction,
+                  activeAction === "withdraw" && styles.actionActive
+                )}
+                onClick={() => setActiveAction((prev) => (prev === "withdraw" ? "" : "withdraw"))}
+              >
+                <span className={styles.actionIcon}>
+                  <WithdrawIcon />
+                </span>
+                <span>
+                  <strong>{i18n._(t`Withdraw`)}</strong>
+                  <small>{i18n._(t`Withdraw ${selectedAsset} to your Wallet`)}</small>
+                </span>
+                <span className={styles.actionChevron}>
+                  {activeAction === "withdraw" ? <ChevronDownIcon /> : <ChevronIcon />}
+                </span>
+              </button>
+            </section>
+
+            {activeAction ? (
+              <section className={styles.operationPanel}>
+                {activeAction === "deposit" ? (
+                  <form className={styles.operationForm} onSubmit={handleDeposit}>
+                    <div className={styles.operationHeader}>
+                      <div>
+                        <h3>{i18n._(t`Deposit`)}</h3>
+                        <p>{i18n._(t`Transfer funds from the connected wallet to the exchange account.`)}</p>
+                      </div>
+                    </div>
+                    <div className={styles.formGrid}>
+                      <label className={styles.field}>
+                        <span>{i18n._(t`Amount`)}</span>
+                        <input
+                          value={depositAmount}
+                          onChange={(event) => setDepositAmount(event.target.value)}
+                          inputMode="decimal"
+                          placeholder="100"
+                        />
+                      </label>
+                    </div>
+                    <button
+                      type="submit"
+                      className={styles.primarySubmit}
+                      disabled={depositBusy || !depositAmount.trim() || !walletParty}
+                    >
+                      {depositBusy ? i18n._(t`Depositing...`) : i18n._(t`Deposit`)}
+                    </button>
+                    {depositResult?.deposit_ref ? (
+                      <DepositReferenceView result={depositResult!} copiedKey={copiedKey} onCopy={copyValue} />
+                    ) : null}
+                  </form>
+                ) : (
+                  <form className={styles.operationForm} onSubmit={handleWithdraw}>
+                    <div className={styles.operationHeader}>
+                      <div>
+                        <h3>{i18n._(t`Withdraw`)}</h3>
+                        <p>{i18n._(t`Move platform available balance back to the connected wallet party.`)}</p>
+                      </div>
+                    </div>
+                    <div className={styles.formGrid}>
+                      <label className={styles.field}>
+                        <span>{i18n._(t`Amount`)}</span>
+                        <input
+                          value={withdrawAmount}
+                          onChange={(event) => setWithdrawAmount(event.target.value)}
+                          inputMode="decimal"
+                          placeholder="50"
+                        />
+                      </label>
+                    </div>
+                    <div className={styles.destinationLine}>
+                      <span>{i18n._(t`Destination`)}</span>
+                      <strong title={walletParty || ""}>{abbreviateMiddle(walletParty, 42)}</strong>
+                    </div>
+                    <div className={styles.destinationLine}>
+                      <span>{i18n._(t`Fee`)}</span>
+                      <strong>{withdrawalFeeLabel(selectedAsset)}</strong>
+                    </div>
+                    {withdrawAvailableError ? <div className={styles.errorText}>{withdrawAvailableError}</div> : null}
+                    <button
+                      type="submit"
+                      className={styles.primarySubmit}
+                      disabled={withdrawBusy || !withdrawAmount.trim() || !walletParty || withdrawExceedsAvailable}
+                    >
+                      {withdrawBusy ? i18n._(t`Withdrawing...`) : i18n._(t`Withdraw`)}
+                    </button>
+                  </form>
+                )}
+              </section>
+            ) : null}
+
+            {notice || error ? (
+              <div className={styles.messageStack}>
+                {notice ? <div className={styles.noticeText}>{notice}</div> : null}
+                {error ? <div className={styles.errorText}>{error}</div> : null}
+              </div>
+            ) : null}
+
+            <section className={styles.historyCard}>
+              <div className={styles.historyTabs}>
+                <button
+                  type="button"
+                  className={cx(historyTab === "deposit" && styles.historyTabActive)}
+                  onClick={() => selectHistoryTab("deposit")}
+                >
+                  {i18n._(t`Deposit History`)}
+                </button>
+                <button
+                  type="button"
+                  className={cx(historyTab === "withdraw" && styles.historyTabActive)}
+                  onClick={() => selectHistoryTab("withdraw")}
+                >
+                  {i18n._(t`Withdraw History`)}
+                </button>
+              </div>
+              <div className={styles.historyTable}>
+                <div className={cx(styles.historyHead, historyTab === "withdraw" && styles.historyRowWithFee)}>
+                  <span>{i18n._(t`Time`)}</span>
+                  <span>{i18n._(t`Asset`)}</span>
+                  <span>{i18n._(t`Amount`)}</span>
+                  {historyTab === "withdraw" ? <span>{i18n._(t`Network Fee`)}</span> : null}
+                  <span>{i18n._(t`Status`)}</span>
+                  <span>{i18n._(t`Tx Hash`)}</span>
+                </div>
+                {visibleHistory.length > 0 ? (
+                  visibleHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className={cx(styles.historyRow, historyTab === "withdraw" && styles.historyRowWithFee)}
+                    >
+                      <span>{formatHistoryTime(item.time)}</span>
+                      <span className={styles.assetCell}>
+                        <TokenIcon symbol={spotMarketAssetIconSymbol(item.asset)} displaySize={24} />
+                        {item.asset}
+                      </span>
+                      <span
+                        className={cx(
+                          styles.amountCell,
+                          item.type === "deposit" ? styles.positiveAmount : styles.negativeAmount
+                        )}
+                      >
+                        <HistoryAssetAmount value={item.amount} asset={item.asset} />
+                      </span>
+                      {historyTab === "withdraw" ? (
+                        <span className={styles.feeCell}>{item.networkFee || "-"}</span>
+                      ) : null}
+                      <span>
+                        <em>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</em>
+                      </span>
+                      <span>
+                        {item.reference && item.explorerUrl ? (
+                          <a
+                            className={styles.referenceButton}
+                            href={item.explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <span className={styles.referenceText}>{abbreviateMiddle(item.reference, 22)}</span>
+                            <ExternalIcon />
+                          </a>
+                        ) : item.reference ? (
+                          <button
+                            type="button"
+                            className={styles.referenceButton}
+                            onClick={() => copyValue(item.reference, `history-${item.id}`)}
+                          >
+                            <span className={styles.referenceText}>
+                              {copiedKey === `history-${item.id}`
+                                ? i18n._(t`Copied`)
+                                : abbreviateMiddle(item.reference, 22)}
+                            </span>
+                            <CopyIcon />
+                          </button>
+                        ) : (
+                          "-"
+                        )}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.historyEmpty}>
+                    {historyTab === "deposit"
+                      ? i18n._(t`No deposit history yet`)
+                      : i18n._(t`No withdrawal history yet`)}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className={styles.viewAllButton}
+                disabled={!canToggleHistory}
+                onClick={() => setShowAllHistory((value) => !value)}
+              >
+                {historyTab === "deposit"
+                  ? showAllHistory
+                    ? i18n._(t`Show Fewer Deposits`)
+                    : i18n._(t`View All Deposits`)
+                  : showAllHistory
+                    ? i18n._(t`Show Fewer Withdrawals`)
+                    : i18n._(t`View All Withdrawals`)}
+                <ChevronDownIcon />
+              </button>
+            </section>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -992,9 +1512,7 @@ function formatDisplayAmount(value: number): string {
 
 function formatAssetAmount(value: number, asset: CantonFundsAsset): string {
   const isWrappedMarketAsset = asset === "CBTC" || asset === "cETH";
-  const leadingDecimalZeroes = isWrappedMarketAsset
-    ? value.toFixed(20).match(/^0\.(0+)/)?.[1].length || 0
-    : 0;
+  const leadingDecimalZeroes = isWrappedMarketAsset ? value.toFixed(20).match(/^0\.(0+)/)?.[1].length || 0 : 0;
   const maximumFractionDigits = isWrappedMarketAsset
     ? leadingDecimalZeroes >= 4
       ? Math.min(leadingDecimalZeroes + 4, 20)
@@ -1007,13 +1525,7 @@ function formatAssetAmount(value: number, asset: CantonFundsAsset): string {
   });
 }
 
-function CompactAssetAmount({
-  value,
-  asset,
-}: {
-  value: string | number | null | undefined;
-  asset: CantonFundsAsset;
-}) {
+function CompactAssetAmount({ value, asset }: { value: string | number | null | undefined; asset: CantonFundsAsset }) {
   const numeric = value === null || value === undefined ? Number.NaN : Number(value);
   const formatted = Number.isFinite(numeric) ? formatAssetAmount(numeric, asset) : "0.00";
   const compactMatch = formatted.match(/^([+-]?[\d,]+)\.(0{3,})(\d+)$/);
@@ -1031,7 +1543,7 @@ function CompactAssetAmount({
 function HistoryAssetAmount({ value, asset }: { value: string; asset: CantonFundsAsset }) {
   const match = value.match(/^([+-])([\d,.]+)\s+\S+$/);
   if (!match) return <>{value}</>;
-  const amount = match[2].replaceAll(",", "");
+  const amount = match[2].replace(/,/g, "");
   const compactMatch = amount.match(/^(\d+)\.(0{3,})(\d+)$/);
   return (
     <>
@@ -1128,14 +1640,31 @@ function mapFundsHistoryToLocalRows(history: CantonFundsHistory): LocalHistoryRo
       networkFee: formatNetworkFee(item.fee_amount, item.fee_wallet_symbol || item.fee_asset),
       status: formatFundsHistoryStatus(item.status, "Submitted"),
       reference,
-      dedupeKeys: [updateId, item.withdrawal_id, item.withdrawal_request_id].filter(
-        (value): value is string => Boolean(value)
+      dedupeKeys: [updateId, item.withdrawal_id, item.withdrawal_request_id].filter((value): value is string =>
+        Boolean(value)
       ),
       explorerUrl: getCantonScanUpdateUrl(updateId),
     };
   });
 
   return [...depositRows, ...withdrawalRows].sort(compareHistoryRowsDesc);
+}
+
+function mapSpotTransferHistoryToLocalRows(history: CantonSpotTransferHistory): LocalHistoryRow[] {
+  return history.transfers.map((item, index) => {
+    const asset = walletFacingHistoryAsset(item.asset);
+    return {
+      id: `transfer-${item.eventId || index}`,
+      type: "transfer",
+      time: item.createdAt || new Date(0).toISOString(),
+      asset,
+      amount: formatHistoryAmount(item.direction === "toSpot" ? "+" : "-", item.amount, asset),
+      direction: item.direction,
+      status: "Completed",
+      reference: item.eventId,
+      dedupeKeys: item.eventId ? [item.eventId] : undefined,
+    };
+  });
 }
 
 function mergeHistoryRows(serverRows: LocalHistoryRow[], currentRows: LocalHistoryRow[]): LocalHistoryRow[] {
@@ -1151,9 +1680,7 @@ function mergeHistoryRows(serverRows: LocalHistoryRow[], currentRows: LocalHisto
 }
 
 function historyRowKeys(row: LocalHistoryRow): string[] {
-  const values = [...(row.dedupeKeys || []), row.reference].filter(
-    (value): value is string => Boolean(value)
-  );
+  const values = [...(row.dedupeKeys || []), row.reference].filter((value): value is string => Boolean(value));
   if (values.length === 0) return [`${row.type}:${row.id}`];
   return [...new Set(values.map((value) => `${row.type}:${value}`))];
 }
@@ -1245,6 +1772,70 @@ async function writeClipboardText(value: string): Promise<boolean> {
   } finally {
     document.body.removeChild(textarea);
   }
+}
+
+function AssetsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5.5h16v13H4z" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 9h16M8 13h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M5 5v5h5M6 9a7 7 0 1 1-1 5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12 8v4l3 2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TransferIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M5 8h13m0 0-3-3m3 3-3 3M19 16H6m0 0 3 3m-3-3 3-3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m14 6-6 6 6 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m15 15 4 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function ExternalIcon() {

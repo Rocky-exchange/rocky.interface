@@ -1446,3 +1446,573 @@
     font-size: 28px;
   }
 }
+
+/* Wallet funds workspace */
+.modal {
+  width: min(960px, calc(100vw - 48px));
+}
+
+.walletWorkspace {
+  min-height: 560px;
+  background: var(--bg-surface);
+}
+
+.primaryTabs {
+  position: sticky;
+  top: 87px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 0 20px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+
+.primaryTab {
+  display: inline-flex;
+  min-width: 0;
+  height: 62px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  font: 500 14px/20px var(--font-body);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.primaryTabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--brand-cool);
+}
+
+.primaryTabIcon {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.assetsView,
+.taskView,
+.historyView {
+  padding: 24px;
+}
+
+.assetsToolbar {
+  display: grid;
+  grid-template-columns: 170px minmax(220px, 1fr) 44px;
+  gap: 12px;
+  margin-bottom: 18px;
+
+  > select,
+  .assetSearch,
+  > button {
+    height: 44px;
+  }
+
+  > select {
+    padding: 0 34px 0 14px;
+    color: var(--text-primary);
+    font: 500 14px/20px var(--font-body);
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+  }
+}
+
+.assetSearch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  color: var(--text-tertiary);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+
+  svg {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+  }
+
+  input {
+    min-width: 0;
+    flex: 1;
+    color: var(--text-primary);
+    font: 400 14px/20px var(--font-body);
+    background: transparent;
+    border: 0;
+    outline: 0;
+
+    &::placeholder {
+      color: var(--text-tertiary);
+    }
+  }
+}
+
+.assetTable,
+.unifiedHistory,
+.compactForm {
+  overflow: hidden;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+
+.assetTableHead,
+.assetRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.05fr) minmax(180px, 1fr) minmax(180px, 1fr) 24px;
+  gap: 18px;
+  align-items: center;
+  padding: 0 18px;
+}
+
+.assetTableHead {
+  height: 46px;
+  color: var(--text-secondary);
+  font: 500 12px/18px var(--font-body);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.assetRow {
+  width: 100%;
+  min-height: 76px;
+  color: var(--text-primary);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: var(--bg-surface-hover);
+  }
+
+  > svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-tertiary);
+  }
+}
+
+.assetIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  strong {
+    font: 600 16px/24px var(--font-body);
+  }
+}
+
+.assetBalanceValue {
+  overflow: hidden;
+  font: 500 17px/24px var(--font-tech);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  small {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+}
+
+.taskView {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.taskHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+
+  h3 {
+    margin: 0 0 4px;
+    font: 500 22px/30px var(--font-display);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font: 400 13px/20px var(--font-body);
+  }
+}
+
+.backButton,
+.swapButton {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.compactForm {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.compactForm .field {
+  display: grid;
+  gap: 8px;
+
+  > span:first-child:not(.fieldHeading) {
+    color: var(--text-secondary);
+    font: 500 12px/18px var(--font-body);
+  }
+
+  > select {
+    width: 100%;
+    height: 48px;
+    padding: 0 14px;
+    color: var(--text-primary);
+    font: 500 14px/20px var(--font-body);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+  }
+}
+
+.fieldHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font: 500 12px/18px var(--font-body);
+
+  small {
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+}
+
+.amountInput {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 52px;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+
+  input {
+    min-width: 0;
+    height: 50px;
+    padding: 0 14px;
+    color: var(--text-primary);
+    font: 500 20px/28px var(--font-tech);
+    background: transparent;
+    border: 0;
+    outline: 0;
+  }
+
+  strong {
+    min-width: 72px;
+    padding: 0 16px;
+    color: var(--text-secondary);
+    font: 500 13px/20px var(--font-tech);
+    text-align: center;
+  }
+
+  button {
+    min-width: 64px;
+    height: 50px;
+    padding: 0 16px;
+    color: var(--brand-warm);
+    font: 600 12px/18px var(--font-body);
+    background: transparent;
+    border: 0;
+    border-left: 1px solid var(--border-subtle);
+    cursor: pointer;
+  }
+}
+
+.detailLine {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  color: var(--text-secondary);
+  font: 400 13px/20px var(--font-body);
+
+  strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-family: var(--font-tech);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.accountRoute {
+  display: grid;
+  grid-template-columns: 1fr 40px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.accountBox {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+
+  small,
+  span {
+    color: var(--text-tertiary);
+    font: 400 11px/16px var(--font-body);
+  }
+
+  strong {
+    overflow: hidden;
+    font: 600 14px/20px var(--font-body);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.historyView {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.historyFilters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  button {
+    min-height: 42px;
+    padding: 0 14px;
+    color: var(--text-secondary);
+    font: 500 13px/20px var(--font-body);
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+
+  .historyFilterActive {
+    color: var(--text-primary);
+    border-bottom-color: var(--brand-warm);
+  }
+}
+
+.unifiedHistoryRow {
+  display: grid;
+  grid-template-columns: 38px minmax(140px, 1fr) minmax(150px, 1fr) 30px;
+  gap: 12px;
+  align-items: center;
+  min-height: 72px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.historyTypeIcon {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--brand-cool);
+  background: rgba(130, 174, 194, 0.08);
+  border: 1px solid rgba(130, 174, 194, 0.28);
+  border-radius: 4px;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.historyTypeDeposit {
+  color: var(--status-success);
+  border-color: rgba(39, 173, 108, 0.3);
+}
+
+.historyTypeWithdraw {
+  color: var(--brand-warm);
+  border-color: rgba(245, 168, 95, 0.3);
+}
+
+.historySummary,
+.historyAmount {
+  display: grid;
+  gap: 3px;
+
+  strong {
+    font: 500 14px/20px var(--font-body);
+  }
+
+  small {
+    color: var(--text-tertiary);
+    font: 400 11px/16px var(--font-body);
+  }
+}
+
+.historyAmount {
+  justify-items: end;
+  font: 500 14px/20px var(--font-tech);
+}
+
+.historyReference {
+  display: inline-grid;
+  place-items: center;
+
+  a,
+  button {
+    display: inline-grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    padding: 0;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.walletWorkspace .messageStack {
+  padding: 0 24px 24px;
+}
+
+@media (max-width: 760px) {
+  .modal {
+    width: calc(100vw - 24px);
+  }
+
+  .primaryTabs {
+    top: 78px;
+    padding: 0 6px;
+  }
+
+  .primaryTab {
+    height: 56px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .primaryTabIcon {
+    display: none;
+  }
+
+  .assetsView,
+  .taskView,
+  .historyView {
+    padding: 16px;
+  }
+
+  .assetsToolbar {
+    grid-template-columns: 130px minmax(0, 1fr) 44px;
+  }
+
+  .assetTableHead {
+    display: none;
+  }
+
+  .assetRow {
+    grid-template-columns: minmax(120px, 1fr) minmax(90px, 0.8fr) 18px;
+    gap: 10px;
+
+    .assetBalanceValue:nth-of-type(3) {
+      display: none;
+    }
+  }
+
+  .accountRoute {
+    grid-template-columns: 1fr;
+  }
+
+  .swapButton {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .modal {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  .primaryTabs {
+    top: 78px;
+  }
+
+  .assetsToolbar {
+    grid-template-columns: 1fr 44px;
+
+    > select {
+      display: none;
+    }
+  }
+
+  .assetRow {
+    min-height: 68px;
+    padding: 0 12px;
+  }
+
+  .assetIdentity strong,
+  .assetBalanceValue {
+    font-size: 14px;
+  }
+
+  .unifiedHistoryRow {
+    grid-template-columns: 34px minmax(100px, 1fr) minmax(110px, 1fr);
+
+    .historyReference {
+      display: none;
+    }
+  }
+}

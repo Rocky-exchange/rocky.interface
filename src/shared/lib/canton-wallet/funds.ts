@@ -299,7 +299,7 @@ async function fetchAccountBalanceRecord(asset: CantonFundsAsset): Promise<Recor
   const data = await readResponseBody(response);
   if (!response.ok) {
     await disconnectForInvalidSession(fundsErrorFromResponse(data, response.status, response.url));
-    return null;
+    return {};
   }
   return isRecord(data) ? data : {};
 }
@@ -314,10 +314,12 @@ export async function fetchPlatformAccountBalances(): Promise<PlatformAccountBal
       }
     })
   );
-  return rows.reduce<PlatformAccountBalances>(
-    (balances, [asset, value]) => ({ ...balances, [asset]: value }),
-    { USDA: null, CBTC: null, cETH: null, CC: null }
-  );
+  return rows.reduce<PlatformAccountBalances>((balances, [asset, value]) => ({ ...balances, [asset]: value }), {
+    USDA: null,
+    CBTC: null,
+    cETH: null,
+    CC: null,
+  });
 }
 
 export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {
