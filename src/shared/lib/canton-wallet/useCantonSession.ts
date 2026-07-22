@@ -1,26 +1,15 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { getMtcAuthToken } from "./session";
+import { disconnectCantonWalletSession, shouldDisconnectForRockyAccountChange } from "./sessionLogout";
+import { notifyCantonSessionChange, subscribeCantonSession } from "./sessionStore";
+import { subscribeRockyWalletAccountChanges } from "./rocky";
 import type { WalletProviderId } from "./types";
 
-const EVT = "canton-session-change";
-
-function subscribe(cb: () => void) {
-  if (typeof window === "undefined") return () => undefined;
-  window.addEventListener(EVT, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(EVT, cb);
-    window.removeEventListener("storage", cb);
-  };
-}
-
-export function notifyCantonSessionChange() {
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(EVT));
-}
+export { notifyCantonSessionChange } from "./sessionStore";
 
 export function useCantonSession() {
   const token = useSyncExternalStore(
-    subscribe,
+    subscribeCantonSession,
     () => (typeof window !== "undefined" ? getMtcAuthToken() : ""),
     () => "",
   );
@@ -32,5 +21,16 @@ export function useCantonSession() {
     storedProvider === "rocky" || storedProvider === "loop" || storedProvider === "console" || storedProvider === "other"
       ? storedProvider
       : "";
-  return { connected: Boolean(token), token, party, username, avatar, provider };
+  const connected = Boolean(token);
+
+  useEffect(() => {
+    if (!connected || provider !== "rocky" || !party) return undefined;
+    return subscribeRockyWalletAccountChanges((account) => {
+      if (shouldDisconnectForRockyAccountChange(party, account)) {
+        void disconnectCantonWalletSession();
+      }
+    });
+  }, [connected, party, provider]);
+
+  return { connected, token, party, username, avatar, provider };
 }

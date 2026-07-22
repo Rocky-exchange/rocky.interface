@@ -158,6 +158,12 @@ function getRockyWalletSdk(): RockyWalletSdk {
   return createRockyWalletSdk();
 }
 
+export function subscribeRockyWalletAccountChanges(
+  onChange: (account: RockyAccount | undefined) => void
+): () => void {
+  return getRockyWalletSdk().onAccountsChanged(onChange);
+}
+
 async function resolveRockyAccount(
   sdk: RockyWalletSdk,
   connectedAccount?: RockyAccount

@@ -8,6 +8,7 @@ import {
   type ConnectedWallet,
 } from "./index";
 import { hydrateOwnProfile } from "./profile";
+import { disconnectCantonWalletSession } from "./sessionLogout";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
 export function useCantonWallet() {
@@ -37,22 +38,7 @@ export function useCantonWallet() {
     }
   }, []);
 
-  const disconnect = useCallback(() => {
-    [
-      "rocky_exchange_session",
-      "rocky_user_id",
-      "rocky_binding_id",
-      "rocky_perp_user_id",
-      "rocky_perp_user_id_for",
-      "mtc_token",
-      "mtc_party",
-      "mtc_username",
-      "mtc_avatar",
-      "mtc_email",
-      "mtc_login_method",
-    ].forEach((k) => localStorage.removeItem(k));
-    notifyCantonSessionChange();
-  }, []);
+  const disconnect = useCallback(() => disconnectCantonWalletSession(), []);
 
   return { connect, disconnect, connecting, error };
 }
