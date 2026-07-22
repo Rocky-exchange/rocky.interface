@@ -6,10 +6,12 @@ import {
   fetchPlatformAccountBalance,
   fetchPendingUsdaOffers,
   fetchUsdaAutoAccept,
+  platformDepositApiAsset,
   requestDepositReference,
   submitCantonWalletDeposit,
   setUsdaAutoAccept,
   submitPlatformWithdrawal,
+  type CantonFundsAsset,
 } from "./funds";
 
 beforeEach(() => {
@@ -20,6 +22,15 @@ beforeEach(() => {
 });
 
 describe("canton wallet funds", () => {
+  it("maps all funding assets to backend account symbols", () => {
+    expect((["USDA", "CBTC", "cETH", "CC"] as CantonFundsAsset[]).map(platformDepositApiAsset)).toEqual([
+      "USDC",
+      "CBTC",
+      "cETH",
+      "CC",
+    ]);
+  });
+
   it("requests a USDA deposit reference with exchange session auth", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
@@ -76,13 +87,10 @@ describe("canton wallet funds", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/v1/deposits/reference", expect.objectContaining({ method: "POST" }));
     expect(provider.sendTransfer).toHaveBeenCalledWith({
-      from: "party-1",
+      symbol: "CC",
       to: "target-party",
-      token: "CC",
       amount: "1.5",
-      expireDate: expect.any(String),
       memo: "dep-1",
-      waitForFinalization: 5000,
     });
     expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
     expect(result.platform_credit_status).toBe("confirmed");
@@ -172,13 +180,10 @@ describe("canton wallet funds", () => {
     });
     expect(provider.signMessage).toHaveBeenCalled();
     expect(provider.sendTransfer).toHaveBeenCalledWith({
-      from: "party-1",
+      asset_id: "usda-asset",
       to: "target-party",
-      token: "USDA",
       amount: "0.2",
-      expireDate: expect.any(String),
       memo: "dep-2",
-      waitForFinalization: 5000,
     });
     expect(localStorage.getItem("rocky_exchange_session")).toBe("refreshed-token");
     expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
@@ -410,7 +415,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 function createRockyWalletProvider() {
   return {
     isRockyWallet: true,
-    version: "0.1.0",
+    version: "1.0.2",
     connect: vi.fn(async () => ({
       isConnected: true,
       account: {
@@ -428,6 +433,35 @@ function createRockyWalletProvider() {
     getCoinsBalance: vi.fn(),
     signMessage: vi.fn(async () => "rocky-signature"),
     submitCommands: vi.fn(),
+    getAssetCatalog: vi.fn(async () => [
+      {
+        asset_id: null,
+        asset_type: "canton_coin" as const,
+        symbol: "CC",
+        name: "Canton Coin",
+        display_alias: "CC",
+        registry_name: null,
+        decimals: 10,
+        enabled: true,
+        can_send: true,
+        instrument_admin: null,
+        instrument_id: null,
+      },
+      {
+        asset_id: "usda-asset",
+        asset_type: "token_standard" as const,
+        symbol: "USDCx",
+        name: "USDA",
+        display_alias: "USDA",
+        registry_name: null,
+        decimals: 6,
+        enabled: true,
+        can_send: true,
+        instrument_admin:
+          "party-28dc4516-b5ca-44ff-86c7-2107e90a6807::1220b8301e18aa8a401d6e34e6c20f8b0243183c514373bca8f1b6b9270246341a9e",
+        instrument_id: "3574b536-cad1-4074-9b64-859398713ba0",
+      },
+    ]),
     sendTransfer: vi.fn(async () => ({ status: true, transferId: "transfer-1" })),
     getNodeOffers: vi.fn(),
     submitInstructionChoice: vi.fn(),

@@ -7,6 +7,7 @@ import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useR
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 
 import { fileToAvatarDataUrl } from "./avatarImage";
+import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol } from "./assets";
 import {
   emptyWalletBalanceRows,
   fetchWalletBalanceSnapshot,
@@ -49,9 +50,7 @@ type LocalHistoryRow = {
   explorerUrl?: string;
 };
 
-const FIXED_FUNDS_ASSET: CantonFundsAsset = "USDA";
 const FIXED_WITHDRAWAL_FEE_AMOUNT = 1;
-const FIXED_WITHDRAWAL_FEE_LABEL = "1 USDA";
 const PENDING_DEPOSIT_CONFIRM_ATTEMPTS = 36;
 const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
@@ -60,6 +59,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const { connected, party, provider, username, avatar } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<CantonFundsAsset>("USDA");
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -92,16 +92,16 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const walletLabel = snapshot?.label || getWalletProviderLabel(provider);
   const walletLogo = getWalletProviderLogo(walletProvider);
   const walletRows = snapshot?.balances ?? emptyWalletBalanceRows();
-  const usdaBalance = getBalanceAmount(walletRows, "USDA");
+  const selectedWalletBalance = getBalanceAmount(walletRows, selectedAsset);
   const withdrawAmountNumber = Number(withdrawAmount.trim());
   const withdrawAmountIsPositive = Number.isFinite(withdrawAmountNumber) && withdrawAmountNumber > 0;
-  const withdrawRequiredAmount = requiredWithdrawalAmount(withdrawAmountNumber);
+  const withdrawRequiredAmount = requiredWithdrawalAmount(withdrawAmountNumber, selectedAsset);
   const withdrawExceedsAvailable =
     withdrawAvailable !== null && withdrawAmountIsPositive && withdrawRequiredAmount > withdrawAvailable;
   const withdrawAvailableError =
     withdrawExceedsAvailable && withdrawAvailable !== null
       ? i18n._(
-          t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(withdrawAvailable)} ${FIXED_FUNDS_ASSET}. Required: ${formatDisplayAmount(withdrawRequiredAmount)} ${FIXED_FUNDS_ASSET} including fee.`
+          t`Insufficient platform balance for this withdrawal. Available: ${formatDisplayAmount(withdrawAvailable)} ${selectedAsset}. Required: ${formatDisplayAmount(withdrawRequiredAmount)} ${selectedAsset} including fee.`
         )
       : "";
   const dashboardRefreshing = balanceLoading || withdrawAvailableLoading || depositConfirming || historyLoading;
@@ -133,13 +133,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
     setWithdrawAvailableLoading(true);
     try {
-      const available = await fetchPlatformAccountBalance(FIXED_FUNDS_ASSET);
+      const available = await fetchPlatformAccountBalance(selectedAsset);
       setWithdrawAvailable(available);
       return available;
     } finally {
       setWithdrawAvailableLoading(false);
     }
-  }, [connected]);
+  }, [connected, selectedAsset]);
 
   const refreshFundsHistory = useCallback(async () => {
     if (!connected) return;
@@ -171,6 +171,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
   }, [connected, open, refreshWalletDashboard]);
 
   useEffect(() => {
+    if (open && connected) void refreshWithdrawAvailable();
+  }, [connected, open, refreshWithdrawAvailable, selectedAsset]);
+
+  useEffect(() => {
     if (!copiedKey) return;
     const id = window.setTimeout(() => setCopiedKey(""), 1500);
     return () => window.clearTimeout(id);
@@ -196,7 +200,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   async function handleDeposit(event: FormEvent) {
     event.preventDefault();
     const amount = depositAmount.trim();
-    const asset = FIXED_FUNDS_ASSET;
+    const asset = selectedAsset;
     setDepositBusy(true);
     setError("");
     setNotice("");
@@ -276,13 +280,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
   async function handleWithdraw(event: FormEvent) {
     event.preventDefault();
     const amount = withdrawAmount.trim();
-    const asset = FIXED_FUNDS_ASSET;
+    const asset = selectedAsset;
     setWithdrawBusy(true);
     setError("");
     setNotice("");
     try {
       const latestAvailable = await refreshWithdrawAvailable();
-      const requiredAmount = requiredWithdrawalAmount(Number(amount));
+      const requiredAmount = requiredWithdrawalAmount(Number(amount), asset);
       const latestAvailableError =
         latestAvailable !== null && withdrawAmountIsPositive && requiredAmount > latestAvailable
           ? i18n._(
@@ -309,7 +313,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
         type: "withdraw",
         asset,
         amount: `-${formatEnteredAmount(amount)} ${asset}`,
-        networkFee: FIXED_WITHDRAWAL_FEE_LABEL,
+        networkFee: formatNetworkFee(result.fee_amount, result.fee_wallet_symbol || result.fee_asset),
         status: result.status ? String(result.status) : "Submitted",
         reference: withdrawalUpdateId || withdrawalRef,
         explorerUrl: getCantonScanUpdateUrl(withdrawalUpdateId),
@@ -579,7 +583,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <section className={styles.balanceCard}>
             <div className={styles.sectionHeader}>
               <h3>
-                {i18n._(t`USDA Balances`)}
+                {selectedAsset} {i18n._(t`Balances`)}
                 <button
                   type="button"
                   className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
@@ -593,15 +597,37 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   <RefreshIcon />
                 </button>
               </h3>
+              <label className={styles.assetSelect}>
+                <span>{i18n._(t`Asset`)}</span>
+                <select
+                  value={selectedAsset}
+                  onChange={(event) => {
+                    setSelectedAsset(event.target.value as CantonFundsAsset);
+                    setDepositAmount("");
+                    setWithdrawAmount("");
+                    setError("");
+                  }}
+                >
+                  {CANTON_FUNDING_ASSETS.map((asset) => (
+                    <option key={asset.symbol} value={asset.symbol}>
+                      {asset.symbol}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <div className={styles.balanceGrid}>
               <div className={styles.balanceItem}>
-                <UsdaIcon className={styles.tokenIcon} />
+                <TokenIcon
+                  symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset}
+                  displaySize={40}
+                  className={styles.tokenIcon}
+                />
                 <div>
                   <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
                   <div className={styles.balanceValue}>
-                    {formatFixedBalance(usdaBalance)} <span>USDA</span>
+                    {formatFixedBalance(selectedWalletBalance)} <span>{selectedAsset}</span>
                   </div>
                   <div className={styles.balanceCaption}>{i18n._(t`On-chain balance`)}</div>
                 </div>
@@ -614,7 +640,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   <div className={styles.balanceLabel}>{i18n._(t`Exchange Balance`)}</div>
                   <div className={styles.balanceValue}>
                     {withdrawAvailable === null ? "-" : formatFixedAmount(withdrawAvailable)}{" "}
-                    <span>{FIXED_FUNDS_ASSET}</span>
+                    <span>{selectedAsset}</span>
                   </div>
                   <div className={styles.balanceCaption}>{i18n._(t`On connected exchange`)}</div>
                 </div>
@@ -635,7 +661,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </span>
               <span>
                 <strong>{i18n._(t`Deposit`)}</strong>
-                <small>{i18n._(t`Deposit USDA to Rocky Exchange`)}</small>
+                <small>{i18n._(t`Deposit ${selectedAsset} to Rocky Exchange`)}</small>
               </span>
               <span className={styles.actionChevron}>
                 {activeAction === "deposit" ? <ChevronDownIcon /> : <ChevronIcon />}
@@ -655,7 +681,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
               </span>
               <span>
                 <strong>{i18n._(t`Withdraw`)}</strong>
-                <small>{i18n._(t`Withdraw USDA to your Wallet`)}</small>
+                <small>{i18n._(t`Withdraw ${selectedAsset} to your Wallet`)}</small>
               </span>
               <span className={styles.actionChevron}>
                 {activeAction === "withdraw" ? <ChevronDownIcon /> : <ChevronIcon />}
@@ -677,8 +703,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <div className={styles.field}>
                       <span>{i18n._(t`Asset`)}</span>
                       <div className={styles.fixedAssetValue}>
-                        <UsdaIcon />
-                        <strong>{FIXED_FUNDS_ASSET}</strong>
+                        <TokenIcon symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset} displaySize={24} />
+                        <strong>{selectedAsset}</strong>
                       </div>
                     </div>
                     <label className={styles.field}>
@@ -714,8 +740,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <div className={styles.field}>
                       <span>{i18n._(t`Asset`)}</span>
                       <div className={styles.fixedAssetValue}>
-                        <UsdaIcon />
-                        <strong>{FIXED_FUNDS_ASSET}</strong>
+                        <TokenIcon symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset} displaySize={24} />
+                        <strong>{selectedAsset}</strong>
                       </div>
                     </div>
                     <label className={styles.field}>
@@ -734,7 +760,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   </div>
                   <div className={styles.destinationLine}>
                     <span>{i18n._(t`Fee`)}</span>
-                    <strong>{FIXED_WITHDRAWAL_FEE_LABEL}</strong>
+                    <strong>{withdrawalFeeLabel(selectedAsset)}</strong>
                   </div>
                   {withdrawAvailableError ? <div className={styles.errorText}>{withdrawAvailableError}</div> : null}
                   <button
@@ -983,8 +1009,13 @@ function formatFixedBalance(value: string | null | undefined): string {
   return formatFixedAmount(numeric);
 }
 
-function requiredWithdrawalAmount(amount: number): number {
-  return Number.isFinite(amount) && amount > 0 ? amount + FIXED_WITHDRAWAL_FEE_AMOUNT : 0;
+function requiredWithdrawalAmount(amount: number, asset: CantonFundsAsset): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return asset === "USDA" ? amount + FIXED_WITHDRAWAL_FEE_AMOUNT : amount;
+}
+
+function withdrawalFeeLabel(asset: CantonFundsAsset): string {
+  return asset === "USDA" ? "1 USDA" : `1 USDA equivalent in ${asset}`;
 }
 
 function abbreviateMiddle(value: string | undefined, max = 28): string {
@@ -1086,8 +1117,7 @@ function historyTimeValue(value: string): number {
 }
 
 function walletFacingHistoryAsset(asset: string | undefined): CantonFundsAsset {
-  const symbol = (asset || "").trim().toUpperCase();
-  return symbol === "USDC" || symbol === "USDA" || symbol === "USDCX" || symbol === "USDC-X" ? "USDA" : "CC";
+  return walletFacingAssetSymbol(asset) || "CC";
 }
 
 function formatHistoryAmount(
@@ -1296,34 +1326,6 @@ function RefreshIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function UsdaIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <circle cx="20" cy="20" r="20" fill="url(#usda-icon-bg)" />
-      <path
-        d="M13.25 11.9a11 11 0 0 0 0 16.2M26.75 11.9a11 11 0 0 1 0 16.2"
-        stroke="#ffffff"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M23.9 15.5c-.9-.9-2.25-1.35-3.75-1.35-2.3 0-4.05 1.08-4.05 2.85 0 1.9 1.82 2.45 4.05 2.92 2.45.52 4.15 1.12 4.15 3.03 0 1.8-1.76 2.9-4.16 2.9-1.78 0-3.38-.58-4.34-1.66"
-        stroke="#ffffff"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M20 10.9v18.2" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" />
-      <defs>
-        <linearGradient id="usda-icon-bg" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#3aa3ff" />
-          <stop offset="1" stopColor="#1f6fd8" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 }

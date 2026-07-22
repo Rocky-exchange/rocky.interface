@@ -1,12 +1,11 @@
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
+import type { CantonFundsAsset } from "./assets";
 
 type ConsoleWalletTarget = "local" | "remote" | "combined";
-type ConsoleWalletTransferToken = "CC" | "USDA";
-
 type ConsoleWalletTransferInput = {
   from?: string;
   to: string;
-  token: ConsoleWalletTransferToken;
+  token: CantonFundsAsset;
   amount: string;
   memo: string;
   waitForFinalization?: number;

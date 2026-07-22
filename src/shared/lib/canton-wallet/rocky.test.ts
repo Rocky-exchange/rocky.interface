@@ -44,7 +44,7 @@ describe("rocky wallet sdk", () => {
 function createRockyWalletProvider() {
   return {
     isRockyWallet: true,
-    version: "0.1.0",
+    version: "1.0.2",
     connect: vi.fn(async () => ({
       isConnected: true,
       account: {

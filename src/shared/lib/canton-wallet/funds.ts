@@ -9,9 +9,14 @@ import { connectRockyWallet, submitRockyWalletTransfer } from "./rocky";
 import { createExchangeSession, exchangeSessionHeaders, getExchangeSessionToken } from "./session";
 import type { WalletProviderId } from "./types";
 import { notifyCantonSessionChange } from "./useCantonSession";
+import {
+  getCantonFundingAsset,
+  walletFacingAssetSymbol,
+  type CantonFundsApiAsset,
+  type CantonFundsAsset,
+} from "./assets";
 
-export type CantonFundsAsset = "CC" | "USDA";
-export type CantonFundsApiAsset = "CC" | "USDC";
+export type { CantonFundsApiAsset, CantonFundsAsset } from "./assets";
 export type CantonWalletTransferStatus =
   | "submitted"
   | "submitted_and_accepted"
@@ -137,11 +142,11 @@ const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
 
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
-  return asset === "USDA" ? "USDC" : "CC";
+  return getCantonFundingAsset(asset).apiSymbol;
 }
 
 export function walletFacingDepositAsset(asset: string): CantonFundsAsset {
-  return asset.trim().toUpperCase() === "USDC" ? "USDA" : "CC";
+  return walletFacingAssetSymbol(asset) || "CC";
 }
 
 export function makeWalletWithdrawalIdempotencyKey(asset: CantonFundsAsset): string {
