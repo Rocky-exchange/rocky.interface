@@ -9,6 +9,14 @@ describe("SPOT_MARKETS", () => {
       { routeSymbol: "CETH-USDA", apiSymbol: "CETH-USDCX" },
     ]);
   });
+
+  it("uses the approved CBTC display capitalization", () => {
+    expect(resolveSpotMarket("CBTC-USDA").displayBase).toBe("CBTC");
+  });
+
+  it("uses the approved cETH display capitalization", () => {
+    expect(resolveSpotMarket("CETH-USDA").displayBase).toBe("cETH");
+  });
 });
 
 describe("resolveSpotMarket", () => {

@@ -12,7 +12,7 @@ export const SPOT_MARKETS = [
   {
     routeSymbol: "CBTC-USDA",
     apiSymbol: "CBTC-USDCX",
-    displayBase: "cBTC",
+    displayBase: "CBTC",
     displayQuote: "USDA",
     apiBase: "CBTC",
     apiQuote: "USDCx",
