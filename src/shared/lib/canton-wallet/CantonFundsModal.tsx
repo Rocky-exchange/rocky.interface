@@ -4,10 +4,11 @@ import { useLingui } from "@lingui/react";
 import cx from "classnames";
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { spotMarketAssetIconSymbol } from "@/modules/spot/markets";
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 
-import { fileToAvatarDataUrl } from "./avatarImage";
 import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol } from "./assets";
+import { fileToAvatarDataUrl } from "./avatarImage";
 import {
   emptyWalletBalanceRows,
   fetchWalletBalanceSnapshot,
@@ -56,7 +57,7 @@ const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 
 export function CantonFundsModal({ open, onClose }: Props) {
   const { i18n } = useLingui();
-  const { connected, party, provider, username, avatar } = useCantonSession();
+  const { connected, locked, party, provider, username, avatar } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<CantonFundsAsset>("USDA");
@@ -115,6 +116,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
   );
   const canToggleHistory = historyItems.length > 3;
   const walletExplorerUrl = getCantonScanPartyUrl(walletParty);
+
+  useEffect(() => {
+    if (open && (!connected || locked)) onClose();
+  }, [connected, locked, onClose, open]);
 
   const refreshBalances = useCallback(async () => {
     if (!connected) return;
@@ -583,23 +588,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
           <section className={styles.balanceCard}>
             <div className={styles.sectionHeader}>
               <h3>
-                {selectedAsset} {i18n._(t`Balances`)}
-                <button
-                  type="button"
-                  className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
-                  onClick={() => {
-                    void refreshWalletDashboard();
-                  }}
-                  disabled={dashboardRefreshing}
-                  aria-label={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
-                  title={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
-                >
-                  <RefreshIcon />
-                </button>
-              </h3>
-              <label className={styles.assetSelect}>
-                <span>{i18n._(t`Asset`)}</span>
                 <select
+                  className={styles.headingAssetSelect}
+                  aria-label={i18n._(t`Asset`)}
                   value={selectedAsset}
                   onChange={(event) => {
                     setSelectedAsset(event.target.value as CantonFundsAsset);
@@ -614,20 +605,34 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </option>
                   ))}
                 </select>
-              </label>
+                {i18n._(t`Balances`)}
+                <button
+                  type="button"
+                  className={cx(styles.refreshButton, dashboardRefreshing && styles.refreshButtonLoading)}
+                  onClick={() => {
+                    void refreshWalletDashboard();
+                  }}
+                  disabled={dashboardRefreshing}
+                  aria-label={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                  title={dashboardRefreshing ? i18n._(t`Refreshing...`) : i18n._(t`Refresh balances`)}
+                >
+                  <RefreshIcon />
+                </button>
+              </h3>
             </div>
 
             <div className={styles.balanceGrid}>
               <div className={styles.balanceItem}>
                 <TokenIcon
-                  symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset}
+                  symbol={spotMarketAssetIconSymbol(selectedAsset)}
                   displaySize={40}
                   className={styles.tokenIcon}
                 />
                 <div>
                   <div className={styles.balanceLabel}>{i18n._(t`Wallet Balance`)}</div>
                   <div className={styles.balanceValue}>
-                    {formatFixedBalance(selectedWalletBalance)} <span>{selectedAsset}</span>
+                    <CompactAssetAmount value={selectedWalletBalance} asset={selectedAsset} />{" "}
+                    <span>{selectedAsset}</span>
                   </div>
                   <div className={styles.balanceCaption}>{i18n._(t`On-chain balance`)}</div>
                 </div>
@@ -639,7 +644,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <div>
                   <div className={styles.balanceLabel}>{i18n._(t`Exchange Balance`)}</div>
                   <div className={styles.balanceValue}>
-                    {withdrawAvailable === null ? "-" : formatFixedAmount(withdrawAvailable)}{" "}
+                    {withdrawAvailable === null ? (
+                      "-"
+                    ) : (
+                      <CompactAssetAmount value={withdrawAvailable} asset={selectedAsset} />
+                    )}{" "}
                     <span>{selectedAsset}</span>
                   </div>
                   <div className={styles.balanceCaption}>{i18n._(t`On connected exchange`)}</div>
@@ -700,13 +709,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </div>
                   </div>
                   <div className={styles.formGrid}>
-                    <div className={styles.field}>
-                      <span>{i18n._(t`Asset`)}</span>
-                      <div className={styles.fixedAssetValue}>
-                        <TokenIcon symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset} displaySize={24} />
-                        <strong>{selectedAsset}</strong>
-                      </div>
-                    </div>
                     <label className={styles.field}>
                       <span>{i18n._(t`Amount`)}</span>
                       <input
@@ -737,13 +739,6 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </div>
                   </div>
                   <div className={styles.formGrid}>
-                    <div className={styles.field}>
-                      <span>{i18n._(t`Asset`)}</span>
-                      <div className={styles.fixedAssetValue}>
-                        <TokenIcon symbol={selectedAsset === "USDA" ? "USDC" : selectedAsset} displaySize={24} />
-                        <strong>{selectedAsset}</strong>
-                      </div>
-                    </div>
                     <label className={styles.field}>
                       <span>{i18n._(t`Amount`)}</span>
                       <input
@@ -816,7 +811,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   >
                     <span>{formatHistoryTime(item.time)}</span>
                     <span className={styles.assetCell}>
-                      <TokenIcon symbol={item.asset === "USDA" ? "USDC" : item.asset} displaySize={24} />
+                      <TokenIcon symbol={spotMarketAssetIconSymbol(item.asset)} displaySize={24} />
                       {item.asset}
                     </span>
                     <span
@@ -993,20 +988,42 @@ function formatDisplayAmount(value: number): string {
   });
 }
 
-function formatFixedAmount(value: number): string {
-  const factor = 100;
-  const truncated = Math.trunc(value * factor) / factor;
+function formatAssetAmount(value: number, asset: CantonFundsAsset): string {
+  const isWrappedMarketAsset = asset === "CBTC" || asset === "cETH";
+  const leadingDecimalZeroes = isWrappedMarketAsset
+    ? value.toFixed(20).match(/^0\.(0+)/)?.[1].length || 0
+    : 0;
+  const maximumFractionDigits = isWrappedMarketAsset
+    ? leadingDecimalZeroes >= 4
+      ? Math.min(leadingDecimalZeroes + 4, 20)
+      : 6
+    : 2;
 
-  return truncated.toLocaleString("en-US", {
+  return value.toLocaleString("en-US", {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits,
   });
 }
 
-function formatFixedBalance(value: string | null | undefined): string {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return "0.00";
-  return formatFixedAmount(numeric);
+function CompactAssetAmount({
+  value,
+  asset,
+}: {
+  value: string | number | null | undefined;
+  asset: CantonFundsAsset;
+}) {
+  const numeric = value === null || value === undefined ? Number.NaN : Number(value);
+  const formatted = Number.isFinite(numeric) ? formatAssetAmount(numeric, asset) : "0.00";
+  const compactMatch = formatted.match(/^([+-]?[\d,]+)\.(0{4,})(\d+)$/);
+
+  if (!compactMatch) return <>{formatted}</>;
+  return (
+    <>
+      {compactMatch[1]}.0
+      <sub className={styles.tokenZeroCount}>{compactMatch[2].length}</sub>
+      {compactMatch[3]}
+    </>
+  );
 }
 
 function requiredWithdrawalAmount(amount: number, asset: CantonFundsAsset): number {

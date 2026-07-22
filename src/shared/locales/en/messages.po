@@ -2841,3 +2841,13 @@ msgstr "Assets ({0})"
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
 msgid "Menu"
 msgstr "Menu"
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+#: src/shared/lib/canton-wallet/CantonWalletButton.tsx
+msgid "Unlock"
+msgstr "Unlock"
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+#: src/shared/lib/canton-wallet/CantonWalletButton.tsx
+msgid "Unlocking..."
+msgstr "Unlocking..."

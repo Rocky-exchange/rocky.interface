@@ -1,5 +1,11 @@
-import { createRockyWalletSdk } from "@rocky-wallet/dapp-sdk";
-import type { GetCoinsResponse, RockyAccount, RockyAssetDescriptor, RockyWalletSdk } from "@rocky-wallet/dapp-sdk";
+import {
+  createRockyWalletSdk,
+  type GetCoinsResponse,
+  type RockyAccount,
+  type RockyAssetDescriptor,
+  type RockyWalletSdk,
+} from "@rocky-wallet/dapp-sdk";
+
 import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
@@ -156,6 +162,12 @@ export const rockyWalletAdapter: WalletProviderAdapter = {
 
 function getRockyWalletSdk(): RockyWalletSdk {
   return createRockyWalletSdk();
+}
+
+export function subscribeRockyWalletAccountChanges(
+  onChange: (account: RockyAccount | undefined) => void
+): () => void {
+  return getRockyWalletSdk().onAccountsChanged(onChange);
 }
 
 async function resolveRockyAccount(

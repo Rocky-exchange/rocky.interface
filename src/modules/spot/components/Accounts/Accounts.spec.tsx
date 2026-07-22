@@ -57,6 +57,7 @@ describe("SpotAccountsPanel", () => {
     mReady.mockReturnValue(false);
     mSession.mockReturnValue({
       connected: false,
+      locked: false,
       token: "",
       party: "",
       username: "",
@@ -73,6 +74,7 @@ describe("SpotAccountsPanel", () => {
     mReady.mockReturnValue(true);
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -89,6 +91,7 @@ describe("SpotAccountsPanel", () => {
     mReady.mockReturnValue(true);
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "party-abc",
       username: "u",
