@@ -206,6 +206,10 @@ msgstr ""
 msgid "Expand"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee is unavailable. Please retry."
+msgstr ""
+
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr ""
@@ -643,6 +647,10 @@ msgstr ""
 msgid "Enter a  price"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "You will receive"
+msgstr ""
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "The execution price didn't meet the acceptable price."
 msgstr ""
@@ -996,6 +1004,10 @@ msgstr ""
 msgid "Console Wallet transfer submitted"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Estimated Network Fee"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Original"
 msgstr ""
@@ -1134,7 +1146,6 @@ msgstr ""
 msgid "How can we continue to meet your expectations?"
 msgstr ""
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr ""
@@ -2019,6 +2030,10 @@ msgstr ""
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Available"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal request timed out. Please retry."
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx

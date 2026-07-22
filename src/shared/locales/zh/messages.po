@@ -206,6 +206,10 @@ msgstr "{0} 無法傳送到智慧合约地址。請選擇另一個代幣。"
 msgid "Expand"
 msgstr "展開"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee is unavailable. Please retry."
+msgstr "提領手續費暫時無法取得，請重試。"
+
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr "由於 RPC 錯誤，交易失敗。<0/><1/>請在設定下啟用 <2>快速交易</2>，這應該提供更好的體驗。"
@@ -643,6 +647,10 @@ msgstr "止盈限價需要止盈觸發價"
 msgid "Enter a  price"
 msgstr "輸入價格"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "You will receive"
+msgstr "實際到帳"
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "The execution price didn't meet the acceptable price."
 msgstr "執行價格未達到可接受價格。"
@@ -996,6 +1004,10 @@ msgstr "交易"
 msgid "Console Wallet transfer submitted"
 msgstr "Console Wallet 轉帳已提交"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Estimated Network Fee"
+msgstr "預估網路手續費"
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Original"
 msgstr "原始"
@@ -1134,7 +1146,6 @@ msgstr "如果您同意被聯絡進行快速跟進，請留下您的 Telegram。
 msgid "How can we continue to meet your expectations?"
 msgstr "我們如何繼續滿足您的期望？"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr "網路費"
@@ -2020,6 +2031,10 @@ msgstr "最大槓桿："
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Available"
 msgstr "可用"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal request timed out. Please retry."
+msgstr "提領請求逾時，請重試。"
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Place Limit Long"

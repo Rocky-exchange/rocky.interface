@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   fetchPlatformAccountBalance: vi.fn(),
   fetchPlatformAccountBalances: vi.fn(),
   fetchSpotTransferHistory: vi.fn(),
+  fetchWithdrawalFeeQuote: vi.fn(),
+  makeWalletWithdrawalIdempotencyKey: vi.fn(),
   fetchWalletBalanceSnapshot: vi.fn(),
   fetchCantonFundsHistory: vi.fn(),
   submitCantonWalletDeposit: vi.fn(),
@@ -51,6 +53,8 @@ vi.mock("./funds", () => ({
   fetchPlatformAccountBalance: mocks.fetchPlatformAccountBalance,
   fetchPlatformAccountBalances: mocks.fetchPlatformAccountBalances,
   fetchSpotTransferHistory: mocks.fetchSpotTransferHistory,
+  fetchWithdrawalFeeQuote: mocks.fetchWithdrawalFeeQuote,
+  makeWalletWithdrawalIdempotencyKey: mocks.makeWalletWithdrawalIdempotencyKey,
   fetchCantonFundsHistory: mocks.fetchCantonFundsHistory,
   submitCantonWalletDeposit: mocks.submitCantonWalletDeposit,
   submitPlatformWithdrawal: mocks.submitPlatformWithdrawal,
@@ -81,6 +85,13 @@ describe("CantonFundsModal", () => {
     mocks.fetchFundingAccountBalance.mockResolvedValue(25);
     mocks.fetchSpotTransferHistory.mockResolvedValue({ transfers: [] });
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
+    mocks.fetchWithdrawalFeeQuote.mockResolvedValue({
+      asset: "USDC",
+      fee_asset: "USDC",
+      fee_wallet_symbol: "USDA",
+      fee_amount: "1",
+    });
+    mocks.makeWalletWithdrawalIdempotencyKey.mockReturnValue("withdrawal-key-1");
     mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
       provider: "rocky",
       label: "Rocky Wallet",
@@ -347,7 +358,9 @@ describe("CantonFundsModal", () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
 
-    expect(screen.getByText("1 USDA")).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("1.00 USDA")
+    );
     fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
     await waitFor(() =>
@@ -355,8 +368,57 @@ describe("CantonFundsModal", () => {
         asset: "USDA",
         amount: "5",
         destinationParty: PARTY_ID,
+        idempotencyKey: "withdrawal-key-1",
       })
     );
+  });
+
+  it("shows the native fee, received amount, and subtracts the fee from Max", async () => {
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 100, CBTC: 0.000031, cETH: 3, CC: 4 });
+    mocks.fetchPlatformAccountBalance.mockResolvedValue(0.000031);
+    mocks.fetchWithdrawalFeeQuote.mockImplementation(async (asset: string) => ({
+      asset,
+      fee_asset: asset,
+      fee_wallet_symbol: asset,
+      fee_amount: asset === "CBTC" ? "0.0000142858" : "1",
+    }));
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    fireEvent.click(screen.getByRole("button", { name: "Asset" }));
+    fireEvent.click(screen.getByRole("option", { name: "CBTC" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("CBTC")
+    );
+    const feeValue = screen.getByText("Estimated Network Fee").nextElementSibling;
+    expect(feeValue?.textContent).toContain("0.041429 CBTC");
+    expect(feeValue?.querySelector("sub")?.textContent).toBe("4");
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "0.00001" } });
+    const receivedValue = screen.getByText("You will receive").nextElementSibling;
+    expect(receivedValue?.textContent).toContain("0.041 CBTC");
+    expect(receivedValue?.querySelector("sub")?.textContent).toBe("4");
+
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((screen.getByLabelText("Withdraw amount") as HTMLInputElement).value).toBe("0.0000167142");
+  });
+
+  it("re-enables Withdraw after a timed-out request and reuses its idempotency key", async () => {
+    mocks.submitPlatformWithdrawal.mockRejectedValue(new Error("Withdrawal request timed out. Please retry."));
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    await waitFor(() =>
+      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("1.00 USDA")
+    );
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+    await waitFor(() => expect(screen.getByText("Withdrawal request timed out. Please retry.")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Withdraw" }).hasAttribute("disabled")).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+    await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(2));
+    expect(mocks.submitPlatformWithdrawal.mock.calls[0][0].idempotencyKey).toBe("withdrawal-key-1");
+    expect(mocks.submitPlatformWithdrawal.mock.calls[1][0].idempotencyKey).toBe("withdrawal-key-1");
   });
 
   it("closes when the Canton session disconnects or locks", () => {

@@ -206,6 +206,10 @@ msgstr "{0} can not be sent to smart contract addresses. Select another token."
 msgid "Expand"
 msgstr "Expand"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee is unavailable. Please retry."
+msgstr "Withdrawal fee is unavailable. Please retry."
+
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
@@ -643,6 +647,10 @@ msgstr "TP limit requires TP price"
 msgid "Enter a  price"
 msgstr "Enter a  price"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "You will receive"
+msgstr "You will receive"
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "The execution price didn't meet the acceptable price."
 msgstr "The execution price didn't meet the acceptable price."
@@ -996,6 +1004,10 @@ msgstr "Trading"
 msgid "Console Wallet transfer submitted"
 msgstr "Console Wallet transfer submitted"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Estimated Network Fee"
+msgstr "Estimated Network Fee"
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Original"
 msgstr "Original"
@@ -1134,7 +1146,6 @@ msgstr "Leave your Telegram if you’re okay with being contacted for a quick fo
 msgid "How can we continue to meet your expectations?"
 msgstr "How can we continue to meet your expectations?"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr "Network Fee"
@@ -2020,6 +2031,10 @@ msgstr "Max Leverage:"
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Available"
 msgstr "Available"
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal request timed out. Please retry."
+msgstr "Withdrawal request timed out. Please retry."
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Place Limit Long"

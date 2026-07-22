@@ -63,6 +63,15 @@ export type CantonWithdrawalResult = {
   [key: string]: unknown;
 };
 
+export type CantonWithdrawalFeeQuote = {
+  asset: string;
+  fee_asset: string;
+  fee_wallet_symbol: string;
+  fee_amount: string;
+  fee_quote_price?: string;
+  fee_quote_ts_ms?: number;
+};
+
 export type CantonDepositHistoryItem = {
   deposit_id?: string;
   asset?: string;
@@ -155,6 +164,7 @@ export class CantonFundsError extends Error {
 
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS = 12;
 const PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS = 2500;
+const WITHDRAWAL_REQUEST_TIMEOUT_MS = 15_000;
 
 export function platformDepositApiAsset(asset: CantonFundsAsset): CantonFundsApiAsset {
   return getCantonFundingAsset(asset).apiSymbol;
@@ -233,16 +243,33 @@ export async function submitPlatformWithdrawal(input: {
     throw new CantonFundsError("Destination party is required", { code: "destination_party_required" });
   }
 
-  return requestJson<CantonWithdrawalResult>("/v1/withdrawals", {
-    method: "POST",
-    headers: sessionJsonHeaders(),
-    body: JSON.stringify({
-      asset: input.asset,
-      amount: positiveAmount(input.amount),
-      dest_user_handle_party: destinationParty,
-      idempotency_key: input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset),
-    }),
-  });
+  return requestJson<CantonWithdrawalResult>(
+    "/v1/withdrawals",
+    {
+      method: "POST",
+      headers: sessionJsonHeaders(),
+      body: JSON.stringify({
+        asset: input.asset,
+        amount: positiveAmount(input.amount),
+        dest_user_handle_party: destinationParty,
+        idempotency_key: input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset),
+      }),
+    },
+    {
+      timeoutMs: WITHDRAWAL_REQUEST_TIMEOUT_MS,
+      timeoutMessage: "Withdrawal request timed out. Please retry.",
+    }
+  );
+}
+
+export async function fetchWithdrawalFeeQuote(asset: CantonFundsAsset): Promise<CantonWithdrawalFeeQuote> {
+  return requestJson<CantonWithdrawalFeeQuote>(
+    `/v1/withdrawals/quote?asset=${encodeURIComponent(platformDepositApiAsset(asset))}`,
+    {
+      method: "GET",
+      headers: exchangeSessionHeaders(),
+    }
+  );
 }
 
 export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
@@ -501,21 +528,41 @@ async function submitWalletTransfer(input: {
   });
 }
 
-async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init.headers || {}),
-    },
-  });
-  const data = await readResponseBody(response);
-  if (!response.ok) {
-    const error = fundsErrorFromResponse(data, response.status, url);
-    await disconnectForInvalidSession(error);
+async function requestJson<T>(
+  url: string,
+  init: RequestInit,
+  options: { timeoutMs?: number; timeoutMessage?: string } = {}
+): Promise<T> {
+  const controller = options.timeoutMs ? new AbortController() : null;
+  const timer = controller
+    ? setTimeout(() => controller.abort(), options.timeoutMs)
+    : null;
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller?.signal || init.signal,
+      headers: {
+        Accept: "application/json",
+        ...(init.headers || {}),
+      },
+    });
+    const data = await readResponseBody(response);
+    if (!response.ok) {
+      const error = fundsErrorFromResponse(data, response.status, url);
+      await disconnectForInvalidSession(error);
+      throw error;
+    }
+    return data as T;
+  } catch (error) {
+    if (controller?.signal.aborted) {
+      throw new CantonFundsError(options.timeoutMessage || "Request timed out. Please retry.", {
+        code: "request_timeout",
+      });
+    }
     throw error;
+  } finally {
+    if (timer !== null) clearTimeout(timer);
   }
-  return data as T;
 }
 
 function fundsErrorFromResponse(data: unknown, status: number, url: string): CantonFundsError {

@@ -9,6 +9,7 @@ import {
   fetchPendingUsdaOffers,
   fetchSpotTransferHistory,
   fetchUsdaAutoAccept,
+  fetchWithdrawalFeeQuote,
   platformDepositApiAsset,
   requestDepositReference,
   submitCantonWalletDeposit,
@@ -258,6 +259,55 @@ describe("canton wallet funds", () => {
       dest_user_handle_party: "party-1",
       idempotency_key: "idempotency-1",
     });
+  });
+
+  it("loads the native withdrawal fee quote for the selected asset", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        asset: "CBTC",
+        fee_asset: "CBTC",
+        fee_wallet_symbol: "CBTC",
+        fee_amount: "0.0000142858",
+        fee_quote_price: "70000",
+        fee_quote_ts_ms: 1784700000000,
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchWithdrawalFeeQuote("CBTC")).resolves.toMatchObject({
+      fee_asset: "CBTC",
+      fee_wallet_symbol: "CBTC",
+      fee_amount: "0.0000142858",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/withdrawals/quote?asset=CBTC",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
+  it("times out a stalled withdrawal request so the UI can safely retry", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn((_url: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = submitPlatformWithdrawal({
+      asset: "CBTC",
+      amount: "0.00001",
+      destinationParty: "party-1",
+      idempotencyKey: "idempotency-timeout",
+    });
+    const rejection = expect(pending).rejects.toMatchObject({
+      code: "request_timeout",
+      message: "Withdrawal request timed out. Please retry.",
+    });
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await rejection;
+    vi.useRealTimers();
   });
 
   it("reads the platform balance used for withdrawals", async () => {

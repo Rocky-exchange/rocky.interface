@@ -206,6 +206,10 @@ msgstr "{0}은 스마트 컨트랙트 주소로 보낼 수 없습니다. 다른 
 msgid "Expand"
 msgstr "확장"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee is unavailable. Please retry."
+msgstr ""
+
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr "RPC 오류로 트랜잭션 실패.<0/><1/>설정에서 <2>익스프레스 트레이딩</2>을 활성화하세요. 더 나은 경험을 제공할 것입니다."
@@ -643,6 +647,10 @@ msgstr ""
 msgid "Enter a  price"
 msgstr "가격 입력"
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "You will receive"
+msgstr ""
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "The execution price didn't meet the acceptable price."
 msgstr "실행 가격이 허용 가격을 충족하지 않았습니다."
@@ -996,6 +1004,10 @@ msgstr ""
 msgid "Console Wallet transfer submitted"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Estimated Network Fee"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Original"
 msgstr ""
@@ -1134,7 +1146,6 @@ msgstr "빠른 후속 연락을 위해 Telegram을 남겨주세요."
 msgid "How can we continue to meet your expectations?"
 msgstr "귀하의 기대를 지속적으로 충족시키기 위해 어떻게 할 수 있을까요?"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr ""
@@ -2019,6 +2030,10 @@ msgstr ""
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Available"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal request timed out. Please retry."
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
