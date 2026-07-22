@@ -36,6 +36,11 @@
     background: var(--ltr-bg-hover);
   }
 
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
+  }
+
   &:disabled {
     cursor: wait;
     opacity: 0.62;
@@ -78,6 +83,11 @@
     color: var(--ltr-text-muted);
     cursor: not-allowed;
     opacity: 0.62;
+  }
+
+  button:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
   }
 
   .orderTypeActive {
@@ -185,6 +195,11 @@
     cursor: wait;
     opacity: 0.68;
   }
+
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
+  }
 }
 
 .unit {
@@ -269,8 +284,8 @@
     box-shadow: 0 0 0 1px var(--ltr-accent-cyan, #ff8a3d);
   }
 
-  &:focus-visible {
-    outline: 1px solid var(--ltr-accent-cyan, #ff8a3d);
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
     outline-offset: 4px;
   }
 
@@ -322,6 +337,11 @@
 
   &:not(:disabled):hover {
     filter: brightness(1.08);
+  }
+
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: 2px;
   }
 
   &:not(:disabled):active {

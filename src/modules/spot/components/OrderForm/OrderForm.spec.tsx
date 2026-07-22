@@ -93,9 +93,43 @@ describe("SpotOrderForm", () => {
   it("shows Limit as the active order type and exposes unsupported types as disabled", () => {
     const { getByRole } = render(<SpotOrderForm market={market} />);
 
-    expect(getByRole("tab", { name: "Limit" }).getAttribute("aria-selected")).toBe("true");
-    expect((getByRole("tab", { name: "Market" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((getByRole("tab", { name: "Limit Order" }) as HTMLButtonElement).disabled).toBe(true);
+    const limit = getByRole("tab", { name: "Limit" }) as HTMLButtonElement;
+    const marketType = getByRole("tab", { name: "Market" }) as HTMLButtonElement;
+    const limitOrder = getByRole("tab", { name: "Limit Order" }) as HTMLButtonElement;
+    expect(limit.getAttribute("aria-selected")).toBe("true");
+    expect(limit.tabIndex).toBe(0);
+    expect(marketType.disabled).toBe(true);
+    expect(marketType.tabIndex).toBe(-1);
+    expect(limitOrder.disabled).toBe(true);
+    expect(limitOrder.tabIndex).toBe(-1);
+  });
+
+  it("uses roving focus and arrow keys across the Buy and Sell tabs", () => {
+    const { getByRole } = render(<SpotOrderForm market={market} />);
+    const buy = getByRole("tab", { name: `Buy ${market.displayBase}` }) as HTMLButtonElement;
+    const sell = getByRole("tab", { name: `Sell ${market.displayBase}` }) as HTMLButtonElement;
+
+    expect(buy.tabIndex).toBe(0);
+    expect(sell.tabIndex).toBe(-1);
+    buy.focus();
+
+    fireEvent.keyDown(buy, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(sell);
+    expect(sell.getAttribute("aria-selected")).toBe("true");
+    expect(buy.tabIndex).toBe(-1);
+    expect(sell.tabIndex).toBe(0);
+
+    fireEvent.keyDown(sell, { key: "Home" });
+    expect(document.activeElement).toBe(buy);
+    expect(buy.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(buy, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(sell);
+    expect(sell.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(sell, { key: "End" });
+    expect(document.activeElement).toBe(sell);
+    expect(sell.getAttribute("aria-selected")).toBe("true");
   });
 
   it("shows Connect wallet CTA and skips submit when auth is not ready", () => {

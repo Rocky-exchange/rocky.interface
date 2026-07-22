@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react";
 
 import styles from "./OrderBook.module.scss";
 import { spotApi, type DepthResp, type Trade } from "../../api/spotClient";
@@ -22,11 +22,7 @@ function fmtNum(v: string | number, digits = 2): string {
 }
 
 function BookBody({ market, view }: { market: SpotMarket; view: BookView }) {
-  const { data, err } = usePolling<DepthResp>(
-    () => spotApi.depth(market.apiSymbol, 20),
-    1000,
-    [market.apiSymbol]
-  );
+  const { data, err } = usePolling<DepthResp>(() => spotApi.depth(market.apiSymbol, 20), 1000, [market.apiSymbol]);
   if (err) return <div className={styles.err}>{err}</div>;
   if (!data) return <div className={styles.empty}>Loading…</div>;
 
@@ -49,7 +45,7 @@ function BookBody({ market, view }: { market: SpotMarket; view: BookView }) {
   const maxTotal = Math.max(askRows[askRows.length - 1]?.total ?? 0, bidRows[bidRows.length - 1]?.total ?? 0, 1e-9);
   const bestAsk = asks[0] ? parseFloat(asks[0][0]) : null;
   const bestBid = bids[0] ? parseFloat(bids[0][0]) : null;
-  const referencePrice = bestAsk !== null && bestBid !== null ? (bestAsk + bestBid) / 2 : (bestAsk ?? bestBid);
+  const referencePrice = bestAsk !== null && bestBid !== null ? (bestAsk + bestBid) / 2 : bestAsk ?? bestBid;
   const spread = bestAsk !== null && bestBid !== null ? bestAsk - bestBid : null;
   const spreadPct = spread !== null && bestAsk !== null && bestAsk > 0 ? (spread / bestAsk) * 100 : null;
 
@@ -62,10 +58,7 @@ function BookBody({ market, view }: { market: SpotMarket; view: BookView }) {
             .reverse()
             .map((r, i) => (
               <div key={`a${i}`} className={styles.row}>
-                <div
-                  className={`${styles.rowBar} ${styles.askBar}`}
-                  style={barWidthStyle(r.total, maxTotal)}
-                />
+                <div className={`${styles.rowBar} ${styles.askBar}`} style={barWidthStyle(r.total, maxTotal)} />
                 <span className={`${styles.rowText} ${styles.ask}`}>{fmtNum(r.p)}</span>
                 <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
                 <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.notional)}</span>
@@ -75,16 +68,17 @@ function BookBody({ market, view }: { market: SpotMarket; view: BookView }) {
       )}
       <div className={styles.mid}>
         <span className={styles.midPrice}>{fmtNum(referencePrice ?? Number.NaN)}</span>
-        <span>{spread === null || spreadPct === null ? "Spread —" : `Spread ${spread.toFixed(2)} (${spreadPct.toFixed(3)}%)`}</span>
+        <span>
+          {spread === null || spreadPct === null
+            ? "Spread —"
+            : `Spread ${spread.toFixed(2)} (${spreadPct.toFixed(3)}%)`}
+        </span>
       </div>
       {view !== "asks" && (
         <div className={styles.rows}>
           {bidRows.map((r, i) => (
             <div key={`b${i}`} className={styles.row}>
-              <div
-                className={`${styles.rowBar} ${styles.bidBar}`}
-                style={barWidthStyle(r.total, maxTotal)}
-              />
+              <div className={`${styles.rowBar} ${styles.bidBar}`} style={barWidthStyle(r.total, maxTotal)} />
               <span className={`${styles.rowText} ${styles.bid}`}>{fmtNum(r.p)}</span>
               <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
               <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.notional)}</span>
@@ -125,6 +119,21 @@ function TradesBody({ market }: { market: SpotMarket }) {
 export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
   const [tab, setTab] = useState<Tab>("book");
   const [bookView, setBookView] = useState<BookView>("all");
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ book: null, trades: null });
+
+  const activateFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentTab: Tab) => {
+    let nextTab: Tab | null = null;
+    if (event.key === "Home") nextTab = "book";
+    if (event.key === "End") nextTab = "trades";
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      nextTab = currentTab === "book" ? "trades" : "book";
+    }
+    if (!nextTab) return;
+
+    event.preventDefault();
+    setTab(nextTab);
+    tabRefs.current[nextTab]?.focus();
+  };
 
   const bookViewButtons: Array<{ view: BookView; label: string; lines: Array<"ask" | "bid"> }> = [
     { view: "all", label: "Show full order book", lines: ["ask", "ask", "bid"] },
@@ -140,10 +149,17 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
             <button
               key={t}
               type="button"
+              id={`spot-${t}-tab`}
               role="tab"
               aria-selected={tab === t}
+              aria-controls="spot-order-book-data-panel"
+              tabIndex={tab === t ? 0 : -1}
               className={`${styles.tab} ${tab === t ? styles.tabActive : ""}`}
               onClick={() => setTab(t)}
+              onKeyDown={(event) => activateFromKeyboard(event, t)}
+              ref={(node) => {
+                tabRefs.current[t] = node;
+              }}
             >
               {t === "book" ? "Order Book" : "Recent Trades"}
             </button>
@@ -162,10 +178,7 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
               >
                 <span className={styles.bookViewIcon} aria-hidden="true">
                   {lines.map((line, index) => (
-                    <span
-                      key={`${line}-${index}`}
-                      className={line === "ask" ? styles.askLine : styles.bidLine}
-                    />
+                    <span key={`${line}-${index}`} className={line === "ask" ? styles.askLine : styles.bidLine} />
                   ))}
                 </span>
               </button>
@@ -173,20 +186,23 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
           </div>
         )}
       </div>
-      <div className={styles.header}>
-        <span>Price ({market.displayQuote})</span>
-        <span className={styles.right}>
-          Amount ({market.displayBase})
-        </span>
-        <span className={styles.right}>
-          {tab === "book" ? `Total (${market.displayQuote})` : "Time"}
-        </span>
+      <div
+        id="spot-order-book-data-panel"
+        role="tabpanel"
+        aria-labelledby={`spot-${tab}-tab`}
+        className={styles.dataPanel}
+      >
+        <div className={styles.header}>
+          <span>Price ({market.displayQuote})</span>
+          <span className={styles.right}>Amount ({market.displayBase})</span>
+          <span className={styles.right}>{tab === "book" ? `Total (${market.displayQuote})` : "Time"}</span>
+        </div>
+        {tab === "book" ? (
+          <BookBody key={market.apiSymbol} market={market} view={bookView} />
+        ) : (
+          <TradesBody key={market.apiSymbol} market={market} />
+        )}
       </div>
-      {tab === "book" ? (
-        <BookBody key={market.apiSymbol} market={market} view={bookView} />
-      ) : (
-        <TradesBody key={market.apiSymbol} market={market} />
-      )}
     </div>
   );
 }

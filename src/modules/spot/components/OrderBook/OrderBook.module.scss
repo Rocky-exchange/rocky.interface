@@ -34,6 +34,11 @@
   &:hover {
     color: var(--ltr-text-primary);
   }
+
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
+  }
 }
 
 .tabActive {
@@ -68,9 +73,9 @@
     opacity: 1;
   }
 
-  &:focus-visible {
-    outline: 1px solid var(--ltr-accent-cyan, #ff8a3d);
-    outline-offset: 1px;
+  &:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -1px;
   }
 }
 
@@ -84,6 +89,13 @@
   display: grid;
   gap: 2px;
   width: 14px;
+}
+
+.dataPanel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .askLine,

@@ -79,6 +79,37 @@ describe("SpotOrderBookPanel", () => {
     await waitFor(() => expect(mTrades).toHaveBeenCalledWith("CBTC-USDCX", 30));
   });
 
+  it("uses roving focus and arrow keys across the order book tabs", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    mTrades.mockResolvedValue([]);
+    const { findByText, getByRole } = render(<SpotOrderBookPanel market={market} />);
+    await findByText("65,010.00");
+
+    const orderBook = getByRole("tab", { name: "Order Book" }) as HTMLButtonElement;
+    const recentTrades = getByRole("tab", { name: "Recent Trades" }) as HTMLButtonElement;
+    expect(orderBook.tabIndex).toBe(0);
+    expect(recentTrades.tabIndex).toBe(-1);
+    orderBook.focus();
+
+    fireEvent.keyDown(orderBook, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(recentTrades);
+    expect(recentTrades.getAttribute("aria-selected")).toBe("true");
+    expect(orderBook.tabIndex).toBe(-1);
+    expect(recentTrades.tabIndex).toBe(0);
+
+    fireEvent.keyDown(recentTrades, { key: "Home" });
+    expect(document.activeElement).toBe(orderBook);
+    expect(orderBook.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(orderBook, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(recentTrades);
+    expect(recentTrades.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(recentTrades, { key: "End" });
+    expect(document.activeElement).toBe(recentTrades);
+    expect(recentTrades.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("renders asks + bids with quote notional totals and spread", async () => {
     mDepth.mockResolvedValue(twoSidedDepth);
     const { findByText, container } = render(<SpotOrderBookPanel market={market} />);

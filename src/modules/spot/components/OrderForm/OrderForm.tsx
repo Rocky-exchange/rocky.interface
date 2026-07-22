@@ -1,5 +1,5 @@
 import BigNumber from "bignumber.js";
-import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
@@ -78,6 +78,7 @@ function isWithinAvailableBalance(
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { ready, account, err: accountError, refetch } = useSpotAccount();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
+  const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
@@ -107,6 +108,20 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           })
     );
     setMsg(null);
+  };
+
+  const activateSideFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentSide: Side) => {
+    let nextSide: Side | null = null;
+    if (event.key === "Home") nextSide = "BUY";
+    if (event.key === "End") nextSide = "SELL";
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      nextSide = currentSide === "BUY" ? "SELL" : "BUY";
+    }
+    if (!nextSide) return;
+
+    event.preventDefault();
+    if (nextSide !== side) selectSide(nextSide);
+    sideTabRefs.current[nextSide]?.focus();
   };
 
   const updateAmount = (value: string) => {
@@ -207,39 +222,66 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       <div className={styles.sideTabs} role="tablist" aria-label="Order side">
         <button
           type="button"
+          id="spot-buy-tab"
           role="tab"
           aria-selected={side === "BUY"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={side === "BUY" && !busy ? 0 : -1}
           disabled={busy}
           className={`${styles.sideTab} ${side === "BUY" ? styles.sideTabBuyActive : ""}`}
           onClick={() => selectSide("BUY")}
+          onKeyDown={(event) => activateSideFromKeyboard(event, "BUY")}
+          ref={(node) => {
+            sideTabRefs.current.BUY = node;
+          }}
         >
           Buy {base}
         </button>
         <button
           type="button"
+          id="spot-sell-tab"
           role="tab"
           aria-selected={side === "SELL"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={side === "SELL" && !busy ? 0 : -1}
           disabled={busy}
           className={`${styles.sideTab} ${side === "SELL" ? styles.sideTabSellActive : ""}`}
           onClick={() => selectSide("SELL")}
+          onKeyDown={(event) => activateSideFromKeyboard(event, "SELL")}
+          ref={(node) => {
+            sideTabRefs.current.SELL = node;
+          }}
         >
           Sell {base}
         </button>
       </div>
 
       <div className={styles.orderTypeTabs} role="tablist" aria-label="Order type">
-        <button type="button" role="tab" aria-selected="true" className={styles.orderTypeActive}>
+        <button
+          type="button"
+          id="spot-limit-tab"
+          role="tab"
+          aria-selected="true"
+          aria-controls="spot-order-form-panel"
+          tabIndex={0}
+          className={styles.orderTypeActive}
+        >
           Limit
         </button>
-        <button type="button" role="tab" aria-selected="false" disabled>
+        <button type="button" role="tab" aria-selected="false" aria-disabled="true" tabIndex={-1} disabled>
           Market
         </button>
-        <button type="button" role="tab" aria-selected="false" disabled>
+        <button type="button" role="tab" aria-selected="false" aria-disabled="true" tabIndex={-1} disabled>
           Limit Order
         </button>
       </div>
 
-      <div className={styles.body}>
+      <div
+        id="spot-order-form-panel"
+        role="tabpanel"
+        aria-labelledby={`spot-${side.toLowerCase()}-tab spot-limit-tab`}
+        className={styles.body}
+      >
         <div className={styles.available}>
           <span>Available</span>
           <strong>
