@@ -323,8 +323,8 @@ describe("CantonFundsModal", () => {
       deposits: [
         {
           deposit_id: "deposit-1",
-          asset: "USDC",
-          amount_expected: "0.0001",
+          asset: "CBTC",
+          amount_expected: "0.00003",
           status: "credited",
           created_at: "2026-07-22T06:48:09Z",
         },
@@ -332,8 +332,8 @@ describe("CantonFundsModal", () => {
       withdrawals: [
         {
           withdrawal_id: "withdrawal-1",
-          asset: "USDC",
-          amount: "1",
+          asset: "CBTC",
+          amount: "0.000016",
           status: "settled",
           fee_amount: "1",
           fee_wallet_symbol: "USDA",
@@ -350,8 +350,8 @@ describe("CantonFundsModal", () => {
     fireEvent.click(screen.getByRole("tab", { name: "History" }));
 
     await waitFor(() => expect(screen.getByText("Transfer Out")).toBeTruthy());
-    expect(screen.getByText("3", { selector: "sub" }).parentElement?.textContent).toContain("+0.031 USDA");
-    expect(screen.getByText("-1 USDA")).toBeTruthy();
+    expect(screen.getByLabelText("+0.00003 CBTC").textContent).toBe("+0.043 CBTC");
+    expect(screen.getByLabelText("-0.000016 CBTC").textContent).toBe("-0.0416 CBTC");
   });
 
   it("preserves spot-only withdrawal fees and submission", async () => {

@@ -2040,6 +2040,12 @@
   font: 500 14px/20px var(--font-tech);
 }
 
+.historyAmountValue {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
 .historyReference {
   display: inline-grid;
   place-items: center;

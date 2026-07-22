@@ -1232,7 +1232,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         <small>{formatHistoryTime(item.time)}</small>
                       </span>
                       <span className={cx(styles.historyAmount, item.amount.startsWith("+") && styles.positiveAmount)}>
-                        <HistoryAssetAmount value={item.amount} asset={item.asset} />
+                        <span className={styles.historyAmountValue} aria-label={item.amount}>
+                          <HistoryAssetAmount value={item.amount} asset={item.asset} />
+                        </span>
                         <small>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</small>
                       </span>
                       <span className={styles.historyReference}>
