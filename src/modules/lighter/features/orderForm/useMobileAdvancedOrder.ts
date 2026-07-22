@@ -1,6 +1,8 @@
 // src/modules/lighter/features/orderForm/useMobileAdvancedOrder.ts
 import { useEffect, useState } from "react";
 
+import { getCurrentOrderFormPosition } from "./desktop/orderFormPosition";
+import type { AdvancedMode, Side, SizeUnit } from "./types";
 import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../adapters/useMarketInfoAdapter";
 import {
@@ -10,9 +12,7 @@ import {
 } from "../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../adapters/usePositionsAdapter";
-
-import { getCurrentOrderFormPosition } from "./desktop/orderFormPosition";
-import type { AdvancedMode, Side, SizeUnit } from "./types";
+import { BonusOrderRejectedError } from "../bonus/api/useBonusOrderGate";
 
 type RequestType = "stop_market" | "stop_limit" | "take_profit" | "take_profit_limit";
 
@@ -46,6 +46,7 @@ export type UseMobileAdvancedOrderReturn = {
   maxOrderValueText: string;
   orderValueText: string;
   previewErrorMessage: string | null;
+  submissionRejection: string | null;
   markPrice: number | null;
   submit: () => Promise<void>;
 };
@@ -86,6 +87,7 @@ export function useMobileAdvancedOrder({
   const [amountUnit, setAmountUnit] = useState<SizeUnit>("USD");
   const [pct, setPct] = useState(0);
   const [reduceOnly, setReduceOnly] = useState(false);
+  const [submissionRejection, setSubmissionRejection] = useState<string | null>(null);
 
   const { placeOrder, submitting } = usePlaceOrderAdapter();
   const { available } = useAvailableBalanceAdapter();
@@ -180,18 +182,27 @@ export function useMobileAdvancedOrder({
   const canSubmit = triggerPriceNum > 0 && amountNum > 0;
 
   const submit = async (): Promise<void> => {
-    await placeOrder({
-      side,
-      type: REQUEST_TYPE[type],
-      amount: amountNum,
-      price: hasLimitPrice ? limitPriceNum || undefined : undefined,
-      triggerPrice: triggerPriceNum || undefined,
-      leverage,
-      marginMode,
-      reduceOnly,
-      timeInForce: hasLimitPrice ? "GTC" : undefined,
-      workingType: "MARK_PRICE",
-    });
+    setSubmissionRejection(null);
+    try {
+      await placeOrder({
+        side,
+        type: REQUEST_TYPE[type],
+        amount: amountNum,
+        price: hasLimitPrice ? limitPriceNum || undefined : undefined,
+        triggerPrice: triggerPriceNum || undefined,
+        leverage,
+        marginMode,
+        reduceOnly,
+        timeInForce: hasLimitPrice ? "GTC" : undefined,
+        workingType: "MARK_PRICE",
+      });
+    } catch (error) {
+      if (error instanceof BonusOrderRejectedError) {
+        setSubmissionRejection(error.message);
+        return;
+      }
+      throw error;
+    }
   };
 
   return {
@@ -217,6 +228,7 @@ export function useMobileAdvancedOrder({
     maxOrderValueText,
     orderValueText,
     previewErrorMessage,
+    submissionRejection,
     markPrice: market.markPrice,
     submit,
   };

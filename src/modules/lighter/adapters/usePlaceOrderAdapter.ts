@@ -81,7 +81,9 @@ export function usePlaceOrderAdapter() {
       }
       if (!selectedSymbol) throw new Error("未选择交易对");
 
-      if (!p.reduceOnly) {
+      const isDecrease = Boolean(p.reduceOnly || p.closePosition);
+
+      if (!isDecrease) {
         await checkOpeningOrder({
           symbol: selectedSymbol,
           side: p.side,
@@ -91,7 +93,6 @@ export function usePlaceOrderAdapter() {
       }
 
       const isLimit = p.type === "limit" || p.type === "stop_limit" || p.type === "take_profit_limit";
-      const isDecrease = !!p.reduceOnly;
       const orderTypeNum = isLimit
         ? isDecrease
           ? ORDER_TYPE_LIMIT_DECREASE
@@ -112,7 +113,7 @@ export function usePlaceOrderAdapter() {
         triggerPrice: limitPrice,
         orderType: orderTypeNum,
         apiOrderTypeOverride: p.type,
-        reduceOnly: p.reduceOnly,
+        reduceOnly: isDecrease,
         leverage: p.leverage ?? 10,
         marginMode: p.marginMode ?? "cross",
         tpPrice: toDecimalString(p.tpPrice ?? NaN),

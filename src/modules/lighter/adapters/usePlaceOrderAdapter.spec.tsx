@@ -1,5 +1,5 @@
 import { cleanup, render } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePrimitOrderSubmit } from "modules/lighter/api/custom/usePrimitOrderSubmit";
 import { useTradeState } from "modules/lighter/store/TradeStateContext";
@@ -81,11 +81,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
-});
-
-afterAll(() => {
   vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("usePlaceOrderAdapter bonus precheck", () => {
@@ -132,6 +129,22 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
 
     expect(checkOpeningOrder).not.toHaveBeenCalled();
     expect(submitOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats closePosition as a reduce-only closing order even when reduceOnly is omitted", async () => {
+    render(<Harness />);
+
+    await adapter.placeOrder({ ...baseOrder, closePosition: true });
+
+    expect(checkOpeningOrder).not.toHaveBeenCalled();
+    expect(submitOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isIncrease: false,
+        orderType: 4,
+        reduceOnly: true,
+        closePosition: true,
+      })
+    );
   });
 
   it("propagates a safe bonus rejection with its code and never submits", async () => {
@@ -193,7 +206,22 @@ describe("usePlaceOrderAdapter bonus precheck", () => {
     expect(warning).toHaveBeenCalledTimes(1);
     expect(warning).toHaveBeenCalledWith("Bonus order precheck unavailable; ledger will enforce policy");
     expect(submitOrder).toHaveBeenCalledTimes(1);
-    warning.mockRestore();
+  });
+
+  it("returns the submitOrder result unchanged", async () => {
+    const response = { order_id: "order-result", status: "new" };
+    submitOrder.mockResolvedValueOnce(response);
+    render(<Harness />);
+
+    await expect(adapter.placeOrder(baseOrder)).resolves.toBe(response);
+  });
+
+  it("propagates submitOrder errors unchanged", async () => {
+    const error = new Error("ledger rejected the order");
+    submitOrder.mockRejectedValueOnce(error);
+    render(<Harness />);
+
+    await expect(adapter.placeOrder(baseOrder)).rejects.toBe(error);
   });
 
   it("fails not-ready orders before precheck or submission", async () => {
