@@ -4,8 +4,9 @@ import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 
-import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
+import { BonusBadge } from "@/modules/lighter/features/bonus/components/BonusBadge";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { dynamicActivate } from "@/shared/lib/i18n";
 
@@ -93,6 +94,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         </NavLink>
       </div>
       <div className={styles.right}>
+        <BonusBadge />
         {rightExtra}
         <div className={styles.langWrap} ref={languageRef}>
           <button

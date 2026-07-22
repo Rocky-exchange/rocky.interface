@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Route, Switch, useLocation } from "react-router-dom";
 
 import LighterPortfolioPage from "@/modules/lighter/pages/LighterPortfolioPage";
@@ -7,6 +7,15 @@ import { LighterTradeRuntimeProviders } from "@/modules/lighter/providers/Lighte
 import { TradeStateProvider } from "@/modules/lighter/store/TradeStateContext/TradeStateContext";
 import SpotTradePage from "@/modules/spot/pages/SpotTradePage";
 import { RedirectWithQuery } from "@/shared/components/RedirectWithQuery/RedirectWithQuery";
+
+const BonusPage = lazy(() =>
+  import("@/modules/lighter/features/bonus/pages/BonusPage").then(({ BonusPage }) => ({ default: BonusPage }))
+);
+const RedeemCodePage = lazy(() =>
+  import("@/modules/lighter/features/bonus/pages/RedeemCodePage").then(({ RedeemCodePage }) => ({
+    default: RedeemCodePage,
+  }))
+);
 
 export function MainRoutes({ openSettings: _openSettings }: { openSettings: () => void }) {
   const { pathname } = useLocation();
@@ -40,6 +49,22 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
       {/* Spot trading — CBTC-USDCX / CETH-USDCX via rocky-backend /api/v3 */}
       <Route exact path="/spot/:symbol?">
         <SpotTradePage />
+      </Route>
+
+      <Route exact path="/bonus">
+        <LighterTradeRuntimeProviders>
+          <Suspense fallback={null}>
+            <BonusPage />
+          </Suspense>
+        </LighterTradeRuntimeProviders>
+      </Route>
+
+      <Route exact path="/bonus/redeem">
+        <LighterTradeRuntimeProviders>
+          <Suspense fallback={null}>
+            <RedeemCodePage />
+          </Suspense>
+        </LighterTradeRuntimeProviders>
       </Route>
 
       <Route>

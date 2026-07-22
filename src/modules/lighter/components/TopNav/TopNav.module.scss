@@ -60,6 +60,8 @@
 
 .right {
   display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
   align-items: center;
   gap: 4px;
 }
@@ -132,6 +134,7 @@
 
 .langWrap {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .caret {
@@ -147,6 +150,7 @@
 
 .connect {
   height: 32px;
+  flex: 0 0 auto;
   padding: 0 14px;
   display: inline-flex;
   flex-direction: row;
