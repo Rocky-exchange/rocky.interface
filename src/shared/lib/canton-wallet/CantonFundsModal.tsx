@@ -108,6 +108,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [fundingAvailable, setFundingAvailable] = useState<number | null>(null);
   const [assetSearch, setAssetSearch] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | CantonFundsAsset>("all");
+  const [assetFilterOpen, setAssetFilterOpen] = useState(false);
   const [transferAmount, setTransferAmount] = useState("");
   const [transferDirection, setTransferDirection] = useState<"toSpot" | "toFunding">("toFunding");
   const [transferBusy, setTransferBusy] = useState(false);
@@ -122,6 +123,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const assetFilterRef = useRef<HTMLDivElement>(null);
+  const assetFilterButtonRef = useRef<HTMLButtonElement>(null);
   const operationBackButtonRef = useRef<HTMLButtonElement>(null);
   const operationActionRefs = useRef<Partial<Record<OperationView, HTMLButtonElement | null>>>({});
   const assetRowRefs = useRef<Partial<Record<CantonFundsAsset, HTMLButtonElement | null>>>({});
@@ -270,16 +273,32 @@ export function CantonFundsModal({ open, onClose }: Props) {
     if (open) return;
     depositConfirmationIdRef.current += 1;
     setDepositConfirming(false);
+    setAssetFilterOpen(false);
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      if (assetFilterOpen) {
+        setAssetFilterOpen(false);
+        assetFilterButtonRef.current?.focus();
+        return;
+      }
+      onClose();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+  }, [assetFilterOpen, onClose, open]);
+
+  useEffect(() => {
+    if (!assetFilterOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!assetFilterRef.current?.contains(event.target as Node)) setAssetFilterOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [assetFilterOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -725,18 +744,44 @@ export function CantonFundsModal({ open, onClose }: Props) {
           {activeView === "assets" ? (
             <section className={styles.assetsView}>
               <div className={styles.assetsToolbar}>
-                <select
-                  value={assetFilter}
-                  onChange={(event) => setAssetFilter(event.target.value as "all" | CantonFundsAsset)}
-                  aria-label={i18n._(t`Asset filter`)}
-                >
-                  <option value="all">{i18n._(t`All Assets`)}</option>
-                  {CANTON_FUNDING_ASSETS.map((asset) => (
-                    <option key={asset.symbol} value={asset.symbol}>
-                      {asset.symbol}
-                    </option>
-                  ))}
-                </select>
+                <div className={styles.assetFilter} ref={assetFilterRef}>
+                  <button
+                    ref={assetFilterButtonRef}
+                    type="button"
+                    className={styles.assetFilterButton}
+                    aria-label={i18n._(t`Asset filter`)}
+                    aria-haspopup="listbox"
+                    aria-expanded={assetFilterOpen}
+                    onClick={() => setAssetFilterOpen((current) => !current)}
+                  >
+                    <span>{assetFilter === "all" ? i18n._(t`All Assets`) : assetFilter}</span>
+                    <ChevronDownIcon />
+                  </button>
+                  {assetFilterOpen ? (
+                    <div className={styles.assetFilterMenu} role="listbox" aria-label={i18n._(t`Asset filter`)}>
+                      {(["all", ...CANTON_FUNDING_ASSETS.map((asset) => asset.symbol)] as const).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          role="option"
+                          aria-selected={assetFilter === value}
+                          className={cx(
+                            styles.assetFilterOption,
+                            assetFilter === value && styles.assetFilterOptionActive
+                          )}
+                          onClick={() => {
+                            setAssetFilter(value);
+                            setAssetFilterOpen(false);
+                            assetFilterButtonRef.current?.focus();
+                          }}
+                        >
+                          <span>{value === "all" ? i18n._(t`All Assets`) : value}</span>
+                          {assetFilter === value ? <CheckIcon /> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 <div className={styles.assetSearch}>
                   <SearchIcon />
                   <input
@@ -1965,6 +2010,14 @@ function ChevronDownIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

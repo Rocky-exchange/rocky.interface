@@ -123,6 +123,19 @@ describe("CantonFundsModal", () => {
     }
   });
 
+  it("filters assets through the custom asset menu", async () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Asset filter" }));
+    expect(screen.getByRole("listbox", { name: "Asset filter" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "CBTC" }));
+
+    expect(screen.queryByRole("listbox", { name: "Asset filter" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Asset filter" }).textContent).toContain("CBTC");
+    expect(screen.getByTestId("icon-btc")).toBeTruthy();
+    expect(screen.queryByText("cETH")).toBeNull();
+  });
+
   it("shows a direct disconnect action instead of the profile overflow menu", async () => {
     const onClose = vi.fn();
     render(<CantonFundsModal open onClose={onClose} />);

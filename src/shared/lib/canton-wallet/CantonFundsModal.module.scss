@@ -245,7 +245,8 @@
 }
 
 .headerIconButton,
-.closeButton {
+.closeButton,
+.refreshButton {
   display: grid;
   width: 44px;
   height: 44px;
@@ -262,7 +263,7 @@
     background var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: var(--text-primary);
     background: var(--bg-surface-hover);
     border-color: var(--border-strong);
@@ -578,22 +579,6 @@
 }
 
 .refreshButton {
-  display: inline-grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  padding: 0;
-  color: var(--brand-cool);
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--bg-surface-hover);
-    border-color: var(--brand-cool-muted);
-  }
-
   &:disabled {
     opacity: 0.55;
     cursor: wait;
@@ -1536,20 +1521,106 @@
   gap: 8px;
   margin-bottom: 18px;
 
-  > select,
+  .assetFilter,
   .assetSearch,
   > button {
     height: 44px;
   }
+}
 
-  > select {
-    padding: 0 34px 0 14px;
-    color: var(--text-primary);
-    font: 500 14px/20px var(--font-body);
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-default);
-    border-radius: 4px;
+.assetFilter {
+  position: relative;
+  z-index: 3;
+}
+
+.assetFilterButton {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  color: var(--text-primary);
+  font: 500 14px/20px var(--font-body);
+  text-align: left;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-cool);
+    outline-offset: 2px;
+  }
+
+  svg {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    transition: transform var(--duration-fast) var(--ease-standard);
+  }
+
+  &[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+}
+
+.assetFilterMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  width: 100%;
+  padding: 4px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+}
+
+.assetFilterOption {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  font: 500 13px/18px var(--font-body);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--text-primary);
+    background: var(--bg-surface-hover);
+    outline: 0;
+  }
+
+  svg {
+    width: 15px;
+    height: 15px;
+    color: var(--brand-cool);
+  }
+}
+
+.assetFilterOptionActive {
+  color: var(--text-primary);
 }
 
 .assetSearch {
@@ -2034,7 +2105,7 @@
   .assetsToolbar {
     grid-template-columns: 1fr 44px;
 
-    > select {
+    .assetFilter {
       display: none;
     }
   }
