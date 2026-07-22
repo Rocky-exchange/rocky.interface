@@ -318,6 +318,24 @@ describe("bonus API", () => {
     }
   });
 
+  it("maps a rejected network request to one safe BonusApiError", async () => {
+    localStorage.setItem("rocky_exchange_session", "session-1");
+    const privateNetworkError = "connect ECONNREFUSED api.internal:8443";
+    fetchMock.mockRejectedValue(new TypeError(privateNetworkError));
+
+    const error = await fetchBonusStatus().catch((reason) => reason);
+
+    expect(error).toBeInstanceOf(BonusApiError);
+    expect(error).toMatchObject({
+      status: 0,
+      code: "bonus_request_failed",
+      message: "Bonus request failed",
+      data: {},
+    });
+    expect(error.message).not.toContain(privateNetworkError);
+    expect(JSON.stringify(error)).not.toContain(privateNetworkError);
+  });
+
   it.each([
     {
       name: "status with an empty body",

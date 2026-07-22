@@ -78,10 +78,19 @@ async function bonusRequest<T>(
   new Headers(exchangeSessionHeaders()).forEach((value, key) => headers.set(key, value));
   if (init.body) headers.set("Content-Type", "application/json");
 
-  const response = await fetch(`/v1/bonus${path}`, {
-    ...init,
-    headers: headersToRecord(headers),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`/v1/bonus${path}`, {
+      ...init,
+      headers: headersToRecord(headers),
+    });
+  } catch (_error) {
+    throw new BonusApiError("Bonus request failed", {
+      status: 0,
+      code: "bonus_request_failed",
+      data: {},
+    });
+  }
   const data: unknown = await response.json().catch(() => ({}));
   if (!response.ok) {
     const errorData = isRecord(data) ? data : {};
