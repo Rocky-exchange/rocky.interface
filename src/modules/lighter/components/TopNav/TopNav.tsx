@@ -4,8 +4,8 @@ import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 
-import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { dynamicActivate } from "@/shared/lib/i18n";
 
@@ -16,7 +16,13 @@ const LANGUAGE_OPTIONS = [
   { key: "zh", label: "繁體中文" },
 ] as const;
 
-export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
+export function TopNav({
+  rightExtra,
+  transparent = false,
+}: {
+  rightExtra?: ReactNode;
+  transparent?: boolean;
+} = {}) {
   const { i18n } = useLingui();
   const { connected, username, party, avatar } = useCantonSession();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
@@ -70,7 +76,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
   }, [isLanguageOpen]);
 
   return (
-    <nav className={styles.root}>
+    <nav className={cx(styles.root, transparent && styles.transparent)}>
       <NavLink to="/trade" className={styles.logo} aria-label="Rocky home">
         <img src="/logo.svg" alt="Rocky" className={styles.logoImage} />
       </NavLink>
@@ -90,6 +96,14 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         </NavLink>
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Futures</Trans>
+        </NavLink>
+        <NavLink
+          to="/campaigns/season-0"
+          className={styles.link}
+          activeClassName={styles.active}
+          isActive={(_match, location) => location.pathname.startsWith("/campaigns")}
+        >
+          <Trans>Campaigns</Trans>
         </NavLink>
       </div>
       <div className={styles.right}>

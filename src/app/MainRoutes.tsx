@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import { Route, Switch, useLocation } from "react-router-dom";
 
+import SeasonZeroLeaderboardPage from "@/modules/campaigns/pages/SeasonZeroLeaderboardPage";
 import LighterPortfolioPage from "@/modules/lighter/pages/LighterPortfolioPage";
 import LighterTradePage from "@/modules/lighter/pages/LighterTradePage";
 import { LighterTradeRuntimeProviders } from "@/modules/lighter/providers/LighterTradeRuntimeProviders";
 import { TradeStateProvider } from "@/modules/lighter/store/TradeStateContext/TradeStateContext";
 import SpotTradePage from "@/modules/spot/pages/SpotTradePage";
 import { RedirectWithQuery } from "@/shared/components/RedirectWithQuery/RedirectWithQuery";
+
+const CAMPAIGN_ROUTES = ["/campaigns", "/campaigns/season-0"];
 
 export function MainRoutes({ openSettings: _openSettings }: { openSettings: () => void }) {
   const { pathname } = useLocation();
@@ -40,6 +43,10 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
       {/* Spot trading — CBTC-USDCX / CETH-USDCX via rocky-backend /api/v3 */}
       <Route exact path="/spot/:symbol?">
         <SpotTradePage />
+      </Route>
+
+      <Route exact path={CAMPAIGN_ROUTES}>
+        <SeasonZeroLeaderboardPage />
       </Route>
 
       <Route>
