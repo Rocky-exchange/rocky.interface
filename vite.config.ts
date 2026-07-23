@@ -2,6 +2,7 @@
 
 import { lingui } from "@lingui/vite-plugin";
 import react from "@vitejs/plugin-react";
+import https from "node:https";
 import path from "path";
 import { fileURLToPath } from "url";
 import { visualizer } from "rollup-plugin-visualizer";
@@ -16,6 +17,10 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const root = path.dirname(fileURLToPath(import.meta.url));
   const env = loadEnv(mode, root, "");
+  // Node 25 intermittently resets TLS 1.3 handshakes to api.rocky.exchange
+  // behind common local network proxies. TLS 1.2 is supported by the API and
+  // keeps Vite's same-origin development proxy stable.
+  const upstreamAgent = new https.Agent({ keepAlive: true, maxVersion: "TLSv1.2" });
   return {
     worker: {
       format: "es",
@@ -45,11 +50,13 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
           changeOrigin: true,
           secure: true,
+          agent: upstreamAgent,
         },
         "/fapi": {
           target: env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
           changeOrigin: true,
           secure: true,
+          agent: upstreamAgent,
         },
         // Spot backend (/api/v3/*). Set VITE_PROXY_SPOT_URL to point at
         // a local rocky-backend api-gateway (default :8080) for dev.
@@ -57,6 +64,7 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_PROXY_SPOT_URL || env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
           changeOrigin: true,
           secure: true,
+          agent: upstreamAgent,
         },
       },
     },

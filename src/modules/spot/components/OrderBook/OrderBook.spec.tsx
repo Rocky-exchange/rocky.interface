@@ -69,11 +69,24 @@ describe("SpotOrderBookPanel", () => {
 
   it("uses the futures toolbar rhythm with quote and aggregation controls", async () => {
     mDepth.mockResolvedValue(twoSidedDepth);
-    const { findByText, getByTestId } = render(<SpotOrderBookPanel market={market} />);
+    const { findByText, getByRole, getByTestId } = render(<SpotOrderBookPanel market={market} />);
 
     await findByText("65,010.00");
     expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("USDA");
-    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("1");
+    expect(getByRole("button", { name: "Order book price level" }).textContent).toContain("1");
+  });
+
+  it("groups displayed price levels from the order book level menu", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByRole, queryByText } = render(<SpotOrderBookPanel market={market} />);
+
+    await findByText("65,010.00");
+    fireEvent.click(getByRole("button", { name: "Order book price level" }));
+    fireEvent.click(getByRole("menuitemradio", { name: "100" }));
+
+    await findByText("65,100.00");
+    expect(queryByText("65,010.00")).toBeNull();
+    expect(getByRole("button", { name: "Order book price level" }).textContent).toContain("100");
   });
 
   it("preserves the existing Recent Trades view and requests the API symbol", async () => {

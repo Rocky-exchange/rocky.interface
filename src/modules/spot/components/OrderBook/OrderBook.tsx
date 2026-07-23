@@ -1,12 +1,16 @@
-import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import styles from "./OrderBook.module.scss";
+import { aggregateOrderBookLevels } from "../../../lighter/adapters/orderBookAggregation";
 import { spotApi, type DepthResp, type Trade } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Tab = "book" | "trades";
 type BookView = "all" | "asks" | "bids";
+type PriceLevel = (typeof PRICE_LEVELS)[number];
+
+const PRICE_LEVELS = ["0.01", "0.1", "1", "10", "100"] as const;
 
 function barWidthStyle(total: number, maxTotal: number): CSSProperties {
   return { width: `${(total / maxTotal) * 100}%` };
@@ -21,30 +25,33 @@ function fmtNum(v: string | number, digits = 2): string {
   });
 }
 
-function BookBody({ market, view }: { market: SpotMarket; view: BookView }) {
+function BookBody({ market, view, priceLevel }: { market: SpotMarket; view: BookView; priceLevel: PriceLevel }) {
   const { data, err } = usePolling<DepthResp>(() => spotApi.depth(market.apiSymbol, 20), 1000, [market.apiSymbol]);
   if (err) return <div className={styles.err}>{err}</div>;
   if (!data) return <div className={styles.empty}>Loading…</div>;
 
-  const asks = data.asks.slice(0, 15);
-  const bids = data.bids.slice(0, 15);
+  const tickSize = Number(priceLevel);
+  const asks = aggregateOrderBookLevels(data.asks, "ask", tickSize).slice(0, 15);
+  const bids = aggregateOrderBookLevels(data.bids, "bid", tickSize).slice(0, 15);
   if (asks.length === 0 && bids.length === 0) {
     return <div className={styles.empty}>No resting orders</div>;
   }
 
-  const askRows = asks.reduce<Array<{ p: string; q: string; total: number; notional: number }>>((acc, [p, q]) => {
-    const prev = acc.length ? acc[acc.length - 1].total : 0;
-    acc.push({ p, q, total: prev + parseFloat(q), notional: parseFloat(p) * parseFloat(q) });
-    return acc;
-  }, []);
-  const bidRows = bids.reduce<Array<{ p: string; q: string; total: number; notional: number }>>((acc, [p, q]) => {
-    const prev = acc.length ? acc[acc.length - 1].total : 0;
-    acc.push({ p, q, total: prev + parseFloat(q), notional: parseFloat(p) * parseFloat(q) });
-    return acc;
-  }, []);
+  const askRows = asks.map((level) => ({
+    p: level.price,
+    q: level.size,
+    total: level.total,
+    notional: level.quoteSize,
+  }));
+  const bidRows = bids.map((level) => ({
+    p: level.price,
+    q: level.size,
+    total: level.total,
+    notional: level.quoteSize,
+  }));
   const maxTotal = Math.max(askRows[askRows.length - 1]?.total ?? 0, bidRows[bidRows.length - 1]?.total ?? 0, 1e-9);
-  const bestAsk = asks[0] ? parseFloat(asks[0][0]) : null;
-  const bestBid = bids[0] ? parseFloat(bids[0][0]) : null;
+  const bestAsk = asks[0]?.price ?? null;
+  const bestBid = bids[0]?.price ?? null;
   const referencePrice = bestAsk !== null && bestBid !== null ? (bestAsk + bestBid) / 2 : bestAsk ?? bestBid;
   const spread = bestAsk !== null && bestBid !== null ? bestAsk - bestBid : null;
   const spreadPct = spread !== null && bestAsk !== null && bestAsk > 0 ? (spread / bestAsk) * 100 : null;
@@ -119,7 +126,23 @@ function TradesBody({ market }: { market: SpotMarket }) {
 export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
   const [tab, setTab] = useState<Tab>("book");
   const [bookView, setBookView] = useState<BookView>("all");
+  const [priceLevel, setPriceLevel] = useState<PriceLevel>("1");
+  const [priceLevelMenuOpen, setPriceLevelMenuOpen] = useState(false);
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ book: null, trades: null });
+  const priceLevelControlRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!priceLevelMenuOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!priceLevelControlRef.current?.contains(event.target as Node)) {
+        setPriceLevelMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [priceLevelMenuOpen]);
 
   const activateFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentTab: Tab) => {
     let nextTab: Tab | null = null;
@@ -185,9 +208,62 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
                 </button>
               ))}
             </div>
-            <div className={styles.bookSelectors} aria-hidden="true">
+            <div className={styles.bookSelectors}>
               <span>{market.displayQuote}</span>
-              <span>1</span>
+              <div className={styles.selectorWrap} ref={priceLevelControlRef}>
+                <button
+                  type="button"
+                  className={styles.selectorButton}
+                  aria-label="Order book price level"
+                  aria-haspopup="menu"
+                  aria-expanded={priceLevelMenuOpen}
+                  onClick={() => setPriceLevelMenuOpen((open) => !open)}
+                >
+                  {priceLevel}
+                  <svg
+                    className={`${styles.caretSvg} ${priceLevelMenuOpen ? styles.caretOpen : ""}`}
+                    width="10"
+                    height="10"
+                    viewBox="0 0 256 256"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
+                  </svg>
+                </button>
+                {priceLevelMenuOpen && (
+                  <div className={styles.selectorMenu} role="menu" aria-label="Order book price levels">
+                    {PRICE_LEVELS.map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        className={styles.selectorMenuItem}
+                        role="menuitemradio"
+                        aria-checked={priceLevel === level}
+                        onClick={() => {
+                          setPriceLevel(level);
+                          setPriceLevelMenuOpen(false);
+                        }}
+                      >
+                        <span>{level}</span>
+                        {priceLevel === level && (
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            aria-hidden="true"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -204,7 +280,7 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
           <span className={styles.right}>{tab === "book" ? `Total (${market.displayQuote})` : "Time"}</span>
         </div>
         {tab === "book" ? (
-          <BookBody key={market.apiSymbol} market={market} view={bookView} />
+          <BookBody key={market.apiSymbol} market={market} view={bookView} priceLevel={priceLevel} />
         ) : (
           <TradesBody key={market.apiSymbol} market={market} />
         )}
