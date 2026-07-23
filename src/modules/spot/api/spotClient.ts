@@ -48,6 +48,15 @@ export function subscribeSpotCredentials(cb: () => void): () => void {
 }
 
 const BASE = "";
+const spotIconUrlCache = new Map<string, string>();
+
+function normalizeMarketSymbol(symbol: string): string {
+  return symbol.trim().toUpperCase();
+}
+
+export function getCachedSpotIconUrl(symbol: string): string | undefined {
+  return spotIconUrlCache.get(normalizeMarketSymbol(symbol));
+}
 
 // ── Types (see rocky-backend/services/api-gateway/src/spot/*) ───────────────
 
@@ -207,6 +216,14 @@ async function publicGet<T>(path: string): Promise<T> {
   return parseOrThrow<T>(r);
 }
 
+async function getTicker(symbol: string): Promise<Ticker24h> {
+  const ticker = await publicGet<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`);
+  if (ticker.iconUrl) {
+    spotIconUrlCache.set(normalizeMarketSymbol(ticker.symbol || symbol), ticker.iconUrl);
+  }
+  return ticker;
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export const spotApi = {
@@ -216,7 +233,7 @@ export const spotApi = {
     publicGet<Trade[]>(`/api/v3/trades?symbol=${encodeURIComponent(symbol)}&limit=${limit}`),
   klines: (symbol: string, interval = "1m", limit = 500) =>
     publicGet<Kline[]>(`/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`),
-  ticker: (symbol: string) => publicGet<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`),
+  ticker: getTicker,
   account: () => signedRequest<Account>("GET", "/api/v3/account"),
   openOrders: (symbol: string) => signedRequest<SpotOrder[]>("GET", "/api/v3/openOrders", { symbol }),
   allOrders: (symbol: string, limit = 500) =>

@@ -1,10 +1,13 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const mockIconCache = vi.hoisted(() => new Map<string, string>());
+
 vi.mock("../../api/spotClient", async () => {
   const actual = await vi.importActual<typeof import("../../api/spotClient")>("../../api/spotClient");
   return {
     ...actual,
+    getCachedSpotIconUrl: (symbol: string) => mockIconCache.get(symbol.toUpperCase()),
     spotApi: {
       ...actual.spotApi,
       ticker: vi.fn(),
@@ -13,8 +16,22 @@ vi.mock("../../api/spotClient", async () => {
 });
 
 vi.mock("./MarketDropdown", () => ({
-  SpotMarketDropdown: ({ market }: { market: { routeSymbol: string } }) => (
-    <div data-testid="market-dropdown">{market.routeSymbol}</div>
+  SpotMarketDropdown: ({
+    market,
+    iconUrl,
+    iconLoading,
+  }: {
+    market: { routeSymbol: string };
+    iconUrl?: string;
+    iconLoading?: boolean;
+  }) => (
+    <div
+      data-testid="market-dropdown"
+      data-icon-url={iconUrl ?? ""}
+      data-icon-loading={String(Boolean(iconLoading))}
+    >
+      {market.routeSymbol}
+    </div>
   ),
 }));
 
@@ -35,8 +52,10 @@ function deferred<T>() {
 }
 
 function ticker(symbol: string, lastPrice: string): Ticker24h {
+  const base = symbol.split("-")[0];
   return {
     symbol,
+    iconUrl: `/v1/token-icons/${base}`,
     priceChange: "10.25",
     priceChangePercent: "1.250",
     weightedAvgPrice: lastPrice,
@@ -55,6 +74,7 @@ function ticker(symbol: string, lastPrice: string): Ticker24h {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  mockIconCache.clear();
 });
 
 describe("SpotSymbolBar", () => {
@@ -74,6 +94,7 @@ describe("SpotSymbolBar", () => {
     rerender(<SpotSymbolBar market={cethMarket} />);
 
     expect(getByTestId("market-dropdown").textContent).toBe("CETH-USDA");
+    expect(getByTestId("market-dropdown").dataset.iconLoading).toBe("true");
     expect(queryAllByText("66,011.75")).toHaveLength(0);
     expect(getAllByText("—").length).toBeGreaterThan(0);
     await waitFor(() => {
@@ -85,6 +106,17 @@ describe("SpotSymbolBar", () => {
       await nextTicker.promise;
     });
     await findAllByText("3,501.25");
+  });
+
+  it("uses a cached backend icon URL while the route ticker is pending", () => {
+    const pendingTicker = deferred<Ticker24h>();
+    mockIconCache.set(cethMarket.apiSymbol, "/v1/token-icons/CETH");
+    mTicker.mockReturnValue(pendingTicker.promise);
+
+    const { getByTestId } = render(<SpotSymbolBar market={cethMarket} />);
+
+    expect(getByTestId("market-dropdown").dataset.iconUrl).toBe("/v1/token-icons/CETH");
+    expect(getByTestId("market-dropdown").dataset.iconLoading).toBe("false");
   });
 
   it("ignores a previous market response that settles after the market changed", async () => {

@@ -55,14 +55,16 @@ type Props = {
   symbol: string;
   displaySize: number;
   imageUrl?: string;
+  loading?: boolean;
   className?: string;
   badge?: string | readonly [topSymbol: string, bottomSymbol: string];
   chainIdBadge?: number;
   badgeClassName?: string;
 };
 
-function TokenIcon({ className, symbol, displaySize, imageUrl, badge, badgeClassName, chainIdBadge }: Props) {
+function TokenIcon({ className, symbol, displaySize, imageUrl, loading, badge, badgeClassName, chainIdBadge }: Props) {
   const [failedImageSource, setFailedImageSource] = useState<string>();
+  const [loadedImageSource, setLoadedImageSource] = useState<string>();
   const iconPath = getIconUrlPath(symbol);
   const classNames = cx("Token-icon inline rounded-full", className);
 
@@ -76,7 +78,13 @@ function TokenIcon({ className, symbol, displaySize, imageUrl, badge, badgeClass
         ? inferredImageSrc
         : undefined;
   const handleImageError = useCallback(() => {
-    if (imageSrc) setFailedImageSource(imageSrc);
+    if (imageSrc) {
+      setFailedImageSource(imageSrc);
+      setLoadedImageSource((loaded) => (loaded === imageSrc ? undefined : loaded));
+    }
+  }, [imageSrc]);
+  const handleImageLoad = useCallback(() => {
+    if (imageSrc) setLoadedImageSource(imageSrc);
   }, [imageSrc]);
 
   if (!iconPath && !imageUrl) return <></>;
@@ -161,12 +169,22 @@ function TokenIcon({ className, symbol, displaySize, imageUrl, badge, badgeClass
   const img = imageSrc ? (
     <img
       data-qa="token-icon"
-      className={sub ? containerClassName : classNames}
+      className={cx(sub ? containerClassName : classNames, loadedImageSource !== imageSrc && "opacity-0")}
       src={imageSrc}
       alt={symbol}
       width={displaySize}
       height={displaySize}
+      onLoad={handleImageLoad}
       onError={handleImageError}
+    />
+  ) : loading ? (
+    <svg
+      data-qa="token-icon-placeholder"
+      className={sub ? containerClassName : classNames}
+      width={displaySize}
+      height={displaySize}
+      aria-hidden="true"
+      focusable="false"
     />
   ) : (
     <FallbackIcon symbol={symbol} displaySize={displaySize} className={sub ? containerClassName : classNames} />

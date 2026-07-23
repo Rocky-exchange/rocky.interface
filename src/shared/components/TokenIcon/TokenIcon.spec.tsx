@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("config/icons", () => ({
@@ -26,5 +26,23 @@ describe("TokenIcon", () => {
     );
 
     expect(getByRole("img", { name: "CBTC" }).getAttribute("src")).toBe("/v1/token-icons/CBTC");
+  });
+
+  it("reserves icon space without rendering a letter while the URL is loading", () => {
+    const { container } = render(<TokenIcon symbol="CBTC" displaySize={20} loading />);
+
+    expect(container.querySelector('[data-qa="token-icon-placeholder"]')).not.toBeNull();
+    expect(container.querySelector('[data-qa="token-icon-fallback"]')).toBeNull();
+  });
+
+  it("keeps backend image text hidden until the image has loaded", () => {
+    const { getByRole } = render(
+      <TokenIcon symbol="CBTC" imageUrl="/v1/token-icons/CBTC" displaySize={20} />
+    );
+    const image = getByRole("img", { name: "CBTC" });
+
+    expect(image.classList.contains("opacity-0")).toBe(true);
+    fireEvent.load(image);
+    expect(image.classList.contains("opacity-0")).toBe(false);
   });
 });

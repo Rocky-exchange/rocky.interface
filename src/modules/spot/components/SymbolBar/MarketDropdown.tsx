@@ -6,12 +6,22 @@ import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
 import { SelectorBase, useSelectorClose } from "components/SelectorBase/SelectorBase";
 
 import styles from "./MarketDropdown.module.scss";
-import { spotApi, type Ticker24h } from "../../api/spotClient";
+import { getCachedSpotIconUrl, spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import { SPOT_MARKETS, type SpotMarket } from "../../model/spotMarkets";
 
-export function AssetBadge({ symbol, iconUrl, size = 20 }: { symbol: string; iconUrl?: string; size?: number }) {
-  return <TokenIcon symbol={symbol} imageUrl={iconUrl} displaySize={size} />;
+export function AssetBadge({
+  symbol,
+  iconUrl,
+  iconLoading,
+  size = 20,
+}: {
+  symbol: string;
+  iconUrl?: string;
+  iconLoading?: boolean;
+  size?: number;
+}) {
+  return <TokenIcon symbol={symbol} imageUrl={iconUrl} loading={iconLoading} displaySize={size} />;
 }
 
 function fmtPrice(v: string | undefined): string {
@@ -32,6 +42,7 @@ function MarketRow({ market, active, query }: { market: SpotMarket; active: bool
   const history = useHistory();
   const close = useSelectorClose();
   const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.apiSymbol), 5000, [market.apiSymbol]);
+  const iconUrl = t?.iconUrl ?? getCachedSpotIconUrl(market.apiSymbol);
 
   const label = `${market.displayBase}/${market.displayQuote}`;
   const q = query.trim().toLowerCase();
@@ -55,7 +66,7 @@ function MarketRow({ market, active, query }: { market: SpotMarket; active: bool
   return (
     <button type="button" className={`${styles.row} ${active ? styles.rowActive : ""}`} onClick={onClick}>
       <span className={styles.rowLeft}>
-        <AssetBadge symbol={market.displayBase} iconUrl={t?.iconUrl} />
+        <AssetBadge symbol={market.displayBase} iconUrl={iconUrl} iconLoading={!iconUrl && !t} />
         <span className={styles.rowSymbol}>
           {market.displayBase}
           <span className={styles.rowQuote}>/{market.displayQuote}</span>
@@ -97,12 +108,20 @@ function PanelBody({ active }: { active: string }) {
   );
 }
 
-export function SpotMarketDropdown({ market, iconUrl }: { market: SpotMarket; iconUrl?: string }) {
+export function SpotMarketDropdown({
+  market,
+  iconUrl,
+  iconLoading,
+}: {
+  market: SpotMarket;
+  iconUrl?: string;
+  iconLoading?: boolean;
+}) {
   return (
     <SelectorBase
       label={
         <span className={styles.trigger}>
-          <AssetBadge symbol={market.displayBase} iconUrl={iconUrl} />
+          <AssetBadge symbol={market.displayBase} iconUrl={iconUrl} iconLoading={iconLoading} />
           <span className={styles.triggerName}>
             {market.displayBase}
             <span className={styles.triggerQuote}>/{market.displayQuote}</span>

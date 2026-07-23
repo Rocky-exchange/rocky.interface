@@ -113,6 +113,30 @@ describe("spotApi.trades / klines / ticker (public)", () => {
     expect(t.lastPrice).toBe("500");
     expect(calls[0].url).toBe("/api/v3/ticker/24hr?symbol=CBTC-USDA");
   });
+
+  it("caches the backend icon URL synchronously for route changes", async () => {
+    stubFetch(() => ({
+      body: {
+        symbol: "CBTC-USDA",
+        iconUrl: "/v1/token-icons/CBTC",
+        lastPrice: "500",
+        priceChangePercent: "0.5",
+      },
+    }));
+    const apiModule = await importFreshApi();
+    const getCachedSpotIconUrl = (
+      apiModule as typeof apiModule & {
+        getCachedSpotIconUrl?: (symbol: string) => string | undefined;
+      }
+    ).getCachedSpotIconUrl;
+
+    expect(typeof getCachedSpotIconUrl).toBe("function");
+    if (!getCachedSpotIconUrl) return;
+
+    expect(getCachedSpotIconUrl("CBTC-USDA")).toBeUndefined();
+    await apiModule.spotApi.ticker("CBTC-USDA");
+    expect(getCachedSpotIconUrl("cbtc-usda")).toBe("/v1/token-icons/CBTC");
+  });
 });
 
 describe("spotApi signed endpoints", () => {

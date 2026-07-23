@@ -1,6 +1,6 @@
 import { SpotMarketDropdown } from "./MarketDropdown";
 import styles from "./SymbolBar.module.scss";
-import { spotApi, type Ticker24h } from "../../api/spotClient";
+import { getCachedSpotIconUrl, spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
 
@@ -12,12 +12,13 @@ function fmtNum(v: string, digits = 2): string {
 
 function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
   const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.apiSymbol), 3000, [market.apiSymbol]);
+  const iconUrl = t?.iconUrl ?? getCachedSpotIconUrl(market.apiSymbol);
   const pct = t ? parseFloat(t.priceChangePercent) : 0;
   const pctCls = pct > 0 ? styles.up : pct < 0 ? styles.down : styles.muted;
 
   return (
     <div className={styles.bar}>
-      <SpotMarketDropdown market={market} iconUrl={t?.iconUrl} />
+      <SpotMarketDropdown market={market} iconUrl={iconUrl} iconLoading={!iconUrl && !t} />
       <div className={styles.divider} />
       <div className={styles.stats}>
         <div className={styles.priceBlock}>
