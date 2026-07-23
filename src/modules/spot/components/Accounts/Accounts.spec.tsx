@@ -108,6 +108,69 @@ describe("SpotAccountsPanel", () => {
     expect(queryByText(/Get test funds/)).toBeNull();
   });
 
+  it("renders each supported token icon before its balance symbol", () => {
+    const balances = account("1", "0", "0.1", "0.2");
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: {
+        ...balances,
+        balances: [...balances.balances, { asset: "CC", free: "20", locked: "0" }],
+      },
+      err: null,
+      refetch: vi.fn(),
+    });
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getByRole } = render(<SpotAccountsPanel market={market} />);
+
+    for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
+      const row = getByRole("row", { name: new RegExp(asset) });
+      expect(within(row).getByTestId(`balance-asset-icon-${asset}`)).toBeTruthy();
+    }
+  });
+
+  it.each(["account", "workspace"] as const)(
+    "hides zero-balance assets and keeps locked-only assets in %s mode",
+    (variant) => {
+      mSpotAccount.mockReturnValue({
+        ready: true,
+        account: {
+          ...account("1"),
+          balances: [
+            { asset: "USDA", free: "1", locked: "0" },
+            { asset: "CBTC", free: "0.0000", locked: "0" },
+            { asset: "CETH", free: "0", locked: "0.0001" },
+            { asset: "CC", free: "0", locked: "0.0000" },
+          ],
+        },
+        err: null,
+        refetch: vi.fn(),
+      });
+      mSession.mockReturnValue({
+        connected: true,
+        token: "t",
+        party: "p1",
+        username: "u",
+        avatar: "",
+        provider: "",
+      });
+
+      const { getByRole, queryByRole } = render(<SpotAccountsPanel market={market} variant={variant} />);
+
+      expect(getByRole("row", { name: /USDA/ })).toBeTruthy();
+      expect(getByRole("row", { name: /cETH/ })).toBeTruthy();
+      expect(queryByRole("row", { name: /CBTC/ })).toBeNull();
+      expect(queryByRole("row", { name: /CC/ })).toBeNull();
+    },
+  );
+
   it("keeps small wrapped balances visible with the wallet history decimal notation", () => {
     mSpotAccount.mockReturnValue({
       ready: true,
@@ -132,6 +195,39 @@ describe("SpotAccountsPanel", () => {
     expect(within(cethRow).getByText("3", { selector: "sub" }).parentElement?.textContent).toContain("0.031");
     expect(within(cbtcRow).queryByText("0.0000")).toBeNull();
     expect(within(cethRow).queryByText("0.0000")).toBeNull();
+  });
+
+  it("removes trailing decimal zeroes and renders zero balances as zero", () => {
+    const balances = account("0.9000", "0.0000", "1.230000");
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: {
+        ...balances,
+        balances: [...balances.balances, { asset: "CC", free: "20.0000", locked: "0.0000" }],
+      },
+      err: null,
+      refetch: vi.fn(),
+    });
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getByRole } = render(<SpotAccountsPanel market={market} />);
+    const usdaRow = getByRole("row", { name: /USDA/ });
+    const cbtcRow = getByRole("row", { name: /CBTC/ });
+    const ccRow = getByRole("row", { name: /CC/ });
+
+    expect(within(usdaRow).getByText("0.9")).toBeTruthy();
+    expect(within(usdaRow).getByText("0")).toBeTruthy();
+    expect(within(cbtcRow).getByText("1.23")).toBeTruthy();
+    expect(within(cbtcRow).getByText("0")).toBeTruthy();
+    expect(within(ccRow).getByText("20")).toBeTruthy();
+    expect(within(ccRow).getByText("0")).toBeTruthy();
   });
 
   it("keeps the transfer amount editable and enables both directions after entering an amount", () => {

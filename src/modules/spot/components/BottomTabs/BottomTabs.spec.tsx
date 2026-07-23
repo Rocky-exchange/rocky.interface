@@ -16,12 +16,6 @@ vi.mock("../../api/spotClient", async () => {
     },
   };
 });
-vi.mock("../Accounts/Accounts", () => ({
-  SpotAccountsPanel: ({ market }: { market: { routeSymbol: string } }) => (
-    <div data-testid="assets-view">Assets for {market.routeSymbol}</div>
-  ),
-}));
-
 import { SpotBottomTabs } from "./BottomTabs";
 import { spotApi } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
@@ -70,17 +64,17 @@ afterEach(() => {
 });
 
 describe("SpotBottomTabs", () => {
-  it("shows Assets by default with every account tab enabled", () => {
-    mReady.mockReturnValue(true);
+  it("removes Assets and shows Open Orders as the first active tab", () => {
+    mReady.mockReturnValue(false);
 
-    const { getAllByRole, getByTestId } = render(<SpotBottomTabs market={market} />);
+    const { getAllByRole, queryByRole } = render(<SpotBottomTabs market={market} />);
     const tabs = getAllByRole("tab");
 
-    expect(tabs.map((tab) => tab.textContent)).toEqual(["Assets", "Open Orders", "Order History", "Trade History"]);
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Open Orders", "Order History", "Trade History"]);
+    expect(queryByRole("tab", { name: "Assets" })).toBeNull();
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
     expect(tabs[1].getAttribute("aria-selected")).toBe("false");
     expect(tabs.every((tab) => !(tab as HTMLButtonElement).disabled)).toBe(true);
-    expect(getByTestId("assets-view").textContent).toBe("Assets for CBTC-USDA");
     expect(mOpen).not.toHaveBeenCalled();
     expect(mAllOrders).not.toHaveBeenCalled();
     expect(mTrades).not.toHaveBeenCalled();
@@ -94,35 +88,33 @@ describe("SpotBottomTabs", () => {
     expect(getByTestId("spot-bottom-view-controls").children).toHaveLength(3);
   });
 
-  it("uses roving focus over all 4 enabled tabs", () => {
+  it("uses roving focus over the 3 remaining tabs", () => {
     mReady.mockReturnValue(false);
 
     const { getByRole } = render(<SpotBottomTabs market={market} />);
-    const assets = getByRole("tab", { name: "Assets" }) as HTMLButtonElement;
     const openOrders = getByRole("tab", { name: "Open Orders" }) as HTMLButtonElement;
     const orderHistory = getByRole("tab", { name: "Order History" }) as HTMLButtonElement;
     const tradeHistory = getByRole("tab", { name: "Trade History" }) as HTMLButtonElement;
 
-    expect(assets.tabIndex).toBe(0);
-    expect(openOrders.tabIndex).toBe(-1);
+    expect(openOrders.tabIndex).toBe(0);
     expect(orderHistory.tabIndex).toBe(-1);
     expect(tradeHistory.tabIndex).toBe(-1);
-    assets.focus();
-
-    fireEvent.keyDown(assets, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(openOrders);
-    expect(openOrders.getAttribute("aria-selected")).toBe("true");
+    openOrders.focus();
 
     fireEvent.keyDown(openOrders, { key: "ArrowRight" });
     expect(document.activeElement).toBe(orderHistory);
     expect(orderHistory.getAttribute("aria-selected")).toBe("true");
 
-    fireEvent.keyDown(openOrders, { key: "Home" });
-    expect(document.activeElement).toBe(assets);
-    expect(assets.getAttribute("aria-selected")).toBe("true");
+    fireEvent.keyDown(orderHistory, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(tradeHistory);
+    expect(tradeHistory.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(tradeHistory, { key: "Home" });
+    expect(document.activeElement).toBe(openOrders);
+    expect(openOrders.getAttribute("aria-selected")).toBe("true");
 
     // ArrowLeft from the first tab wraps to the last tab (Trade History).
-    fireEvent.keyDown(assets, { key: "ArrowLeft" });
+    fireEvent.keyDown(openOrders, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(tradeHistory);
     expect(tradeHistory.getAttribute("aria-selected")).toBe("true");
 

@@ -5,7 +5,6 @@ import { spotApi, type MyTrade, type SpotOrder } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
 import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
-import { SpotAccountsPanel } from "../Accounts/Accounts";
 
 const MUTED_TEXT_STYLE = { color: "var(--ltr-text-muted)" } as const;
 const SECONDARY_TEXT_STYLE = { color: "var(--ltr-text-secondary)" } as const;
@@ -252,14 +251,13 @@ function OrderHistory({ market }: { market: SpotMarket }) {
   );
 }
 
-type EnabledTab = "assets" | "open-orders" | "order-history" | "trade-history";
+type EnabledTab = "open-orders" | "order-history" | "trade-history";
 
-const ENABLED_TABS: EnabledTab[] = ["assets", "open-orders", "order-history", "trade-history"];
+const ENABLED_TABS: EnabledTab[] = ["open-orders", "order-history", "trade-history"];
 
 export function SpotBottomTabs({ market }: { market: SpotMarket }) {
-  const [activeTab, setActiveTab] = useState<EnabledTab>("assets");
+  const [activeTab, setActiveTab] = useState<EnabledTab>("open-orders");
   const tabRefs = useRef<Record<EnabledTab, HTMLButtonElement | null>>({
-    assets: null,
     "open-orders": null,
     "order-history": null,
     "trade-history": null,
@@ -283,22 +281,6 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
   return (
     <div className={styles.panel}>
       <div className={styles.tabs} role="tablist" aria-label="Spot account workspace">
-        <button
-          type="button"
-          id="spot-assets-tab"
-          role="tab"
-          aria-selected={activeTab === "assets"}
-          aria-controls="spot-bottom-panel"
-          tabIndex={activeTab === "assets" ? 0 : -1}
-          className={`${styles.tab} ${activeTab === "assets" ? styles.tabActive : ""}`}
-          onClick={() => setActiveTab("assets")}
-          onKeyDown={(event) => activateFromKeyboard(event, "assets")}
-          ref={(node) => {
-            tabRefs.current.assets = node;
-          }}
-        >
-          Assets
-        </button>
         <button
           type="button"
           id="spot-open-orders-tab"
@@ -366,17 +348,14 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
         id="spot-bottom-panel"
         role="tabpanel"
         aria-labelledby={
-          activeTab === "assets"
-            ? "spot-assets-tab"
-            : activeTab === "order-history"
-              ? "spot-order-history-tab"
+          activeTab === "order-history"
+            ? "spot-order-history-tab"
             : activeTab === "trade-history"
               ? "spot-trade-history-tab"
               : "spot-open-orders-tab"
         }
         className={styles.tabPanel}
       >
-        {activeTab === "assets" && <SpotAccountsPanel market={market} variant="workspace" />}
         {activeTab === "open-orders" && <OpenOrders key={market.apiSymbol} market={market} />}
         {activeTab === "order-history" && <OrderHistory key={market.apiSymbol} market={market} />}
         {activeTab === "trade-history" && <TradeHistory key={market.apiSymbol} market={market} />}

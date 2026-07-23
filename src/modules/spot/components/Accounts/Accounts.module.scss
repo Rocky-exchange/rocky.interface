@@ -137,6 +137,20 @@
   font-weight: 500;
 }
 
+.assetSymbol {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assetIcon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
 .locked {
   color: var(--ltr-text-muted);
 }

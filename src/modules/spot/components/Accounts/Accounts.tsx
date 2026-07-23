@@ -1,6 +1,10 @@
 import { useState } from "react";
 
 import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
+import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
+import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
+import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
+import usdaIconSrc from "@/shared/lib/canton-wallet/token-icons/USDA.png";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./Accounts.module.scss";
@@ -9,11 +13,18 @@ import { SPOT_MARKETS, type SpotMarket, toSpotDisplayAsset } from "../../model/s
 
 export const TRANSFER_ASSETS = ["USDA"] as const;
 
+const BALANCE_ASSET_ICON_SOURCES: Record<string, string> = {
+  USDA: usdaIconSrc,
+  CBTC: cbtcIconSrc,
+  CETH: cethIconSrc,
+  CC: ccIconSrc,
+};
+
 function fmt(v: string, digits = 4): string {
   const n = parseFloat(v);
   if (!isFinite(n)) return "—";
   return n.toLocaleString("en-US", {
-    minimumFractionDigits: digits,
+    minimumFractionDigits: 0,
     maximumFractionDigits: digits,
   });
 }
@@ -29,7 +40,7 @@ function BalanceAmount({ value, asset }: { value: string; asset: string }) {
   const leadingDecimalZeroes = numeric.toFixed(20).match(/^0\.(0+)/)?.[1].length || 0;
   const maximumFractionDigits = leadingDecimalZeroes >= 4 ? Math.min(leadingDecimalZeroes + 4, 20) : 6;
   const formatted = numeric.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits,
   });
   const compactMatch = formatted.match(/^([+-]?[\d,]+)\.(0{3,})(\d+)$/);
@@ -43,6 +54,33 @@ function BalanceAmount({ value, asset }: { value: string; asset: string }) {
       {compactMatch[3]}
     </span>
   );
+}
+
+function BalanceAssetSymbol({ asset }: { asset: string }) {
+  const iconSrc = BALANCE_ASSET_ICON_SOURCES[asset.trim().toUpperCase()];
+
+  return (
+    <span className={styles.assetSymbol}>
+      {iconSrc && (
+        <img
+          src={iconSrc}
+          alt=""
+          aria-hidden="true"
+          className={styles.assetIcon}
+          data-testid={`balance-asset-icon-${asset}`}
+        />
+      )}
+      <span>{asset}</span>
+    </span>
+  );
+}
+
+function hasVisibleBalance(balance: { free: string; locked: string }): boolean {
+  const free = Number(balance.free);
+  const locked = Number(balance.locked);
+
+  if (!Number.isFinite(free) || !Number.isFinite(locked)) return true;
+  return free !== 0 || locked !== 0;
 }
 
 async function faucet(party: string): Promise<void> {
@@ -94,11 +132,13 @@ export function SpotAccountsPanel({
               </tr>
             </thead>
             <tbody>
-              {account?.balances.map((balance) => {
+              {account?.balances.filter(hasVisibleBalance).map((balance) => {
                 const asset = displayAsset(balance.asset, market);
                 return (
                   <tr key={balance.asset}>
-                    <td className={styles.asset}>{asset}</td>
+                    <td className={styles.asset}>
+                      <BalanceAssetSymbol asset={asset} />
+                    </td>
                     <td>
                       <BalanceAmount value={balance.free} asset={asset} />
                     </td>
@@ -259,11 +299,13 @@ export function SpotAccountsPanel({
               </tr>
             </thead>
             <tbody>
-              {account.balances.map((balance) => {
+              {account.balances.filter(hasVisibleBalance).map((balance) => {
                 const asset = displayAsset(balance.asset, market);
                 return (
                   <tr key={balance.asset}>
-                    <td className={styles.asset}>{asset}</td>
+                    <td className={styles.asset}>
+                      <BalanceAssetSymbol asset={asset} />
+                    </td>
                     <td>
                       <BalanceAmount value={balance.free} asset={asset} />
                     </td>
