@@ -213,10 +213,6 @@ msgstr "{0}은 스마트 컨트랙트 주소로 보낼 수 없습니다. 다른 
 msgid "Expand"
 msgstr "확장"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Withdrawal fee is unavailable. Please retry."
-msgstr ""
-
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr "RPC 오류로 트랜잭션 실패.<0/><1/>설정에서 <2>익스프레스 트레이딩</2>을 활성화하세요. 더 나은 경험을 제공할 것입니다."
@@ -3197,6 +3193,10 @@ msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Trial funds frozen"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee quote is unavailable. Please try again."
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts

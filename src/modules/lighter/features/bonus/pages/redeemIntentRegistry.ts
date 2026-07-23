@@ -52,7 +52,7 @@ export function settleRedeemIntent(
 
 export function shouldRetainRedeemIntent(error: unknown): boolean {
   const status = Number((error as { status?: unknown } | null)?.status);
-  return !Number.isFinite(status) || status === 408 || status >= 500;
+  return !Number.isFinite(status) || status === 0 || status === 408 || status >= 500;
 }
 
 function fingerprintRedeemIntent(scope: RedeemIntentScope, code: string): string {

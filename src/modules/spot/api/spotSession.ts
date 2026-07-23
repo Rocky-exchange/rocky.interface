@@ -6,14 +6,14 @@
  * `spotClient` so subsequent signed calls act as *that party*, not the
  * shared dev credentials. On disconnect, clear.
  *
- * v1 caveat: the backend endpoint TRUSTS the client's party string —
- * fine for dev, MUST be gated by a Canton signature before enabling
- * production spot trading. See `spot/routes_session.rs`.
+ * The backend binds the requested party to the authenticated exchange wallet
+ * session, so minting must carry the existing exchange-session bearer.
  */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { exchangeSessionHeaders } from "@/shared/lib/canton-wallet/session";
 
 import { getSpotCredentials, setSpotCredentials, subscribeSpotCredentials } from "./spotClient";
 
@@ -26,9 +26,14 @@ const CACHE = new Map<string, { key: string; secret: string }>();
 async function fetchSessionKey(party: string): Promise<{ key: string; secret: string }> {
   const cached = CACHE.get(party);
   if (cached) return cached;
+  const authorization = new Headers(exchangeSessionHeaders()).get("Authorization");
   const r = await fetch("/api/v3/session-key", {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+      ...(authorization ? { Authorization: authorization } : {}),
+    },
     body: JSON.stringify({ party }),
   });
   if (!r.ok) throw new Error(`session-key HTTP ${r.status}`);

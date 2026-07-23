@@ -2,10 +2,10 @@ export type SpotMarket = {
   routeSymbol: string;
   apiSymbol: string;
   displayBase: string;
-  displayQuote: "USDA";
+  displayQuote: "USDA" | "CBTC";
   apiBase: string;
-  apiQuote: "USDA";
-  chartSymbol: "BTCUSDT" | "ETHUSDT";
+  apiQuote: "USDA" | "CBTC";
+  chartSymbol: "BTCUSDT" | "ETHUSDT" | "ETHBTC";
 };
 
 // The backend (post usda_rename migration) keys every spot endpoint on the
@@ -28,6 +28,15 @@ export const SPOT_MARKETS = [
     apiBase: "CETH",
     apiQuote: "USDA",
     chartSymbol: "ETHUSDT",
+  },
+  {
+    routeSymbol: "CETH-CBTC",
+    apiSymbol: "CETH-CBTC",
+    displayBase: "cETH",
+    displayQuote: "CBTC",
+    apiBase: "CETH",
+    apiQuote: "CBTC",
+    chartSymbol: "ETHBTC",
   },
 ] as const satisfies readonly SpotMarket[];
 

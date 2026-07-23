@@ -9,10 +9,10 @@ import {
   fetchPlatformAccountBalance,
   fetchPlatformAccountBalances,
   fetchPlatformWithdrawableBalance,
+  fetchWithdrawalFeeQuote,
   fetchPendingUsdaOffers,
   fetchSpotTransferHistory,
   fetchUsdaAutoAccept,
-  fetchWithdrawalFeeQuote,
   platformDepositApiAsset,
   requestDepositReference,
   submitCantonWalletDeposit,
@@ -77,6 +77,36 @@ describe("canton wallet funds", () => {
       asset: "USDC",
       amount_expected: "12.50",
     });
+  });
+
+  it("loads the authoritative withdrawal fee quote for the selected asset", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      jsonResponse({
+        asset: "CBTC",
+        fee_asset: "CBTC",
+        fee_wallet_symbol: "CBTC",
+        fee_amount: "0.00001",
+        fee_quote_price: "100000",
+        fee_quote_ts_ms: 1784745600000,
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchWithdrawalFeeQuote("CBTC")).resolves.toEqual({
+      asset: "CBTC",
+      feeAsset: "CBTC",
+      feeWalletSymbol: "CBTC",
+      feeAmount: "0.00001",
+      feeQuotePrice: "100000",
+      feeQuoteTsMs: 1784745600000,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/withdrawals/quote?asset=CBTC",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
   });
 
   it("submits Rocky deposits through the local wallet SDK transfer flow", async () => {
@@ -473,9 +503,9 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchWithdrawalFeeQuote("CBTC")).resolves.toMatchObject({
-      fee_asset: "CBTC",
-      fee_wallet_symbol: "CBTC",
-      fee_amount: "0.0000142858",
+      feeAsset: "CBTC",
+      feeWalletSymbol: "CBTC",
+      feeAmount: "0.0000142858",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/withdrawals/quote?asset=CBTC",
@@ -485,10 +515,11 @@ describe("canton wallet funds", () => {
 
   it("times out a stalled withdrawal request so the UI can safely retry", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn((_url: RequestInfo | URL, init?: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
-      })
+    const fetchMock = vi.fn(
+      (_url: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        })
     );
     vi.stubGlobal("fetch", fetchMock);
 

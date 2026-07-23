@@ -213,10 +213,6 @@ msgstr ""
 msgid "Expand"
 msgstr ""
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Withdrawal fee is unavailable. Please retry."
-msgstr "Les frais de retrait sont indisponibles. Veuillez réessayer."
-
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr ""
@@ -3197,6 +3193,10 @@ msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Trial funds frozen"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee quote is unavailable. Please try again."
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts

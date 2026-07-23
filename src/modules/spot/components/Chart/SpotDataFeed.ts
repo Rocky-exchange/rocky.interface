@@ -138,7 +138,7 @@ export class SpotDataFeed implements IBasicDataFeed {
     const [base, quote] = symbolName.split("-");
     const resolvedSymbolName = isKnownMarket ? market.routeSymbol : symbolName;
     const displayBase = isKnownMarket ? market.displayBase : base;
-    const displayQuote = isKnownMarket ? market.displayQuote : (quote ?? "USDA");
+    const displayQuote = isKnownMarket ? market.displayQuote : quote ?? "USDA";
     const info: LibrarySymbolInfo = {
       name: resolvedSymbolName,
       ticker: resolvedSymbolName,
@@ -151,7 +151,7 @@ export class SpotDataFeed implements IBasicDataFeed {
       format: "price",
       minmov: 1,
       // rocky-backend tick=0.01 for the currently routed public markets.
-      pricescale: resolvedSymbolName === "CC-USDA" ? 100000 : 100,
+      pricescale: resolvedSymbolName === "CC-USDA" || resolvedSymbolName === "CETH-CBTC" ? 100000 : 100,
       has_intraday: true,
       has_daily: true,
       has_weekly_and_monthly: true,

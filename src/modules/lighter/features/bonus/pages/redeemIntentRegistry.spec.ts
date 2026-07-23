@@ -32,6 +32,7 @@ describe("redeem intent registry", () => {
     const registry = await import("./redeemIntentRegistry");
 
     expect(registry.shouldRetainRedeemIntent(new Error("lost"))).toBe(true);
+    expect(registry.shouldRetainRedeemIntent({ status: 0 })).toBe(true);
     expect(registry.shouldRetainRedeemIntent({ status: 408 })).toBe(true);
     expect(registry.shouldRetainRedeemIntent({ status: 503 })).toBe(true);
     expect(registry.shouldRetainRedeemIntent({ status: 409 })).toBe(false);

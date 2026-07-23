@@ -120,6 +120,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -146,6 +147,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",

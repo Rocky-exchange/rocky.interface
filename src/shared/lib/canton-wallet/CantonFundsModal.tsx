@@ -1,6 +1,7 @@
 import { i18n } from "@lingui/core";
 import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
+import BigNumber from "bignumber.js";
 import cx from "classnames";
 import {
   type ChangeEvent,
@@ -39,8 +40,8 @@ import {
   type CantonDepositResult,
   type CantonFundsHistory,
   type CantonFundsAsset,
-  type CantonSpotTransferHistory,
   type CantonWithdrawalFeeQuote,
+  type CantonSpotTransferHistory,
   type PlatformAccountBalances,
 } from "./funds";
 import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDisplayNameError } from "./profile";
@@ -51,6 +52,7 @@ import usdaIconSrc from "./token-icons/USDA.png";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
+import { hasPendingSpotTransferIntent } from "./spotTransferIntentRegistry";
 import { hasPendingWithdrawalIntent } from "./withdrawalIntentRegistry";
 
 type Props = {
@@ -159,8 +161,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const selectedWalletBalance = getBalanceAmount(walletRows, selectedAsset);
   const withdrawAmountNumber = Number(withdrawAmount.trim());
   const withdrawAmountIsPositive = Number.isFinite(withdrawAmountNumber) && withdrawAmountNumber > 0;
-  const withdrawalFeeAmount = numericWithdrawalFee(withdrawalFeeQuote);
-  const withdrawRequiredAmount = requiredWithdrawalAmount(withdrawAmountNumber, withdrawalFeeAmount || 0);
+  const withdrawalFeeAmount = withdrawalFeeAmountForAsset(withdrawalFeeQuote, selectedAsset);
+  const withdrawalFeeReady = withdrawalFeeAmount !== null;
+  const withdrawRequiredAmount = requiredWithdrawalAmount(withdrawAmountNumber, withdrawalFeeAmount);
   const withdrawalRetryPending =
     withdrawAmountIsPositive &&
     Boolean(party && walletProvider) &&
@@ -170,6 +173,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     );
   const withdrawExceedsAvailable =
     !withdrawalRetryPending &&
+    withdrawalFeeReady &&
     withdrawAvailable !== null &&
     withdrawAmountIsPositive &&
     withdrawRequiredAmount > withdrawAvailable;
@@ -206,6 +210,15 @@ export function CantonFundsModal({ open, onClose }: Props) {
     );
   }, [assetFilter, assetSearch]);
   const transferSourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingTransferAvailable;
+  const transferAmountNumber = Number(transferAmount.trim());
+  const transferRetryPending =
+    Number.isFinite(transferAmountNumber) &&
+    transferAmountNumber > 0 &&
+    Boolean(walletParty && party && walletProvider) &&
+    hasPendingSpotTransferIntent(
+      { walletParty, sessionParty: party, walletProvider },
+      { asset: "USDA", amount: transferAmount, direction: transferDirection }
+    );
   const isAssetsDashboard = activeView === "assets";
   const operationTitle =
     activeView === "deposit"
@@ -502,9 +515,9 @@ export function CantonFundsModal({ open, onClose }: Props) {
           refreshWithdrawAvailable(),
           refreshWithdrawalFeeQuote(),
         ]);
-        const latestFeeAmount = numericWithdrawalFee(latestFeeQuote);
+        const latestFeeAmount = withdrawalFeeAmountForAsset(latestFeeQuote, asset);
         if (latestFeeAmount === null) {
-          setError(i18n._(t`Withdrawal fee is unavailable. Please retry.`));
+          setError(i18n._(t`Withdrawal fee quote is unavailable. Please try again.`));
           return;
         }
         const requiredAmount = requiredWithdrawalAmount(Number(amount), latestFeeAmount);
@@ -545,11 +558,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       await refreshWalletDashboard();
     } catch (err) {
       const code = typeof err === "object" && err !== null && "code" in err ? String(err.code) : "";
-      setError(
-        code === "request_timeout"
-          ? i18n._(t`Withdrawal request timed out. Please retry.`)
-          : errorMessage(err)
-      );
+      setError(code === "request_timeout" ? i18n._(t`Withdrawal request timed out. Please retry.`) : errorMessage(err));
     } finally {
       setWithdrawBusy(false);
     }
@@ -561,7 +570,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     const amountNumber = Number(amount);
     const sourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingTransferAvailable;
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) return;
-    if (sourceAvailable === null || amountNumber > sourceAvailable) {
+    if (!transferRetryPending && (sourceAvailable === null || amountNumber > sourceAvailable)) {
       setError(i18n._(t`Insufficient balance for this transfer.`));
       return;
     }
@@ -1060,13 +1069,12 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       onClick={() => {
                         const available = activeView === "deposit" ? selectedWalletBalance : withdrawAvailable;
                         if (available !== null && available !== undefined) {
-                          const numeric = Number(available);
-                          const next =
-                            activeView === "withdraw"
-                              ? subtractAssetAmounts(numeric, withdrawalFeeAmount || 0)
-                              : numeric;
-                          if (activeView === "deposit") setDepositAmount(String(next));
-                          else setWithdrawAmount(String(next));
+                          if (activeView === "deposit") {
+                            setDepositAmount(String(available));
+                          } else {
+                            const next = maximumWithdrawalAmount(available, withdrawalFeeAmount);
+                            if (next !== null) setWithdrawAmount(next);
+                          }
                         }
                       }}
                     >
@@ -1088,7 +1096,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         ) : (
                           <>
                             <CompactAssetAmount value={withdrawalFeeAmount} asset={selectedAsset} />{" "}
-                            {withdrawalFeeQuote?.fee_wallet_symbol || withdrawalFeeQuote?.fee_asset || selectedAsset}
+                            {withdrawalFeeQuote?.feeWalletSymbol || selectedAsset}
                           </>
                         )}
                       </strong>
@@ -1114,7 +1122,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   disabled={
                     activeView === "deposit"
                       ? depositBusy || !depositAmount.trim() || !walletParty
-                      : withdrawBusy || !withdrawAmount.trim() || !walletParty || withdrawExceedsAvailable
+                      : withdrawBusy ||
+                        !withdrawAmount.trim() ||
+                        !walletParty ||
+                        withdrawExceedsAvailable ||
+                        (!withdrawalRetryPending && !withdrawalFeeReady)
                   }
                 >
                   {activeView === "deposit"
@@ -1200,7 +1212,11 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <button
                   type="submit"
                   className={styles.primarySubmit}
-                  disabled={transferBusy || !transferAmount.trim() || transferSourceAvailable === null}
+                  disabled={
+                    transferBusy ||
+                    !transferAmount.trim() ||
+                    (!transferRetryPending && transferSourceAvailable === null)
+                  }
                   aria-label={i18n._(t`Transfer USDA`)}
                 >
                   {transferBusy ? i18n._(t`Transferring...`) : i18n._(t`Transfer`)}
@@ -1487,7 +1503,13 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <button
                       type="submit"
                       className={styles.primarySubmit}
-                      disabled={withdrawBusy || !withdrawAmount.trim() || !walletParty || withdrawExceedsAvailable}
+                      disabled={
+                        withdrawBusy ||
+                        !withdrawAmount.trim() ||
+                        !walletParty ||
+                        withdrawExceedsAvailable ||
+                        (!withdrawalRetryPending && !withdrawalFeeReady)
+                      }
                     >
                       {withdrawBusy ? i18n._(t`Withdrawing...`) : i18n._(t`Withdraw`)}
                     </button>
@@ -1839,35 +1861,27 @@ function HistoryAssetAmount({ value, asset }: { value: string; asset: CantonFund
   );
 }
 
-function requiredWithdrawalAmount(amount: number, feeAmount: number): number {
+function requiredWithdrawalAmount(amount: number, feeAmount: string | null): number {
   if (!Number.isFinite(amount) || amount <= 0) return 0;
-  if (!Number.isFinite(feeAmount) || feeAmount <= 0) return amount;
-  const precision = Math.min(12, Math.max(decimalPlaces(amount), decimalPlaces(feeAmount)));
-  const scale = 10 ** precision;
-  return (Math.round(amount * scale) + Math.round(feeAmount * scale)) / scale;
+  if (feeAmount === null) return amount;
+  return new BigNumber(amount).plus(feeAmount).toNumber();
 }
 
-function subtractAssetAmounts(available: number, fee: number): number {
-  const precision = Math.min(12, Math.max(decimalPlaces(available), decimalPlaces(fee)));
-  const scale = 10 ** precision;
-  return Math.max(0, Math.round(available * scale) - Math.round(fee * scale)) / scale;
+function maximumWithdrawalAmount(available: string | number, feeAmount: string | null): string | null {
+  if (feeAmount === null) return null;
+  const maximum = BigNumber.maximum(new BigNumber(available).minus(feeAmount), 0);
+  return maximum.isFinite() ? maximum.toFixed() : null;
 }
 
-function decimalPlaces(value: number): number {
-  const [, fraction = ""] = value.toFixed(12).replace(/0+$/, "").split(".");
-  return fraction.length;
-}
-
-function numericWithdrawalFee(quote: CantonWithdrawalFeeQuote | null): number | null {
-  if (!quote) return null;
-  const amount = Number(quote.fee_amount);
-  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+function withdrawalFeeAmountForAsset(quote: CantonWithdrawalFeeQuote | null, asset: CantonFundsAsset): string | null {
+  if (!quote || quote.feeWalletSymbol !== asset) return null;
+  const amount = new BigNumber(quote.feeAmount);
+  return amount.isFinite() && amount.isGreaterThanOrEqualTo(0) ? amount.toFixed() : null;
 }
 
 function withdrawalFeeLabel(quote: CantonWithdrawalFeeQuote | null, asset: CantonFundsAsset): string {
-  const amount = numericWithdrawalFee(quote);
-  if (amount === null) return "-";
-  return `${quote?.fee_amount} ${quote?.fee_wallet_symbol || quote?.fee_asset || asset}`;
+  const amount = withdrawalFeeAmountForAsset(quote, asset);
+  return amount === null ? "-" : `${amount} ${asset}`;
 }
 
 function abbreviateMiddle(value: string | undefined, max = 28): string {

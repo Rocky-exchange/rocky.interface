@@ -536,6 +536,13 @@ describe("Bonus visual components", () => {
 });
 
 describe("RedeemCodePage", () => {
+  it("uses USDA for the redeem policy display asset", () => {
+    renderAt(<RedeemCodePage />, "/bonus/redeem");
+
+    expect(screen.getByText("USDA")).not.toBeNull();
+    expect(screen.queryByText("USDCx")).toBeNull();
+  });
+
   it("normalizes to uppercase [A-Z0-9-] and caps input at 32 characters", () => {
     renderAt(<RedeemCodePage />, "/bonus/redeem");
     const input = getCodeInput();

@@ -213,10 +213,6 @@ msgstr "{0} 無法傳送到智慧合约地址。請選擇另一個代幣。"
 msgid "Expand"
 msgstr "展開"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Withdrawal fee is unavailable. Please retry."
-msgstr "提領手續費暫時無法取得，請重試。"
-
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please enable <2>Express trading</2> under settings, which should offer a better experience."
 msgstr "由於 RPC 錯誤，交易失敗。<0/><1/>請在設定下啟用 <2>快速交易</2>，這應該提供更好的體驗。"
@@ -3197,6 +3193,10 @@ msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Trial funds frozen"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee quote is unavailable. Please try again."
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts

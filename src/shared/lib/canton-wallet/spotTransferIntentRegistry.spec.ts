@@ -19,6 +19,7 @@ describe("spot transfer intent registry", () => {
     const firstRegistry = await import("./spotTransferIntentRegistry");
     const firstKey = firstRegistry.acquireSpotTransferIntentKey(SCOPE, INTENT);
     firstRegistry.settleSpotTransferIntent(SCOPE, { ...INTENT, idempotency_key: firstKey }, "ambiguous");
+    expect(firstRegistry.hasPendingSpotTransferIntent(SCOPE, INTENT)).toBe(true);
 
     vi.resetModules();
     const reloadedRegistry = await import("./spotTransferIntentRegistry");
@@ -59,6 +60,7 @@ describe("spot transfer intent registry", () => {
   it("retains uncertain HTTP timeouts but clears definitive client failures", async () => {
     const registry = await import("./spotTransferIntentRegistry");
 
+    expect(registry.shouldRetainSpotTransferIntent({ status: 0 })).toBe(true);
     expect(registry.shouldRetainSpotTransferIntent({ status: 408 })).toBe(true);
     expect(registry.shouldRetainSpotTransferIntent({ status: 409 })).toBe(false);
   });

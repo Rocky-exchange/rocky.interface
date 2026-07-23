@@ -12,6 +12,13 @@
  * they go same-origin behind nginx.
  */
 
+import {
+  acquireSpotOrderIntentKey,
+  settleSpotOrderIntent,
+  shouldRetainSpotOrderIntent,
+  type SpotOrderIntent,
+} from "./spotOrderIntentRegistry";
+
 // Session credentials: initially null. `useSpotSession` fills them in
 // after Canton wallet connect (per-user HMAC key minted by the backend
 // /api/v3/session-key endpoint). `.env.local` values are DEV FALLBACK ONLY
@@ -159,7 +166,8 @@ async function sign(secret: string, payload: string): Promise<string> {
 export class SpotApiError extends Error {
   constructor(
     public readonly code: number,
-    message: string
+    message: string,
+    public readonly status?: number
   ) {
     super(message);
     this.name = "SpotApiError";
@@ -171,10 +179,10 @@ async function parseOrThrow<T>(r: Response): Promise<T> {
   if (!r.ok) {
     try {
       const j = JSON.parse(text) as { code?: number; msg?: string };
-      throw new SpotApiError(j.code ?? r.status, j.msg ?? text);
+      throw new SpotApiError(j.code ?? r.status, j.msg ?? text, r.status);
     } catch (e) {
       if (e instanceof SpotApiError) throw e;
-      throw new SpotApiError(r.status, text || `HTTP ${r.status}`);
+      throw new SpotApiError(r.status, text || `HTTP ${r.status}`, r.status);
     }
   }
   return JSON.parse(text) as T;
@@ -222,7 +230,7 @@ export const spotApi = {
     signedRequest<SpotOrder[]>("GET", "/api/v3/allOrders", { symbol, limit: String(limit) }),
   myTrades: (symbol: string, limit = 500) =>
     signedRequest<MyTrade[]>("GET", "/api/v3/myTrades", { symbol, limit: String(limit) }),
-  placeOrder: (b: {
+  placeOrder: async (b: {
     symbol: string;
     side: "BUY" | "SELL";
     type: "LIMIT" | "MARKET";
@@ -230,6 +238,19 @@ export const spotApi = {
     quantity: string;
     newClientOrderId?: string;
   }) => {
+    const activeCreds = creds;
+    if (!activeCreds) {
+      throw new SpotApiError(-401, "Connect your wallet to trade spot", 401);
+    }
+    const intent: SpotOrderIntent = {
+      symbol: b.symbol,
+      side: b.side,
+      type: b.type,
+      ...(b.type === "LIMIT" ? { price: b.price } : {}),
+      quantity: b.quantity,
+    };
+    const generatedClientId = !b.newClientOrderId;
+    const clientOrderId = b.newClientOrderId || acquireSpotOrderIntentKey({ accountKey: activeCreds.key }, intent);
     const p: Record<string, string> = {
       symbol: b.symbol,
       side: b.side,
@@ -237,15 +258,33 @@ export const spotApi = {
       quantity: b.quantity,
     };
     if (b.type === "LIMIT" && b.price) p.price = b.price;
-    if (b.newClientOrderId) p.newClientOrderId = b.newClientOrderId;
-    return signedRequest<SpotOrder>("POST", "/api/v3/order", p);
+    p.newClientOrderId = clientOrderId;
+    try {
+      const result = await signedRequest<SpotOrder>("POST", "/api/v3/order", p);
+      if (generatedClientId) {
+        settleSpotOrderIntent(
+          { accountKey: activeCreds.key },
+          { ...intent, newClientOrderId: clientOrderId },
+          "complete"
+        );
+      }
+      return result;
+    } catch (error) {
+      if (generatedClientId) {
+        settleSpotOrderIntent(
+          { accountKey: activeCreds.key },
+          { ...intent, newClientOrderId: clientOrderId },
+          shouldRetainSpotOrderIntent(error) ? "ambiguous" : "complete"
+        );
+      }
+      throw error;
+    }
   },
   cancelOrder: (symbol: string, orderId: string) =>
-    signedRequest<{ symbol: string; orderId: string; status: "CANCELED" }>(
-      "DELETE",
-      "/api/v3/order",
-      { symbol, orderId },
-    ),
+    signedRequest<{ symbol: string; orderId: string; status: "CANCELED" }>("DELETE", "/api/v3/order", {
+      symbol,
+      orderId,
+    }),
 };
 
 export { SPOT_MARKETS } from "../markets";

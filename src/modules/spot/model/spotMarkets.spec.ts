@@ -7,6 +7,7 @@ describe("SPOT_MARKETS", () => {
     expect(SPOT_MARKETS.map(({ routeSymbol, apiSymbol }) => ({ routeSymbol, apiSymbol }))).toEqual([
       { routeSymbol: "CBTC-USDA", apiSymbol: "CBTC-USDA" },
       { routeSymbol: "CETH-USDA", apiSymbol: "CETH-USDA" },
+      { routeSymbol: "CETH-CBTC", apiSymbol: "CETH-CBTC" },
     ]);
   });
 
@@ -29,6 +30,13 @@ describe("resolveSpotMarket", () => {
 
   it("resolves the non-default CETH market", () => {
     expect(resolveSpotMarket("  ceth-usda  ").apiSymbol).toBe("CETH-USDA");
+  });
+
+  it("resolves the crypto-quoted CETH/CBTC market", () => {
+    const market = resolveSpotMarket(" ceth-cbtc ");
+    expect(market.apiSymbol).toBe("CETH-CBTC");
+    expect(market.displayQuote).toBe("CBTC");
+    expect(market.chartSymbol).toBe("ETHBTC");
   });
 });
 

@@ -158,8 +158,8 @@ describe("SpotOrderForm", () => {
     expect(indicator.className).not.toContain("indicatorBuy");
 
     const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
-    expect(source).toMatch(/\.sideIndicator\s*\{[^}]*transition:\s*transform 200ms/s);
-    expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/s);
+    expect(source).toMatch(/\.sideIndicator\s*\{[^}]*transition:\s*transform 200ms/);
+    expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/);
   });
 
   it("keeps side selection decoration on the shared indicator without an outer focus outline", () => {
@@ -195,7 +195,7 @@ describe("SpotOrderForm", () => {
 
     const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
     expect(source).toMatch(
-      /\.connect\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#d9a441 0%,\s*#b9862c 100%\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/s
+      /\.connect\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#d9a441 0%,\s*#b9862c 100%\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/
     );
   });
 
@@ -243,7 +243,7 @@ describe("SpotOrderForm", () => {
 
   it("disables submit until price and amount are valid positive values", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
-    const submit = getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement;
+    const submit = getByRole("button", { name: `BUY ${market.displayBase} · Limit` }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
 
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
@@ -259,18 +259,18 @@ describe("SpotOrderForm", () => {
     const view = render(<SpotOrderForm market={market} />);
     fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    expect((view.getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
+    expect((view.getByRole("button", { name: `BUY ${market.displayBase} · Limit` }) as HTMLButtonElement).disabled).toBe(true);
 
     readyAccount(accountWith({ canTrade: false }));
     view.rerender(<SpotOrderForm market={market} />);
-    expect((view.getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
+    expect((view.getByRole("button", { name: `BUY ${market.displayBase} · Limit` }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("rejects manual buy and sell amounts that exceed their available balances", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
     const price = getByLabelText(`Price (${market.displayQuote})`);
     const amount = getByLabelText(`Amount (${market.displayBase})`);
-    const buy = getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement;
+    const buy = getByRole("button", { name: `BUY ${market.displayBase} · Limit` }) as HTMLButtonElement;
 
     fireEvent.change(price, { target: { value: "1000" } });
     fireEvent.change(amount, { target: { value: "1" } });
@@ -279,7 +279,7 @@ describe("SpotOrderForm", () => {
     expect(buy.disabled).toBe(false);
 
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
-    const sell = getByRole("button", { name: `SELL ${market.displayBase}` }) as HTMLButtonElement;
+    const sell = getByRole("button", { name: `SELL ${market.displayBase} · Limit` }) as HTMLButtonElement;
     fireEvent.change(amount, { target: { value: "2.50000001" } });
     expect(sell.disabled).toBe(true);
     fireEvent.change(amount, { target: { value: "2.5" } });
@@ -369,7 +369,7 @@ describe("SpotOrderForm", () => {
     const amountInput = getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
     fireEvent.change(priceInput, { target: { value: "250" } });
     fireEvent.change(amountInput, { target: { value: "1" } });
-    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase}` }));
+    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase} · Limit` }));
 
     await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
     expect(mPlace).toHaveBeenCalledWith({
@@ -391,7 +391,7 @@ describe("SpotOrderForm", () => {
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    fireEvent.click(getByRole("button", { name: `SELL ${market.displayBase}` }));
+    fireEvent.click(getByRole("button", { name: `SELL ${market.displayBase} · Limit` }));
 
     await waitFor(() =>
       expect(mPlace).toHaveBeenCalledWith({
@@ -414,7 +414,7 @@ describe("SpotOrderForm", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase}` }));
+    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase} · Limit` }));
 
     await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
     expect((getByRole("tab", { name: `Buy ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
@@ -435,7 +435,7 @@ describe("SpotOrderForm", () => {
     fireEvent.click(view.getByRole("tab", { name: `Sell ${market.displayBase}` }));
     fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    fireEvent.click(view.getByRole("button", { name: `SELL ${market.displayBase}` }));
+    fireEvent.click(view.getByRole("button", { name: `SELL ${market.displayBase} · Limit` }));
     await view.findByText(/-2010.*insufficient balance/);
     fireEvent.change(view.getByRole("slider", { name: "Order percentage" }), { target: { value: "50" } });
     expect((view.getByLabelText(`Total (${market.displayQuote})`) as HTMLInputElement).value).not.toBe("");
@@ -459,7 +459,7 @@ describe("SpotOrderForm", () => {
 
     fireEvent.change(cethPrice, { target: { value: "250" } });
     fireEvent.change(cethAmount, { target: { value: "1" } });
-    fireEvent.click(view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }));
+    fireEvent.click(view.getByRole("button", { name: `BUY ${cethMarket.displayBase} · Limit` }));
     await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(2));
     expect(mPlace).toHaveBeenLastCalledWith({
       symbol: "CETH-USDA",
@@ -480,7 +480,7 @@ describe("SpotOrderForm", () => {
     const view = render(<SpotOrderForm market={market} />);
     fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase}` }));
+    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase} · Limit` }));
     await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
 
     view.rerender(<SpotOrderForm market={cethMarket} />);
@@ -498,7 +498,7 @@ describe("SpotOrderForm", () => {
     expect(cethPrice.value).toBe("300");
     expect(cethAmount.value).toBe("1");
     expect(view.queryByText(/NEW ·/)).toBeNull();
-    expect((view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }) as HTMLButtonElement).disabled).toBe(
+    expect((view.getByRole("button", { name: `BUY ${cethMarket.displayBase} · Limit` }) as HTMLButtonElement).disabled).toBe(
       false
     );
     expect(refetch).not.toHaveBeenCalled();
@@ -521,7 +521,7 @@ describe("SpotOrderForm", () => {
     const view = render(<SpotOrderForm market={market} />);
     fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(view.getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase}` }));
+    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase} · Limit` }));
     await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(1));
 
     view.rerender(<SpotOrderForm market={cethMarket} />);
@@ -534,7 +534,7 @@ describe("SpotOrderForm", () => {
     await waitFor(() => expect(newPrice.disabled).toBe(false));
     fireEvent.change(newPrice, { target: { value: "400" } });
     fireEvent.change(newAmount, { target: { value: "1" } });
-    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase}` }));
+    fireEvent.click(view.getByRole("button", { name: `BUY ${market.displayBase} · Limit` }));
     await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(2));
 
     await act(async () => rejectOldOrder(new SpotApiError(-2010, "stale A error")));
@@ -557,7 +557,7 @@ describe("SpotOrderForm", () => {
     const { getByLabelText, getByRole, findByText } = render(<SpotOrderForm market={market} />);
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
-    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase}` }));
+    fireEvent.click(getByRole("button", { name: `BUY ${market.displayBase} · Limit` }));
 
     await findByText(/-2010.*insufficient balance/);
   });

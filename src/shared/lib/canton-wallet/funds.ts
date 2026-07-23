@@ -82,11 +82,11 @@ export type CantonWithdrawalResult = {
 
 export type CantonWithdrawalFeeQuote = {
   asset: string;
-  fee_asset: string;
-  fee_wallet_symbol: string;
-  fee_amount: string;
-  fee_quote_price?: string;
-  fee_quote_ts_ms?: number;
+  feeAsset: string;
+  feeWalletSymbol: string;
+  feeAmount: string;
+  feeQuotePrice?: string;
+  feeQuoteTsMs?: number;
 };
 
 export type CantonDepositHistoryItem = {
@@ -251,6 +251,28 @@ export async function submitCantonWalletDeposit(input: {
 
 const inFlightWithdrawals = new Map<string, Promise<CantonWithdrawalResult>>();
 
+export async function fetchWithdrawalFeeQuote(asset: CantonFundsAsset): Promise<CantonWithdrawalFeeQuote> {
+  const data = await requestJson<{
+    asset: string;
+    fee_asset: string;
+    fee_wallet_symbol: string;
+    fee_amount: string;
+    fee_quote_price?: string;
+    fee_quote_ts_ms?: number;
+  }>(`/v1/withdrawals/quote?asset=${encodeURIComponent(platformDepositApiAsset(asset))}`, {
+    method: "GET",
+    headers: exchangeSessionHeaders(),
+  });
+  return {
+    asset: data.asset,
+    feeAsset: data.fee_asset,
+    feeWalletSymbol: data.fee_wallet_symbol,
+    feeAmount: data.fee_amount,
+    ...(data.fee_quote_price === undefined ? {} : { feeQuotePrice: data.fee_quote_price }),
+    ...(data.fee_quote_ts_ms === undefined ? {} : { feeQuoteTsMs: data.fee_quote_ts_ms }),
+  };
+}
+
 export async function submitPlatformWithdrawal(input: {
   asset: CantonFundsAsset;
   amount: string;
@@ -319,16 +341,6 @@ function withdrawalScope(input: { sessionParty: string; walletProvider: string }
     throw new CantonFundsError("Wallet session identity is unavailable", { code: "wallet_identity_unavailable" });
   }
   return scope;
-}
-
-export async function fetchWithdrawalFeeQuote(asset: CantonFundsAsset): Promise<CantonWithdrawalFeeQuote> {
-  return requestJson<CantonWithdrawalFeeQuote>(
-    `/v1/withdrawals/quote?asset=${encodeURIComponent(platformDepositApiAsset(asset))}`,
-    {
-      method: "GET",
-      headers: exchangeSessionHeaders(),
-    }
-  );
 }
 
 export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
@@ -645,9 +657,7 @@ async function requestJson<T>(
   options: { timeoutMs?: number; timeoutMessage?: string } = {}
 ): Promise<T> {
   const controller = options.timeoutMs ? new AbortController() : null;
-  const timer = controller
-    ? setTimeout(() => controller.abort(), options.timeoutMs)
-    : null;
+  const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : null;
   try {
     const response = await fetch(url, {
       ...init,
