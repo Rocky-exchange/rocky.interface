@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,7 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { SpotAccountsPanel } from "./Accounts";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
+import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 const mSession = vi.mocked(useCantonSession);
 const mSpotAccount = vi.mocked(useSpotAccount);

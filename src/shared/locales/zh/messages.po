@@ -165,7 +165,7 @@ msgstr "週期"
 
 #: src/modules/spot/components/Accounts/Accounts.tsx
 msgid "Spot → Futures"
-msgstr ""
+msgstr "現貨 → 合約"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -766,7 +766,7 @@ msgstr "查看全部歷史"
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
 #: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
-msgstr "连接钱包"
+msgstr "連接錢包"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -2816,7 +2816,7 @@ msgstr "警報"
 
 #: src/modules/spot/components/Accounts/Accounts.tsx
 msgid "Futures → Spot"
-msgstr ""
+msgstr "合約 → 現貨"
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 msgid "Closed PnL"
@@ -3217,3 +3217,55 @@ msgstr "資產 ({0})"
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
 msgid "Menu"
 msgstr "選單"
+
+#: src/modules/spot/components/SymbolBar/MarketDropdown.tsx
+msgid "Search markets…"
+msgstr "搜尋市場…"
+
+#: src/modules/spot/components/Chart/SpotChart.tsx
+msgid "Screenshot"
+msgstr "截圖"
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "No order history"
+msgstr "暫無訂單歷史"
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Connect wallet from the header to view your order history"
+msgstr "請先從頂部連接錢包以查看訂單歷史"
+
+#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
+msgid "Last Price"
+msgstr "最新價格"
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Connect wallet from the header to view your open orders"
+msgstr "請先從頂部連接錢包以查看當前委託"
+
+#: src/modules/spot/components/OrderBook/OrderBook.tsx
+msgid "Recent Trades"
+msgstr "最近成交"
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Connect wallet from the header to view your trade history"
+msgstr "請先從頂部連接錢包以查看成交歷史"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "BUY"
+msgstr "買入"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "SELL"
+msgstr "賣出"
+
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "available"
+msgstr "可用"
+
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} USDA to Spot"
+msgstr "已將 {0} USDA 劃轉至現貨帳戶"
+
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} USDA to Futures"
+msgstr "已將 {0} USDA 劃轉至合約帳戶"

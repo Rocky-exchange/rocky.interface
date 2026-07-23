@@ -1,3 +1,5 @@
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import BigNumber from "bignumber.js";
 import { useState } from "react";
 
@@ -111,6 +113,7 @@ export function SpotAccountsPanel({
   market: SpotMarket;
   variant?: "account" | "workspace";
 }) {
+  const { i18n } = useLingui();
   const { ready, account, err, refetch } = useSpotAccount();
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
@@ -127,9 +130,15 @@ export function SpotAccountsPanel({
           <table className={`${styles.balanceTable} ${styles.workspaceTable}`}>
             <thead>
               <tr>
-                <th>Asset</th>
-                <th>Free</th>
-                <th>Locked</th>
+                <th>
+                  <Trans>Asset</Trans>
+                </th>
+                <th>
+                  <Trans>Free</Trans>
+                </th>
+                <th>
+                  <Trans>Locked</Trans>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -153,7 +162,7 @@ export function SpotAccountsPanel({
           </table>
           {ready && !account && !err && (
             <div className={styles.workspaceState} role="status">
-              Loading…
+              <Trans>Loading…</Trans>
             </div>
           )}
           {err && (
@@ -169,7 +178,9 @@ export function SpotAccountsPanel({
   if (!ready)
     return (
       <div className={styles.panel}>
-        <div className={styles.title}>Spot Account</div>
+        <div className={styles.title}>
+          <Trans>Spot Account</Trans>
+        </div>
       </div>
     );
   if (err)
@@ -184,7 +195,7 @@ export function SpotAccountsPanel({
     return (
       <div className={styles.panel}>
         <div className={styles.title} role="status">
-          Loading…
+          <Trans>Loading…</Trans>
         </div>
       </div>
     );
@@ -238,14 +249,18 @@ export function SpotAccountsPanel({
   return (
     <div className={styles.panel}>
       <div className={styles.summary}>
-        <div className={styles.title}>Spot Account</div>
+        <div className={styles.title}>
+          <Trans>Spot Account</Trans>
+        </div>
         <div className={styles.totalRow}>
-          <span className={styles.totalLabel}>USDA (free + locked)</span>
+          <span className={styles.totalLabel}>
+            USDA (<Trans>free + locked</Trans>)
+          </span>
           <span className={styles.totalValue}>{totalUsda}</span>
         </div>
         {allZero && (
           <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
-            {faucetBusy ? "Requesting…" : "Get test funds (dev)"}
+            {faucetBusy ? <Trans>Requesting…</Trans> : <Trans>Get test funds (dev)</Trans>}
           </button>
         )}
         {faucetErr && (
@@ -253,13 +268,15 @@ export function SpotAccountsPanel({
             {faucetErr}
           </div>
         )}
-        <div className={styles.title}>Transfer</div>
+        <div className={styles.title}>
+          <Trans>Transfer</Trans>
+        </div>
         <div className={styles.transferRow}>
           <input
             aria-label="Transfer amount"
             className={styles.transferInput}
             inputMode="decimal"
-            placeholder="Amount"
+            placeholder={i18n._(t`Amount`)}
             value={xferAmount}
             onChange={(event) => setXferAmount(event.target.value)}
             disabled={xferBusy}
@@ -272,7 +289,7 @@ export function SpotAccountsPanel({
             disabled={xferBusy || !xferAmount.trim()}
             onClick={() => onTransfer("toSpot")}
           >
-            {xferBusy ? "…" : "Futures → Spot"}
+            {xferBusy ? "…" : <Trans>Futures → Spot</Trans>}
           </button>
           <button
             type="button"
@@ -280,7 +297,7 @@ export function SpotAccountsPanel({
             disabled={xferBusy || !xferAmount.trim()}
             onClick={() => onTransfer("toFunding")}
           >
-            {xferBusy ? "…" : "Spot → Futures"}
+            {xferBusy ? "…" : <Trans>Spot → Futures</Trans>}
           </button>
         </div>
         {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}
@@ -291,14 +308,22 @@ export function SpotAccountsPanel({
         )}
       </div>
       <div className={styles.balanceSection}>
-        <div className={styles.balanceHead}>Balances</div>
+        <div className={styles.balanceHead}>
+          <Trans>Balances</Trans>
+        </div>
         <div className={styles.tableScroll}>
           <table className={styles.balanceTable}>
             <thead>
               <tr>
-                <th>Asset</th>
-                <th>Free</th>
-                <th>Locked</th>
+                <th>
+                  <Trans>Asset</Trans>
+                </th>
+                <th>
+                  <Trans>Free</Trans>
+                </th>
+                <th>
+                  <Trans>Locked</Trans>
+                </th>
               </tr>
             </thead>
             <tbody>

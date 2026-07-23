@@ -1,4 +1,4 @@
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mockIconCache = vi.hoisted(() => new Map<string, string>());
@@ -38,6 +38,7 @@ vi.mock("./MarketDropdown", () => ({
 import { SpotSymbolBar } from "./SymbolBar";
 import { spotApi, type Ticker24h } from "../../api/spotClient";
 import { resolveSpotMarket } from "../../model/spotMarkets";
+import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 const mTicker = vi.mocked(spotApi.ticker);
 const cbtcMarket = resolveSpotMarket("CBTC-USDA");

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +8,7 @@ import { SpotOrderForm } from "./OrderForm";
 import { spotApi, type Account, type SpotOrder, SpotApiError } from "../../api/spotClient";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
+import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
   openCantonConnect: vi.fn(),

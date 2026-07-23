@@ -1,3 +1,5 @@
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useState } from "react";
 import { useHistory } from "react-router-dom";
 
@@ -81,23 +83,30 @@ function MarketRow({ market, active, query }: { market: SpotMarket; active: bool
 }
 
 function PanelBody({ active }: { active: string }) {
+  const { i18n } = useLingui();
   const [q, setQ] = useState("");
   return (
     <div className={styles.panel}>
       <div className={styles.searchWrap}>
         <input
           className={styles.search}
-          placeholder="Search markets…"
+          placeholder={i18n._(t`Search markets…`)}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           autoFocus
         />
       </div>
       <div className={styles.header}>
-        <span>Market</span>
-        <span className={styles.right}>Last</span>
+        <span>
+          <Trans>Market</Trans>
+        </span>
+        <span className={styles.right}>
+          <Trans>Last</Trans>
+        </span>
         <span className={styles.right}>24h %</span>
-        <span className={styles.right}>24h Vol</span>
+        <span className={styles.right}>
+          <Trans>24h Vol</Trans>
+        </span>
       </div>
       <div className={styles.list}>
         {SPOT_MARKETS.map((m) => (
@@ -117,6 +126,8 @@ export function SpotMarketDropdown({
   iconUrl?: string;
   iconLoading?: boolean;
 }) {
+  const { i18n } = useLingui();
+
   return (
     <SelectorBase
       label={
@@ -129,7 +140,7 @@ export function SpotMarketDropdown({
           <span className={styles.triggerLev}>1x</span>
         </span>
       }
-      modalLabel="Select market"
+      modalLabel={i18n._(t`Select market`)}
       handleClassName={styles.symbolHandle}
       chevronClassName={styles.caret}
       desktopPanelClassName={styles.floatingPanel}

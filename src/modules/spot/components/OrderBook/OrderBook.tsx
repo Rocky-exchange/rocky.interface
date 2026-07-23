@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./OrderBook.module.scss";
@@ -40,13 +41,22 @@ function BookBody({
 }) {
   const { data, err } = usePolling<DepthResp>(() => spotApi.depth(market.apiSymbol, 20), 1000, [market.apiSymbol]);
   if (err) return <div className={styles.err}>{err}</div>;
-  if (!data) return <div className={styles.empty}>Loading…</div>;
+  if (!data)
+    return (
+      <div className={styles.empty}>
+        <Trans>Loading…</Trans>
+      </div>
+    );
 
   const tickSize = Number(priceLevel);
   const asks = aggregateOrderBookLevels(data.asks, "ask", tickSize).slice(0, 15);
   const bids = aggregateOrderBookLevels(data.bids, "bid", tickSize).slice(0, 15);
   if (asks.length === 0 && bids.length === 0) {
-    return <div className={styles.empty}>No resting orders</div>;
+    return (
+      <div className={styles.empty}>
+        <Trans>No resting orders</Trans>
+      </div>
+    );
   }
 
   const askRows = asks.map((level) => ({
@@ -88,9 +98,10 @@ function BookBody({
       <div className={styles.mid}>
         <span className={styles.midPrice}>{fmtNum(referencePrice ?? Number.NaN, priceDigits)}</span>
         <span>
+          <Trans>Spread</Trans>{" "}
           {spread === null || spreadPct === null
-            ? "Spread —"
-            : `Spread ${spread.toFixed(priceDigits)} (${spreadPct.toFixed(3)}%)`}
+            ? "—"
+            : `${spread.toFixed(priceDigits)} (${spreadPct.toFixed(3)}%)`}
         </span>
       </div>
       {view !== "asks" && (
@@ -111,7 +122,12 @@ function BookBody({
 
 function TradesBody({ market, priceDigits }: { market: SpotMarket; priceDigits: number }) {
   const { data } = usePolling<Trade[]>(() => spotApi.trades(market.apiSymbol, 30), 1500, [market.apiSymbol]);
-  if (!data || data.length === 0) return <div className={styles.empty}>No trades yet</div>;
+  if (!data || data.length === 0)
+    return (
+      <div className={styles.empty}>
+        <Trans>No trades yet</Trans>
+      </div>
+    );
   return (
     <div className={styles.rows}>
       {data.map((t) => {
@@ -218,7 +234,7 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
                 tabRefs.current[t] = node;
               }}
             >
-              {t === "book" ? "Order Book" : "Recent Trades"}
+              {t === "book" ? <Trans>Order Book</Trans> : <Trans>Recent Trades</Trans>}
             </button>
           ))}
         </div>
@@ -309,12 +325,26 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
         className={styles.dataPanel}
       >
         <div className={styles.header}>
-          <span>Price ({market.displayQuote})</span>
-          <span className={styles.right}>Amount ({market.displayBase})</span>
-          <span className={styles.right}>{tab === "book" ? `Total (${market.displayQuote})` : "Time"}</span>
+          <span>
+            <Trans>Price</Trans> ({market.displayQuote})
+          </span>
+          <span className={styles.right}>
+            <Trans>Amount</Trans> ({market.displayBase})
+          </span>
+          <span className={styles.right}>
+            {tab === "book" ? (
+              <>
+                <Trans>Total</Trans> ({market.displayQuote})
+              </>
+            ) : (
+              <Trans>Time</Trans>
+            )}
+          </span>
         </div>
         {!activePriceLevel ? (
-          <div className={styles.empty}>Loading…</div>
+          <div className={styles.empty}>
+            <Trans>Loading…</Trans>
+          </div>
         ) : tab === "book" ? (
           <BookBody
             key={market.apiSymbol}

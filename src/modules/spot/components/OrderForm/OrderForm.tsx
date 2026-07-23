@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import BigNumber from "bignumber.js";
 import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -6,8 +7,8 @@ import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import styles from "./OrderForm.module.scss";
 import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
 import { spotApi, SpotApiError, type DepthResp } from "../../api/spotClient";
-import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { usePolling } from "../../hooks/usePolling";
+import { useSpotAccount } from "../../hooks/useSpotAccount";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
@@ -268,7 +269,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           className={orderType === "MARKET" ? styles.orderTypeActive : undefined}
           onClick={() => selectOrderType("MARKET")}
         >
-          Market
+          <Trans>Market</Trans>
         </button>
         <button
           type="button"
@@ -281,7 +282,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           className={orderType === "LIMIT" ? styles.orderTypeActive : undefined}
           onClick={() => selectOrderType("LIMIT")}
         >
-          Limit
+          <Trans>Limit</Trans>
         </button>
       </div>
 
@@ -301,7 +302,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             sideTabRefs.current.BUY = node;
           }}
         >
-          Buy {base}
+          <Trans>Buy</Trans> {base}
         </button>
         <button
           type="button"
@@ -318,7 +319,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             sideTabRefs.current.SELL = node;
           }}
         >
-          Sell {base}
+          <Trans>Sell</Trans> {base}
         </button>
         <div
           aria-hidden="true"
@@ -334,7 +335,9 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         className={styles.body}
       >
         <div className={styles.available}>
-          <span>Available</span>
+          <span>
+            <Trans>Available</Trans>
+          </span>
           <strong>
             {account ? formatBalance(availableValue) : "—"} {availableAsset}
           </strong>
@@ -343,7 +346,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
         <div className={`${styles.field} ${orderType === "MARKET" ? styles.readOnlyShell : ""}`}>
           <label htmlFor="spot-order-price" className={styles.fieldLabel}>
-            {orderType === "MARKET" ? "Est. Price" : "Price"}
+            {orderType === "MARKET" ? <Trans>Est. Price</Trans> : <Trans>Price</Trans>}
           </label>
           <input
             id="spot-order-price"
@@ -363,7 +366,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
         <div className={styles.field}>
           <label htmlFor="spot-order-amount" className={styles.fieldLabel}>
-            Amount
+            <Trans>Amount</Trans>
           </label>
           <input
             id="spot-order-amount"
@@ -410,7 +413,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
         <div className={`${styles.field} ${styles.readOnlyShell}`}>
           <label htmlFor="spot-order-total" className={styles.fieldLabel}>
-            Total
+            <Trans>Total</Trans>
           </label>
           <input
             id="spot-order-total"
@@ -428,19 +431,29 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           <button
             type="button"
             className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
+            aria-label={busy ? "Sending…" : `${side} ${base}`}
             onClick={submit}
             disabled={!canSubmit}
           >
-            {busy ? "Sending…" : `${side} ${base} · ${orderType === "MARKET" ? "Market" : "Limit"}`}
+            {busy ? (
+              <Trans>Sending…</Trans>
+            ) : (
+              <>
+                {side === "BUY" ? <Trans>BUY</Trans> : <Trans>SELL</Trans>} {base} ·{" "}
+                {orderType === "MARKET" ? <Trans>Market</Trans> : <Trans>Limit</Trans>}
+              </>
+            )}
           </button>
         ) : (
           <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
-            Connect Wallet
+            <Trans>Connect Wallet</Trans>
           </button>
         )}
 
         <div className={styles.feeRow}>
-          <span>Fee (0.1%)</span>
+          <span>
+            <Trans>Fee</Trans> (0.1%)
+          </span>
           <strong>{summary.fee ? `${summary.fee} ${quote}` : `— ${quote}`}</strong>
         </div>
 

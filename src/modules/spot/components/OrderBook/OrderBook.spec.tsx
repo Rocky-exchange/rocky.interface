@@ -1,6 +1,9 @@
 // Component-layer specs for SpotOrderBookPanel — renders levels, spread,
 // cumulative totals, and filters the already-fetched book by side.
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { setupI18n } from "@lingui/core";
+import { msg } from "@lingui/macro";
+import { I18nProvider } from "@lingui/react";
+import { cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
 vi.mock("../../api/spotClient", async () => {
@@ -18,6 +21,7 @@ vi.mock("../../api/spotClient", async () => {
 import { SpotOrderBookPanel } from "./OrderBook";
 import { spotApi, type DepthResp } from "../../api/spotClient";
 import { resolveSpotMarket, type SpotMarket } from "../../model/spotMarkets";
+import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 const mDepth = vi.mocked(spotApi.depth);
 const mTrades = vi.mocked(spotApi.trades);
@@ -68,6 +72,23 @@ afterEach(() => {
 });
 
 describe("SpotOrderBookPanel", () => {
+  it("renders the order book navigation in the active language", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const orderBookMessage = msg`Order Book`;
+    const zhI18n = setupI18n({
+      locale: "zh",
+      messages: { zh: { [orderBookMessage.id]: "訂單簿" } },
+    });
+    const { findByText, getByRole } = render(
+      <I18nProvider i18n={zhI18n}>
+        <SpotOrderBookPanel market={market} />
+      </I18nProvider>,
+    );
+
+    await findByText("65,010.00");
+    expect(getByRole("tab", { name: "訂單簿" })).toBeTruthy();
+  });
+
   it("shows 'No resting orders' when the book comes back empty", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [], bids: [] });
     const { findByText } = render(<SpotOrderBookPanel market={market} />);

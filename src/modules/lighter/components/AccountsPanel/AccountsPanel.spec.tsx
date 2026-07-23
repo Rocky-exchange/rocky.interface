@@ -1,4 +1,5 @@
-import { i18n } from "@lingui/core";
+import { i18n, setupI18n } from "@lingui/core";
+import { msg } from "@lingui/macro";
 import { I18nProvider } from "@lingui/react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
@@ -71,6 +72,28 @@ afterEach(() => {
 });
 
 describe("AccountsPanel", () => {
+  it("localizes the futures balance label and transfer input", () => {
+    const availableMessage = msg`available`;
+    const amountMessage = msg`Amount`;
+    const zhI18n = setupI18n({
+      locale: "zh",
+      messages: {
+        zh: {
+          [availableMessage.id]: "可用",
+          [amountMessage.id]: "金額",
+        },
+      },
+    });
+    const view = render(
+      <I18nProvider i18n={zhI18n}>
+        <AccountsPanel />
+      </I18nProvider>,
+    );
+
+    expect(view.getByText("USDA (可用)")).toBeTruthy();
+    expect(view.getByPlaceholderText("金額")).toBeTruthy();
+  });
+
   it("uses the Futures Account title and exposes USDA transfer controls", () => {
     const view = renderPanel();
 

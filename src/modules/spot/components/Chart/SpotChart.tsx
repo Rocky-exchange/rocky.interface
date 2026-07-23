@@ -10,6 +10,8 @@
  * `datafeed` prop and reuse it here.
  */
 
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useEffect, useRef, useState } from "react";
 
 import panelStyles from "@/modules/lighter/components/ChartPanel/ChartPanel.module.scss";
@@ -64,7 +66,15 @@ const SPOT_CHART_TYPES: { label: string; value: SeriesType }[] = [
   { label: "Area", value: 3 as SeriesType },
 ];
 
+function ChartTypeLabel({ label }: { label: string }) {
+  if (label === "Candles") return <Trans>Candles</Trans>;
+  if (label === "Bars") return <Trans>Bars</Trans>;
+  if (label === "Line") return <Trans>Line</Trans>;
+  return <Trans>Area</Trans>;
+}
+
 export function SpotChart({ market }: { market: SpotMarket }) {
+  const { i18n } = useLingui();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetRef = useRef<IChartingLibraryWidget | null>(null);
   const selectedTimeframeRef = useRef<ChartTimeframe>(DEFAULT_TIMEFRAME);
@@ -155,7 +165,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
         container,
         datafeed: new SpotDataFeed(),
         library_path: "/charting_library/",
-        locale: "en",
+        locale: i18n.locale === "zh" ? "zh" : "en",
         theme: "dark",
         autosize: true,
         client_id: "rocky.exchange",
@@ -225,7 +235,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
         widgetRef.current = null;
       }
     };
-  }, [market.routeSymbol]);
+  }, [i18n.locale, market.routeSymbol]);
 
   return (
     <div className={styles.wrap}>
@@ -236,8 +246,8 @@ export function SpotChart({ market }: { market: SpotMarket }) {
           <button
             type="button"
             className={panelStyles.iconBtn}
-            aria-label="Indicators"
-            title="Indicators"
+            aria-label={i18n._(t`Indicators`)}
+            title={i18n._(t`Indicators`)}
             onClick={openIndicators}
             disabled={!widgetReady}
           >
@@ -252,8 +262,8 @@ export function SpotChart({ market }: { market: SpotMarket }) {
             <button
               type="button"
               className={panelStyles.iconBtn}
-              aria-label="Chart type"
-              title="Chart type"
+              aria-label={i18n._(t`Chart type`)}
+              title={i18n._(t`Chart type`)}
               aria-haspopup="listbox"
               aria-expanded={chartTypeOpen}
               onClick={() => setChartTypeOpen((open) => !open)}
@@ -286,7 +296,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
                     }`}
                     onClick={() => selectChartType(option.value)}
                   >
-                    {option.label}
+                    <ChartTypeLabel label={option.label} />
                   </button>
                 ))}
               </div>
@@ -297,7 +307,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
             <button
               type="button"
               className={panelStyles.tool}
-              title="Chart Elements"
+              title={i18n._(t`Chart Elements`)}
               aria-haspopup="menu"
               aria-expanded={chartElementsOpen}
               onClick={() => setChartElementsOpen((open) => !open)}
@@ -315,7 +325,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
                 <path d="M8 8h5.5M8 4h5.5M8 12h5.5" />
                 <path d="m2.5 4 1 1 2-2m-3 5 1 1 2-2m-3 5 1 1 2-2" />
               </svg>
-              Chart Elements
+              <Trans>Chart Elements</Trans>
             </button>
             {chartElementsOpen && (
               <div className={panelStyles.moreMenu} role="menu">
@@ -326,7 +336,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
                   className={`${panelStyles.moreItem}${rawPrices ? ` ${panelStyles.moreItemActive}` : ""}`}
                   onClick={toggleRawPrices}
                 >
-                  Raw Prices {rawPrices ? "✓" : ""}
+                  <Trans>Raw Prices</Trans> {rawPrices ? "✓" : ""}
                 </button>
               </div>
             )}
@@ -336,7 +346,7 @@ export function SpotChart({ market }: { market: SpotMarket }) {
           <button
             type="button"
             className={panelStyles.iconBtn}
-            aria-label="screenshot"
+            aria-label={i18n._(t`Screenshot`)}
             onClick={() => void takeScreenshot()}
             disabled={!widgetReady}
           >

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../api/spotSession", () => ({
@@ -20,6 +20,7 @@ import { SpotBottomTabs } from "./BottomTabs";
 import { spotApi } from "../../api/spotClient";
 import { useSpotAuthReady } from "../../api/spotSession";
 import { resolveSpotMarket } from "../../model/spotMarkets";
+import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 const mReady = vi.mocked(useSpotAuthReady);
 const mOpen = vi.mocked(spotApi.openOrders);

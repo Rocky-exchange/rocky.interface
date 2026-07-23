@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/macro";
+
 import { SpotMarketDropdown } from "./MarketDropdown";
 import styles from "./SymbolBar.module.scss";
 import { getCachedSpotIconUrl, spotApi, type Ticker24h } from "../../api/spotClient";
@@ -23,29 +25,41 @@ function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
       <div className={styles.stats}>
         <div className={styles.priceBlock}>
           <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
-          <span className={styles.priceQuote}>Last Price</span>
+          <span className={styles.priceQuote}>
+            <Trans>Last Price</Trans>
+          </span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Change</span>
+          <span className={styles.cellLabel}>
+            <Trans>24h Change</Trans>
+          </span>
           <span className={`${styles.cellValue} ${pctCls}`}>
             {t ? `${pct >= 0 ? "+" : ""}${fmtNum(t.priceChange)}` : "—"}{" "}
             <span className={pctCls}>{t ? `(${pct.toFixed(3)}%)` : ""}</span>
           </span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h High</span>
+          <span className={styles.cellLabel}>
+            <Trans>24h High</Trans>
+          </span>
           <span className={styles.cellValue}>{t ? fmtNum(t.highPrice) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Low</span>
+          <span className={styles.cellLabel}>
+            <Trans>24h Low</Trans>
+          </span>
           <span className={styles.cellValue}>{t ? fmtNum(t.lowPrice) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol {market.displayBase}</span>
+          <span className={styles.cellLabel}>
+            <Trans>24h Vol</Trans> {market.displayBase}
+          </span>
           <span className={styles.cellValue}>{t ? fmtNum(t.volume, 4) : "—"}</span>
         </div>
         <div className={styles.cell}>
-          <span className={styles.cellLabel}>24h Vol {market.displayQuote}</span>
+          <span className={styles.cellLabel}>
+            <Trans>24h Vol</Trans> {market.displayQuote}
+          </span>
           <span className={styles.cellValue}>{t ? fmtNum(t.quoteVolume) : "—"}</span>
         </div>
       </div>

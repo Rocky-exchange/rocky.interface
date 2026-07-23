@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import { type KeyboardEvent, useRef, useState } from "react";
 
 import styles from "./BottomTabs.module.scss";
@@ -38,7 +39,11 @@ function OpenOrders({ market }: { market: SpotMarket }) {
   const [cancelErr, setCancelErr] = useState<string | null>(null);
 
   if (!ready)
-    return <div className={styles.empty}>Connect wallet from the header to view your open orders</div>;
+    return (
+      <div className={styles.empty}>
+        <Trans>Connect wallet from the header to view your open orders</Trans>
+      </div>
+    );
 
   const cancel = async (orderId: string) => {
     setCancelErr(null);
@@ -66,13 +71,13 @@ function OpenOrders({ market }: { market: SpotMarket }) {
   if (!data)
     return (
       <div className={styles.empty} role="status">
-        Loading…
+        <Trans>Loading…</Trans>
       </div>
     );
   if (data.length === 0)
     return (
       <div className={styles.empty} role="status">
-        No open orders
+        <Trans>No open orders</Trans>
       </div>
     );
 
@@ -86,13 +91,27 @@ function OpenOrders({ market }: { market: SpotMarket }) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Side</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Filled</th>
-            <th>Status</th>
-            <th>Action</th>
+            <th>
+              <Trans>Time</Trans>
+            </th>
+            <th>
+              <Trans>Side</Trans>
+            </th>
+            <th>
+              <Trans>Price</Trans>
+            </th>
+            <th>
+              <Trans>Qty</Trans>
+            </th>
+            <th>
+              <Trans>Filled</Trans>
+            </th>
+            <th>
+              <Trans>Status</Trans>
+            </th>
+            <th>
+              <Trans>Action</Trans>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -111,7 +130,7 @@ function OpenOrders({ market }: { market: SpotMarket }) {
                   onClick={() => cancel(order.orderId)}
                   disabled={cancellingIds.has(order.orderId)}
                 >
-                  {cancellingIds.has(order.orderId) ? "…" : "Cancel"}
+                  {cancellingIds.has(order.orderId) ? "…" : <Trans>Cancel</Trans>}
                 </button>
               </td>
             </tr>
@@ -135,7 +154,11 @@ function TradeHistory({ market }: { market: SpotMarket }) {
   );
 
   if (!ready)
-    return <div className={styles.empty}>Connect wallet from the header to view your trade history</div>;
+    return (
+      <div className={styles.empty}>
+        <Trans>Connect wallet from the header to view your trade history</Trans>
+      </div>
+    );
 
   if (err)
     return (
@@ -146,13 +169,13 @@ function TradeHistory({ market }: { market: SpotMarket }) {
   if (!data)
     return (
       <div className={styles.empty} role="status">
-        Loading…
+        <Trans>Loading…</Trans>
       </div>
     );
   if (data.length === 0)
     return (
       <div className={styles.empty} role="status">
-        No trades yet
+        <Trans>No trades yet</Trans>
       </div>
     );
 
@@ -161,20 +184,36 @@ function TradeHistory({ market }: { market: SpotMarket }) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Side</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Total</th>
-            <th>Fee</th>
-            <th>Role</th>
+            <th>
+              <Trans>Time</Trans>
+            </th>
+            <th>
+              <Trans>Side</Trans>
+            </th>
+            <th>
+              <Trans>Price</Trans>
+            </th>
+            <th>
+              <Trans>Qty</Trans>
+            </th>
+            <th>
+              <Trans>Total</Trans>
+            </th>
+            <th>
+              <Trans>Fee</Trans>
+            </th>
+            <th>
+              <Trans>Role</Trans>
+            </th>
           </tr>
         </thead>
         <tbody>
           {data.map((trade) => (
             <tr key={trade.id}>
               <td style={MUTED_TEXT_STYLE}>{fmtTime(trade.time)}</td>
-              <td className={trade.isBuyer ? styles.buy : styles.sell}>{trade.isBuyer ? "BUY" : "SELL"}</td>
+              <td className={trade.isBuyer ? styles.buy : styles.sell}>
+                {trade.isBuyer ? <Trans>BUY</Trans> : <Trans>SELL</Trans>}
+              </td>
               <td>{fmtNum(trade.price, 2)}</td>
               <td>{fmtNum(trade.qty, 8)}</td>
               <td>{fmtNum(trade.quoteQty, 2)}</td>
@@ -200,7 +239,11 @@ function OrderHistory({ market }: { market: SpotMarket }) {
   );
 
   if (!ready)
-    return <div className={styles.empty}>Connect wallet from the header to view your order history</div>;
+    return (
+      <div className={styles.empty}>
+        <Trans>Connect wallet from the header to view your order history</Trans>
+      </div>
+    );
 
   if (err)
     return (
@@ -211,13 +254,13 @@ function OrderHistory({ market }: { market: SpotMarket }) {
   if (!data)
     return (
       <div className={styles.empty} role="status">
-        Loading…
+        <Trans>Loading…</Trans>
       </div>
     );
   if (data.length === 0)
     return (
       <div className={styles.empty} role="status">
-        No order history
+        <Trans>No order history</Trans>
       </div>
     );
 
@@ -226,12 +269,24 @@ function OrderHistory({ market }: { market: SpotMarket }) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Side</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Filled</th>
-            <th>Status</th>
+            <th>
+              <Trans>Time</Trans>
+            </th>
+            <th>
+              <Trans>Side</Trans>
+            </th>
+            <th>
+              <Trans>Price</Trans>
+            </th>
+            <th>
+              <Trans>Qty</Trans>
+            </th>
+            <th>
+              <Trans>Filled</Trans>
+            </th>
+            <th>
+              <Trans>Status</Trans>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -295,7 +350,7 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
             tabRefs.current["open-orders"] = node;
           }}
         >
-          Open Orders
+          <Trans>Open Orders</Trans>
         </button>
         <button
           type="button"
@@ -311,7 +366,7 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
             tabRefs.current["order-history"] = node;
           }}
         >
-          Order History
+          <Trans>Order History</Trans>
         </button>
         <button
           type="button"
@@ -327,7 +382,7 @@ export function SpotBottomTabs({ market }: { market: SpotMarket }) {
             tabRefs.current["trade-history"] = node;
           }}
         >
-          Trade History
+          <Trans>Trade History</Trans>
         </button>
         <div className={styles.viewControls} data-testid="spot-bottom-view-controls" aria-hidden="true">
           <span className={styles.viewControlActive}>

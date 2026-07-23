@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/macro";
 import { useEffect, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
 
@@ -79,18 +80,22 @@ export default function SpotTradePage() {
                   aria-selected="true"
                   aria-controls="spot-chart-panel"
                 >
-                  Price
+                  <Trans>Price</Trans>
                 </button>
                 <button type="button" className={styles.chartTab} role="tab" aria-selected="false" disabled>
-                  Funding
+                  <Trans>Funding</Trans>
                 </button>
                 <button type="button" className={styles.chartTab} role="tab" aria-selected="false" disabled>
-                  Details
+                  <Trans>Details</Trans>
                 </button>
               </div>
               <div className={styles.chartModes} aria-hidden="true">
-                <span className={styles.chartModeActive}>TradingView</span>
-                <span>Depth</span>
+                <span className={styles.chartModeActive}>
+                  <Trans>TradingView</Trans>
+                </span>
+                <span>
+                  <Trans>Depth</Trans>
+                </span>
                 <span className={styles.chartModesSep} />
                 <span className={styles.chartIcon}>□</span>
                 <span className={styles.chartIcon}>⛶</span>

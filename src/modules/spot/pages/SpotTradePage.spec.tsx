@@ -1,10 +1,11 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryHistory } from "history";
 import { Router, Route } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import SpotTradePage from "./SpotTradePage";
 import type { SpotMarket } from "../model/spotMarkets";
+import { renderWithI18n as render } from "../test/renderWithI18n";
 
 type MarketProps = { market?: SpotMarket };
 

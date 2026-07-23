@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("components/Loader/Loader", () => ({
@@ -9,6 +9,7 @@ vi.mock("components/Loader/Loader", () => ({
 
 import { SpotChart } from "./SpotChart";
 import { SPOT_MARKETS } from "../../model/spotMarkets";
+import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 type ReadyCallback = () => void;
 

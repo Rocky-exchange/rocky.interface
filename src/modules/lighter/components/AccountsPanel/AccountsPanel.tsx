@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/macro";
+import { Trans, t } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
@@ -40,6 +41,7 @@ function formatUsda(value: number | null | undefined) {
 }
 
 export function AccountsPanel() {
+  const { i18n } = useLingui();
   const account = useUnifiedAccountAdapter();
   const { available: cachedFundingAvailable, setAvailable: setCachedFundingAvailable } = useAvailableBalanceAdapter();
   const [fundingAvailable, setFundingAvailable] = useState<number | null>(
@@ -71,7 +73,9 @@ export function AccountsPanel() {
       }
       setTransferAmount("");
       setTransferMessage(
-        direction === "toSpot" ? `Moved ${result.amount} USDA to Spot` : `Moved ${result.amount} USDA to Futures`
+        direction === "toSpot"
+          ? i18n._(t`Moved ${result.amount} USDA to Spot`)
+          : i18n._(t`Moved ${result.amount} USDA to Futures`)
       );
     } catch (error: unknown) {
       setTransferError(error instanceof Error ? error.message : String(error));
@@ -86,15 +90,22 @@ export function AccountsPanel() {
         <div className={styles.accountHead}>
           <Trans>Futures Account</Trans>
         </div>
-        <Row label="USDA (available)" value={formatUsda(fundingAvailable)} />
+        <Row
+          label={
+            <>
+              USDA (<Trans>available</Trans>)
+            </>
+          }
+          value={formatUsda(fundingAvailable)}
+        />
         <div className={styles.transferHead}>
           <Trans>Transfer</Trans>
         </div>
         <input
           type="text"
           inputMode="decimal"
-          aria-label="Transfer amount"
-          placeholder="Amount"
+          aria-label={i18n._(t`Transfer amount`)}
+          placeholder={i18n._(t`Amount`)}
           value={transferAmount}
           disabled={transferBusy}
           className={styles.transferInput}
