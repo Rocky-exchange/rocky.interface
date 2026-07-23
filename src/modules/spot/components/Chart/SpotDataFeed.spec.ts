@@ -309,7 +309,7 @@ describe("subscribeBars / unsubscribeBars", () => {
     feed.unsubscribeBars("listener-1");
   });
 
-  it("emits every returned bar via onTick on the immediate kick", async () => {
+  it("emits ONLY the newest bar (never re-emits an older one → no time violation)", async () => {
     stubFetch([
       [1_700_000_000_000, "500", "501", "499", "500", "1", 0, "0", 1, "0", "0", "0"],
       [1_700_000_060_000, "500", "502", "498", "501", "2", 0, "0", 2, "0", "0", "0"],
@@ -317,8 +317,11 @@ describe("subscribeBars / unsubscribeBars", () => {
     const feed = new SpotDataFeed();
     const ticks: Bar[] = [];
     feed.subscribeBars(symbolInfo(), "1" as ResolutionString, (b) => ticks.push(b), "listener-2");
-    await waitFor(() => ticks.length >= 2);
-    expect(ticks.map((b) => b.close)).toEqual([500, 501]);
+    await waitFor(() => ticks.length >= 1);
+    // The older 500-bar (which TV already has from getBars) must NEVER be
+    // emitted as a real-time tick — only the current forming candle (501).
+    expect(ticks.every((b) => (b.time as number) === 1_700_000_060_000)).toBe(true);
+    expect(ticks[0].close).toBe(501);
     feed.unsubscribeBars("listener-2");
   });
 

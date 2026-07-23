@@ -214,16 +214,18 @@ export class SpotDataFeed implements IBasicDataFeed {
     const secs = intervalSeconds(interval);
     const tick = async () => {
       try {
-        // Pull the last 2 bars so we can emit both the still-updating current
-        // bar and (occasionally) fill in the previous bar's final print.
         const bars = await fetchKlines(symbolInfo.name, interval, 2);
         const state = this.subs.get(listenerGuid);
-        if (!state) return;
-        for (const b of bars) {
-          if ((b.time as number) >= state.lastBarTime) {
-            onTick(b);
-            state.lastBarTime = b.time as number;
-          }
+        if (!state || bars.length === 0) return;
+        // Emit ONLY the newest bar — the current, still-forming candle. Emitting
+        // an older bar than TradingView already cached (getBars history, or a
+        // prior tick) triggers `putToCacheNewBar: time violation`. TV finalizes
+        // prior bars itself on time rollover, so re-emitting them is both
+        // unnecessary and harmful. `>=` lets the current bar keep updating.
+        const latest = bars[bars.length - 1];
+        if ((latest.time as number) >= state.lastBarTime) {
+          onTick(latest);
+          state.lastBarTime = latest.time as number;
         }
       } catch (_error) {
         /* transient — try again next tick */
