@@ -12,6 +12,12 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./Accounts.module.scss";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
+import { useSpotAssetPrecisions } from "../../hooks/useSpotAssetPrecisions";
+import {
+  formatSpotAssetAmount,
+  hasSpotAssetPrecision,
+  type SpotAssetPrecisions,
+} from "../../model/assetPrecision";
 import { SPOT_MARKETS, type SpotMarket, toSpotDisplayAsset } from "../../model/spotMarkets";
 
 export const TRANSFER_ASSETS = ["USDA"] as const;
@@ -23,22 +29,21 @@ const BALANCE_ASSET_ICON_SOURCES: Record<string, string> = {
   CC: ccIconSrc,
 };
 
-function fmt(v: string, digits = 4): string {
-  const n = parseFloat(v);
-  if (!isFinite(n)) return "—";
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: digits,
-  });
-}
-
-function BalanceAmount({ value, asset }: { value: string; asset: string }) {
+function BalanceAmount({
+  value,
+  asset,
+  precisions,
+}: {
+  value: string;
+  asset: string;
+  precisions: SpotAssetPrecisions;
+}) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return <>—</>;
 
   const normalizedAsset = asset.trim().toUpperCase();
   const isWrappedMarketAsset = normalizedAsset === "CBTC" || normalizedAsset === "CETH";
-  if (!isWrappedMarketAsset) return <>{fmt(value)}</>;
+  if (!isWrappedMarketAsset) return <>{formatSpotAssetAmount(value, asset, precisions)}</>;
 
   const leadingDecimalZeroes = numeric.toFixed(20).match(/^0\.(0+)/)?.[1].length || 0;
   const maximumFractionDigits = leadingDecimalZeroes >= 4 ? Math.min(leadingDecimalZeroes + 4, 20) : 6;
@@ -79,11 +84,11 @@ function BalanceAssetSymbol({ asset }: { asset: string }) {
 }
 
 function hasVisibleBalance(balance: { free: string; locked: string }): boolean {
-  const free = Number(balance.free);
-  const locked = Number(balance.locked);
+  const free = new BigNumber(balance.free);
+  const locked = new BigNumber(balance.locked);
 
-  if (!Number.isFinite(free) || !Number.isFinite(locked)) return true;
-  return free !== 0 || locked !== 0;
+  if (!free.isFinite() || !locked.isFinite()) return true;
+  return !free.isZero() || !locked.isZero();
 }
 
 async function faucet(party: string): Promise<void> {
@@ -115,6 +120,7 @@ export function SpotAccountsPanel({
 }) {
   const { i18n } = useLingui();
   const { ready, account, err, refetch } = useSpotAccount();
+  const precisions = useSpotAssetPrecisions();
   const { party } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
@@ -150,10 +156,10 @@ export function SpotAccountsPanel({
                       <BalanceAssetSymbol asset={asset} />
                     </td>
                     <td>
-                      <BalanceAmount value={balance.free} asset={asset} />
+                      <BalanceAmount value={balance.free} asset={asset} precisions={precisions} />
                     </td>
                     <td className={styles.locked}>
-                      <BalanceAmount value={balance.locked} asset={asset} />
+                      <BalanceAmount value={balance.locked} asset={asset} precisions={precisions} />
                     </td>
                   </tr>
                 );
@@ -202,7 +208,11 @@ export function SpotAccountsPanel({
 
   const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDA");
   const totalUsda = quoteBalance
-    ? new BigNumber(quoteBalance.free).plus(quoteBalance.locked).toFormat()
+    ? formatSpotAssetAmount(
+        new BigNumber(quoteBalance.free).plus(quoteBalance.locked).toFixed(),
+        "USDA",
+        precisions,
+      )
     : "0";
   const allZero = account.balances.every(
     (balance) => parseFloat(balance.free) === 0 && parseFloat(balance.locked) === 0,
@@ -245,6 +255,8 @@ export function SpotAccountsPanel({
       setXferBusy(false);
     }
   };
+  const transferAmountValid =
+    Boolean(xferAmount.trim()) && hasSpotAssetPrecision(xferAmount.trim(), "USDA", precisions);
 
   return (
     <div className={styles.panel}>
@@ -286,7 +298,7 @@ export function SpotAccountsPanel({
           <button
             type="button"
             className={styles.connectCta}
-            disabled={xferBusy || !xferAmount.trim()}
+            disabled={xferBusy || !transferAmountValid}
             onClick={() => onTransfer("toSpot")}
           >
             {xferBusy ? "…" : <Trans>Futures → Spot</Trans>}
@@ -294,7 +306,7 @@ export function SpotAccountsPanel({
           <button
             type="button"
             className={styles.connectCta}
-            disabled={xferBusy || !xferAmount.trim()}
+            disabled={xferBusy || !transferAmountValid}
             onClick={() => onTransfer("toFunding")}
           >
             {xferBusy ? "…" : <Trans>Spot → Futures</Trans>}
@@ -335,10 +347,10 @@ export function SpotAccountsPanel({
                       <BalanceAssetSymbol asset={asset} />
                     </td>
                     <td>
-                      <BalanceAmount value={balance.free} asset={asset} />
+                      <BalanceAmount value={balance.free} asset={asset} precisions={precisions} />
                     </td>
                     <td className={styles.locked}>
-                      <BalanceAmount value={balance.locked} asset={asset} />
+                      <BalanceAmount value={balance.locked} asset={asset} precisions={precisions} />
                     </td>
                   </tr>
                 );

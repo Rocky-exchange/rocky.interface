@@ -10,6 +10,8 @@ import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
 import { spotApi, SpotApiError, type DepthResp } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
+import { useSpotAssetPrecisions } from "../../hooks/useSpotAssetPrecisions";
+import { formatSpotAssetAmount } from "../../model/assetPrecision";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
@@ -28,12 +30,6 @@ type PercentOrderInput = {
 
 function balanceFree(asset: string, balances: { asset: string; free: string }[]): string {
   return balances.find((balance) => balance.asset.toUpperCase() === asset.toUpperCase())?.free ?? "0";
-}
-
-function formatBalance(value: string): string {
-  const number = new Decimal(value);
-  if (!number.isFinite()) return "—";
-  return number.decimalPlaces(8, BigNumber.ROUND_DOWN).toFormat();
 }
 
 function positiveDecimal(value: string): BigNumber | null {
@@ -76,6 +72,7 @@ function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { i18n } = useLingui();
   const { ready, account, err: accountError, refetch } = useSpotAccount();
+  const precisions = useSpotAssetPrecisions();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
   const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
@@ -328,7 +325,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             <Trans>Available</Trans>
           </span>
           <strong>
-            {account ? formatBalance(availableValue) : "—"} {availableAsset}
+            {account ? formatSpotAssetAmount(availableValue, availableAsset, precisions) : "—"} {availableAsset}
           </strong>
         </div>
         {accountError && <div className={styles.accountHint}>{accountError}</div>}

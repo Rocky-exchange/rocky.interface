@@ -239,7 +239,15 @@ describe("SpotOrderForm", () => {
     readyAccount(accountWith({ quoteFree: "9007199254740993.123456789" }));
     const { getByText } = render(<SpotOrderForm market={market} />);
 
-    expect(getByText("9,007,199,254,740,993.12345678 USDA")).toBeTruthy();
+    expect(getByText("9,007,199,254,740,993.123456789 USDA")).toBeTruthy();
+  });
+
+  it("truncates the available USDA balance to ten decimals", () => {
+    readyAccount(accountWith({ quoteFree: "1.1453822379697668" }));
+    const { getByText, queryByText } = render(<SpotOrderForm market={market} />);
+
+    expect(getByText("1.1453822379 USDA")).toBeTruthy();
+    expect(queryByText("1.1453822379697668 USDA")).toBeNull();
   });
 
   it("disables submit until price and amount are valid positive values", () => {

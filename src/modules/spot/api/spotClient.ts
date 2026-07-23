@@ -97,6 +97,21 @@ export type Ticker24h = {
 
 export type Balance = { asset: string; free: string; locked: string };
 
+export type SupportedAsset = {
+  symbol: string;
+  decimals: number;
+  enabled: boolean;
+  metadata?: {
+    wallet_symbol?: string;
+    aliases?: string[];
+  };
+};
+
+export type SupportedAssetsResponse = {
+  assets: SupportedAsset[];
+  margin_assets: SupportedAsset[];
+};
+
 export type SpotMarketInfo = {
   symbol: string;
   base: string;
@@ -237,6 +252,7 @@ async function getTicker(symbol: string): Promise<Ticker24h> {
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export const spotApi = {
+  assets: () => publicGet<SupportedAssetsResponse>("/v1/assets"),
   markets: () => publicGet<SpotMarketInfo[]>("/v1/markets?type=SPOT"),
   depth: (symbol: string, limit = 100) =>
     publicGet<DepthResp>(`/api/v3/depth?symbol=${encodeURIComponent(symbol)}&limit=${limit}`),

@@ -110,6 +110,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -147,6 +148,29 @@ describe("SpotAccountsPanel", () => {
 
     expect(getByText("3.08894886")).toBeTruthy();
     expect(queryByText("3.09")).toBeNull();
+  });
+
+  it("uses the same ten-decimal truncation for the USDA summary and balance row", () => {
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: account("1.1453822379697668"),
+      err: null,
+      refetch: vi.fn(),
+    });
+    mSession.mockReturnValue({
+      connected: true,
+      locked: false,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getAllByText, queryByText } = render(<SpotAccountsPanel market={market} />);
+
+    expect(getAllByText("1.1453822379")).toHaveLength(2);
+    expect(queryByText("1.1453822379697668")).toBeNull();
   });
 
   it("renders each supported token icon before its balance symbol", () => {
@@ -337,9 +361,10 @@ describe("SpotAccountsPanel", () => {
     const { findByRole } = render(<SpotAccountsPanel market={market} />);
     fireEvent.click(await findByRole("button", { name: "Get test funds (dev)" }));
 
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledOnce());
-    const [url, init] = fetchSpy.mock.calls[0];
-    expect(url).toBe("/api/v3/dev/faucet");
+    await waitFor(() =>
+      expect(fetchSpy.mock.calls.some(([url]) => url === "/api/v3/dev/faucet")).toBe(true),
+    );
+    const [, init] = fetchSpy.mock.calls.find(([url]) => url === "/api/v3/dev/faucet")!;
     expect(JSON.parse((init as RequestInit).body as string)).toEqual({ party: "party-abc" });
     expect(refetch).toHaveBeenCalledOnce();
     fetchSpy.mockRestore();
