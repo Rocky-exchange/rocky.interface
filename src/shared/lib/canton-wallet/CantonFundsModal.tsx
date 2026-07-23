@@ -47,7 +47,7 @@ import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDispla
 import cbtcIconSrc from "./token-icons/cBTC.webp";
 import ccIconSrc from "./token-icons/CC.webp";
 import cethIconSrc from "./token-icons/cETH.webp";
-import usdaIconSrc from "./token-icons/USDCx.webp";
+import usdaIconSrc from "./token-icons/USDA.png";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";

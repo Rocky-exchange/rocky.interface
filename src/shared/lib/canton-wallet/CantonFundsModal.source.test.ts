@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest";
 const fixtureDirectory = dirname(fileURLToPath(import.meta.url));
 
 describe("CantonFundsModal source", () => {
+  it("uses the USDA asset icon instead of the legacy USDCx icon", () => {
+    const source = readFileSync(join(fixtureDirectory, "CantonFundsModal.tsx"), "utf8");
+
+    expect(source).toContain('import usdaIconSrc from "./token-icons/USDA.png";');
+    expect(source).not.toContain('./token-icons/USDCx.webp');
+  });
+
   it("does not render the USDA controls panel", () => {
     const source = readFileSync(join(fixtureDirectory, "CantonFundsModal.tsx"), "utf8");
 
