@@ -354,6 +354,40 @@ describe("CantonFundsModal", () => {
     expect(screen.getByLabelText("-0.000016 CBTC").textContent).toBe("-0.0416 CBTC");
   });
 
+  it("uses semantic colors for failed and completed history statuses", async () => {
+    mocks.fetchCantonFundsHistory.mockResolvedValue({
+      deposits: [],
+      withdrawals: [
+        {
+          withdrawal_id: "withdrawal-failed",
+          asset: "USDA",
+          amount: "5",
+          status: "failed",
+          fee_amount: "1",
+          fee_wallet_symbol: "USDA",
+          requested_at: "2026-07-23T05:38:43Z",
+        },
+        {
+          withdrawal_id: "withdrawal-completed",
+          asset: "USDA",
+          amount: "2",
+          status: "settled",
+          fee_amount: "1",
+          fee_wallet_symbol: "USDA",
+          requested_at: "2026-07-23T05:39:55Z",
+        },
+      ],
+    });
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "History" }));
+
+    const failed = await screen.findByText("Failed");
+    const completed = await screen.findByText("Completed");
+    expect(failed.className).toContain("historyStatusFailed");
+    expect(completed.className).toContain("historyStatusCompleted");
+  });
+
   it("preserves spot-only withdrawal fees and submission", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
