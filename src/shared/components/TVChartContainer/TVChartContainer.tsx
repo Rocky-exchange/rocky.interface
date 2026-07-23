@@ -715,7 +715,7 @@ export default function TVChartContainer({
 
   return (
     <div className="ExchangeChart-error">
-      {chartDataLoading && <Loader />}
+      {chartDataLoading && <Loader variant={1} />}
       <div style={style} ref={chartContainerRef} className="ExchangeChart-bottom-content" />
     </div>
   );

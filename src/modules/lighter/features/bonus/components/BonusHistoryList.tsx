@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/macro";
 
-import { formatUsdcx } from "./BonusBalanceCard";
+import { formatUsda } from "./BonusBalanceCard";
 import styles from "./BonusHistoryList.module.scss";
 import type { BonusApiError, BonusHistoryRow } from "../api/bonus.types";
 
@@ -74,9 +74,9 @@ export function BonusHistoryList({ rows, error, isLoading, hasMore, loadMore }: 
                     <span className={eventTone(row.event_type)}>{eventLabel(row.event_type)}</span>
                   </td>
                   <td className={styles.time}>{formatTime(row.occurred_at)}</td>
-                  <td className={styles.numeric}>{formatUsdcx(row.total_cost, 4)}</td>
-                  <td className={styles.numeric}>{formatUsdcx(row.principal_share, 4)}</td>
-                  <td className={styles.numeric}>{formatUsdcx(row.bonus_share, 4)}</td>
+                  <td className={styles.numeric}>{formatUsda(row.total_cost, 4)}</td>
+                  <td className={styles.numeric}>{formatUsda(row.principal_share, 4)}</td>
+                  <td className={styles.numeric}>{formatUsda(row.bonus_share, 4)}</td>
                 </tr>
               ))}
             </tbody>

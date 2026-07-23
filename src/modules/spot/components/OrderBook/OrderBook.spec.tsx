@@ -1,9 +1,7 @@
 // Component-layer specs for SpotOrderBookPanel — renders levels, spread,
-// cumulative totals, and switches to Trades tab.
+// cumulative totals, and filters the already-fetched book by side.
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, it, expect, vi } from "vitest";
-import { i18n } from "@lingui/core";
-import { I18nProvider } from "@lingui/react";
-import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 
 vi.mock("../../api/spotClient", async () => {
   const actual = await vi.importActual<typeof import("../../api/spotClient")>("../../api/spotClient");
@@ -16,65 +14,198 @@ vi.mock("../../api/spotClient", async () => {
   };
 });
 
-import { spotApi } from "../../api/spotClient";
 import { SpotOrderBookPanel } from "./OrderBook";
+import { spotApi, type DepthResp } from "../../api/spotClient";
+import { resolveSpotMarket } from "../../model/spotMarkets";
 
 const mDepth = vi.mocked(spotApi.depth);
 const mTrades = vi.mocked(spotApi.trades);
+const market = resolveSpotMarket("CBTC-USDA");
+const ethMarket = resolveSpotMarket("CETH-USDA");
+
+const twoSidedDepth = {
+  lastUpdateId: 1,
+  asks: [
+    ["65010.00", "0.001"],
+    ["65020.00", "0.002"],
+    ["65030.00", "0.003"],
+  ] as [string, string][],
+  bids: [
+    ["64990.00", "0.004"],
+    ["64980.00", "0.005"],
+    ["64970.00", "0.006"],
+  ] as [string, string][],
+};
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
 
-
-i18n.load("en", {});
-i18n.activate("en");
-const I18nWrapper = ({ children }: { children?: React.ReactNode }) => (
-  <I18nProvider i18n={i18n}>{children}</I18nProvider>
-);
-
 describe("SpotOrderBookPanel", () => {
   it("shows 'No resting orders' when the book comes back empty", async () => {
     mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [], bids: [] });
-    const { findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
+    const { findByText } = render(<SpotOrderBookPanel market={market} />);
     await findByText("No resting orders");
   });
 
-  it("renders asks + bids with prices, quantities, and cumulative totals", async () => {
-    // 3-tier ladder each side. Cumulative total for each row = sum of its
-    // qty and every prior row's qty.
-    mDepth.mockResolvedValue({
-      lastUpdateId: 1,
-      asks: [
-        ["65010.00", "0.001"], // total = 0.0010
-        ["65020.00", "0.002"], // total = 0.0030
-        ["65030.00", "0.003"], // total = 0.0060
-      ],
-      bids: [
-        ["64990.00", "0.001"],
-        ["64980.00", "0.002"],
-        ["64970.00", "0.003"],
-      ],
-    });
-    const { findByText, container } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
-    // Wait for asks + bids to render
+  it("requests the API symbol and renders market-aware ZTDX labels", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByRole, getByText } = render(<SpotOrderBookPanel market={market} />);
+
+    await findByText("65,010.00");
+    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CBTC-USDA", 20));
+    expect(getByRole("tablist")).toBeTruthy();
+    expect(getByRole("tab", { name: "Order Book" }).getAttribute("aria-selected")).toBe("true");
+    expect(getByRole("tab", { name: "Recent Trades" }).getAttribute("aria-selected")).toBe("false");
+    expect(getByRole("button", { name: "Show full order book" })).toBeTruthy();
+    expect(getByRole("button", { name: "Show asks only" })).toBeTruthy();
+    expect(getByRole("button", { name: "Show bids only" })).toBeTruthy();
+    expect(getByText("Price (USDA)")).toBeTruthy();
+    expect(getByText("Amount (CBTC)")).toBeTruthy();
+    expect(getByText("Total (USDA)")).toBeTruthy();
+    expect(mTrades).not.toHaveBeenCalled();
+  });
+
+  it("uses the futures toolbar rhythm with quote and aggregation controls", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByTestId } = render(<SpotOrderBookPanel market={market} />);
+
+    await findByText("65,010.00");
+    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("USDA");
+    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("1");
+  });
+
+  it("preserves the existing Recent Trades view and requests the API symbol", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    mTrades.mockResolvedValue([]);
+    const { findByText, getByRole } = render(<SpotOrderBookPanel market={market} />);
+    await findByText("65,010.00");
+
+    fireEvent.click(getByRole("tab", { name: "Recent Trades" }));
+
+    await findByText("No trades yet");
+    await waitFor(() => expect(mTrades).toHaveBeenCalledWith("CBTC-USDA", 30));
+  });
+
+  it("uses roving focus and arrow keys across the order book tabs", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    mTrades.mockResolvedValue([]);
+    const { findByText, getByRole } = render(<SpotOrderBookPanel market={market} />);
+    await findByText("65,010.00");
+
+    const orderBook = getByRole("tab", { name: "Order Book" }) as HTMLButtonElement;
+    const recentTrades = getByRole("tab", { name: "Recent Trades" }) as HTMLButtonElement;
+    expect(orderBook.tabIndex).toBe(0);
+    expect(recentTrades.tabIndex).toBe(-1);
+    orderBook.focus();
+
+    fireEvent.keyDown(orderBook, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(recentTrades);
+    expect(recentTrades.getAttribute("aria-selected")).toBe("true");
+    expect(orderBook.tabIndex).toBe(-1);
+    expect(recentTrades.tabIndex).toBe(0);
+
+    fireEvent.keyDown(recentTrades, { key: "Home" });
+    expect(document.activeElement).toBe(orderBook);
+    expect(orderBook.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(orderBook, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(recentTrades);
+    expect(recentTrades.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(recentTrades, { key: "End" });
+    expect(document.activeElement).toBe(recentTrades);
+    expect(recentTrades.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("renders asks + bids with quote notional totals and spread", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, container } = render(<SpotOrderBookPanel market={market} />);
+
     await findByText("65,010.00");
     await findByText("64,990.00");
-    // Cumulative Total column — check the last-row totals which are the sum
-    expect(container.textContent).toContain("0.0060");
-    // Spread displayed in the mid row: 65010 - 64990 = 20, pct ~0.031%
+    expect(container.textContent).toContain("195.09");
+    expect(container.textContent).toContain("259.96");
     await findByText(/Spread 20\.00.*0\.031%/);
   });
 
-  it("switches to Trades tab and calls trades() instead of depth()", async () => {
-    mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [["65010", "0.001"]], bids: [["64990", "0.001"]] });
-    mTrades.mockResolvedValue([]);
-    const { getByText, findByText } = render(<SpotOrderBookPanel symbol="CBTC-USDA" />, { wrapper: I18nWrapper });
+  it("filters already-fetched rows to asks while keeping the mid/spread row", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByRole, queryByText } = render(<SpotOrderBookPanel market={market} />);
     await findByText("65,010.00");
-    act(() => {
-      fireEvent.click(getByText("Trades"));
+
+    fireEvent.click(getByRole("button", { name: "Show asks only" }));
+
+    expect(queryByText("65,010.00")).not.toBeNull();
+    expect(queryByText("64,990.00")).toBeNull();
+    expect(queryByText(/Spread 20\.00.*0\.031%/)).not.toBeNull();
+    expect(mDepth).toHaveBeenCalledTimes(1);
+  });
+
+  it("filters already-fetched rows to bids while keeping the mid/spread row", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByRole, queryByText } = render(<SpotOrderBookPanel market={market} />);
+    await findByText("64,990.00");
+
+    fireEvent.click(getByRole("button", { name: "Show bids only" }));
+
+    expect(queryByText("65,010.00")).toBeNull();
+    expect(queryByText("64,990.00")).not.toBeNull();
+    expect(queryByText(/Spread 20\.00.*0\.031%/)).not.toBeNull();
+    expect(mDepth).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns to the full book view without fetching a new snapshot", async () => {
+    mDepth.mockResolvedValue(twoSidedDepth);
+    const { findByText, getByRole, queryByText } = render(<SpotOrderBookPanel market={market} />);
+    await findByText("65,010.00");
+
+    fireEvent.click(getByRole("button", { name: "Show asks only" }));
+    expect(queryByText("64,990.00")).toBeNull();
+    fireEvent.click(getByRole("button", { name: "Show full order book" }));
+
+    expect(queryByText("65,010.00")).not.toBeNull();
+    expect(queryByText("64,990.00")).not.toBeNull();
+    expect(mDepth).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears rows from the previous market while the new market snapshot is pending", async () => {
+    let resolveNextDepth!: (value: DepthResp) => void;
+    const nextDepth = new Promise<DepthResp>((resolve) => {
+      resolveNextDepth = resolve;
     });
-    await waitFor(() => expect(mTrades).toHaveBeenCalled());
+    mDepth.mockImplementation((symbol) =>
+      symbol === ethMarket.apiSymbol ? nextDepth : Promise.resolve(twoSidedDepth)
+    );
+    const { findAllByText, findByText, getByText, queryByText, rerender } = render(
+      <SpotOrderBookPanel market={market} />
+    );
+    await findByText("65,010.00");
+
+    rerender(<SpotOrderBookPanel market={ethMarket} />);
+
+    expect(queryByText("65,010.00")).toBeNull();
+    expect(getByText("Loading…")).toBeTruthy();
+    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CETH-USDA", 20));
+
+    resolveNextDepth({ lastUpdateId: 2, asks: [["3501", "1"]], bids: [["3499", "1"]] });
+    expect(await findAllByText("3,501.00")).toHaveLength(2);
+  });
+
+  it("does not fabricate a spread for an ask-only snapshot", async () => {
+    mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [["65010", "0.001"]], bids: [] });
+    const { findAllByText, findByText } = render(<SpotOrderBookPanel market={market} />);
+
+    expect(await findAllByText("65,010.00")).toHaveLength(2);
+    await findByText("Spread —");
+  });
+
+  it("does not fabricate a spread for a bid-only snapshot", async () => {
+    mDepth.mockResolvedValue({ lastUpdateId: 1, asks: [], bids: [["64990", "0.001"]] });
+    const { findAllByText, findByText } = render(<SpotOrderBookPanel market={market} />);
+
+    expect(await findAllByText("64,990.00")).toHaveLength(2);
+    await findByText("Spread —");
   });
 });

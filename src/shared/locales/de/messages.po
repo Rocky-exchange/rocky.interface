@@ -48,10 +48,6 @@ msgstr ""
 msgid "Execute Stop Loss"
 msgstr ""
 
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-msgid "Open Orders"
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "No deposit history yet"
 msgstr ""
@@ -129,7 +125,6 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderInfoRows.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Fees"
 msgstr ""
 
@@ -137,8 +132,6 @@ msgstr ""
 msgid "Enter partial size"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-#: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Spot Account"
@@ -180,10 +173,6 @@ msgstr ""
 msgid "Interval"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Spot → Futures"
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "History"
@@ -195,10 +184,6 @@ msgstr ""
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
 msgid "Funding"
-msgstr ""
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Requesting…"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -226,6 +211,10 @@ msgstr ""
 
 #: src/shared/components/SideNav/SideNav.tsx
 msgid "Expand"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal fee is unavailable. Please retry."
 msgstr ""
 
 #: src/shared/components/Errors/errorToasts.tsx
@@ -287,7 +276,6 @@ msgid "Market Swap"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/BottomTabs.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Trade History"
 msgstr ""
 
@@ -299,7 +287,7 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Reduce Only is unavailable here. Use Close Position to reduce an open position."
-msgstr "„Nur reduzieren“ ist hier nicht verfügbar. Verwende „Position schließen“, um eine offene Position zu reduzieren."
+msgstr ""
 
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
@@ -309,10 +297,6 @@ msgstr "„Nur reduzieren“ ist hier nicht verfügbar. Verwende „Position sch
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeCTA.tsx
 msgid "Sell / Short"
-msgstr ""
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Free"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
@@ -438,10 +422,6 @@ msgstr ""
 msgid "Unrealized PnL"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Est. price"
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Please reconnect your wallet."
@@ -478,13 +458,8 @@ msgstr ""
 msgid "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Get test funds (dev)"
-msgstr ""
-
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Total"
 msgstr ""
 
@@ -719,6 +694,10 @@ msgstr ""
 msgid "Enter a  price"
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "You will receive"
+msgstr ""
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "The execution price didn't meet the acceptable price."
 msgstr ""
@@ -782,7 +761,6 @@ msgstr ""
 msgid "No attribution events yet."
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Max"
@@ -821,7 +799,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/SizeInput.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Size"
 msgstr ""
 
@@ -869,10 +846,6 @@ msgstr ""
 msgid "Close {0} position"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Notional"
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "No withdrawal history yet"
 msgstr ""
@@ -897,10 +870,6 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/PositionsTab.tsx
 msgid "TP / SL"
-msgstr ""
-
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-msgid "to view your open orders"
 msgstr ""
 
 #: src/shared/components/Errors/errorToasts.tsx
@@ -1022,16 +991,8 @@ msgstr ""
 msgid "01 / CLAIM"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "max slippage 5%"
-msgstr ""
-
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Submit Order"
-msgstr ""
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Locked"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
@@ -1119,6 +1080,10 @@ msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Console Wallet transfer submitted"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Estimated Network Fee"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
@@ -1289,11 +1254,6 @@ msgstr ""
 msgid "Loading attribution history…"
 msgstr ""
 
-#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
-msgid "USDCx account breakdown"
-msgstr ""
-
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr ""
@@ -1339,7 +1299,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderTypeTabs.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/components/ChartTokenSelector/ChartTokenSelector.tsx
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Market"
@@ -1361,8 +1320,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Time"
 msgstr ""
@@ -1469,10 +1426,6 @@ msgstr ""
 msgid "Request Market Increase"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "free + locked"
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Transfer completed."
 msgstr ""
@@ -1495,7 +1448,6 @@ msgid "Select a market"
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "No trades yet"
 msgstr ""
 
@@ -1610,8 +1562,6 @@ msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
-#: src/modules/spot/components/Accounts/Accounts.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Loading…"
 msgstr ""
 
@@ -1641,10 +1591,6 @@ msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Show last-trade price line"
-msgstr ""
-
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
-msgid "No resting orders"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
@@ -1727,10 +1673,6 @@ msgstr ""
 msgid "Reduce Only"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Last"
-msgstr ""
-
 #: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 msgid "Cross Margin Ratio"
 msgstr ""
@@ -1745,10 +1687,6 @@ msgstr ""
 
 #: src/shared/components/AddressDropdown/AddressDropdownWithoutMultichain.tsx
 msgid "PnL Analysis"
-msgstr ""
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Sending…"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -1873,10 +1811,6 @@ msgstr ""
 msgid "Market - Short Dec."
 msgstr ""
 
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-msgid "No open orders"
-msgstr ""
-
 #: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
 msgid "Seconds"
 msgstr ""
@@ -1922,9 +1856,6 @@ msgstr ""
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
-#: src/modules/spot/components/Accounts/Accounts.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Connect wallet"
 msgstr ""
@@ -1934,12 +1865,12 @@ msgstr ""
 msgid "Unlocking..."
 msgstr ""
 
-#: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
-msgid "Loading markets..."
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "USDA account breakdown"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Quantity"
+#: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
+msgid "Loading markets..."
 msgstr ""
 
 #: src/shared/lib/errors/mapAvaxError.ts
@@ -1969,14 +1900,6 @@ msgstr ""
 
 #: src/shared/lib/legacy.ts
 msgid "Order cannot be executed as it would reduce the position's leverage below 1"
-msgstr ""
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Insufficient {availableAsset} — transfer funds to spot first (Account panel below)."
-msgstr ""
-
-#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
-msgid "24h Low"
 msgstr ""
 
 #: src/shared/components/Errors/errorToasts.tsx
@@ -2038,7 +1961,6 @@ msgid "Swap Price Impact for External Swap Threshold"
 msgstr ""
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Spread"
 msgstr ""
 
@@ -2072,7 +1994,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Trades"
 msgstr ""
 
@@ -2101,10 +2022,6 @@ msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "View All Withdrawals"
-msgstr ""
-
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
-msgid "Orderbook"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
@@ -2141,9 +2058,6 @@ msgstr ""
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Price"
 msgstr ""
 
@@ -2208,7 +2122,6 @@ msgid "Accounts"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
-#: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -2237,10 +2150,6 @@ msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "TP Limit Price"
-msgstr ""
-
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-msgid "Action"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
@@ -2283,10 +2192,13 @@ msgstr ""
 msgid "Trading profits remain principal and trial funds are non-withdrawable."
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Available"
+msgstr ""
+
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Withdrawal request timed out. Please retry."
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
@@ -2314,7 +2226,6 @@ msgstr ""
 msgid "Withdraw transaction was cancelled."
 msgstr ""
 
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Cancel"
@@ -2336,7 +2247,6 @@ msgstr ""
 msgid "Loading funding history..."
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Balances"
 msgstr ""
@@ -2565,7 +2475,6 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
-#: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -2776,7 +2685,6 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Side"
 msgstr ""
 
@@ -2869,10 +2777,6 @@ msgstr ""
 msgid "Layer 1"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Moved {0} {1} to spot (spot free: {2})"
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Transfer amount"
 msgstr ""
@@ -2931,10 +2835,6 @@ msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Select a Pay token"
-msgstr ""
-
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-msgid "Qty"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
@@ -3046,16 +2946,8 @@ msgstr ""
 msgid "Yearly Funding Rate"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Limit price"
-msgstr ""
-
 #: src/shared/lib/legacy.ts
 msgid "Order size is bigger than position, will only be executable if position increases"
-msgstr ""
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Buy"
 msgstr ""
 
 #: src/shared/components/Errors/errorToasts.tsx
@@ -3064,11 +2956,6 @@ msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Completed"
-msgstr ""
-
-#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
-#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
-msgid "24h Vol"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
@@ -3137,20 +3024,12 @@ msgstr ""
 msgid "Alerts"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Futures → Spot"
-msgstr ""
-
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 msgid "Closed PnL"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Min {0} Amount:"
-msgstr ""
-
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Recalled {recalledAmountLabel} USDA in trial funds before withdrawal"
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/TPSLSection.tsx
@@ -3198,7 +3077,6 @@ msgid "Advanced"
 msgstr ""
 
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
-#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
 msgid "24h Change"
 msgstr ""
 
@@ -3258,7 +3136,6 @@ msgid "Remaining trial funds"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Status"
 msgstr ""
@@ -3300,10 +3177,6 @@ msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "long"
-msgstr ""
-
-#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
-msgid "24h High"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
@@ -3413,7 +3286,6 @@ msgid "Failed to bind referral code"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/BottomTabs.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Order History"
 msgstr ""
 
@@ -3423,10 +3295,6 @@ msgstr ""
 
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "24H VOL."
-msgstr ""
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Sell"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -3444,10 +3312,6 @@ msgstr ""
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Asset filter"
-msgstr ""
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Moved {0} {1} to futures (futures available: {2})"
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -3507,7 +3371,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderTypeTabs.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Limit"
 msgstr ""
@@ -3549,7 +3412,6 @@ msgstr ""
 msgid "Orders are routed through Rocky exchange session APIs."
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -3579,7 +3441,6 @@ msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"
 msgstr ""
 
@@ -3595,7 +3456,7 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Attached Take Profit / Stop Loss is not supported yet."
-msgstr "Angehängte Take-Profit-/Stop-Loss-Orders werden noch nicht unterstützt."
+msgstr ""
 
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx

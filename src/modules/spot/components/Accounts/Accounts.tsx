@@ -1,14 +1,13 @@
-import { Trans, t } from "@lingui/macro";
 import { useState } from "react";
 
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
-import { spotApi, type Account } from "../../api/spotClient";
-import { useSpotAuthReady } from "../../api/spotSession";
-import { usePolling } from "../../hooks/usePolling";
 import styles from "./Accounts.module.scss";
+import { useSpotAccount } from "../../hooks/useSpotAccount";
+import { SPOT_MARKETS, type SpotMarket, toSpotDisplayAsset } from "../../model/spotMarkets";
+
+export const TRANSFER_ASSETS = ["USDA"] as const;
 
 function fmt(v: string, digits = 4): string {
   const n = parseFloat(v);
@@ -28,51 +27,98 @@ async function faucet(party: string): Promise<void> {
   if (!r.ok) throw new Error(`faucet HTTP ${r.status}`);
 }
 
-export const TRANSFER_ASSETS = ["USDA"] as const;
-type TransferAsset = (typeof TRANSFER_ASSETS)[number];
+function displayAsset(asset: string, market: SpotMarket): string {
+  const publicAsset = toSpotDisplayAsset(asset);
+  if (publicAsset !== asset) return publicAsset;
 
-export function SpotAccountsPanel() {
-  const ready = useSpotAuthReady();
+  const normalizedAsset = asset.trim().toUpperCase();
+  return (
+    [market, ...SPOT_MARKETS].find((configuredMarket) => configuredMarket.apiBase.toUpperCase() === normalizedAsset)
+      ?.displayBase ?? asset
+  );
+}
+
+export function SpotAccountsPanel({
+  market,
+  variant = "account",
+}: {
+  market: SpotMarket;
+  variant?: "account" | "workspace";
+}) {
+  const { ready, account, err, refetch } = useSpotAccount();
   const { party, provider } = useCantonSession();
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetErr, setFaucetErr] = useState<string | null>(null);
-  const xferAsset: TransferAsset = "USDA";
   const [xferAmount, setXferAmount] = useState("");
   const [xferBusy, setXferBusy] = useState(false);
   const [xferMsg, setXferMsg] = useState<string | null>(null);
   const [xferErr, setXferErr] = useState<string | null>(null);
-  const { data, err, refetch } = usePolling<Account>(() => spotApi.account(), 2500, [], { enabled: ready });
+
+  if (variant === "workspace") {
+    return (
+      <div className={`${styles.panel} ${styles.workspacePanel}`}>
+        <div className={styles.tableScroll}>
+          <table className={`${styles.balanceTable} ${styles.workspaceTable}`}>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Free</th>
+                <th>Locked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {account?.balances.map((balance) => (
+                <tr key={balance.asset}>
+                  <td className={styles.asset}>{displayAsset(balance.asset, market)}</td>
+                  <td>{fmt(balance.free)}</td>
+                  <td className={styles.locked}>{fmt(balance.locked)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {ready && !account && !err && (
+            <div className={styles.workspaceState} role="status">
+              Loading…
+            </div>
+          )}
+          {err && (
+            <div className={styles.workspaceState} role="alert">
+              {err}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!ready)
     return (
       <div className={styles.panel}>
-        <div className={styles.title}>
-          <Trans>Spot Account</Trans>
-        </div>
-        <button type="button" className={styles.connectCta} onClick={openCantonConnect}>
-          <Trans>Connect wallet</Trans>
-        </button>
+        <div className={styles.title}>Spot Account</div>
       </div>
     );
   if (err)
     return (
       <div className={styles.panel}>
-        <div className={styles.err}>{err}</div>
+        <div className={styles.err} role="alert">
+          {err}
+        </div>
       </div>
     );
-  if (!data)
+  if (!account)
     return (
       <div className={styles.panel}>
-        <div className={styles.title}>
-          <Trans>Loading…</Trans>
+        <div className={styles.title} role="status">
+          Loading…
         </div>
       </div>
     );
 
-  // Rough total in USDA-equivalent, treating base assets at 0 mark until we
-  // wire ticker mid-prices per symbol. Users see the real numbers per row.
-  const usda = data.balances.find((b) => b.asset === "USDA");
-  const totalUsda = usda ? parseFloat(usda.free) + parseFloat(usda.locked) : 0;
-  const allZero = data.balances.every((b) => parseFloat(b.free) === 0 && parseFloat(b.locked) === 0);
+  const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDA");
+  const totalUsda = quoteBalance ? parseFloat(quoteBalance.free) + parseFloat(quoteBalance.locked) : 0;
+  const allZero = account.balances.every(
+    (balance) => parseFloat(balance.free) === 0 && parseFloat(balance.locked) === 0,
+  );
 
   const onFaucet = async () => {
     if (!party) return;
@@ -94,7 +140,7 @@ export function SpotAccountsPanel() {
     setXferMsg(null);
     try {
       const result = await transferSpotBalance({
-        asset: xferAsset,
+        asset: "USDA",
         amount: xferAmount.trim(),
         direction,
         walletParty: party,
@@ -103,13 +149,13 @@ export function SpotAccountsPanel() {
       });
       setXferMsg(
         direction === "toSpot"
-          ? t`Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
-          : t`Moved ${result.amount} ${result.asset} to futures (futures available: ${result.fundingAvailable})`
+          ? `Moved ${result.amount} ${result.asset} to spot (spot free: ${result.spotFree})`
+          : `Moved ${result.amount} ${result.asset} to futures (futures available: ${result.fundingAvailable})`
       );
       setXferAmount("");
       refetch();
-    } catch (e: unknown) {
-      setXferErr(e instanceof Error ? e.message : String(e));
+    } catch (error: unknown) {
+      setXferErr(error instanceof Error ? error.message : String(error));
     } finally {
       setXferBusy(false);
     }
@@ -117,75 +163,82 @@ export function SpotAccountsPanel() {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.title}>
-        <Trans>Spot Account</Trans>
-      </div>
-      <div className={styles.totalRow}>
-        <span className={styles.totalLabel}>
-          USDA (<Trans>free + locked</Trans>)
-        </span>
-        <span className={styles.totalValue}>{totalUsda.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
-      </div>
-      <div className={styles.title}>
-        <Trans>Balances</Trans>
-      </div>
-      <div className={styles.rows}>
-        <span className={styles.rowHeader}>
-          <Trans>Asset</Trans>
-        </span>
-        <span className={`${styles.rowHeader} ${styles.free}`}>
-          <Trans>Free</Trans>
-        </span>
-        <span className={`${styles.rowHeader} ${styles.locked}`}>
-          <Trans>Locked</Trans>
-        </span>
-        {data.balances.map((b) => (
-          <div key={b.asset} style={{ display: "contents" }}>
-            <span className={styles.asset}>{b.asset}</span>
-            <span className={styles.free}>{fmt(b.free)}</span>
-            <span className={styles.locked}>{fmt(b.locked)}</span>
+      <div className={styles.summary}>
+        <div className={styles.title}>Spot Account</div>
+        <div className={styles.totalRow}>
+          <span className={styles.totalLabel}>USDA (free + locked)</span>
+          <span className={styles.totalValue}>{totalUsda.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+        </div>
+        {allZero && (
+          <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
+            {faucetBusy ? "Requesting…" : "Get test funds (dev)"}
+          </button>
+        )}
+        {faucetErr && (
+          <div className={styles.err} role="alert">
+            {faucetErr}
           </div>
-        ))}
+        )}
+        <div className={styles.title}>Transfer</div>
+        <div className={styles.transferRow}>
+          <input
+            aria-label="Transfer amount"
+            className={styles.transferInput}
+            inputMode="decimal"
+            placeholder="Amount"
+            value={xferAmount}
+            onChange={(event) => setXferAmount(event.target.value)}
+            disabled={xferBusy}
+          />
+        </div>
+        <div className={styles.transferRow}>
+          <button
+            type="button"
+            className={styles.connectCta}
+            disabled={xferBusy || !xferAmount.trim()}
+            onClick={() => onTransfer("toSpot")}
+          >
+            {xferBusy ? "…" : "Futures → Spot"}
+          </button>
+          <button
+            type="button"
+            className={styles.connectCta}
+            disabled={xferBusy || !xferAmount.trim()}
+            onClick={() => onTransfer("toFunding")}
+          >
+            {xferBusy ? "…" : "Spot → Futures"}
+          </button>
+        </div>
+        {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}
+        {xferErr && (
+          <div className={styles.err} role="alert">
+            {xferErr}
+          </div>
+        )}
       </div>
-      {allZero && (
-        <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
-          {faucetBusy ? <Trans>Requesting…</Trans> : <Trans>Get test funds (dev)</Trans>}
-        </button>
-      )}
-      {faucetErr && <div className={styles.err}>{faucetErr}</div>}
-      <div className={styles.title}>
-        <Trans>Transfer</Trans>
+      <div className={styles.balanceSection}>
+        <div className={styles.title}>Balances</div>
+        <div className={styles.tableScroll}>
+          <table className={styles.balanceTable}>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Free</th>
+                <th>Locked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {account.balances.map((balance) => (
+                <tr key={balance.asset}>
+                  <td className={styles.asset}>{displayAsset(balance.asset, market)}</td>
+                  <td>{fmt(balance.free)}</td>
+                  <td className={styles.locked}>{fmt(balance.locked)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className={styles.transferRow}>
-        <input
-          className={styles.transferInput}
-          inputMode="decimal"
-          placeholder={t`Amount`}
-          value={xferAmount}
-          onChange={(e) => setXferAmount(e.target.value)}
-          disabled={xferBusy}
-        />
-      </div>
-      <div className={styles.transferRow}>
-        <button
-          type="button"
-          className={styles.connectCta}
-          disabled={xferBusy || !xferAmount.trim()}
-          onClick={() => onTransfer("toSpot")}
-        >
-          {xferBusy ? "…" : <Trans>Futures → Spot</Trans>}
-        </button>
-        <button
-          type="button"
-          className={styles.connectCta}
-          disabled={xferBusy || !xferAmount.trim()}
-          onClick={() => onTransfer("toFunding")}
-        >
-          {xferBusy ? "…" : <Trans>Spot → Futures</Trans>}
-        </button>
-      </div>
-      {xferMsg && <div className={styles.totalLabel}>{xferMsg}</div>}
-      {xferErr && <div className={styles.err}>{xferErr}</div>}
     </div>
   );
 }

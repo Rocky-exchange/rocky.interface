@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useHistory } from "react-router-dom";
 
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
@@ -8,12 +8,19 @@ import { SelectorBase, useSelectorClose } from "components/SelectorBase/Selector
 import styles from "./MarketDropdown.module.scss";
 import { spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
-import { SPOT_MARKETS, spotMarketAssetIconSymbol } from "../../markets";
+import { SPOT_MARKETS, type SpotMarket } from "../../model/spotMarkets";
 
-type Market = (typeof SPOT_MARKETS)[number];
+// Rocky spot base assets map to underlying ic_<x>.svg in shared/img/tokens:
+//   CBTC → btc,  cETH / CETH → eth
+function iconSymbolFor(base: string): string {
+  const norm = base.toLowerCase();
+  if (norm === "cbtc" || norm === "btc") return "btc";
+  if (norm === "ceth" || norm === "eth") return "eth";
+  return norm;
+}
 
-export function AssetBadge({ symbol, size = 22 }: { symbol: string; size?: number }) {
-  return <TokenIcon symbol={spotMarketAssetIconSymbol(symbol)} displaySize={size} />;
+export function AssetBadge({ symbol, size = 20 }: { symbol: string; size?: number }) {
+  return <TokenIcon symbol={iconSymbolFor(symbol)} displaySize={size} />;
 }
 
 function fmtPrice(v: string | undefined): string {
@@ -30,14 +37,19 @@ function fmtPct(v: string | undefined): string {
 }
 
 /** One row in the panel — polls its own ticker for last price + 24h%. */
-function MarketRow({ market, active, query }: { market: Market; active: boolean; query: string }) {
+function MarketRow({ market, active, query }: { market: SpotMarket; active: boolean; query: string }) {
   const history = useHistory();
   const close = useSelectorClose();
-  const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.symbol), 5000, [market.symbol]);
+  const { data: t } = usePolling<Ticker24h>(() => spotApi.ticker(market.apiSymbol), 5000, [market.apiSymbol]);
 
-  const label = `${market.base}/${market.quote}`;
+  const label = `${market.displayBase}/${market.displayQuote}`;
   const q = query.trim().toLowerCase();
-  if (q && !label.toLowerCase().includes(q) && !market.symbol.toLowerCase().includes(q)) {
+  if (
+    q &&
+    !label.toLowerCase().includes(q) &&
+    !market.routeSymbol.toLowerCase().includes(q) &&
+    !market.apiSymbol.toLowerCase().includes(q)
+  ) {
     return null;
   }
 
@@ -45,17 +57,17 @@ function MarketRow({ market, active, query }: { market: Market; active: boolean;
   const pctCls = pct > 0 ? styles.up : pct < 0 ? styles.down : styles.muted;
 
   const onClick = () => {
-    history.push(`/spot/${market.symbol}`);
+    history.push(`/spot/${market.routeSymbol}`);
     close();
   };
 
   return (
     <button type="button" className={`${styles.row} ${active ? styles.rowActive : ""}`} onClick={onClick}>
       <span className={styles.rowLeft}>
-        <AssetBadge symbol={market.base} />
+        <AssetBadge symbol={market.displayBase} />
         <span className={styles.rowSymbol}>
-          {market.base}
-          <span className={styles.rowQuote}>/{market.quote}</span>
+          {market.displayBase}
+          <span className={styles.rowQuote}>/{market.displayQuote}</span>
         </span>
         <span className={styles.rowBadgeSpot}>1x</span>
       </span>
@@ -87,31 +99,32 @@ function PanelBody({ active }: { active: string }) {
       </div>
       <div className={styles.list}>
         {SPOT_MARKETS.map((m) => (
-          <MarketRow key={m.symbol} market={m} active={m.symbol === active} query={q} />
+          <MarketRow key={m.routeSymbol} market={m} active={m.routeSymbol === active} query={q} />
         ))}
       </div>
     </div>
   );
 }
 
-export function SpotMarketDropdown({ symbol }: { symbol: string }) {
-  const active = useMemo(() => SPOT_MARKETS.find((m) => m.symbol === symbol) ?? SPOT_MARKETS[0], [symbol]);
+export function SpotMarketDropdown({ market }: { market: SpotMarket }) {
   return (
     <SelectorBase
       label={
         <span className={styles.trigger}>
-          <AssetBadge symbol={active.base} />
+          <AssetBadge symbol={market.displayBase} />
           <span className={styles.triggerName}>
-            {active.base}
-            <span className={styles.triggerQuote}>/{active.quote}</span>
+            {market.displayBase}
+            <span className={styles.triggerQuote}>/{market.displayQuote}</span>
           </span>
           <span className={styles.triggerLev}>1x</span>
         </span>
       }
       modalLabel="Select market"
+      handleClassName={styles.symbolHandle}
+      chevronClassName={styles.caret}
       desktopPanelClassName={styles.floatingPanel}
     >
-      <PanelBody active={symbol} />
+      <PanelBody active={market.routeSymbol} />
     </SelectorBase>
   );
 }

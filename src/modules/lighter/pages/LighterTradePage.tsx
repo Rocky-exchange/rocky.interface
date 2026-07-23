@@ -1,31 +1,24 @@
 // src/modules/lighter/pages/LighterTradePage.tsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
+import { TradePageMobile } from "@/modules/lighter/mobile/TradePage/TradePageMobile";
 import { useTokensFavorites } from "@/modules/lighter/store/TokensFavoritesContext/TokensFavoritesContextProvider";
+import { useTradeState } from "@/modules/lighter/store/TradeStateContext";
+import { useBreakpoints } from "@/shared/lib/useBreakpoints";
 
 import "../styles/global.scss";
 import styles from "./LighterTradePage.module.scss";
-import { useTradeState } from "@/modules/lighter/store/TradeStateContext";
-
-import { OrderFormPanel } from "../features/orderForm/desktop/OrderFormPanel";
 import { AccountsPanel } from "../components/AccountsPanel/AccountsPanel";
 import { BottomTabs } from "../components/BottomTabs/BottomTabs";
 import { ChartPanel } from "../components/ChartPanel/ChartPanel";
+import { OnboardingTour } from "../components/Onboarding/OnboardingTour";
 import { OrderBookPanel, type OrderBookLayout } from "../components/OrderBookPanel/OrderBookPanel";
 import { SymbolBar } from "../components/SymbolBar/SymbolBar";
-import { TopNav } from "../components/TopNav/TopNav";
-import { OnboardingTour } from "../components/Onboarding/OnboardingTour";
-import { useBreakpoints } from "@/shared/lib/useBreakpoints";
-import { TradePageMobile } from "@/modules/lighter/mobile/TradePage/TradePageMobile";
+import { OrderFormPanel } from "../features/orderForm/desktop/OrderFormPanel";
 
 export default function LighterTradePage() {
   const [orderBookLayout, setOrderBookLayout] = useState<OrderBookLayout>("Tab");
   const { isMobile } = useBreakpoints();
-
-  useEffect(() => {
-    document.body.classList.add("lighter-active");
-    return () => document.body.classList.remove("lighter-active");
-  }, []);
 
   /** ========= Favorite market 按钮逻辑 =========
    *  - key "trade-market-selector" 与交易对下拉面板共用，
@@ -51,10 +44,7 @@ export default function LighterTradePage() {
   }
 
   return (
-    <div className={`lighter-root ${styles.page}`}>
-      <div className={styles.topnav}>
-        <TopNav />
-      </div>
+    <div className={styles.page}>
       {/* <div className={styles.banner}>
         You're accessing Lighter from a restricted jurisdiction. Only withdrawals are available. For more details, see
         the&nbsp;

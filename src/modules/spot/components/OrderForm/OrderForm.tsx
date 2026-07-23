@@ -1,290 +1,454 @@
-import { Trans, t } from "@lingui/macro";
-import { useMemo, useState } from "react";
+import BigNumber from "bignumber.js";
+import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
 import styles from "./OrderForm.module.scss";
-import { spotApi, SpotApiError, type Account, type DepthResp, type Ticker24h } from "../../api/spotClient";
-import { useSpotAuthReady } from "../../api/spotSession";
+import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
+import { spotApi, SpotApiError, type DepthResp } from "../../api/spotClient";
+import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { usePolling } from "../../hooks/usePolling";
+import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
 type OrderType = "LIMIT" | "MARKET";
-const MARKET_BAND = 1.05; // 5% protective band — mirrors backend gateway
 
-function availableOf(account: Account | null, asset: string): number | null {
-  if (!account) return null;
-  // Case-insensitive: the backend keys some assets with mixed case (e.g.
-  // "cETH"), while symbol.split("-") on "CETH-USDA" yields uppercase "CETH".
-  // USDA/CBTC/cETH/CC are all distinct case-insensitively, so this is safe.
-  const row = account.balances.find((b) => b.asset.toLowerCase() === asset.toLowerCase());
-  if (!row) return 0;
-  const free = parseFloat(row.free);
-  return isFinite(free) ? free : 0;
+const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
+const FEE_MULTIPLIER = new Decimal("1.001");
+const MARKET_BAND = new Decimal("1.05");
+
+type PercentOrderInput = {
+  side: Side;
+  percent: number;
+  price: string;
+  baseFree: string;
+  quoteFree: string;
+};
+
+function balanceFree(asset: string, balances: { asset: string; free: string }[]): string {
+  return balances.find((balance) => balance.asset.toUpperCase() === asset.toUpperCase())?.free ?? "0";
 }
 
-function fmtAmount(v: number | null): string {
-  if (v === null) return "—";
-  return v.toLocaleString("en-US", { maximumFractionDigits: 8 });
+function formatBalance(value: string): string {
+  const number = new Decimal(value);
+  if (!number.isFinite()) return "—";
+  return number.decimalPlaces(8, BigNumber.ROUND_DOWN).toFormat();
 }
 
-export function SpotOrderForm({ symbol }: { symbol: string }) {
-  const ready = useSpotAuthReady();
+function positiveDecimal(value: string): BigNumber | null {
+  const number = new Decimal(value);
+  return number.isFinite() && number.gt(0) ? number : null;
+}
+
+function quantityForOrderPercent(input: PercentOrderInput): string {
+  if (input.side === "SELL") return quantityForPercent(input);
+
+  const price = positiveDecimal(input.price);
+  const balance = positiveDecimal(input.quoteFree);
+  if (price === null || balance === null) return "";
+
+  const percent = Decimal.maximum(0, Decimal.minimum(100, input.percent));
+  return balance
+    .times(percent)
+    .dividedBy(100)
+    .dividedBy(price)
+    .dividedBy(FEE_MULTIPLIER)
+    .decimalPlaces(8, BigNumber.ROUND_DOWN)
+    .toFixed();
+}
+
+function isWithinAvailableBalance(
+  side: Side,
+  price: string,
+  amount: string,
+  baseFree: string,
+  quoteFree: string
+): boolean {
+  const parsedPrice = positiveDecimal(price);
+  const parsedAmount = positiveDecimal(amount);
+  if (parsedPrice === null || parsedAmount === null) return false;
+
+  if (side === "SELL") {
+    const balance = new Decimal(baseFree);
+    return balance.isFinite() && parsedAmount.lte(balance);
+  }
+
+  const balance = new Decimal(quoteFree);
+  return balance.isFinite() && parsedPrice.times(parsedAmount).times(FEE_MULTIPLIER).lte(balance);
+}
+
+function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | undefined): string {
+  const source = positiveDecimal(side === "BUY" ? (bestAsk ?? "") : (bestBid ?? ""));
+  if (source === null) return "";
+  return side === "BUY"
+    ? source.times(MARKET_BAND).toFixed()
+    : source.times(new Decimal(2).minus(MARKET_BAND)).toFixed();
+}
+
+export function SpotOrderForm({ market }: { market: SpotMarket }) {
+  const { ready, account, err: accountError, refetch } = useSpotAccount();
+  const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
+  const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
   const [orderType, setOrderType] = useState<OrderType>("LIMIT");
   const [price, setPrice] = useState("");
-  const [qty, setQty] = useState("");
+  const [amount, setAmount] = useState("");
+  const [percent, setPercent] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
-  const [base, quote] = useMemo(() => symbol.split("-"), [symbol]);
-
-  // Balances for the affordability guard + "Available" row. Same source the
-  // Accounts panel polls; a second light poll here keeps the form standalone.
-  const { data: account, refetch: refetchAccount } = usePolling<Account>(
-    () => spotApi.account(),
-    5000,
-    [],
-    { enabled: ready },
-  );
-  // Last trade price for one-click prefill (public endpoint, works pre-auth).
-  const { data: ticker } = usePolling<Ticker24h>(() => spotApi.ticker(symbol), 5000, [symbol]);
-  const lastPrice = ticker && parseFloat(ticker.lastPrice) > 0 ? ticker.lastPrice : null;
-
-  // Top-of-book for the MARKET cap estimate (backend computes the real cap).
+  const { displayBase: base, displayQuote: quote } = market;
+  const balances = account?.balances ?? [];
+  const baseFree = balanceFree(market.apiBase, balances);
+  const quoteFree = balanceFree(market.apiQuote, balances);
   const { data: depth } = usePolling<DepthResp>(
-    () => spotApi.depth(symbol, 1), 5000, [symbol], { enabled: orderType === "MARKET" });
-  const bestAsk = depth?.asks?.[0]?.[0] ? parseFloat(depth.asks[0][0]) : null;
-  const bestBid = depth?.bids?.[0]?.[0] ? parseFloat(depth.bids[0][0]) : null;
-  const capEst = bestAsk !== null ? bestAsk * MARKET_BAND : null;
-  const floorEst = bestBid !== null ? bestBid * (2 - MARKET_BAND) : null;
+    () => spotApi.depth(market.apiSymbol, 1),
+    5000,
+    [market.apiSymbol],
+    { enabled: orderType === "MARKET" }
+  );
+  const effectivePrice =
+    orderType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
+  const availableValue = side === "BUY" ? quoteFree : baseFree;
+  const availableAsset = side === "BUY" ? quote : base;
+  const summary = useMemo(() => calculateOrderSummary(effectivePrice, amount), [amount, effectivePrice]);
 
-  const quoteAvail = availableOf(account ?? null, quote ?? "USDA");
-  const baseAvail = availableOf(account ?? null, base ?? "");
+  const selectSide = (nextSide: Side) => {
+    const nextEffectivePrice =
+      orderType === "LIMIT" ? price : marketPrice(nextSide, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
+    setSide(nextSide);
+    setAmount(
+      percent === 0
+        ? ""
+        : quantityForOrderPercent({
+            side: nextSide,
+            percent,
+            price: nextEffectivePrice,
+            baseFree,
+            quoteFree,
+          })
+    );
+    setMsg(null);
+  };
 
-  const priceNum = parseFloat(price);
-  const qtyNum = parseFloat(qty);
-  const effPriceNum = orderType === "MARKET" ? ((side === "BUY" ? capEst : floorEst) ?? NaN) : priceNum;
-  const notionalNum = isFinite(effPriceNum) && isFinite(qtyNum) ? effPriceNum * qtyNum : null;
-  const notional =
-    notionalNum === null ? "—" : notionalNum.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  const selectOrderType = (nextType: OrderType) => {
+    const nextEffectivePrice =
+      nextType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
+    setOrderType(nextType);
+    setAmount(
+      percent === 0
+        ? ""
+        : quantityForOrderPercent({ side, percent, price: nextEffectivePrice, baseFree, quoteFree })
+    );
+    setMsg(null);
+  };
 
-  // Affordability: BUY locks price*qty of quote; SELL locks qty of base.
-  // Only guard once balances have actually loaded (null = still unknown).
-  const insufficient = useMemo(() => {
-    if (side === "BUY") {
-      if (quoteAvail === null || notionalNum === null) return false;
-      return notionalNum > quoteAvail;
+  const activateSideFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentSide: Side) => {
+    let nextSide: Side | null = null;
+    if (event.key === "Home") nextSide = "BUY";
+    if (event.key === "End") nextSide = "SELL";
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      nextSide = currentSide === "BUY" ? "SELL" : "BUY";
     }
-    if (baseAvail === null || !isFinite(qtyNum)) return false;
-    return qtyNum > baseAvail;
-  }, [side, quoteAvail, baseAvail, notionalNum, qtyNum]);
+    if (!nextSide) return;
+
+    event.preventDefault();
+    if (nextSide !== side) selectSide(nextSide);
+    sideTabRefs.current[nextSide]?.focus();
+  };
+
+  const updateAmount = (value: string) => {
+    setAmount(value);
+    setPercent(0);
+  };
+
+  const updatePrice = (value: string) => {
+    setPrice(value);
+    if (percent === 0) return;
+    setAmount(
+      quantityForOrderPercent({
+        side,
+        percent,
+        price: value,
+        baseFree,
+        quoteFree,
+      })
+    );
+  };
+
+  const updatePercent = (value: number) => {
+    setPercent(value);
+    setAmount(
+      quantityForOrderPercent({
+        side,
+        percent: value,
+        price: effectivePrice,
+        baseFree,
+        quoteFree,
+      })
+    );
+  };
+
+  useEffect(() => {
+    if (percent === 0 || busy) return;
+    const nextAmount = quantityForOrderPercent({ side, percent, price: effectivePrice, baseFree, quoteFree });
+    setAmount((currentAmount) => (currentAmount === nextAmount ? currentAmount : nextAmount));
+  }, [baseFree, busy, effectivePrice, percent, quoteFree, side]);
+
+  useLayoutEffect(() => {
+    if (marketSession.current.symbol === market.apiSymbol) return;
+    marketSession.current = {
+      symbol: market.apiSymbol,
+      generation: marketSession.current.generation + 1,
+    };
+    setSide("BUY");
+    setOrderType("LIMIT");
+    setPrice("");
+    setAmount("");
+    setPercent(0);
+    setMsg(null);
+    setBusy(false);
+  }, [market.apiSymbol]);
+
+  const canSubmit =
+    ready &&
+    account?.canTrade === true &&
+    !busy &&
+    isWithinAvailableBalance(side, effectivePrice, amount, baseFree, quoteFree);
 
   const submit = async () => {
+    if (!canSubmit) return;
+    const submittedSession = marketSession.current;
+    const isCurrentSession = () =>
+      marketSession.current.symbol === submittedSession.symbol &&
+      marketSession.current.generation === submittedSession.generation;
     setBusy(true);
     setMsg(null);
     try {
-      const r = await spotApi.placeOrder({
-        symbol,
+      const response = await spotApi.placeOrder({
+        symbol: market.apiSymbol,
         side,
         type: orderType,
         ...(orderType === "LIMIT" ? { price } : {}),
-        quantity: qty,
+        quantity: amount,
       });
-      setMsg({ kind: "ok", text: `${r.status} · ${r.orderId.slice(0, 12)}…` });
+      if (!isCurrentSession()) return;
+      setMsg({ kind: "ok", text: `${response.status} · ${response.orderId.slice(0, 12)}…` });
       if (orderType === "LIMIT") setPrice("");
-      setQty("");
-      refetchAccount();
-    } catch (e: unknown) {
-      const text = e instanceof SpotApiError ? `[${e.code}] ${e.message}` : e instanceof Error ? e.message : String(e);
+      setAmount("");
+      setPercent(0);
+      refetch();
+    } catch (error: unknown) {
+      if (!isCurrentSession()) return;
+      const text =
+        error instanceof SpotApiError
+          ? `[${error.code}] ${error.message}`
+          : error instanceof Error
+            ? error.message
+            : String(error);
       setMsg({ kind: "err", text });
     } finally {
-      setBusy(false);
+      if (isCurrentSession()) setBusy(false);
     }
   };
 
-  const fillMax = () => {
-    if (side === "SELL") {
-      if (baseAvail !== null && baseAvail > 0) setQty(String(baseAvail));
-      return;
-    }
-    if (quoteAvail !== null && quoteAvail > 0 && isFinite(effPriceNum) && effPriceNum > 0) {
-      // Truncate to 8dp so the resulting notional never exceeds the balance.
-      setQty((Math.floor((quoteAvail / effPriceNum) * 1e8) / 1e8).toString());
-    }
-  };
-
-  const [pct, setPct] = useState(0);
-
-  // %-of-available slider (mirrors the Futures form): BUY sizes qty from
-  // available quote at the entered price; SELL sizes qty from available base.
-  const applyPct = (nextPct: number) => {
-    setPct(nextPct);
-    if (nextPct <= 0) return;
-    if (side === "SELL") {
-      if (baseAvail !== null && baseAvail > 0) {
-        setQty((Math.floor(baseAvail * (nextPct / 100) * 1e8) / 1e8).toString());
-      }
-      return;
-    }
-    if (quoteAvail !== null && quoteAvail > 0 && isFinite(effPriceNum) && effPriceNum > 0) {
-      setQty((Math.floor(((quoteAvail * (nextPct / 100)) / effPriceNum) * 1e8) / 1e8).toString());
-    }
-  };
-
-  const marketReady =
-    orderType === "LIMIT" || (side === "BUY" ? capEst !== null : floorEst !== null);
-  const disabled =
-    busy || !qty || !ready || insufficient || !marketReady ||
-    (orderType === "LIMIT" && !price);
-  const available = side === "BUY" ? quoteAvail : baseAvail;
-  const availableAsset = side === "BUY" ? quote : base;
+  const sliderStyle = { "--slider-fill": `${percent}%` } as CSSProperties;
 
   return (
     <div className={styles.panel}>
-      <div className={styles.sideTabs}>
+      <div className={styles.orderTypeTabs} role="tablist" aria-label="Order type">
         <button
           type="button"
-          className={`${styles.sideTab} ${side === "BUY" ? styles.sideTabBuyActive : ""}`}
-          onClick={() => setSide("BUY")}
+          id="spot-market-tab"
+          role="tab"
+          aria-selected={orderType === "MARKET"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={orderType === "MARKET" && !busy ? 0 : -1}
+          disabled={busy}
+          className={orderType === "MARKET" ? styles.orderTypeActive : undefined}
+          onClick={() => selectOrderType("MARKET")}
         >
-          <Trans>Buy</Trans> {base}
+          Market
         </button>
         <button
           type="button"
-          className={`${styles.sideTab} ${side === "SELL" ? styles.sideTabSellActive : ""}`}
-          onClick={() => setSide("SELL")}
+          id="spot-limit-tab"
+          role="tab"
+          aria-selected={orderType === "LIMIT"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={orderType === "LIMIT" && !busy ? 0 : -1}
+          disabled={busy}
+          className={orderType === "LIMIT" ? styles.orderTypeActive : undefined}
+          onClick={() => selectOrderType("LIMIT")}
         >
-          <Trans>Sell</Trans> {base}
-        </button>
-      </div>
-      <div className={styles.typeTabs}>
-        <button
-          type="button"
-          className={orderType === "LIMIT" ? styles.typeTabActive : styles.typeTab}
-          onClick={() => setOrderType("LIMIT")}
-        >
-          <Trans>Limit</Trans>
-        </button>
-        <button
-          type="button"
-          className={orderType === "MARKET" ? styles.typeTabActive : styles.typeTab}
-          onClick={() => setOrderType("MARKET")}
-        >
-          <Trans>Market</Trans>
+          Limit
         </button>
       </div>
-      <div className={styles.body}>
-        {orderType === "LIMIT" && (
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>
-              <Trans>Price</Trans> ({quote})
-              {lastPrice && (
-                <button type="button" className={styles.fillChip} onClick={() => setPrice(lastPrice)}>
-                  <Trans>Last</Trans> {parseFloat(lastPrice).toLocaleString("en-US", { maximumFractionDigits: 8 })}
-                </button>
-              )}
-            </span>
-            <input
-              className={styles.input}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder={t`Limit price`}
-              inputMode="decimal"
-            />
-          </div>
-        )}
-        {orderType === "MARKET" && (
-          <div className={styles.summary}>
-            <span><Trans>Est. price</Trans></span>
-            <span className={styles.summaryValue}>
-              {side === "BUY"
-                ? bestAsk !== null ? `≤ ${(bestAsk * MARKET_BAND).toLocaleString("en-US", { maximumFractionDigits: 8 })}` : "—"
-                : bestBid !== null ? `≥ ${(bestBid * (2 - MARKET_BAND)).toLocaleString("en-US", { maximumFractionDigits: 8 })}` : "—"}
-              <span className={styles.summaryUnit}> {quote} · <Trans>max slippage 5%</Trans></span>
-            </span>
-          </div>
-        )}
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>
-            <Trans>Quantity</Trans> ({base})
-            {ready && available !== null && (
-              <button type="button" className={styles.fillChip} onClick={fillMax}>
-                <Trans>Max</Trans>
-              </button>
-            )}
-          </span>
+
+      <div className={styles.sideTabs} role="tablist" aria-label="Order side">
+        <button
+          type="button"
+          id="spot-buy-tab"
+          role="tab"
+          aria-selected={side === "BUY"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={side === "BUY" && !busy ? 0 : -1}
+          disabled={busy}
+          className={styles.sideTab}
+          onClick={() => selectSide("BUY")}
+          onKeyDown={(event) => activateSideFromKeyboard(event, "BUY")}
+          ref={(node) => {
+            sideTabRefs.current.BUY = node;
+          }}
+        >
+          Buy {base}
+        </button>
+        <button
+          type="button"
+          id="spot-sell-tab"
+          role="tab"
+          aria-selected={side === "SELL"}
+          aria-controls="spot-order-form-panel"
+          tabIndex={side === "SELL" && !busy ? 0 : -1}
+          disabled={busy}
+          className={styles.sideTab}
+          onClick={() => selectSide("SELL")}
+          onKeyDown={(event) => activateSideFromKeyboard(event, "SELL")}
+          ref={(node) => {
+            sideTabRefs.current.SELL = node;
+          }}
+        >
+          Sell {base}
+        </button>
+        <div
+          aria-hidden="true"
+          data-testid="spot-side-indicator"
+          className={`${styles.sideIndicator} ${side === "BUY" ? styles.indicatorBuy : styles.indicatorSell}`}
+        />
+      </div>
+
+      <div
+        id="spot-order-form-panel"
+        role="tabpanel"
+        aria-labelledby={`spot-${side.toLowerCase()}-tab spot-${orderType.toLowerCase()}-tab`}
+        className={styles.body}
+      >
+        <div className={styles.available}>
+          <span>Available</span>
+          <strong>
+            {account ? formatBalance(availableValue) : "—"} {availableAsset}
+          </strong>
+        </div>
+        {accountError && <div className={styles.accountHint}>{accountError}</div>}
+
+        <div className={`${styles.field} ${orderType === "MARKET" ? styles.readOnlyShell : ""}`}>
+          <label htmlFor="spot-order-price" className={styles.fieldLabel}>
+            {orderType === "MARKET" ? "Est. Price" : "Price"}
+          </label>
           <input
+            id="spot-order-price"
+            aria-label={`Price (${quote})`}
             className={styles.input}
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
+            value={orderType === "MARKET" && effectivePrice ? effectivePrice : price}
+            onChange={(event) => updatePrice(event.target.value)}
+            disabled={busy}
+            placeholder={orderType === "MARKET" ? "—" : "500"}
+            inputMode="decimal"
+            autoComplete="off"
+            readOnly={orderType === "MARKET"}
+            tabIndex={orderType === "MARKET" ? -1 : undefined}
+          />
+          <span className={styles.unit}>{quote}</span>
+        </div>
+
+        <div className={styles.field}>
+          <label htmlFor="spot-order-amount" className={styles.fieldLabel}>
+            Amount
+          </label>
+          <input
+            id="spot-order-amount"
+            aria-label={`Amount (${base})`}
+            className={styles.input}
+            value={amount}
+            onChange={(event) => updateAmount(event.target.value)}
+            disabled={busy}
             placeholder="0.1"
             inputMode="decimal"
+            autoComplete="off"
           />
+          <span className={styles.unit}>{base}</span>
         </div>
-        {ready && (
-          <div className={styles.sliderRow}>
+
+        <div className={styles.sliderBlock}>
+          <input
+            aria-label="Order percentage"
+            className={`${styles.slider} ${side === "BUY" ? styles.sliderBuy : styles.sliderSell}`}
+            style={sliderStyle}
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={percent}
+            onChange={(event) => updatePercent(Number(event.target.value))}
+            disabled={busy}
+          />
+          <div className={styles.percentInput}>
             <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={pct}
-              onChange={(e) => applyPct(Number(e.target.value))}
-              className={styles.slider}
-              aria-label="percent of available"
+              aria-label="Order percentage input"
+              className={styles.percentInputValue}
+              value={percent}
+              inputMode="numeric"
+              onChange={(event) => {
+                const next = Number(event.target.value.replace(/[^0-9]/g, ""));
+                if (!Number.isNaN(next)) updatePercent(Math.max(0, Math.min(100, next)));
+              }}
+              disabled={busy}
             />
-            <span className={styles.sliderValue}>{pct}%</span>
+            <span aria-hidden="true">%</span>
           </div>
-        )}
-        {ready && (
-          <div className={styles.summary}>
-            <span>
-              <Trans>Available</Trans>
-            </span>
-            <span className={styles.summaryValue}>
-              {fmtAmount(available)} <span className={styles.summaryUnit}>{availableAsset}</span>
-            </span>
-          </div>
-        )}
-        <div className={styles.summary}>
-          <span>
-            <Trans>Notional</Trans>
-          </span>
-          <span className={styles.summaryValue}>
-            {orderType === "MARKET" && notionalNum !== null ? "≈ " : ""}
-            {notional} <span className={styles.summaryUnit}>{quote}</span>
-          </span>
         </div>
-        <div className={styles.summary}>
-          <span>
-            <Trans>Fees</Trans>
-          </span>
-          <span className={styles.summaryValue}>
-            {/* Spot T1 tier (fee_tiers): maker 4 bps / taker 10 bps */}
-            <span className={styles.summaryUnit}>Maker 0.04% · Taker 0.10%</span>
-          </span>
+
+        <div className={`${styles.field} ${styles.readOnlyShell}`}>
+          <label htmlFor="spot-order-total" className={styles.fieldLabel}>
+            Total
+          </label>
+          <input
+            id="spot-order-total"
+            aria-label={`Total (${quote})`}
+            className={styles.input}
+            value={summary.total}
+            placeholder="0.00"
+            readOnly
+            tabIndex={-1}
+          />
+          <span className={styles.unit}>{quote}</span>
         </div>
-        {insufficient && (
-          <div className={`${styles.msg} ${styles.msgErr}`}>
-            <Trans>Insufficient {availableAsset} — transfer funds to spot first (Account panel below).</Trans>
-          </div>
-        )}
+
         {ready ? (
           <button
             type="button"
             className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
             onClick={submit}
-            disabled={disabled}
+            disabled={!canSubmit}
           >
-            {busy ? <Trans>Sending…</Trans> : `${side} ${base} · ${orderType === "MARKET" ? "Market" : "Limit"}`}
+            {busy ? "Sending…" : `${side} ${base} · ${orderType === "MARKET" ? "Market" : "Limit"}`}
           </button>
         ) : (
-          <button type="button" className={styles.submit} onClick={openCantonConnect}>
-            <Trans>Connect wallet</Trans>
+          <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
+            Connect Wallet
           </button>
         )}
-        {msg && <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`}>{msg.text}</div>}
+
+        <div className={styles.feeRow}>
+          <span>Fee (0.1%)</span>
+          <strong>{summary.fee ? `${summary.fee} ${quote}` : `— ${quote}`}</strong>
+        </div>
+
+        {msg && (
+          <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`} role="status">
+            {msg.text}
+          </div>
+        )}
       </div>
     </div>
   );

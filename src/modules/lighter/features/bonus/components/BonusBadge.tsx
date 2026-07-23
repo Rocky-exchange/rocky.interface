@@ -2,7 +2,7 @@ import { Trans, t } from "@lingui/macro";
 import { NavLink } from "react-router-dom";
 
 import styles from "./BonusBadge.module.scss";
-import { formatUsdcx } from "./BonusBalanceCard";
+import { formatUsda } from "./BonusBalanceCard";
 import { useBonusStatus } from "../api/useBonus";
 
 type BadgePresentation = {
@@ -97,7 +97,7 @@ function getPresentation(data: ReturnType<typeof useBonusStatus>["data"], hasErr
   }
 
   if (data.status === "active") {
-    const amount = formatUsdcx(data.bonus_balance);
+    const amount = formatUsda(data.bonus_balance);
     return {
       status: "active",
       to: "/bonus",

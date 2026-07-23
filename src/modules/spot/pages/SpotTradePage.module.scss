@@ -1,68 +1,183 @@
-// Spot trading page — grid is verbatim from LighterTradePage.module.scss so
-// the visual rhythm (row heights, col widths, borders) exactly matches perp.
-// Only the *content* of each cell is spot-specific.
-
 .page {
   --ltr-side-col: 321px;
   position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) var(--ltr-bottom-h, 220px);
+  gap: 4px;
   width: 100%;
   max-width: none;
-  margin: 0;
-  min-width: 0;
-  height: 100vh;
+  height: 100%;
   min-height: 0;
-  background: var(--ltr-bg-root, #06060c);
-  padding: 4px;
-  display: grid;
-  grid-template-rows: var(--ltr-topnav-h, 56px) minmax(0, 1fr) var(--ltr-bottom-h, 220px);
-  row-gap: 4px;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-  font-family: var(--ltr-font-family);
+  background: var(--ltr-bg-root, #06060c);
   color: var(--ltr-text-primary);
+  font-family: var(--ltr-font-family);
 }
 
-.topnav {
-  position: relative;
-  z-index: 200;
-  border-bottom: 1px solid var(--ltr-border);
-}
-
-.main {
+.primary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--ltr-side-col) var(--ltr-side-col);
-  grid-template-rows: minmax(0, 1fr);
-  column-gap: 4px;
+  gap: 4px;
+  min-width: 0;
   min-height: 0;
+}
 
-  > div {
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
+.chartWorkspace {
+  display: grid;
+  grid-template-rows: 40px 25px minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+  background: #000;
+}
+
+.chartPanel {
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.chartTabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0;
+  border-bottom: 1px solid var(--ltr-border);
+  background: var(--ltr-bg-panel);
+
+  .chartTabsLeft {
+    display: flex;
+    align-items: center;
+    height: 32px;
+  }
+
+  .chartTab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 8px 12px;
+    color: var(--ltr-text-secondary);
+    font: 400 12px / 1 var(--ltr-font-family);
+    background: transparent;
+    border: 0;
+  }
+
+  .chartTab[aria-selected="true"] {
+    color: var(--ltr-text-primary);
+
+    &::after {
+      position: absolute;
+      right: 0;
+      bottom: 2px;
+      left: 0;
+      width: 60%;
+      max-width: 64px;
+      height: 1px;
+      margin: 0 auto;
+      border-radius: 999px;
+      content: "";
+      background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
+    }
+  }
+
+  .chartTab:not(:disabled):focus-visible {
+    outline: 2px solid var(--ltr-accent-cyan, #ff8a3d);
+    outline-offset: -2px;
+  }
+
+  .chartTab:disabled {
+    cursor: default;
+    opacity: 0.55;
   }
 }
 
-.chartCol {
-  display: grid;
-  grid-template-rows: 40px minmax(0, 1fr);
-  row-gap: 4px;
-  background: var(--ltr-bg-root, #000);
+.chartModes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  padding: 0 8px;
+  color: #828285;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chartModeActive {
+  color: var(--ltr-text-primary);
+}
+
+.chartModesSep {
+  width: 1px;
+  height: 16px;
+  background: var(--ltr-border);
+}
+
+.chartIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--ltr-text-muted);
+  font-size: 15px;
+}
+
+.favoritesBar {
+  display: flex;
+  align-items: center;
+  height: 25px;
+  padding: 0 8px;
+  background: #17181f;
+  border-top: 1px solid #20222a;
+}
+
+.favoriteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  color: #8f93a2;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: #c8ccd6;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rocky-theme-accent, #f5a85f);
+    outline-offset: -2px;
+  }
 }
 
 .chart {
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
-  // TradingView widget fills the container via `autosize:true`; no bg/border
-  // needed here (SpotChart's inner .wrap paints them).
 }
 
 .orderbook,
 .orderform {
   display: flex;
   flex-direction: column;
-  background: var(--ltr-bg-panel);
-  border: 1px solid var(--ltr-border);
-  border-radius: var(--ltr-radius, 2px);
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
+  padding-bottom: 4px;
+  background: #000;
 }
 
 .orderbook > *,
@@ -74,16 +189,76 @@
 .bottom {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--ltr-side-col);
-  grid-template-rows: var(--ltr-bottom-h, 220px);
-  column-gap: 4px;
+  gap: 4px;
+  min-width: 0;
   min-height: 0;
+}
 
-  > div {
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    background: var(--ltr-bg-panel);
-    border: 1px solid var(--ltr-border);
-    border-radius: var(--ltr-radius, 2px);
+.tabs {
+  position: relative;
+  z-index: 30;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.accounts {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+@media (max-width: 1180px) {
+  .page {
+    --ltr-side-col: minmax(280px, 320px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .page {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    grid-template-rows: auto auto;
+  }
+
+  .primary {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(520px, auto) minmax(520px, auto);
+  }
+
+  .chartWorkspace {
+    grid-template-rows: auto 25px minmax(520px, 1fr);
+    min-height: 593px;
+  }
+
+  .orderbook,
+  .orderform {
+    min-height: 520px;
+  }
+
+  .bottom {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(260px, auto) minmax(220px, auto);
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    gap: 2px;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .primary,
+  .chartWorkspace,
+  .bottom {
+    gap: 2px;
+  }
+
+  .chartWorkspace {
+    grid-template-rows: auto 25px minmax(420px, 1fr);
+    min-height: 491px;
   }
 }

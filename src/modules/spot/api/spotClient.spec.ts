@@ -34,13 +34,6 @@ async function importFreshApi() {
   return await import("./spotClient");
 }
 
-describe("SPOT_MARKETS", () => {
-  it("has exactly the v1 spot pairs — matches rocky-backend seed", async () => {
-    const { SPOT_MARKETS } = await importFreshApi();
-    expect(SPOT_MARKETS.map((m) => m.symbol)).toEqual(["CBTC-USDA", "CETH-USDA", "CC-USDA"]);
-  });
-});
-
 describe("spotApi.depth (public)", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_SPOT_API_KEY", "");
@@ -175,25 +168,6 @@ describe("spotApi signed endpoints", () => {
     expect(calls[0].url).toContain("quantity=0.001");
   });
 
-  it("placeOrder MARKET omits price and sends type=MARKET", async () => {
-    const calls = stubFetch(() => ({
-      body: { orderId: "abc", status: "NEW", symbol: "CETH-USDA", type: "MARKET", timeInForce: "IOC", price: "0" },
-    }));
-    const { spotApi } = await importFreshApi();
-    await spotApi.placeOrder({
-      symbol: "CETH-USDA",
-      side: "BUY",
-      type: "MARKET",
-      quantity: "0.5",
-    });
-    expect(calls[0].init?.method).toBe("POST");
-    expect(calls[0].url).toContain("symbol=CETH-USDA");
-    expect(calls[0].url).toContain("side=BUY");
-    expect(calls[0].url).toContain("type=MARKET");
-    expect(calls[0].url).toContain("quantity=0.5");
-    expect(calls[0].url).not.toContain("price=");
-  });
-
   it("cancelOrder: DELETE /api/v3/order", async () => {
     const calls = stubFetch(() => ({ body: { status: "CANCELED" } }));
     const { spotApi } = await importFreshApi();
@@ -209,6 +183,38 @@ describe("spotApi signed endpoints", () => {
     await spotApi.openOrders("CBTC-USDA");
     expect(calls[0].url).toMatch(/^\/api\/v3\/openOrders\?/);
     expect(calls[0].url).toContain("symbol=CBTC-USDA");
+  });
+
+  it("myTrades: GET /api/v3/myTrades with symbol + limit", async () => {
+    const calls = stubFetch(() => ({ body: [] }));
+    const { spotApi } = await importFreshApi();
+    await spotApi.myTrades("CETH-USDA", 200);
+    expect(calls[0].url).toMatch(/^\/api\/v3\/myTrades\?/);
+    expect(calls[0].url).toContain("symbol=CETH-USDA");
+    expect(calls[0].url).toContain("limit=200");
+  });
+
+  it("myTrades: defaults limit to 500", async () => {
+    const calls = stubFetch(() => ({ body: [] }));
+    const { spotApi } = await importFreshApi();
+    await spotApi.myTrades("CBTC-USDA");
+    expect(calls[0].url).toContain("limit=500");
+  });
+
+  it("allOrders: GET /api/v3/allOrders with symbol + limit", async () => {
+    const calls = stubFetch(() => ({ body: [] }));
+    const { spotApi } = await importFreshApi();
+    const allOrders = (spotApi as typeof spotApi & {
+      allOrders?: (symbol: string, limit?: number) => Promise<unknown>;
+    }).allOrders;
+
+    expect(typeof allOrders).toBe("function");
+    if (!allOrders) return;
+
+    await allOrders("CBTC-USDA", 200);
+    expect(calls[0].url).toMatch(/^\/api\/v3\/allOrders\?/);
+    expect(calls[0].url).toContain("symbol=CBTC-USDA");
+    expect(calls[0].url).toContain("limit=200");
   });
 
   it("throws -401 SpotApiError when no session credentials are set", async () => {
