@@ -1517,6 +1517,10 @@ msgstr ""
 msgid "Wallet Balance"
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Partially filled"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Limit"
 msgstr ""
@@ -2688,6 +2692,10 @@ msgstr ""
 msgid "Trigger price above mark price"
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "New"
+msgstr ""
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Reduce-only requires an open position on this market."
 msgstr ""
@@ -3449,6 +3457,7 @@ msgstr ""
 msgid "Explorer"
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Cancelled"
 msgstr ""
@@ -3677,6 +3686,7 @@ msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"

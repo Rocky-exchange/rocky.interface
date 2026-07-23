@@ -27,6 +27,19 @@ function fmtNum(v: string, maxDigits = 8): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: maxDigits });
 }
 
+function OrderStatus({ status }: { status: SpotOrder["status"] }) {
+  switch (status) {
+    case "NEW":
+      return <Trans>New</Trans>;
+    case "PARTIALLY_FILLED":
+      return <Trans>Partially filled</Trans>;
+    case "FILLED":
+      return <Trans>Filled</Trans>;
+    case "CANCELED":
+      return <Trans>Cancelled</Trans>;
+  }
+}
+
 function OpenOrders({ market }: { market: SpotMarket }) {
   const ready = useSpotAuthReady();
   const { data, err, refetch } = usePolling<SpotOrder[]>(
@@ -214,9 +227,11 @@ function TradeHistory({ market }: { market: SpotMarket }) {
               <td className={trade.isBuyer ? styles.buy : styles.sell}>
                 {trade.isBuyer ? <Trans>BUY</Trans> : <Trans>SELL</Trans>}
               </td>
-              <td>{fmtNum(trade.price, 2)}</td>
-              <td>{fmtNum(trade.qty, 8)}</td>
-              <td>{fmtNum(trade.quoteQty, 2)}</td>
+              <td>${fmtNum(trade.price, 2)}</td>
+              <td>
+                {fmtNum(trade.qty, 8)} {market.displayBase}
+              </td>
+              <td>${fmtNum(trade.quoteQty, 2)}</td>
               <td style={MUTED_TEXT_STYLE}>
                 {fmtNum(trade.commission, 6)} {trade.commissionAsset}
               </td>
@@ -294,10 +309,16 @@ function OrderHistory({ market }: { market: SpotMarket }) {
             <tr key={order.orderId}>
               <td style={MUTED_TEXT_STYLE}>{fmtTime(order.time ?? order.updateTime)}</td>
               <td className={order.side === "BUY" ? styles.buy : styles.sell}>{order.side}</td>
-              <td>{fmtNum(order.price, 2)}</td>
-              <td>{fmtNum(order.origQty, 8)}</td>
-              <td>{fmtNum(order.executedQty, 8)}</td>
-              <td style={SECONDARY_TEXT_STYLE}>{order.status}</td>
+              <td>${fmtNum(order.price, 2)}</td>
+              <td>
+                {fmtNum(order.origQty, 8)} {market.displayBase}
+              </td>
+              <td>
+                {fmtNum(order.executedQty, 8)} {market.displayBase}
+              </td>
+              <td style={SECONDARY_TEXT_STYLE}>
+                <OrderStatus status={order.status} />
+              </td>
             </tr>
           ))}
         </tbody>

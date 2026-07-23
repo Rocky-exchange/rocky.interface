@@ -1517,6 +1517,10 @@ msgstr "TWAP"
 msgid "Wallet Balance"
 msgstr "Wallet Balance"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Partially filled"
+msgstr "Partially filled"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Limit"
 msgstr "Cancel Limit"
@@ -2688,6 +2692,10 @@ msgstr "Moved {0} USDA to Futures"
 msgid "Trigger price above mark price"
 msgstr "Trigger price above mark price"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "New"
+msgstr "New"
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Reduce-only requires an open position on this market."
 msgstr "Reduce-only requires an open position on this market."
@@ -3449,6 +3457,7 @@ msgstr "Unknown order"
 msgid "Explorer"
 msgstr "Explorer"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Cancelled"
 msgstr "Cancelled"
@@ -3677,6 +3686,7 @@ msgstr "You have already bound a referral code."
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"

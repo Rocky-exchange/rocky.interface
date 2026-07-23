@@ -1517,6 +1517,10 @@ msgstr "TWAP"
 msgid "Wallet Balance"
 msgstr "錢包餘額"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Partially filled"
+msgstr "部分成交"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Limit"
 msgstr "取消限價"
@@ -2688,6 +2692,10 @@ msgstr "已將 {0} USDA 劃轉至合約帳戶"
 msgid "Trigger price above mark price"
 msgstr "觸發價格高於標記價格"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "New"
+msgstr "新訂單"
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Reduce-only requires an open position on this market."
 msgstr "只減倉需要此市場上有未平倉倉位。"
@@ -3449,6 +3457,7 @@ msgstr "未知訂單"
 msgid "Explorer"
 msgstr "瀏覽器"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Cancelled"
 msgstr "已取消"
@@ -3677,6 +3686,7 @@ msgstr "您已綁定推薦碼。"
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"

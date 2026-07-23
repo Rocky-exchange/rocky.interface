@@ -125,7 +125,7 @@ describe("SpotBottomTabs", () => {
     expect(orderHistory.disabled).toBe(false);
   });
 
-  it("switches to Order History and renders allOrders rows for the API symbol", async () => {
+  it("formats Order History values with currency, asset, and translated status labels", async () => {
     mReady.mockReturnValue(true);
     mAllOrders.mockResolvedValue([
       {
@@ -140,8 +140,12 @@ describe("SpotBottomTabs", () => {
     const { getByRole, findByRole } = render(<SpotBottomTabs market={market} />);
     fireEvent.click(getByRole("tab", { name: "Order History" }));
 
-    const row = await findByRole("row", { name: /BUY.*65,000.*0.001.*FILLED/ });
-    expect(within(row).getByText("FILLED")).toBeTruthy();
+    const row = await findByRole("row", { name: /BUY.*65,000.*0.001.*Filled/ });
+    expect(within(row).getByText("$65,000")).toBeTruthy();
+    expect(within(row).getAllByText("0.001 CBTC")).toHaveLength(2);
+    expect(within(row).queryByText("$0.001")).toBeNull();
+    expect(within(row).getByText("Filled")).toBeTruthy();
+    expect(within(row).queryByText("FILLED")).toBeNull();
     expect(mAllOrders).toHaveBeenCalledWith("CBTC-USDA");
   });
 
@@ -268,7 +272,7 @@ describe("SpotBottomTabs", () => {
     await waitFor(() => expect(cancelButton.disabled).toBe(false));
   });
 
-  it("switches to Trade History and renders myTrades rows for the API symbol", async () => {
+  it("formats Trade History price, quantity, and total with their display units", async () => {
     mReady.mockReturnValue(true);
     mTrades.mockResolvedValue([
       {
@@ -290,6 +294,9 @@ describe("SpotBottomTabs", () => {
     fireEvent.click(getByRole("tab", { name: "Trade History" }));
 
     const row = await findByRole("row", { name: /BUY.*65,000.*Taker/ });
+    expect(within(row).getByText("$65,000")).toBeTruthy();
+    expect(within(row).getByText("0.001 CBTC")).toBeTruthy();
+    expect(within(row).getByText("$65")).toBeTruthy();
     expect(within(row).getByText("Taker")).toBeTruthy();
     expect(mTrades).toHaveBeenCalledWith("CBTC-USDA");
   });

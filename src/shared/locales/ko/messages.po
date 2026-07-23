@@ -1517,6 +1517,10 @@ msgstr "TWAP"
 msgid "Wallet Balance"
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Partially filled"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Limit"
 msgstr "지정가 취소"
@@ -2688,6 +2692,10 @@ msgstr ""
 msgid "Trigger price above mark price"
 msgstr "트리거 가격이 마크 가격 초과"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "New"
+msgstr ""
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Reduce-only requires an open position on this market."
 msgstr ""
@@ -3449,6 +3457,7 @@ msgstr "알 수 없는 주문"
 msgid "Explorer"
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Cancelled"
 msgstr ""
@@ -3677,6 +3686,7 @@ msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"
