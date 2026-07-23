@@ -50,7 +50,7 @@ export function AssetsTab({ mode: _mode = "all" }: { mode?: BottomTabFilterMode 
             <th>
               <span className={styles.sortHeader}>
                 <span>
-                  <Trans>USDC Value</Trans>
+                  <Trans>USDA Value</Trans>
                 </span>
                 <span className={styles.sortCaret}>⌄</span>
               </span>
