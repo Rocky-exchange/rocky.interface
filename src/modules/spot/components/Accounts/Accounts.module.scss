@@ -141,6 +141,13 @@
   color: var(--ltr-text-muted);
 }
 
+.balanceZeroCount {
+  margin: 0 0.04em;
+  font-size: 0.68em;
+  line-height: 1;
+  vertical-align: sub;
+}
+
 .err {
   color: var(--ltr-down);
   font-size: 11px;

@@ -18,6 +18,33 @@ function fmt(v: string, digits = 4): string {
   });
 }
 
+function BalanceAmount({ value, asset }: { value: string; asset: string }) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return <>—</>;
+
+  const normalizedAsset = asset.trim().toUpperCase();
+  const isWrappedMarketAsset = normalizedAsset === "CBTC" || normalizedAsset === "CETH";
+  if (!isWrappedMarketAsset) return <>{fmt(value)}</>;
+
+  const leadingDecimalZeroes = numeric.toFixed(20).match(/^0\.(0+)/)?.[1].length || 0;
+  const maximumFractionDigits = leadingDecimalZeroes >= 4 ? Math.min(leadingDecimalZeroes + 4, 20) : 6;
+  const formatted = numeric.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits,
+  });
+  const compactMatch = formatted.match(/^([+-]?[\d,]+)\.(0{3,})(\d+)$/);
+
+  if (!compactMatch) return <>{formatted}</>;
+
+  return (
+    <span>
+      {compactMatch[1]}.0
+      <sub className={styles.balanceZeroCount}>{compactMatch[2].length}</sub>
+      {compactMatch[3]}
+    </span>
+  );
+}
+
 async function faucet(party: string): Promise<void> {
   const r = await fetch("/api/v3/dev/faucet", {
     method: "POST",
@@ -67,13 +94,20 @@ export function SpotAccountsPanel({
               </tr>
             </thead>
             <tbody>
-              {account?.balances.map((balance) => (
-                <tr key={balance.asset}>
-                  <td className={styles.asset}>{displayAsset(balance.asset, market)}</td>
-                  <td>{fmt(balance.free)}</td>
-                  <td className={styles.locked}>{fmt(balance.locked)}</td>
-                </tr>
-              ))}
+              {account?.balances.map((balance) => {
+                const asset = displayAsset(balance.asset, market);
+                return (
+                  <tr key={balance.asset}>
+                    <td className={styles.asset}>{asset}</td>
+                    <td>
+                      <BalanceAmount value={balance.free} asset={asset} />
+                    </td>
+                    <td className={styles.locked}>
+                      <BalanceAmount value={balance.locked} asset={asset} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {ready && !account && !err && (
@@ -225,13 +259,20 @@ export function SpotAccountsPanel({
               </tr>
             </thead>
             <tbody>
-              {account.balances.map((balance) => (
-                <tr key={balance.asset}>
-                  <td className={styles.asset}>{displayAsset(balance.asset, market)}</td>
-                  <td>{fmt(balance.free)}</td>
-                  <td className={styles.locked}>{fmt(balance.locked)}</td>
-                </tr>
-              ))}
+              {account.balances.map((balance) => {
+                const asset = displayAsset(balance.asset, market);
+                return (
+                  <tr key={balance.asset}>
+                    <td className={styles.asset}>{asset}</td>
+                    <td>
+                      <BalanceAmount value={balance.free} asset={asset} />
+                    </td>
+                    <td className={styles.locked}>
+                      <BalanceAmount value={balance.locked} asset={asset} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

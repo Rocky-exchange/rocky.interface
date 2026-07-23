@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -106,6 +106,32 @@ describe("SpotAccountsPanel", () => {
     expect(getByText("CBTC")).toBeTruthy();
     expect(getByText("cETH")).toBeTruthy();
     expect(queryByText(/Get test funds/)).toBeNull();
+  });
+
+  it("keeps small wrapped balances visible with the wallet history decimal notation", () => {
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: account("0.9", "0", "0.000031", "0.0001"),
+      err: null,
+      refetch: vi.fn(),
+    });
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getByRole } = render(<SpotAccountsPanel market={market} />);
+    const cbtcRow = getByRole("row", { name: /CBTC/ });
+    const cethRow = getByRole("row", { name: /cETH/ });
+
+    expect(within(cbtcRow).getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.0431");
+    expect(within(cethRow).getByText("3", { selector: "sub" }).parentElement?.textContent).toContain("0.031");
+    expect(within(cbtcRow).queryByText("0.0000")).toBeNull();
+    expect(within(cethRow).queryByText("0.0000")).toBeNull();
   });
 
   it("keeps the transfer amount editable and enables both directions after entering an amount", () => {
