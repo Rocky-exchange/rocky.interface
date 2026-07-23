@@ -73,4 +73,19 @@ describe("useOrderBookAdapter helpers", () => {
 
     expect(options).toEqual(["1", "10", "100", "1000"]);
   });
+
+  it("uses the configured tick size for low-priced markets", () => {
+    expect(computeOrderBookGroupOptions(null, "0.00000001")).toEqual([
+      "0.00000001",
+      "0.0000001",
+      "0.000001",
+      "0.00001",
+    ]);
+  });
+
+  it("does not round an exact low-priced ask into the next bucket", () => {
+    const asks = aggregateOrderBookLevels([["0.00000057", "1000000"]], "ask", 0.00000001);
+
+    expect(asks[0]?.price).toBe(0.00000057);
+  });
 });

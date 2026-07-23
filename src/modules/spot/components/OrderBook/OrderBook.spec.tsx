@@ -1,7 +1,7 @@
 // Component-layer specs for SpotOrderBookPanel — renders levels, spread,
 // cumulative totals, and filters the already-fetched book by side.
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
 vi.mock("../../api/spotClient", async () => {
   const actual = await vi.importActual<typeof import("../../api/spotClient")>("../../api/spotClient");
@@ -10,18 +10,36 @@ vi.mock("../../api/spotClient", async () => {
     spotApi: {
       depth: vi.fn(),
       trades: vi.fn(),
+      markets: vi.fn(),
     },
   };
 });
 
 import { SpotOrderBookPanel } from "./OrderBook";
 import { spotApi, type DepthResp } from "../../api/spotClient";
-import { resolveSpotMarket } from "../../model/spotMarkets";
+import { resolveSpotMarket, type SpotMarket } from "../../model/spotMarkets";
 
 const mDepth = vi.mocked(spotApi.depth);
 const mTrades = vi.mocked(spotApi.trades);
+const mMarkets = vi.mocked(
+  (
+    spotApi as typeof spotApi & {
+      markets: () => Promise<Array<{ symbol: string; tick_size: string }>>;
+    }
+  ).markets,
+);
 const market = resolveSpotMarket("CBTC-USDA");
 const ethMarket = resolveSpotMarket("CETH-USDA");
+const pepeMarket: SpotMarket = {
+  routeSymbol: "PEPE-USDA",
+  apiSymbol: "PEPE-USDA",
+  displayBase: "PEPE",
+  displayQuote: "USDA",
+  apiBase: "PEPE",
+  apiQuote: "USDA",
+  chartSymbol: "PEPE-USDA",
+  chartSource: "native",
+};
 
 const twoSidedDepth = {
   lastUpdateId: 1,
@@ -36,6 +54,13 @@ const twoSidedDepth = {
     ["64970.00", "0.006"],
   ] as [string, string][],
 };
+
+beforeEach(() => {
+  mMarkets.mockResolvedValue([
+    { symbol: market.apiSymbol, tick_size: "0.01" },
+    { symbol: ethMarket.apiSymbol, tick_size: "0.01" },
+  ]);
+});
 
 afterEach(() => {
   cleanup();
@@ -73,7 +98,23 @@ describe("SpotOrderBookPanel", () => {
 
     await findByText("65,010.00");
     expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("USDA");
-    expect(getByRole("button", { name: "Order book price level" }).textContent).toContain("1");
+    expect(getByRole("button", { name: "Order book price level" }).textContent).toContain("0.01");
+  });
+
+  it("uses the current low-priced spot market tick as the default price level", async () => {
+    mMarkets.mockResolvedValue([{ symbol: pepeMarket.apiSymbol, tick_size: "0.00000001" }]);
+    mDepth.mockResolvedValue({
+      lastUpdateId: 1,
+      asks: [["0.00000289", "1000000"]],
+      bids: [["0.00000288", "1000000"]],
+    });
+    const { getByRole } = render(<SpotOrderBookPanel market={pepeMarket} />);
+
+    await waitFor(() => expect(document.body.textContent).toContain("0.00000289"));
+    await waitFor(() => expect(document.body.textContent).toContain("0.00000288"));
+    await waitFor(() =>
+      expect(getByRole("button", { name: "Order book price level" }).textContent).toContain("0.00000001"),
+    );
   });
 
   it("groups displayed price levels from the order book level menu", async () => {

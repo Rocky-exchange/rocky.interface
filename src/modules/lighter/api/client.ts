@@ -287,6 +287,8 @@ function normalizeMarketRow(r: RawMarketRow, rank: number): Market {
     leverage: r.max_leverage ?? 100,
     price_decimals: decimalsOf(r.tick_size),
     size_decimals: decimalsOf(r.min_qty),
+    tick_size: r.tick_size,
+    min_qty: r.min_qty,
     status: "active",
   };
 }

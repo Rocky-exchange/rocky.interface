@@ -1,3 +1,5 @@
+import BigNumber from "bignumber.js";
+
 export type AggregatedOrderBookLevel = {
   price: number;
   size: number;
@@ -6,6 +8,8 @@ export type AggregatedOrderBookLevel = {
   quoteTotal: number;
 };
 const ALLOWED_DEPTH_VALUES = [
+  "0.00000001",
+  "0.0000001",
   "0.000001",
   "0.00001",
   "0.0001",
@@ -21,10 +25,11 @@ const ALLOWED_DEPTH_VALUES = [
 
 const ALLOWED_DEPTH_NUMBERS = ALLOWED_DEPTH_VALUES.map((s) => Number.parseFloat(s));
 
-function roundToTick(price: number, tick: number, side: "ask" | "bid"): number {
-  const ratio = price / tick;
-  const rounded = side === "ask" ? Math.ceil(ratio) : Math.floor(ratio);
-  return rounded * tick;
+function roundToTick(price: string | number, tick: number, side: "ask" | "bid"): number {
+  const priceValue = new BigNumber(price);
+  const tickValue = new BigNumber(tick.toString());
+  const roundingMode = side === "ask" ? BigNumber.ROUND_CEIL : BigNumber.ROUND_FLOOR;
+  return priceValue.dividedBy(tickValue).integerValue(roundingMode).multipliedBy(tickValue).toNumber();
 }
 
 export function aggregateOrderBookLevels(
@@ -42,7 +47,7 @@ export function aggregateOrderBookLevels(
     const size = Number(sizeRaw);
     if (!Number.isFinite(price) || !Number.isFinite(size) || size <= 0) continue;
 
-    const bucketPrice = roundToTick(price, tickSize, side);
+    const bucketPrice = roundToTick(priceRaw, tickSize, side);
     buckets.set(bucketPrice, (buckets.get(bucketPrice) ?? 0) + size);
   }
 
@@ -76,8 +81,33 @@ function snapUpToAllowedDepth(value: number): number {
   return ALLOWED_DEPTH_NUMBERS[ALLOWED_DEPTH_NUMBERS.length - 1];
 }
 
-export function computeOrderBookGroupOptions(orderbook: { bids?: unknown; asks?: unknown } | null | undefined): string[] {
+export function buildOrderBookGroupOptions(
+  tickSize: string | number | null | undefined,
+  count = 4
+): string[] {
+  const normalized = typeof tickSize === "string" ? tickSize.replace(/,/g, "").trim() : String(tickSize ?? "");
+  const base = new BigNumber(normalized);
+  if (!base.isFinite() || base.lte(0) || !Number.isInteger(count) || count <= 0) return [];
+
+  return Array.from({ length: count }, (_, index) =>
+    base.multipliedBy(new BigNumber(10).pow(index)).toFixed()
+  );
+}
+
+export function orderBookPriceFractionDigits(tickSize: string | number | null | undefined): number {
+  const normalized = typeof tickSize === "string" ? tickSize.replace(/,/g, "").trim() : String(tickSize ?? "");
+  const tick = new BigNumber(normalized);
+  if (!tick.isFinite() || tick.lte(0)) return 2;
+  return Math.max(0, tick.decimalPlaces() ?? 0);
+}
+
+export function computeOrderBookGroupOptions(
+  orderbook: { bids?: unknown; asks?: unknown } | null | undefined,
+  configuredTickSize?: string | number | null
+): string[] {
   const fallback = ["0.01", "0.1", "1", "10"];
+  const configured = buildOrderBookGroupOptions(configuredTickSize);
+  if (configured.length > 0) return configured;
 
   const collectPrices = (levels: unknown) => {
     if (!Array.isArray(levels)) return [] as number[];

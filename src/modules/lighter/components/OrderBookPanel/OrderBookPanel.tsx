@@ -1,12 +1,15 @@
 import { Trans } from "@lingui/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useApiOrderbook, useApiTrades } from "modules/lighter/api/hooks";
+import { useApiOrderbook, useApiTrades, usePrimitMarkets } from "modules/lighter/api/hooks";
 import { useTradeState } from "modules/lighter/store/TradeStateContext";
 import { useChainId } from "lib/chains";
 import { useTradesUpdates } from "modules/lighter/api";
 
-import { computeOrderBookGroupOptions } from "../../adapters/orderBookAggregation";
+import {
+  computeOrderBookGroupOptions,
+  orderBookPriceFractionDigits,
+} from "../../adapters/orderBookAggregation";
 import { useOrderBookAdapter, OrderBookLevel } from "../../adapters/useOrderBookAdapter";
 import type { Trade } from "../../adapters/useTradesAdapter";
 import { emitLimitPrice } from "../../state/limitPriceBus";
@@ -57,11 +60,13 @@ function Row({
   side,
   maxTotal,
   unit,
+  priceGroup,
 }: {
   level: OrderBookLevel;
   side: "ask" | "bid";
   maxTotal: number;
   unit: Unit;
+  priceGroup: string;
 }) {
   const isEmpty = level.price <= 0 || level.size <= 0;
   const displaySize = unit === "USD" ? level.quoteSize : level.size;
@@ -100,7 +105,9 @@ function Row({
     >
       <div className={side === "ask" ? styles.depthTotalAsk : styles.depthTotalBid} style={{ width: `${totalPct}%` }} />
       <div className={side === "ask" ? styles.depthSizeAsk : styles.depthSizeBid} style={{ width: `${sizePct}%` }} />
-      <div className={`${styles.price} ${priceCls} ltr-mono`}>{isEmpty ? "" : level.price.toLocaleString()}</div>
+      <div className={`${styles.price} ${priceCls} ltr-mono`}>
+        {isEmpty ? "" : formatOrderBookPrice(level.price, priceGroup)}
+      </div>
       <div className={`${styles.size} ltr-mono`}>{isEmpty ? "" : formatOrderBookValue(displaySize, unit)}</div>
       <div className={`${styles.total} ltr-mono`}>{isEmpty ? "" : formatOrderBookValue(displayTotal, unit)}</div>
     </div>
@@ -145,17 +152,18 @@ function padOrderBookLevels(levels: OrderBookLevel[], targetCount: number): Orde
   return padded.slice(0, targetCount);
 }
 
-function formatSpreadValue(value: number): string {
+function formatOrderBookPrice(value: number, priceGroup: string): string {
   if (!Number.isFinite(value) || value < 0) return "--";
-
-  if (Number.isInteger(value)) {
-    return value.toLocaleString("en-US");
-  }
-
+  const fractionDigits = orderBookPriceFractionDigits(priceGroup);
   return value.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 6,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   });
+}
+
+function formatSpreadValue(value: number, priceGroup: string): string {
+  if (!Number.isFinite(value) || value < 0) return "--";
+  return formatOrderBookPrice(value, priceGroup);
 }
 
 export function OrderBookPanel({
@@ -171,7 +179,7 @@ export function OrderBookPanel({
   const [orderBookMode, setOrderBookMode] = useState<Mode>("all");
   const [tradesMode, setTradesMode] = useState<Mode>("all");
   const [unit, setUnit] = useState<Unit>("USD");
-  const [group, setGroup] = useState<GroupKey>("1");
+  const [group, setGroup] = useState<GroupKey>("");
   const [tradeSizeFilter, setTradeSizeFilter] = useState<TradeSizeFilter>("All");
   const [openMenu, setOpenMenu] = useState<"unit" | "group" | "layout" | "tradeSize" | null>(null);
   const prevGroupOptionsKeyRef = useRef("");
@@ -190,10 +198,21 @@ export function OrderBookPanel({
     revalidateOnReconnect: true,
   });
   const { lastTrade } = useTradesUpdates(chainId, selectedSymbol ?? undefined);
+  const { data: marketsData } = usePrimitMarkets(chainId);
   const [lastTrades, setLastTrades] = useState<
     Array<{ id: string; price: string; amount: string; side: "buy" | "sell"; timestamp: number | string }>
   >([]);
-  const groupOptions = useMemo(() => computeOrderBookGroupOptions(orderbook), [orderbook]);
+  const marketTickSize = useMemo(() => {
+    const selectedBase = selectedSymbol?.split(/[-/]/)[0]?.toUpperCase();
+    if (!selectedBase) return undefined;
+    return marketsData?.markets.find((market) => market.base_asset.toUpperCase() === selectedBase)?.tick_size;
+  }, [marketsData?.markets, selectedSymbol]);
+  const groupOptions = useMemo(() => {
+    if (!marketsData) return [];
+    return computeOrderBookGroupOptions(orderbook, marketTickSize);
+  }, [marketTickSize, marketsData, orderbook]);
+  const activeGroup = groupOptions.includes(group) ? group : (groupOptions[0] ?? "");
+  const priceDisplayTick = marketTickSize ?? activeGroup;
   const rootRef = useRef<HTMLDivElement>(null);
   const [panelHeight, setPanelHeight] = useState(608);
 
@@ -223,16 +242,16 @@ export function OrderBookPanel({
     const key = groupOptions.join(",");
     if (key !== prevGroupOptionsKeyRef.current) {
       prevGroupOptionsKeyRef.current = key;
-      setGroup(groupOptions[0] ?? "0.01");
+      setGroup(groupOptions[0] ?? "");
       return;
     }
 
     if (!groupOptions.includes(group)) {
-      setGroup(groupOptions[0] ?? "0.01");
+      setGroup(groupOptions[0] ?? "");
     }
   }, [group, groupOptions]);
 
-  const ob = useOrderBookAdapter(group);
+  const ob = useOrderBookAdapter(activeGroup || undefined);
   useEffect(() => {
     setLastTrades(trades?.trades ?? []);
   }, [selectedSymbol, trades?.trades]);
@@ -281,8 +300,10 @@ export function OrderBookPanel({
           if (tradesMode === "bids") return t.side === "buy";
           return true;
         });
-  const maxAskTotal = Math.max(0, ...ob.asks.map((l) => (unit === "USD" ? l.quoteTotal : l.total)));
-  const maxBidTotal = Math.max(0, ...ob.bids.map((l) => (unit === "USD" ? l.quoteTotal : l.total)));
+  const visibleAsks = activeGroup ? ob.asks : [];
+  const visibleBids = activeGroup ? ob.bids : [];
+  const maxAskTotal = Math.max(0, ...visibleAsks.map((l) => (unit === "USD" ? l.quoteTotal : l.total)));
+  const maxBidTotal = Math.max(0, ...visibleBids.map((l) => (unit === "USD" ? l.quoteTotal : l.total)));
   // 从容器高度动态计算可容纳的行数,使 asks/bids 铺满面板(不滚动)
   // 布局消耗:tabs 32 + subbar 32 + header 28 + spread(all only) 28,每行 20px
   const ROW_H = 20;
@@ -304,17 +325,17 @@ export function OrderBookPanel({
   // - all bids:  [best..far, empty_at_bottom](empty 远离 spread)
   const emptyRow: OrderBookLevel = { price: 0, size: 0, total: 0, quoteSize: 0, quoteTotal: 0 };
   const askRows = useMemo(() => {
-    const desc = [...ob.asks].slice(0, askCount).reverse(); // 降序(高→低)
+    const desc = [...visibleAsks].slice(0, askCount).reverse(); // 降序(高→低)
     const pad = Math.max(0, askCount - desc.length);
     const empties = Array.from({ length: pad }, () => emptyRow);
     return orderBookMode === "all" ? [...empties, ...desc] : [...desc, ...empties];
-  }, [askCount, orderBookMode, ob.asks]);
+  }, [askCount, orderBookMode, visibleAsks]);
   const bidRows = useMemo(() => {
-    const desc = ob.bids.slice(0, bidCount); // bids 已降序(高→低)
+    const desc = visibleBids.slice(0, bidCount); // bids 已降序(高→低)
     const pad = Math.max(0, bidCount - desc.length);
     const empties = Array.from({ length: pad }, () => emptyRow);
     return [...desc, ...empties];
-  }, [bidCount, ob.bids]);
+  }, [bidCount, visibleBids]);
 
   const renderModeButtons = (mode: Mode, onChange: (mode: Mode) => void) => (
     <div className={styles.modeBtns}>
@@ -384,7 +405,7 @@ export function OrderBookPanel({
       </div>
       <div className={styles.selWrap}>
         <button className={styles.subSel} onClick={() => setOpenMenu(openMenu === "group" ? null : "group")}>
-          {group}
+          {activeGroup || "—"}
           <svg
             className={`${styles.caretSvg} ${openMenu === "group" ? styles.caretOpen : ""}`}
             width="10"
@@ -398,7 +419,7 @@ export function OrderBookPanel({
         <DropdownMenu
           open={openMenu === "group"}
           options={groupOptions}
-          value={group}
+          value={activeGroup}
           onSelect={(v) => {
             setGroup(v);
             setOpenMenu(null);
@@ -484,13 +505,20 @@ export function OrderBookPanel({
       {orderBookMode !== "bids" && (
         <div className={styles.asks}>
           {askRows.map((l, i) => (
-            <Row key={`a${i}`} level={l} side="ask" maxTotal={maxAskTotal} unit={unit} />
+            <Row
+              key={`a${i}`}
+              level={l}
+              side="ask"
+              maxTotal={maxAskTotal}
+              unit={unit}
+              priceGroup={priceDisplayTick}
+            />
           ))}
         </div>
       )}
       {orderBookMode === "all" && (
         <div className={styles.spreadRow}>
-          <span className="ltr-mono">{formatSpreadValue(ob.spread)}</span>
+          <span className="ltr-mono">{formatSpreadValue(ob.spread, priceDisplayTick)}</span>
           <span className={styles.spreadLabel}>
             <Trans>Spread</Trans>
           </span>
@@ -500,7 +528,14 @@ export function OrderBookPanel({
       {orderBookMode !== "asks" && (
         <div className={styles.bids}>
           {bidRows.map((l, i) => (
-            <Row key={`b${i}`} level={l} side="bid" maxTotal={maxBidTotal} unit={unit} />
+            <Row
+              key={`b${i}`}
+              level={l}
+              side="bid"
+              maxTotal={maxBidTotal}
+              unit={unit}
+              priceGroup={priceDisplayTick}
+            />
           ))}
         </div>
       )}

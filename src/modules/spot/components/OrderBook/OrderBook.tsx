@@ -1,16 +1,18 @@
-import { type CSSProperties, type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./OrderBook.module.scss";
-import { aggregateOrderBookLevels } from "../../../lighter/adapters/orderBookAggregation";
+import {
+  aggregateOrderBookLevels,
+  buildOrderBookGroupOptions,
+  orderBookPriceFractionDigits,
+} from "../../../lighter/adapters/orderBookAggregation";
 import { spotApi, type DepthResp, type Trade } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Tab = "book" | "trades";
 type BookView = "all" | "asks" | "bids";
-type PriceLevel = (typeof PRICE_LEVELS)[number];
-
-const PRICE_LEVELS = ["0.01", "0.1", "1", "10", "100"] as const;
+type PriceLevel = string;
 
 function barWidthStyle(total: number, maxTotal: number): CSSProperties {
   return { width: `${(total / maxTotal) * 100}%` };
@@ -25,7 +27,17 @@ function fmtNum(v: string | number, digits = 2): string {
   });
 }
 
-function BookBody({ market, view, priceLevel }: { market: SpotMarket; view: BookView; priceLevel: PriceLevel }) {
+function BookBody({
+  market,
+  view,
+  priceLevel,
+  priceDigits,
+}: {
+  market: SpotMarket;
+  view: BookView;
+  priceLevel: PriceLevel;
+  priceDigits: number;
+}) {
   const { data, err } = usePolling<DepthResp>(() => spotApi.depth(market.apiSymbol, 20), 1000, [market.apiSymbol]);
   if (err) return <div className={styles.err}>{err}</div>;
   if (!data) return <div className={styles.empty}>Loading…</div>;
@@ -66,7 +78,7 @@ function BookBody({ market, view, priceLevel }: { market: SpotMarket; view: Book
             .map((r, i) => (
               <div key={`a${i}`} className={styles.row}>
                 <div className={`${styles.rowBar} ${styles.askBar}`} style={barWidthStyle(r.total, maxTotal)} />
-                <span className={`${styles.rowText} ${styles.ask}`}>{fmtNum(r.p)}</span>
+                <span className={`${styles.rowText} ${styles.ask}`}>{fmtNum(r.p, priceDigits)}</span>
                 <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
                 <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.notional)}</span>
               </div>
@@ -74,11 +86,11 @@ function BookBody({ market, view, priceLevel }: { market: SpotMarket; view: Book
         </div>
       )}
       <div className={styles.mid}>
-        <span className={styles.midPrice}>{fmtNum(referencePrice ?? Number.NaN)}</span>
+        <span className={styles.midPrice}>{fmtNum(referencePrice ?? Number.NaN, priceDigits)}</span>
         <span>
           {spread === null || spreadPct === null
             ? "Spread —"
-            : `Spread ${spread.toFixed(2)} (${spreadPct.toFixed(3)}%)`}
+            : `Spread ${spread.toFixed(priceDigits)} (${spreadPct.toFixed(3)}%)`}
         </span>
       </div>
       {view !== "asks" && (
@@ -86,7 +98,7 @@ function BookBody({ market, view, priceLevel }: { market: SpotMarket; view: Book
           {bidRows.map((r, i) => (
             <div key={`b${i}`} className={styles.row}>
               <div className={`${styles.rowBar} ${styles.bidBar}`} style={barWidthStyle(r.total, maxTotal)} />
-              <span className={`${styles.rowText} ${styles.bid}`}>{fmtNum(r.p)}</span>
+              <span className={`${styles.rowText} ${styles.bid}`}>{fmtNum(r.p, priceDigits)}</span>
               <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.q, 4)}</span>
               <span className={`${styles.rowText} ${styles.right}`}>{fmtNum(r.notional)}</span>
             </div>
@@ -97,7 +109,7 @@ function BookBody({ market, view, priceLevel }: { market: SpotMarket; view: Book
   );
 }
 
-function TradesBody({ market }: { market: SpotMarket }) {
+function TradesBody({ market, priceDigits }: { market: SpotMarket; priceDigits: number }) {
   const { data } = usePolling<Trade[]>(() => spotApi.trades(market.apiSymbol, 30), 1500, [market.apiSymbol]);
   if (!data || data.length === 0) return <div className={styles.empty}>No trades yet</div>;
   return (
@@ -113,7 +125,7 @@ function TradesBody({ market }: { market: SpotMarket }) {
         });
         return (
           <div key={t.id} className={styles.row}>
-            <span className={`${styles.rowText} ${cls}`}>{fmtNum(t.price)}</span>
+            <span className={`${styles.rowText} ${cls}`}>{fmtNum(t.price, priceDigits)}</span>
             <span className={`${styles.rowText} ${styles.tradeSize}`}>{fmtNum(t.qty, 4)}</span>
             <span className={`${styles.rowText} ${styles.tradeTime}`}>{time}</span>
           </div>
@@ -126,10 +138,32 @@ function TradesBody({ market }: { market: SpotMarket }) {
 export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
   const [tab, setTab] = useState<Tab>("book");
   const [bookView, setBookView] = useState<BookView>("all");
-  const [priceLevel, setPriceLevel] = useState<PriceLevel>("1");
+  const [priceLevel, setPriceLevel] = useState<PriceLevel>("");
   const [priceLevelMenuOpen, setPriceLevelMenuOpen] = useState(false);
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ book: null, trades: null });
   const priceLevelControlRef = useRef<HTMLDivElement>(null);
+  const priceLevelOptionsKeyRef = useRef("");
+  const { data: markets } = usePolling(() => spotApi.markets(), 60_000);
+  const marketTickSize = useMemo(
+    () => markets?.find((item) => item.symbol.toUpperCase() === market.apiSymbol.toUpperCase())?.tick_size,
+    [market.apiSymbol, markets]
+  );
+  const priceLevels = useMemo(() => buildOrderBookGroupOptions(marketTickSize, 5), [marketTickSize]);
+  const activePriceLevel = priceLevels.includes(priceLevel) ? priceLevel : (priceLevels[0] ?? "");
+  const priceDigits = orderBookPriceFractionDigits(marketTickSize ?? activePriceLevel);
+
+  useEffect(() => {
+    const key = `${market.apiSymbol}:${priceLevels.join(",")}`;
+    if (key !== priceLevelOptionsKeyRef.current) {
+      priceLevelOptionsKeyRef.current = key;
+      setPriceLevel(priceLevels[0] ?? "");
+      return;
+    }
+
+    if (!priceLevels.includes(priceLevel)) {
+      setPriceLevel(priceLevels[0] ?? "");
+    }
+  }, [market.apiSymbol, priceLevel, priceLevels]);
 
   useEffect(() => {
     if (!priceLevelMenuOpen) return;
@@ -219,7 +253,7 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
                   aria-expanded={priceLevelMenuOpen}
                   onClick={() => setPriceLevelMenuOpen((open) => !open)}
                 >
-                  {priceLevel}
+                  {activePriceLevel || "—"}
                   <svg
                     className={`${styles.caretSvg} ${priceLevelMenuOpen ? styles.caretOpen : ""}`}
                     width="10"
@@ -233,20 +267,20 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
                 </button>
                 {priceLevelMenuOpen && (
                   <div className={styles.selectorMenu} role="menu" aria-label="Order book price levels">
-                    {PRICE_LEVELS.map((level) => (
+                    {priceLevels.map((level) => (
                       <button
                         key={level}
                         type="button"
                         className={styles.selectorMenuItem}
                         role="menuitemradio"
-                        aria-checked={priceLevel === level}
+                        aria-checked={activePriceLevel === level}
                         onClick={() => {
                           setPriceLevel(level);
                           setPriceLevelMenuOpen(false);
                         }}
                       >
                         <span>{level}</span>
-                        {priceLevel === level && (
+                        {activePriceLevel === level && (
                           <svg
                             width="12"
                             height="12"
@@ -279,10 +313,18 @@ export function SpotOrderBookPanel({ market }: { market: SpotMarket }) {
           <span className={styles.right}>Amount ({market.displayBase})</span>
           <span className={styles.right}>{tab === "book" ? `Total (${market.displayQuote})` : "Time"}</span>
         </div>
-        {tab === "book" ? (
-          <BookBody key={market.apiSymbol} market={market} view={bookView} priceLevel={priceLevel} />
+        {!activePriceLevel ? (
+          <div className={styles.empty}>Loading…</div>
+        ) : tab === "book" ? (
+          <BookBody
+            key={market.apiSymbol}
+            market={market}
+            view={bookView}
+            priceLevel={activePriceLevel}
+            priceDigits={priceDigits}
+          />
         ) : (
-          <TradesBody key={market.apiSymbol} market={market} />
+          <TradesBody key={market.apiSymbol} market={market} priceDigits={priceDigits} />
         )}
       </div>
     </div>

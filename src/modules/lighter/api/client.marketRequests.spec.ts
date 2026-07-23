@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getOrderbook, getTicker } from "./client";
+import { getMarkets, getOrderbook, getTicker } from "./client";
 
 describe("market data requests", () => {
   afterEach(() => {
@@ -49,6 +49,31 @@ describe("market data requests", () => {
     expect(observedSignal?.aborted).toBe(false);
     await vi.advanceTimersByTimeAsync(8000);
     await expect(request).resolves.toMatchObject({ name: "AbortError" });
+  });
+
+  it("keeps the backend tick size on normalized markets", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse([
+          {
+            symbol: "PEPE-PERP",
+            base: "PEPE",
+            quote: "USDA",
+            tick_size: "0.00000001",
+            min_qty: "1",
+          },
+        ])
+      )
+    );
+
+    const result = await getMarkets(1);
+
+    expect(result.markets[0]).toMatchObject({
+      symbol: "PEPE-USD",
+      tick_size: "0.00000001",
+      price_decimals: 8,
+    });
   });
 });
 
