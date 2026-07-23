@@ -159,8 +159,8 @@ describe("SpotOrderForm", () => {
     expect(indicator.className).not.toContain("indicatorBuy");
 
     const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
-    expect(source).toMatch(/\.sideIndicator\s*\{[^}]*transition:\s*transform 200ms/s);
-    expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/s);
+    expect(source).toMatch(/\.sideIndicator\s*\{[^}]*transition:\s*transform 200ms/);
+    expect(source).toMatch(/\.indicatorSell\s*\{[^}]*transform:\s*translateX\(100%\)/);
   });
 
   it("keeps side selection decoration on the shared indicator without an outer focus outline", () => {
@@ -196,12 +196,12 @@ describe("SpotOrderForm", () => {
 
     const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
     expect(source).toMatch(
-      /\.connect\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#d9a441 0%,\s*#b9862c 100%\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/s
+      /\.connect\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#d9a441 0%,\s*#b9862c 100%\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/
     );
   });
 
   it("uses public USDA and CBTC labels for the available balance", () => {
-    const { getByText, getByRole, queryByText } = render(<SpotOrderForm market={market} />);
+    const { getByText, getByRole } = render(<SpotOrderForm market={market} />);
 
     expect(getByText("1,000 USDA")).toBeTruthy();
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
@@ -267,7 +267,7 @@ describe("SpotOrderForm", () => {
     expect((view.getByRole("button", { name: `BUY ${market.displayBase}` }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("rejects manual buy and sell amounts that exceed their available balances", () => {
+  it("validates buy and sell amounts against only the asset being spent", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
     const price = getByLabelText(`Price (${market.displayQuote})`);
     const amount = getByLabelText(`Amount (${market.displayBase})`);
@@ -275,9 +275,9 @@ describe("SpotOrderForm", () => {
 
     fireEvent.change(price, { target: { value: "1000" } });
     fireEvent.change(amount, { target: { value: "1" } });
-    expect(buy.disabled).toBe(true); // total plus 0.1% fee is 1001 USDA
-    fireEvent.change(price, { target: { value: "999" } });
     expect(buy.disabled).toBe(false);
+    fireEvent.change(price, { target: { value: "1000.00000001" } });
+    expect(buy.disabled).toBe(true);
 
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
     const sell = getByRole("button", { name: `SELL ${market.displayBase}` }) as HTMLButtonElement;
@@ -287,21 +287,31 @@ describe("SpotOrderForm", () => {
     expect(sell.disabled).toBe(false);
   });
 
-  it("reserves the fee when sizing a 100% buy and derives total and the 0.1% fee", () => {
+  it("spends the full quote balance on a 100% buy and shows the base-asset fee", () => {
     const { getByLabelText, getByRole, getByText } = render(<SpotOrderForm market={market} />);
 
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(getByRole("slider", { name: "Order percentage" }), { target: { value: "100" } });
 
-    expect((getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement).value).toBe("3.99600399");
+    expect((getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement).value).toBe("4");
     const total = getByLabelText(`Total (${market.displayQuote})`) as HTMLInputElement;
-    expect(total.value).toBe("999.0009975");
+    expect(total.value).toBe("1000");
     expect(total.readOnly).toBe(true);
-    expect(getByText("0.999001 USDA")).toBeTruthy();
+    expect(getByText("0.004 CBTC")).toBeTruthy();
     expect(getByLabelText("Order percentage input")).toHaveProperty("value", "100");
   });
 
-  it("sizes a sell from base balance without requiring a price", () => {
+  it("shows a sell fee in the received quote asset", () => {
+    const { getByLabelText, getByRole, getByText } = render(<SpotOrderForm market={market} />);
+
+    fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
+    fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
+    fireEvent.change(getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
+
+    expect(getByText("0.25 USDA")).toBeTruthy();
+  });
+
+  it("sizes a sell from the full base balance without requiring a price", () => {
     const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
 
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
@@ -330,10 +340,10 @@ describe("SpotOrderForm", () => {
 
     fireEvent.change(price, { target: { value: "100" } });
     fireEvent.change(getByRole("slider", { name: "Order percentage" }), { target: { value: "100" } });
-    expect(amount.value).toBe("9.99000999");
+    expect(amount.value).toBe("10");
 
     fireEvent.change(price, { target: { value: "200" } });
-    expect(amount.value).toBe("4.99500499");
+    expect(amount.value).toBe("5");
   });
 
   it("keeps active percentage sizing when switching sides", () => {
@@ -343,7 +353,7 @@ describe("SpotOrderForm", () => {
 
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(slider, { target: { value: "50" } });
-    expect(amount.value).toBe("1.99800199");
+    expect(amount.value).toBe("2");
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
 
     expect(slider.value).toBe("50");
@@ -356,16 +366,16 @@ describe("SpotOrderForm", () => {
 
     fireEvent.change(view.getByLabelText(`Price (${market.displayQuote})`), { target: { value: "100" } });
     fireEvent.change(view.getByRole("slider", { name: "Order percentage" }), { target: { value: "100" } });
-    expect(amount.value).toBe("9.99000999");
+    expect(amount.value).toBe("10");
 
     readyAccount(accountWith({ quoteFree: "100" }));
     view.rerender(<SpotOrderForm market={market} />);
-    await waitFor(() => expect(amount.value).toBe("0.99900099"));
+    await waitFor(() => expect(amount.value).toBe("1"));
   });
 
-  it("sends a LIMIT BUY to the internal API symbol and clears fields on success", async () => {
+  it("shows a user-facing BUY submission confirmation instead of the backend NEW status", async () => {
     mPlace.mockResolvedValue(successfulOrder("BUY"));
-    const { getByLabelText, getByRole } = render(<SpotOrderForm market={market} />);
+    const { getByLabelText, getByRole, findByText, queryByText } = render(<SpotOrderForm market={market} />);
     const priceInput = getByLabelText(`Price (${market.displayQuote})`) as HTMLInputElement;
     const amountInput = getByLabelText(`Amount (${market.displayBase})`) as HTMLInputElement;
     fireEvent.change(priceInput, { target: { value: "250" } });
@@ -384,6 +394,8 @@ describe("SpotOrderForm", () => {
       expect(priceInput.value).toBe("");
       expect(amountInput.value).toBe("");
     });
+    expect(await findByText("Buy order submitted · abcdef123456…")).toBeTruthy();
+    expect(queryByText(/NEW ·/)).toBeNull();
   });
 
   it("sends a LIMIT SELL to the internal API symbol", async () => {
@@ -452,7 +464,7 @@ describe("SpotOrderForm", () => {
       expect(cethTotal.value).toBe("");
       expect(slider.value).toBe("0");
       expect(view.queryByText(/insufficient balance/)).toBeNull();
-      expect(view.getByText("— USDA")).toBeTruthy();
+      expect(view.getByText(`— ${cethMarket.displayBase}`)).toBeTruthy();
       expect(view.getByRole("tab", { name: `Buy ${cethMarket.displayBase}` }).getAttribute("aria-selected")).toBe(
         "true"
       );
@@ -498,7 +510,7 @@ describe("SpotOrderForm", () => {
     await act(async () => resolveOldOrder(successfulOrder("BUY")));
     expect(cethPrice.value).toBe("300");
     expect(cethAmount.value).toBe("1");
-    expect(view.queryByText(/NEW ·/)).toBeNull();
+    expect(view.queryByText(/order submitted ·/)).toBeNull();
     expect((view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }) as HTMLButtonElement).disabled).toBe(
       false
     );
@@ -549,7 +561,7 @@ describe("SpotOrderForm", () => {
     await waitFor(() => {
       expect(newPrice.value).toBe("");
       expect(newAmount.value).toBe("");
-      expect(view.getByText(/NEW ·/)).toBeTruthy();
+      expect(view.getByText("Buy order submitted · abcdef123456…")).toBeTruthy();
     });
   });
 

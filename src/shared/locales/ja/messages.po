@@ -27,6 +27,8 @@ msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Chart layout"
 msgstr ""
 
@@ -84,9 +86,22 @@ msgstr ""
 msgid "Show Fewer Withdrawals"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Back to bonus"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Limit"
 msgstr "指値失敗"
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trading controls"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Rocky trial funds"
+msgstr ""
 
 #: src/shared/components/ToastifyDebug/ToastifyDebug.tsx
 msgid "Show error"
@@ -116,7 +131,6 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderInfoRows.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Fees"
 msgstr "手数料"
 
@@ -135,9 +149,17 @@ msgstr ""
 msgid "The mark price has changed, consider increasing your allowed slippage by clicking on the \"...\" icon next to your address."
 msgstr "マーク価格が変わりました。アドレス横の「...」アイコンをクリックして、許容スリッページを増やしてください。"
 
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Letters, numbers, and hyphens only. Minimum 4 characters."
+msgstr ""
+
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
 msgid "@username"
 msgstr "@ユーザー名"
+
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} USDA to Spot"
+msgstr ""
 
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Amount is below the minimum withdraw."
@@ -163,6 +185,7 @@ msgstr "ストップ市場価格がマーク価格を上回っています"
 msgid "Interval"
 msgstr ""
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 #: src/modules/spot/components/Accounts/Accounts.tsx
 msgid "Spot → Futures"
 msgstr ""
@@ -175,6 +198,7 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/PositionsTab.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
 msgid "Funding"
 msgstr ""
@@ -183,9 +207,18 @@ msgstr ""
 msgid "Requesting…"
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "SELL"
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Max {0} short exceeded"
 msgstr "{0}の最大ショート値を超過しています"
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Event"
+msgstr ""
 
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Insufficient margin for this order."
@@ -221,6 +254,10 @@ msgstr "RPCエラーにより取引が失敗しました。<0/><1/><2>エクス�
 msgid "Position Margin"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
+msgid "Bonus expiry countdown"
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
@@ -234,6 +271,11 @@ msgstr "取引可能"
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 msgid "No"
+msgstr ""
+
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+msgid "24h Vol {0}"
 msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
@@ -254,6 +296,10 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
 msgid "Maximum Order Value"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Realized PnL"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -281,7 +327,12 @@ msgid "Sell / Short"
 msgstr ""
 
 #: src/modules/spot/components/Accounts/Accounts.tsx
+#: src/modules/spot/components/Accounts/Accounts.tsx
 msgid "Free"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Recalled"
 msgstr ""
 
 #: src/shared/components/AvaxUsdteSwapBanner/AvaxUsdteSwapBanner.tsx
@@ -344,6 +395,7 @@ msgid "What did you like the most about our service?"
 msgstr "当サービスで最も気に入った点は何ですか？"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Fullscreen"
 msgstr ""
 
@@ -357,6 +409,10 @@ msgstr "TP - ロング減少"
 
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
 msgid "Average"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "The 60% net-direction limit can restrict opposite opening orders; reduce-only orders remain available."
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
@@ -401,8 +457,8 @@ msgstr "SL - ショート減少"
 msgid "Unrealized PnL"
 msgstr "未実現PnL"
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Est. price"
+#: src/modules/spot/components/Chart/SpotDepthChart.tsx
+msgid "No depth data"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -412,6 +468,10 @@ msgstr ""
 
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "LEVERAGE"
+msgstr ""
+
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+msgid "Quote asset"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
@@ -446,9 +506,16 @@ msgid "Get test funds (dev)"
 msgstr ""
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Total"
 msgstr "総計"
+
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "Trial funds in margin"
+msgstr ""
 
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "Index Price"
@@ -486,9 +553,21 @@ msgstr ""
 msgid "Hide error"
 msgstr "エラーを隠す"
 
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "Effective withdrawable balance"
+msgstr ""
+
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Placing order…"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Trial funds share"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Redeeming…"
 msgstr ""
 
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
@@ -527,6 +606,10 @@ msgstr ""
 msgid "Buy / Long"
 msgstr ""
 
+#: src/modules/spot/components/SymbolBar/MarketDropdown.tsx
+msgid "Search markets…"
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdraw {selectedAsset} to your Wallet"
 msgstr ""
@@ -537,6 +620,10 @@ msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Deposit History"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Showing saved trial-funds data while the latest refresh is unavailable."
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -568,6 +655,10 @@ msgstr ""
 msgid "Include PnL in Leverage Display"
 msgstr "レバレッジ表示にPnLを含める"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Frozen"
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "Set the maximum leverage you are willing to use. Higher leverage increases the risk of liquidation."
@@ -580,6 +671,14 @@ msgstr "このスワップに現在高いスワップ価格影響があります
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Update Limit Swap"
 msgstr "指値スワップを更新する"
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Redeem code"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Capital rules"
+msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Market Decrease"
@@ -618,6 +717,10 @@ msgstr "検索"
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Max Slippage override (%)"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Redeem trial funds"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -685,7 +788,12 @@ msgstr ""
 msgid "Transfer Out"
 msgstr ""
 
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+msgid "Minimum order size"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
 msgid "Price Steps:"
 msgstr ""
 
@@ -710,7 +818,10 @@ msgstr "手数料後PnLを表示"
 msgid "Borrow Fee"
 msgstr "借入手数料"
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "No attribution events yet."
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Max"
@@ -749,7 +860,6 @@ msgstr ""
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/SizeInput.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Size"
 msgstr "サイズ"
 
@@ -764,6 +874,7 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
 msgstr "ウォレット接続"
@@ -785,16 +896,16 @@ msgstr ""
 msgid "Close All"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Connect your wallet before redeeming."
+msgstr ""
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Amount is below the minimum deposit."
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/PositionsTab.tsx
 msgid "Close {0} position"
-msgstr ""
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Notional"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -819,13 +930,13 @@ msgstr "トレーディングモード"
 msgid "TP / SL"
 msgstr ""
 
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-msgid "to view your open orders"
-msgstr ""
-
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to RPC error.<0/><1/>Please try changing the RPC url in your wallet settings with the help of <2>chainlist.org</2>.<3/><4/><5>Read more</5>."
 msgstr "RPCエラーにより取引が失敗しました。<0/><1/><2>chainlist.org</2>の助けを借りてウォレット設定でRPC URLを変更してください。<3/><4/><5>詳細を読む</5>。"
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Trial funds can support margin but cannot be withdrawn. The backend remains authoritative for code eligibility, leverage, direction, attribution, and expiry."
+msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "SL Limit Price"
@@ -844,6 +955,10 @@ msgstr "更新"
 msgid "Destination"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Trial funds recall"
+msgstr ""
+
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Price is outside the acceptable band for this market."
 msgstr ""
@@ -851,6 +966,14 @@ msgstr ""
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "3-20 letters, digits or underscore."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Seven-day trading credit"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Active"
 msgstr ""
 
 #. Button to clear the filter selection
@@ -866,6 +989,10 @@ msgstr "注文のトリガー価格がポジションの清算価格を超えて
 #: src/shared/components/SettingsModal/ThemeSelector.tsx
 msgid "Theme"
 msgstr "テーマ"
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Trade within the bonus risk controls"
+msgstr ""
 
 #: src/modules/lighter/components/TopNav/TopNav.tsx
 #: src/modules/lighter/mobile/shared/MobileSlideMenu.tsx
@@ -905,16 +1032,12 @@ msgstr ""
 msgid "Max number of parts: {MAX_TWAP_NUMBER_OF_PARTS}"
 msgstr "最大パート数: {MAX_TWAP_NUMBER_OF_PARTS}"
 
-#: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
-msgid "USDC Value"
-msgstr ""
-
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 msgstr ""
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "max slippage 5%"
+msgid "Buy order submitted"
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
@@ -922,16 +1045,23 @@ msgid "Submit Order"
 msgstr ""
 
 #: src/modules/spot/components/Accounts/Accounts.tsx
+#: src/modules/spot/components/Accounts/Accounts.tsx
 msgid "Locked"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Role"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Principal share"
 msgstr ""
 
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderInfoRows.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Est. Price"
 msgstr ""
 
@@ -978,7 +1108,12 @@ msgstr "注文はキャンセルされました"
 msgid "Collapse"
 msgstr "折りたたむ"
 
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Withdrawal recall"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
 msgid "Market Name:"
 msgstr ""
 
@@ -1008,8 +1143,17 @@ msgstr ""
 msgid "Estimated Network Fee"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Days"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Original"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Display asset"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -1021,6 +1165,7 @@ msgid "Returned Collateral"
 msgstr "返却された担保"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "TradingView"
 msgstr ""
 
@@ -1077,6 +1222,14 @@ msgstr ""
 msgid "Trigger price above highest limit price"
 msgstr "トリガー価格が最高リミット価格を上回っています"
 
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Enter at least 4 characters."
+msgstr ""
+
+#: src/modules/spot/components/Chart/SpotChart.tsx
+msgid "Screenshot"
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Deposit {selectedAsset} to Rocky Exchange"
 msgstr ""
@@ -1093,11 +1246,16 @@ msgstr ""
 msgid "Show Debug Values"
 msgstr "デバッグ値を表示"
 
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+msgid "Trial funds: {amount}"
+msgstr ""
+
 #: src/shared/components/SideNav/SideNav.tsx
 msgid "Trade"
 msgstr "トレード"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Enter fullscreen"
 msgstr ""
 
@@ -1116,6 +1274,10 @@ msgstr "TWAPをキャンセル"
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 msgid "Mark price for the liquidation."
 msgstr "清算のためのマーク価格"
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Keep profits as principal"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Max close amount exceeded"
@@ -1146,6 +1308,15 @@ msgstr "簡単なフォローアップ連絡に問題なければTelegramを残�
 msgid "How can we continue to meet your expectations?"
 msgstr "ご期待に沿うためにどうすればよいでしょうか？"
 
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Loading trial funds"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Loading attribution history…"
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr ""
@@ -1171,6 +1342,10 @@ msgstr ""
 msgid "Withdrawing..."
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Bonus status"
+msgstr ""
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "Insufficient available liquidity. The order will fill when there is liquidity available."
 msgstr "利用可能な流動性が不足しています。流動性があるときに注文が満たされます。"
@@ -1188,6 +1363,8 @@ msgstr "利用可能な流動性が不足しています。流動性があると
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderTypeTabs.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/SymbolBar/MarketDropdown.tsx
 #: src/shared/components/ChartTokenSelector/ChartTokenSelector.tsx
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Market"
@@ -1207,7 +1384,10 @@ msgstr "トリガー価格が清算価格を下回っています"
 
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -1299,6 +1479,10 @@ msgstr "ストップマーケット"
 msgid "Limit - Short Inc."
 msgstr "リミット - ショート増加"
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "No order history"
+msgstr ""
+
 #: src/shared/lib/legacy.ts
 msgid "Order cannot be executed as the remaining position would be smaller than $5.00"
 msgstr "ポジション金額が$5未満になるため注文を執行できません"
@@ -1342,6 +1526,7 @@ msgid "Select a market"
 msgstr "マーケットを選択"
 
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "No trades yet"
 msgstr "トレード履歴はありません"
@@ -1437,6 +1622,8 @@ msgid "Canton"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Fee"
 msgstr "手数料"
@@ -1453,10 +1640,26 @@ msgstr ""
 msgid "Create TWAP"
 msgstr "TWAPを作成"
 
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+msgid "Bonus"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/spot/components/Accounts/Accounts.tsx
+#: src/modules/spot/components/Accounts/Accounts.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/Chart/SpotDepthChart.tsx
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+#: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Loading…"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trial funds have expired. New opening orders are not tradable."
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -1489,6 +1692,23 @@ msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Monthly Funding Rate"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Activate an eligible code for a seven-day bonus lifecycle on your current Canton account."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Attribution history"
+msgstr ""
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "BUY"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Apply bonus code"
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
@@ -1557,7 +1777,7 @@ msgstr ""
 msgid "Reduce Only"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/SymbolBar/MarketDropdown.tsx
 msgid "Last"
 msgstr ""
 
@@ -1585,6 +1805,16 @@ msgstr ""
 msgid "Referral code created successfully!"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Secure redemption"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trial funds unavailable"
+msgstr ""
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
@@ -1608,6 +1838,7 @@ msgid "Execute order simulation failed."
 msgstr "注文シミュレーション実行に失敗しました。"
 
 #: src/modules/lighter/mobile/TradePage/MarketSelectorSheet.tsx
+#: src/modules/spot/components/SymbolBar/MarketDropdown.tsx
 msgid "Select market"
 msgstr ""
 
@@ -1627,8 +1858,20 @@ msgstr ""
 msgid "Docs"
 msgstr "ドキュメント"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Connect to inspect your bonus ledger"
+msgstr ""
+
 #: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 msgid "Cross Margin Usage"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Redeem trading credit"
+msgstr ""
+
+#: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
+msgid "USDA Value"
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -1650,6 +1893,14 @@ msgstr "設定"
 msgid "Take Profit"
 msgstr "テイクプロフィット"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trial funds console"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Realized loss"
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "Adjust Max Leverage"
@@ -1666,6 +1917,7 @@ msgstr "ネット価格影響"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Details"
 msgstr "詳細"
 
@@ -1675,6 +1927,10 @@ msgstr "市場 - ショート減少"
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "No open orders"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
+msgid "Seconds"
 msgstr ""
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
@@ -1689,6 +1945,7 @@ msgstr ""
 msgid "Take Profit / Stop Loss"
 msgstr "テイクプロフィット / ストップロス"
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Futures Account"
@@ -1707,15 +1964,19 @@ msgstr "SL - ロング減少"
 msgid "Unlock"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+msgid "Redeem"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Loss"
 msgstr "ストップロスを作成"
 
 #: src/modules/lighter/components/TopNav/TopNav.tsx
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
-#: src/modules/spot/components/Accounts/Accounts.tsx
-#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Connect wallet"
 msgstr "ウォレットを接続"
@@ -1725,12 +1986,12 @@ msgstr "ウォレットを接続"
 msgid "Unlocking..."
 msgstr ""
 
-#: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
-msgid "Loading markets..."
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "USDA account breakdown"
 msgstr ""
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Quantity"
+#: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
+msgid "Loading markets..."
 msgstr ""
 
 #: src/shared/lib/errors/mapAvaxError.ts
@@ -1762,10 +2023,7 @@ msgstr "減少"
 msgid "Order cannot be executed as it would reduce the position's leverage below 1"
 msgstr "レバレッジ倍率が1倍以下になるため注文を執行できません"
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Insufficient {availableAsset} — transfer funds to spot first (Account panel below)."
-msgstr ""
-
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
 #: src/modules/spot/components/SymbolBar/SymbolBar.tsx
 msgid "24h Low"
 msgstr ""
@@ -1782,8 +2040,16 @@ msgstr ""
 msgid "Reason: {0}"
 msgstr "理由: {0}"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Position envelope"
+msgstr ""
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Minimum deposit is {0} USDT.e."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Funding paid"
 msgstr ""
 
 #: src/shared/components/DateRangeSelect/DateRangeSelect.tsx
@@ -1794,6 +2060,10 @@ msgstr "すべての時間"
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Market Cap:"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Funding received"
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -1851,9 +2121,12 @@ msgstr ""
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Trades"
 msgstr "取引"
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Connect wallet from the header to view your order history"
+msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Submitted"
@@ -1882,8 +2155,8 @@ msgstr ""
 msgid "View All Withdrawals"
 msgstr ""
 
-#: src/modules/spot/components/OrderBook/OrderBook.tsx
-msgid "Orderbook"
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Expiry rail"
 msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/swap.ts
@@ -1917,8 +2190,11 @@ msgstr "この注文のトリガー価格は、スワップ手数料と価格イ
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Price"
 msgstr "価格"
 
@@ -1935,8 +2211,16 @@ msgstr ""
 msgid "No pending earnings to claim"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Initial grant"
+msgstr ""
+
 #: src/shared/components/SettingsModal/TradingSettings.tsx
 msgid "Manage API keys for programmatic trading access."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
+msgid "Minutes"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -1962,11 +2246,16 @@ msgstr "無効な清算価格"
 msgid "<0>Smart wallets are not supported on {0}.</0><1/><2>Please switch to a different network or use a EOA wallet.</2>"
 msgstr ""
 
-#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
-msgid "Accounts"
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Realized profit"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+msgid "Trial funds expiring"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
+#: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -1984,6 +2273,10 @@ msgstr "項目なし"
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Stop Loss Decrease"
 msgstr "ストップロス減少"
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Your Canton session keeps trial-funds balances and attribution history private."
+msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -2018,12 +2311,24 @@ msgstr "別のトークンを選択"
 msgid "The network fees are very high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "現在ネットワーク手数料が非常に高いです。これは{chainName}ネットワーク上の一時的なトランザクション増加によるものかもしれません。"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Redeem an eligible Rocky code to activate seven days of trading credit."
+msgstr ""
+
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "24H%"
 msgstr "24時間%"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Redeem another code"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Max Leverage:"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trading profits remain principal and trial funds are non-withdrawable."
 msgstr ""
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
@@ -2047,6 +2352,10 @@ msgstr "友人や同僚に当サービスをおすすめする可能性はどれ
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Insufficient liquidity to swap collateral"
 msgstr "担保スワップのための流動性不足"
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Manual recall"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 #: src/shared/components/TradeHistory/keys.ts
@@ -2073,6 +2382,11 @@ msgstr "TWAPスワップ部分を執行"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdraw History"
+msgstr ""
+
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.spec.tsx
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "available"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
@@ -2150,6 +2464,14 @@ msgstr ""
 msgid "Order Trigger Price"
 msgstr "注文トリガー価格"
 
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "Total platform balance"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "50 / 50 cost attribution"
+msgstr ""
+
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Limit Increase"
 msgstr "指値増加"
@@ -2170,8 +2492,16 @@ msgstr ""
 msgid "This order using {collateralSymbol} as collateral will not be valid for the existing {longText} position using {symbol} as collateral."
 msgstr "{collateralSymbol}を担保とするこの注文は、{symbol}を担保とする既存の{longText}ポジションで有効になりません。"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Loading trial funds status…"
+msgstr ""
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "USDT.e approval was cancelled."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Ledger attribution"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -2282,6 +2612,8 @@ msgstr "作成"
 msgid "Copy"
 msgstr ""
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.spec.tsx
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
@@ -2293,6 +2625,8 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/spot/components/Accounts/Accounts.tsx
+#: src/modules/spot/components/OrderBook/OrderBook.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -2319,6 +2653,10 @@ msgstr ""
 msgid "Chart unavailable"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "Balance composition"
+msgstr ""
+
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -2337,6 +2675,10 @@ msgstr ""
 #: src/modules/lighter/domain/synthetics/fees/utils/index.ts
 msgid "The network fees are high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "現在ネットワーク手数料が高いです。これは{chainName}ネットワーク上の一時的なトランザクション増加によるものかもしれません。"
+
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} USDA to Futures"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
@@ -2377,6 +2719,10 @@ msgstr "テイクプロフィットを更新"
 msgid "Back to assets"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Recoverable trial funds have been recalled. Attribution history remains available."
+msgstr ""
+
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 msgid "Connect wallet to claim"
 msgstr ""
@@ -2384,6 +2730,10 @@ msgstr ""
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Fees exceed amount"
 msgstr "手数料が額を超過"
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Redemption failed. Please try again."
+msgstr ""
 
 #: src/shared/lib/contracts/notifications.tsx
 #: src/shared/lib/contracts/notifications.tsx
@@ -2393,6 +2743,10 @@ msgstr "見る"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Execute Stop Market"
 msgstr "ストップマーケットを執行"
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Unavailable"
+msgstr ""
 
 #: src/shared/components/TradingMarketsList/MarketTypeTabs.tsx
 msgid "AI"
@@ -2404,12 +2758,27 @@ msgstr ""
 msgid "Refresh balances"
 msgstr ""
 
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+#: src/modules/spot/components/SymbolBar/SymbolBar.tsx
+msgid "Last Price"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Min USD Amount:"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Bonus event"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Expiry recall"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Chart type"
 msgstr ""
 
@@ -2480,6 +2849,8 @@ msgstr "ストップロス"
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Side"
 msgstr ""
 
@@ -2537,6 +2908,14 @@ msgstr "取引に失敗しました。"
 msgid "Service temporarily unavailable. Please try again shortly."
 msgstr ""
 
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Connect wallet from the header to view your open orders"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Redemption code"
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Update Limit"
 msgstr "指値を更新"
@@ -2553,12 +2932,17 @@ msgstr "日付"
 msgid "Trigger Price"
 msgstr "トリガー価格"
 
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Showing saved attribution history while the latest refresh is unavailable."
+msgstr ""
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Insufficient balance for this withdraw."
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Depth"
 msgstr "深度"
 
@@ -2566,10 +2950,7 @@ msgstr "深度"
 msgid "Layer 1"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Moved {0} {1} to spot (spot free: {2})"
-msgstr ""
-
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Transfer amount"
 msgstr ""
@@ -2590,6 +2971,10 @@ msgstr ""
 msgid "Freeze"
 msgstr "凍結"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Expired — positions pending"
+msgstr ""
+
 #: src/shared/components/AvaxUsdteSwapBanner/AvaxUsdteSwapBanner.tsx
 msgid "Swap to USDT.e before depositing"
 msgstr ""
@@ -2601,6 +2986,10 @@ msgstr "ストップマーケット"
 #: src/shared/components/Errors/errorToasts.tsx
 msgid "Transaction failed due to invalid signature.<0/><1/>Please try a different wallet provider, or switch to Classic or One-Click Trading mode within the <2>Settings.</2>"
 msgstr "無効署名のため取引に失敗しました。<0/><1/>異なるウォレットプロバイダをお試しください、または<2>設定</2>内でクラシックまたはワンクリック取引モードに切り替えてください。"
+
+#: src/modules/spot/components/OrderBook/OrderBook.tsx
+msgid "Recent Trades"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -2627,10 +3016,13 @@ msgid "Select a Pay token"
 msgstr "支払いトークンを選択"
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Qty"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Raw Prices"
 msgstr ""
 
@@ -2639,6 +3031,7 @@ msgid "Place Limit Short"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Area"
 msgstr ""
 
@@ -2664,6 +3057,10 @@ msgstr "ポジション"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Deposit submitted"
+msgstr ""
+
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+msgid "Connect wallet from the header to view your trade history"
 msgstr ""
 
 #: src/shared/components/TradingMarketsList/MarketTypeTabs.tsx
@@ -2727,16 +3124,16 @@ msgstr "<0>ウォレットが{0}に接続されていません。</0><1/><2>{1}�
 msgid "Transaction was cancelled."
 msgstr "取引がキャンセルされました。"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trading costs use 50% trial funds and 50% principal while both balances remain positive, with the trial-funds share capped by remaining trial funds."
+msgstr ""
+
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "8h Funding"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Yearly Funding Rate"
-msgstr ""
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Limit price"
 msgstr ""
 
 #: src/shared/lib/legacy.ts
@@ -2755,13 +3152,22 @@ msgstr ""
 msgid "Completed"
 msgstr ""
 
+#: src/modules/spot/components/SymbolBar/MarketDropdown.tsx
 #: src/modules/spot/components/SymbolBar/SymbolBar.tsx
 #: src/modules/spot/components/SymbolBar/SymbolBar.tsx
 msgid "24h Vol"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Maximum leverage"
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Edit display name"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "Available trial funds"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -2776,6 +3182,10 @@ msgstr "マーケットスワップ失敗"
 msgid "Error occurred. Please try again"
 msgstr "エラーが発生しました。再度お試しください"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Loading balance breakdown…"
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "On-chain balance"
 msgstr ""
@@ -2786,6 +3196,7 @@ msgid "There is not enough {0} in your account on {1} to send this transaction.<
 msgstr "{1}のアカウントにこの取引を送信するための{0}が不足しています。<0/><1/><2>{2}を購入または{3}へ転送</2>"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Line"
 msgstr ""
 
@@ -2807,6 +3218,7 @@ msgid "Modify Order"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Candles"
 msgstr ""
 
@@ -2814,6 +3226,7 @@ msgstr ""
 msgid "Alerts"
 msgstr "アラート"
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 #: src/modules/spot/components/Accounts/Accounts.tsx
 msgid "Futures → Spot"
 msgstr ""
@@ -2832,6 +3245,8 @@ msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
+#: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Exit fullscreen"
 msgstr ""
 
@@ -2871,6 +3286,7 @@ msgid "Advanced"
 msgstr ""
 
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
 #: src/modules/spot/components/SymbolBar/SymbolBar.tsx
 msgid "24h Change"
 msgstr ""
@@ -2900,6 +3316,10 @@ msgstr ""
 msgid "Failed Stop Loss"
 msgstr "ストップロス失敗"
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Balance unavailable."
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdrawal submitted"
 msgstr ""
@@ -2922,7 +3342,12 @@ msgstr "取引失敗"
 msgid "Depositing..."
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Remaining trial funds"
+msgstr ""
+
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Status"
@@ -2956,6 +3381,8 @@ msgstr ""
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
+#: src/modules/spot/components/OrderBook/OrderBook.spec.tsx
+#: src/modules/spot/components/OrderBook/OrderBook.tsx
 msgid "Order Book"
 msgstr ""
 
@@ -2967,6 +3394,7 @@ msgstr ""
 msgid "long"
 msgstr "ロング"
 
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
 #: src/modules/spot/components/SymbolBar/SymbolBar.tsx
 msgid "24h High"
 msgstr ""
@@ -2975,9 +3403,21 @@ msgstr ""
 msgid "Entire Position"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "No trial funds are active"
+msgstr ""
+
 #: src/shared/components/SideNav/LanguageNavItem.tsx
 msgid "Language"
 msgstr "言語"
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Frozen funds recall"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+msgid "Trial funds frozen"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
 msgid "Trigger price below lowest limit price"
@@ -2995,6 +3435,10 @@ msgstr ""
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 msgid "Enter a new size or price"
 msgstr "新しいサイズまたは価格を入力"
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Trading fee"
+msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 msgid "Unknown order"
@@ -3041,6 +3485,10 @@ msgstr "トリガー"
 msgid "7d"
 msgstr "7日"
 
+#: src/modules/spot/components/Chart/SpotMarketDetails.tsx
+msgid "Base asset"
+msgstr ""
+
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/PositionsTab.tsx
@@ -3052,6 +3500,10 @@ msgstr "マーク価格"
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "24h Volume"
 msgstr "24時間取引量"
+
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Cost split"
+msgstr ""
 
 #: src/modules/lighter/api/custom/useReferralCode.ts
 msgid "Failed to bind referral code"
@@ -3091,13 +3543,13 @@ msgstr ""
 msgid "Asset filter"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Moved {0} {1} to futures (futures available: {2})"
-msgstr ""
-
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Market Decrease"
 msgstr "マーケット減少リクエスト"
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Principal stays yours"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
@@ -3129,12 +3581,19 @@ msgid "Request Deposit"
 msgstr "入金リクエスト"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Bars"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Indicators"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+msgid "Load more"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
@@ -3145,12 +3604,29 @@ msgstr ""
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderTypeTabs.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Limit"
 msgstr "リミット"
 
+#: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
+msgid "Enter your single-use Rocky code"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusCountdown.tsx
+msgid "Hours"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+msgid "Trial funds are frozen. New opening orders are not tradable."
+msgstr ""
+
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 msgid "{0} USDT credited to your balance"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusBadge.tsx
+msgid "Trial funds recalled"
 msgstr ""
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -3170,6 +3646,7 @@ msgstr ""
 msgid "Orders are routed through Rocky exchange session APIs."
 msgstr ""
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
 #: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -3201,11 +3678,18 @@ msgstr ""
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
+#: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"
+msgstr ""
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Sell order submitted"
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
+#: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Chart Elements"
 msgstr ""
 

@@ -73,8 +73,12 @@ describe("quantityForPercent", () => {
 });
 
 describe("calculateOrderSummary", () => {
-  it("calculates the total and fee using the fee cap", () => {
-    expect(calculateOrderSummary("50000", "0.01")).toEqual({ total: "500", fee: "0.5" });
+  it("charges a buy fee in the received base asset", () => {
+    expect(calculateOrderSummary("BUY", "50000", "0.01")).toEqual({ total: "500", fee: "0.00001" });
+  });
+
+  it("charges a sell fee in the received quote asset", () => {
+    expect(calculateOrderSummary("SELL", "50000", "0.01")).toEqual({ total: "500", fee: "0.5" });
   });
 
   it("returns empty values for invalid or non-positive input", () => {
@@ -86,12 +90,15 @@ describe("calculateOrderSummary", () => {
       ["50000", "0"],
       ["50000", "invalid"],
     ]) {
-      expect(calculateOrderSummary(price, quantity)).toEqual({ total: "", fee: "" });
+      expect(calculateOrderSummary("BUY", price, quantity)).toEqual({ total: "", fee: "" });
     }
   });
 
   it("formats totals and fees to eight decimal places without trailing zeroes", () => {
-    expect(calculateOrderSummary("1", "0.123456789")).toEqual({ total: "0.12345679", fee: "0.00012346" });
-    expect(calculateOrderSummary("1", "1.000000001")).toEqual({ total: "1", fee: "0.001" });
+    expect(calculateOrderSummary("BUY", "1", "0.123456789")).toEqual({
+      total: "0.12345679",
+      fee: "0.00012346",
+    });
+    expect(calculateOrderSummary("BUY", "1", "1.000000001")).toEqual({ total: "1", fee: "0.001" });
   });
 });

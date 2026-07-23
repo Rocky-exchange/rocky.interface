@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryHistory } from "history";
 import { Router, Route } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -33,6 +33,14 @@ vi.mock("../components/SymbolBar/SymbolBar", () => ({
 
 vi.mock("../components/Chart/SpotChart", () => ({
   SpotChart: (props: MarketProps) => <MarketProbe {...props} name="chart" />,
+}));
+
+vi.mock("../components/Chart/SpotDepthChart", () => ({
+  SpotDepthChart: (props: MarketProps) => <MarketProbe {...props} name="depth-chart" />,
+}));
+
+vi.mock("../components/Chart/SpotMarketDetails", () => ({
+  SpotMarketDetails: (props: MarketProps) => <MarketProbe {...props} name="market-details" />,
 }));
 
 vi.mock("../components/BottomTabs/BottomTabs", () => ({
@@ -137,13 +145,74 @@ describe("SpotTradePage", () => {
     expect(chartPanel.getAttribute("aria-labelledby")).toBe("spot-chart-tab");
   });
 
+  it("removes Funding and switches between Price and Details", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    expect(screen.queryByRole("tab", { name: "Funding" })).toBeNull();
+
+    const detailsTab = screen.getByRole("tab", { name: "Details" });
+    fireEvent.click(detailsTab);
+
+    expect(detailsTab.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel", { name: "Details" })).not.toBeNull();
+    expect(screen.getByTestId("market-details-probe").getAttribute("data-api-symbol")).toBe("CBTC-USDA");
+    expect(screen.queryByRole("button", { name: "Depth" })).toBeNull();
+  });
+
+  it("switches the Price view between TradingView and spot depth", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const tradingView = screen.getByRole("button", { name: "TradingView" });
+    const depth = screen.getByRole("button", { name: "Depth" });
+
+    expect(tradingView.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByTestId("chart-probe")).not.toBeNull();
+
+    fireEvent.click(depth);
+
+    expect(depth.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByTestId("chart-probe")).toBeNull();
+    expect(screen.getByTestId("depth-chart-probe").getAttribute("data-route-symbol")).toBe("CBTC-USDA");
+  });
+
+  it("opens the chart layout menu and renders the selected split layout", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const layoutButton = screen.getByRole("button", { name: "Chart layout" });
+    expect(layoutButton.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(layoutButton);
+
+    expect(layoutButton.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "2H" }));
+
+    expect(layoutButton.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getAllByTestId("chart-probe")).toHaveLength(2);
+    expect(screen.getByTestId("spot-chart-grid").getAttribute("data-layout")).toBe("2H");
+  });
+
+  it("uses the chart workspace for the fullscreen action", () => {
+    renderSpotRoute("/spot/CBTC-USDA");
+
+    const workspace = screen.getByTestId("spot-chart-workspace");
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(workspace, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Enter fullscreen" }));
+
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps explicit local styles on every market-view tab", () => {
     renderSpotRoute("/spot/CBTC-USDA");
 
     const tablist = screen.getByRole("tablist", { name: "Market view" });
     const tabs = within(tablist).getAllByRole("tab");
 
-    expect(tabs).toHaveLength(3);
+    expect(tabs).toHaveLength(2);
     for (const tab of tabs) {
       expect(tab.className).toContain("chartTab");
     }

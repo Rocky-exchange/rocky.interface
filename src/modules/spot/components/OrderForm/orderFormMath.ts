@@ -44,7 +44,7 @@ export function quantityForPercent(input: PercentInput): string {
     : format(balance.times(percent).dividedBy(price.times(100)), BigNumber.ROUND_DOWN);
 }
 
-export function calculateOrderSummary(price: string, quantity: string): { total: string; fee: string } {
+export function calculateOrderSummary(side: Side, price: string, quantity: string): { total: string; fee: string } {
   const parsedPrice = positiveNumber(price);
   const parsedQuantity = positiveNumber(quantity);
   if (parsedPrice === null || parsedQuantity === null) return { total: "", fee: "" };
@@ -54,6 +54,6 @@ export function calculateOrderSummary(price: string, quantity: string): { total:
 
   return {
     total: format(total, BigNumber.ROUND_HALF_UP),
-    fee: format(total.times(FEE_CAP), BigNumber.ROUND_HALF_UP),
+    fee: format((side === "BUY" ? parsedQuantity : total).times(FEE_CAP), BigNumber.ROUND_HALF_UP),
   };
 }

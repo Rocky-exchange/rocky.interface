@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/macro";
+import { t, Trans } from "@lingui/macro";
+import { useLingui } from "@lingui/react";
 import BigNumber from "bignumber.js";
 import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -15,7 +16,6 @@ type Side = "BUY" | "SELL";
 type OrderType = "LIMIT" | "MARKET";
 
 const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
-const FEE_MULTIPLIER = new Decimal("1.001");
 const MARKET_BAND = new Decimal("1.05");
 
 type PercentOrderInput = {
@@ -42,20 +42,7 @@ function positiveDecimal(value: string): BigNumber | null {
 }
 
 function quantityForOrderPercent(input: PercentOrderInput): string {
-  if (input.side === "SELL") return quantityForPercent(input);
-
-  const price = positiveDecimal(input.price);
-  const balance = positiveDecimal(input.quoteFree);
-  if (price === null || balance === null) return "";
-
-  const percent = Decimal.maximum(0, Decimal.minimum(100, input.percent));
-  return balance
-    .times(percent)
-    .dividedBy(100)
-    .dividedBy(price)
-    .dividedBy(FEE_MULTIPLIER)
-    .decimalPlaces(8, BigNumber.ROUND_DOWN)
-    .toFixed();
+  return quantityForPercent(input);
 }
 
 function isWithinAvailableBalance(
@@ -75,7 +62,7 @@ function isWithinAvailableBalance(
   }
 
   const balance = new Decimal(quoteFree);
-  return balance.isFinite() && parsedPrice.times(parsedAmount).times(FEE_MULTIPLIER).lte(balance);
+  return balance.isFinite() && parsedPrice.times(parsedAmount).lte(balance);
 }
 
 function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | undefined): string {
@@ -87,6 +74,7 @@ function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | 
 }
 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
+  const { i18n } = useLingui();
   const { ready, account, err: accountError, refetch } = useSpotAccount();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
   const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
@@ -112,7 +100,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     orderType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
-  const summary = useMemo(() => calculateOrderSummary(effectivePrice, amount), [amount, effectivePrice]);
+  const summary = useMemo(() => calculateOrderSummary(side, effectivePrice, amount), [amount, effectivePrice, side]);
 
   const selectSide = (nextSide: Side) => {
     const nextEffectivePrice =
@@ -234,7 +222,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         quantity: amount,
       });
       if (!isCurrentSession()) return;
-      setMsg({ kind: "ok", text: `${response.status} · ${response.orderId.slice(0, 12)}…` });
+      const confirmation = side === "BUY" ? i18n._(t`Buy order submitted`) : i18n._(t`Sell order submitted`);
+      setMsg({ kind: "ok", text: `${confirmation} · ${response.orderId.slice(0, 12)}…` });
       if (orderType === "LIMIT") setPrice("");
       setAmount("");
       setPercent(0);
@@ -454,7 +443,9 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
           <span>
             <Trans>Fee</Trans> (0.1%)
           </span>
-          <strong>{summary.fee ? `${summary.fee} ${quote}` : `— ${quote}`}</strong>
+          <strong>
+            {summary.fee ? `${summary.fee} ${side === "BUY" ? base : quote}` : `— ${side === "BUY" ? base : quote}`}
+          </strong>
         </div>
 
         {msg && (
