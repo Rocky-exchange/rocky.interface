@@ -288,7 +288,7 @@ export function SpotAccountsPanel({
         )}
       </div>
       <div className={styles.balanceSection}>
-        <div className={styles.title}>Balances</div>
+        <div className={styles.balanceHead}>Balances</div>
         <div className={styles.tableScroll}>
           <table className={styles.balanceTable}>
             <thead>

@@ -22,6 +22,12 @@ const market = resolveSpotMarket("CBTC-USDA");
 // eslint-disable-next-line no-restricted-globals
 const accountStyles = readFileSync(resolve(process.cwd(), "src/modules/spot/components/Accounts/Accounts.module.scss"), "utf8");
 
+function cssRule(source: string, selector: string): string {
+  const match = source.match(new RegExp(`\\.${selector}\\s*\\{([^}]+)\\}`));
+  if (!match) throw new Error(`Missing .${selector} style rule`);
+  return match[1];
+}
+
 const account = (usdcx: string, locked = "0", cbtc = "0", ceth = "0") => ({
   accountType: "SPOT" as const,
   canTrade: true,
@@ -42,6 +48,18 @@ afterEach(() => {
 });
 
 describe("SpotAccountsPanel", () => {
+  it("matches the futures account panel typography hierarchy", () => {
+    expect(cssRule(accountStyles, "title")).toContain("font-weight: 400;");
+    expect(cssRule(accountStyles, "title")).toContain("color: var(--primit-soft-50, #6e6e72);");
+    expect(cssRule(accountStyles, "totalLabel")).toContain("color: #b4b4b6;");
+    expect(cssRule(accountStyles, "totalValue")).toContain("font-size: 12px;");
+    expect(cssRule(accountStyles, "totalValue")).toContain("font-weight: 400;");
+    expect(cssRule(accountStyles, "totalValue")).toContain("color: #f3f3f3;");
+    expect(cssRule(accountStyles, "balanceHead")).toContain("font-size: 12px;");
+    expect(cssRule(accountStyles, "balanceHead")).toContain("color: #f3f3f3;");
+    expect(cssRule(accountStyles, "asset")).toContain("font-weight: 400;");
+  });
+
   it("keeps the transfer input surface above the terminal-wide input reset", () => {
     expect(accountStyles).toMatch(/\.panel\s+\.transferInput\s*\{/);
     expect(accountStyles).toContain("border: 1px solid var(--rocky-input-border, #8b95a5);");

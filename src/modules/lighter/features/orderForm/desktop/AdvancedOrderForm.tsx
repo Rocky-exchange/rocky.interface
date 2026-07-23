@@ -2,18 +2,19 @@ import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { useEffect, useMemo, useState } from "react";
 
+import { formatAvailableToTrade } from "./availableBalanceFormat";
 import { CoinSelect, Row } from "./MarketOrderForm";
 import { getCurrentOrderFormPosition, getProjectedOrderFormPositionValue } from "./orderFormPosition";
 import { formatPreviewFeeRatePercent } from "./orderPreviewFeeFormat";
+import { useOrderGate } from "./useOrderGate";
 import { useAvailableBalanceAdapter } from "../../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
-import { useOrderGate } from "./useOrderGate";
-import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
 import { Checkbox } from "../../../components/Checkbox/Checkbox";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
+import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
 
 export type AdvancedType = "Stop Market" | "Stop Limit" | "Take Profit Market" | "Take Profit Limit";
 
@@ -103,12 +104,7 @@ export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, lev
   const buyingPowerUsd = availableBalance > 0 ? availableBalance * leverage : 0;
   const previewErrorMessage = usePreviewErrorMessage(preview);
 
-  const availableValue =
-    p?.available_balance != null
-      ? formatUsd(p.available_balance)
-      : available != null
-        ? `$${available.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-        : "-";
+  const availableValue = formatAvailableToTrade(p?.available_balance, available);
   const currentPositionAmount = currentPosition?.sizeTokenAmount ?? 0;
   const currentPositionValue =
     amountNum > 0

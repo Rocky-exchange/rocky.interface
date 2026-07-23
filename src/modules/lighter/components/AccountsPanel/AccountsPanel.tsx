@@ -1,5 +1,8 @@
 import { Trans } from "@lingui/macro";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+import { fetchFundingAccountBalance, transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./AccountsPanel.module.scss";
 import { useUnifiedAccountAdapter } from "../../adapters/useUnifiedAccountAdapter";
@@ -31,24 +34,118 @@ function formatLeverage(value: number | null | undefined) {
   return `${value.toFixed(2)}x`;
 }
 
+function formatUsda(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "0";
+  return value.toLocaleString("en-US", { maximumFractionDigits: 8 });
+}
+
 export function AccountsPanel() {
   const account = useUnifiedAccountAdapter();
+  const { connected } = useCantonSession();
+  const [fundingAvailable, setFundingAvailable] = useState<number | null>(account.perpetualsEquity ?? 0);
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferMessage, setTransferMessage] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFundingAvailable(account.perpetualsEquity ?? 0);
+  }, [account.perpetualsEquity]);
+
+  useEffect(() => {
+    if (!connected) return;
+    let active = true;
+    fetchFundingAccountBalance()
+      .then((balance) => {
+        if (active && balance != null) setFundingAvailable(balance);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [connected]);
+
+  const onTransfer = async (direction: "toSpot" | "toFunding") => {
+    setTransferBusy(true);
+    setTransferMessage(null);
+    setTransferError(null);
+    try {
+      const result = await transferSpotBalance({
+        asset: "USDA",
+        amount: transferAmount.trim(),
+        direction,
+      });
+      const nextFundingAvailable = Number(result.fundingAvailable);
+      if (Number.isFinite(nextFundingAvailable)) setFundingAvailable(nextFundingAvailable);
+      setTransferAmount("");
+      setTransferMessage(
+        direction === "toSpot"
+          ? `Moved ${result.amount} USDA to Spot`
+          : `Moved ${result.amount} USDA to Futures`,
+      );
+    } catch (error: unknown) {
+      setTransferError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setTransferBusy(false);
+    }
+  };
 
   return (
     <div className={styles.root}>
-      <div className={styles.section}>
-        <div className={styles.head}>
-          <Trans>Accounts</Trans>
+      <div className={`${styles.section} ${styles.accountSummary}`}>
+        <div className={styles.accountHead}>
+          <Trans>Futures Account</Trans>
         </div>
-        <Row label={<Trans>Perpetuals Equity</Trans>} value={formatUsd(account.perpetualsEquity)} />
-        {/* Spot 账户暂未接入,先下线 Spot Equity 行,保留 JSX 供后续打开。
-        <Row label={<Trans>Spot Equity</Trans>} value={formatUsd(account.spotEquity)} />
-        */}
+        <Row label="USDA (available)" value={formatUsda(fundingAvailable)} />
+        <div className={styles.transferHead}>
+          <Trans>Transfer</Trans>
+        </div>
+        <input
+          type="text"
+          inputMode="decimal"
+          aria-label="Transfer amount"
+          placeholder="Amount"
+          value={transferAmount}
+          disabled={transferBusy}
+          className={styles.transferInput}
+          onChange={(event) => setTransferAmount(event.target.value)}
+        />
+        <div className={styles.transferActions}>
+          <button
+            type="button"
+            className={styles.transferButton}
+            disabled={transferBusy || !transferAmount.trim()}
+            aria-busy={transferBusy}
+            onClick={() => onTransfer("toSpot")}
+          >
+            {transferBusy ? "…" : <Trans>Futures → Spot</Trans>}
+          </button>
+          <button
+            type="button"
+            className={styles.transferButton}
+            disabled={transferBusy || !transferAmount.trim()}
+            aria-busy={transferBusy}
+            onClick={() => onTransfer("toFunding")}
+          >
+            {transferBusy ? "…" : <Trans>Spot → Futures</Trans>}
+          </button>
+        </div>
+        {transferMessage && (
+          <div className={styles.transferMessage} role="status">
+            {transferMessage}
+          </div>
+        )}
+        {transferError && (
+          <div className={styles.transferError} role="alert">
+            {transferError}
+          </div>
+        )}
       </div>
       <div className={styles.section}>
         <div className={styles.head}>
           <Trans>Perpetuals Overview</Trans>
         </div>
+        <Row label={<Trans>Perpetuals Equity</Trans>} value={formatUsd(account.perpetualsEquity)} />
         <Row label={<Trans>Unrealized PnL</Trans>} value={formatUsd(account.unrealizedPnl)} />
         <Row label={<Trans>Cross Leverage</Trans>} value={formatLeverage(account.crossLeverage)} />
         <Row label={<Trans>Cross Margin Usage</Trans>} value={formatUsd(account.crossMarginUsage)} />

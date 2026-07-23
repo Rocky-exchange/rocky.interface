@@ -1,14 +1,25 @@
 import cx from "classnames";
+import { useMemo } from "react";
 
+import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
 import { CHAIN_ID_TO_NETWORK_ICON } from "config/icons";
 import { tryImportImage } from "lib/legacy";
 
 import "./TokenIcon.scss";
 
+const TOKEN_ICON_OVERRIDES: Record<string, string> = {
+  CC: ccIconSrc,
+};
+
 function getIconUrlPath(symbol) {
   if (!symbol) return;
 
   return `ic_${symbol.toLowerCase()}.svg`;
+}
+
+function getIconSource(symbol: string): string | undefined {
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  return TOKEN_ICON_OVERRIDES[normalizedSymbol] ?? tryImportImage(getIconUrlPath(normalizedSymbol));
 }
 
 // Fallback component when icon is not found - displays first letter of symbol
@@ -23,6 +34,14 @@ function FallbackIcon({
 }) {
   const letter = symbol?.charAt(0)?.toUpperCase() || "?";
   const fontSize = Math.max(10, displaySize * 0.5);
+  const style = useMemo(
+    () => ({
+      width: displaySize,
+      height: displaySize,
+      fontSize,
+    }),
+    [displaySize, fontSize]
+  );
 
   return (
     <span
@@ -30,11 +49,7 @@ function FallbackIcon({
         "Token-icon inline-flex items-center justify-center rounded-full bg-slate-600 text-white font-medium",
         className
       )}
-      style={{
-        width: displaySize,
-        height: displaySize,
-        fontSize: fontSize,
-      }}
+      style={style}
       data-qa="token-icon-fallback"
     >
       {letter}
@@ -58,7 +73,7 @@ function TokenIcon({ className, symbol, displaySize, badge, badgeClassName, chai
   if (!iconPath) return <></>;
 
   // Try to get the image, returns undefined if not found
-  const imageSrc = tryImportImage(iconPath);
+  const imageSrc = getIconSource(symbol);
 
   let sub;
   let containerClassName = "";
@@ -78,8 +93,8 @@ function TokenIcon({ className, symbol, displaySize, badge, badgeClassName, chai
     } else {
       const badge0Path = getIconUrlPath(badge[0]);
       const badge1Path = getIconUrlPath(badge[1]);
-      const badge0Src = badge0Path ? tryImportImage(badge0Path) : undefined;
-      const badge1Src = badge1Path ? tryImportImage(badge1Path) : undefined;
+      const badge0Src = badge0Path ? getIconSource(badge[0]) : undefined;
+      const badge1Src = badge1Path ? getIconSource(badge[1]) : undefined;
 
       sub = (
         <span

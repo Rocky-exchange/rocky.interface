@@ -4,13 +4,16 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { AssetBadge } from "@/modules/spot/components/SymbolBar/MarketDropdown";
+import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
+import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
+import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
+
 vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
   default: ({ symbol, displaySize }: { symbol: string; displaySize: number }) => (
     <img src={`${symbol}.svg`} alt={symbol} width={displaySize} height={displaySize} />
   ),
 }));
-
-import { AssetBadge } from "@/modules/spot/components/SymbolBar/MarketDropdown";
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 const topNavCss = readFileSync(resolve(testDirectory, "TopNav.module.scss"), "utf8");
@@ -25,9 +28,19 @@ describe("shared Spot and Futures header visuals", () => {
   it("uses the same 20px market icon size as the Futures selector", () => {
     render(<AssetBadge symbol="CBTC" />);
 
-    const icon = screen.getByRole("img", { name: "btc" });
+    const icon = screen.getByRole("img", { name: "CBTC" });
     expect(icon.getAttribute("width")).toBe("20");
     expect(icon.getAttribute("height")).toBe("20");
+  });
+
+  it.each([
+    ["CBTC", cbtcIconSrc],
+    ["cETH", cethIconSrc],
+    ["CC", ccIconSrc],
+  ])("uses the Canton token artwork for the Spot %s market", (symbol, expectedSrc) => {
+    render(<AssetBadge symbol={symbol} />);
+
+    expect(screen.getByRole("img", { name: symbol }).getAttribute("src")).toBe(expectedSrc);
   });
 
   it("pins route-stable header typography to the shared Primit font", () => {

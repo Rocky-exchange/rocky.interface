@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useHistory } from "react-router-dom";
 
 import TokenIcon from "@/shared/components/TokenIcon/TokenIcon";
+import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
+import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
+import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
 
 import { SelectorBase, useSelectorClose } from "components/SelectorBase/SelectorBase";
 
@@ -10,17 +13,29 @@ import { spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import { SPOT_MARKETS, type SpotMarket } from "../../model/spotMarkets";
 
-// Rocky spot base assets map to underlying ic_<x>.svg in shared/img/tokens:
-//   CBTC → btc,  cETH / CETH → eth
-function iconSymbolFor(base: string): string {
-  const norm = base.toLowerCase();
-  if (norm === "cbtc" || norm === "btc") return "btc";
-  if (norm === "ceth" || norm === "eth") return "eth";
-  return norm;
-}
+const SPOT_TOKEN_ICONS: Record<string, string> = {
+  CBTC: cbtcIconSrc,
+  CETH: cethIconSrc,
+  CC: ccIconSrc,
+};
 
 export function AssetBadge({ symbol, size = 20 }: { symbol: string; size?: number }) {
-  return <TokenIcon symbol={iconSymbolFor(symbol)} displaySize={size} />;
+  const iconSrc = SPOT_TOKEN_ICONS[symbol.trim().toUpperCase()];
+
+  if (iconSrc) {
+    return (
+      <img
+        data-qa="token-icon"
+        className="Token-icon inline rounded-full"
+        src={iconSrc}
+        alt={symbol}
+        width={size}
+        height={size}
+      />
+    );
+  }
+
+  return <TokenIcon symbol={symbol} displaySize={size} />;
 }
 
 function fmtPrice(v: string | undefined): string {

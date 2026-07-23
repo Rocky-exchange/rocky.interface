@@ -2,19 +2,21 @@ import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+
+import { formatAvailableToTrade } from "./availableBalanceFormat";
 import { CoinSelect, Row } from "./MarketOrderForm";
 import { getCurrentOrderFormPosition, getProjectedOrderFormPositionValue } from "./orderFormPosition";
 import { formatPreviewFeeRatePercent } from "./orderPreviewFeeFormat";
+import { useOrderGate } from "./useOrderGate";
 import { useAvailableBalanceAdapter } from "../../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
-import { useOrderGate } from "./useOrderGate";
-import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
 import { Checkbox } from "../../../components/Checkbox/Checkbox";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
+import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
 
 type Props = {
   side: "buy" | "sell";
@@ -121,13 +123,7 @@ export function LimitOrderForm({ side, isConnected, leverage, marginMode }: Prop
       <div className="ltr-form__section">
         <Row
           label={<Trans>Available to Trade</Trans>}
-          value={
-            p?.available_balance
-              ? fmtUsd(p.available_balance)
-              : available != null
-                ? `$${available.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : "-"
-          }
+          value={formatAvailableToTrade(p?.available_balance, available)}
         />
         <Row
           label={<Trans>Position</Trans>}
