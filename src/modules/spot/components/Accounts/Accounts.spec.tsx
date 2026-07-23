@@ -126,6 +126,28 @@ describe("SpotAccountsPanel", () => {
     expect(queryByText(/Get test funds/)).toBeNull();
   });
 
+  it("preserves the exact USDA free plus locked precision without rounding", () => {
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: account("3.08894885", "0.00000001"),
+      err: null,
+      refetch: vi.fn(),
+    });
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getByText, queryByText } = render(<SpotAccountsPanel market={market} />);
+
+    expect(getByText("3.08894886")).toBeTruthy();
+    expect(queryByText("3.09")).toBeNull();
+  });
+
   it("renders each supported token icon before its balance symbol", () => {
     const balances = account("1", "0", "0.1", "0.2");
     mSpotAccount.mockReturnValue({

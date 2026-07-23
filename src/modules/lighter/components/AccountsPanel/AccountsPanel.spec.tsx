@@ -5,30 +5,29 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchFundingAccountBalance, transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
-import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
 
 import { AccountsPanel } from "./AccountsPanel";
+import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
 import { useUnifiedAccountAdapter } from "../../adapters/useUnifiedAccountAdapter";
 
+vi.mock("../../adapters/useAvailableBalanceAdapter", () => ({
+  useAvailableBalanceAdapter: vi.fn(),
+}));
 vi.mock("../../adapters/useUnifiedAccountAdapter", () => ({
   useUnifiedAccountAdapter: vi.fn(),
 }));
 vi.mock("@/shared/lib/canton-wallet/funds", () => ({
-  fetchFundingAccountBalance: vi.fn(),
   transferSpotBalance: vi.fn(),
-}));
-vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
-  useCantonSession: vi.fn(),
 }));
 
 const mAccount = vi.mocked(useUnifiedAccountAdapter);
-const mFundingBalance = vi.mocked(fetchFundingAccountBalance);
+const mAvailable = vi.mocked(useAvailableBalanceAdapter);
 const mTransfer = vi.mocked(transferSpotBalance);
-const mSession = vi.mocked(useCantonSession);
+const mSetAvailable = vi.fn();
 const accountStyles = readFileSync(
   resolve("src/modules/lighter/components/AccountsPanel/AccountsPanel.module.scss"),
-  "utf8",
+  "utf8"
 );
 
 i18n.load("en", {});
@@ -38,18 +37,15 @@ function renderPanel() {
   return render(
     <I18nProvider i18n={i18n}>
       <AccountsPanel />
-    </I18nProvider>,
+    </I18nProvider>
   );
 }
 
 beforeEach(() => {
-  mSession.mockReturnValue({
-    connected: true,
-    party: "party",
-    token: "token",
-    username: "user",
-    avatar: "",
-    provider: "rocky",
+  mAvailable.mockReturnValue({
+    available: 3.09,
+    loading: false,
+    setAvailable: mSetAvailable,
   });
   mAccount.mockReturnValue({
     perpetualsEquity: 3.09,
@@ -60,7 +56,6 @@ beforeEach(() => {
     crossMarginRatio: 0,
     crossLeverage: null,
   });
-  mFundingBalance.mockResolvedValue(3.09);
   mTransfer.mockImplementation(async ({ amount, direction }) => ({
     asset: "USDA",
     direction,
@@ -109,6 +104,7 @@ describe("AccountsPanel", () => {
         direction: "toSpot",
       });
     });
+    expect(mSetAvailable).toHaveBeenLastCalledWith(2.09);
     expect(view.getByText("2.09")).toBeTruthy();
 
     fireEvent.change(amount, { target: { value: "0.5" } });

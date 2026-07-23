@@ -1,10 +1,10 @@
 import { Trans } from "@lingui/macro";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { fetchFundingAccountBalance, transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
-import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
 
 import styles from "./AccountsPanel.module.scss";
+import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
 import { useUnifiedAccountAdapter } from "../../adapters/useUnifiedAccountAdapter";
 
 function Row({ label, value }: { label: ReactNode; value: string }) {
@@ -41,29 +41,18 @@ function formatUsda(value: number | null | undefined) {
 
 export function AccountsPanel() {
   const account = useUnifiedAccountAdapter();
-  const { connected } = useCantonSession();
-  const [fundingAvailable, setFundingAvailable] = useState<number | null>(account.perpetualsEquity ?? 0);
+  const { available: cachedFundingAvailable, setAvailable: setCachedFundingAvailable } = useAvailableBalanceAdapter();
+  const [fundingAvailable, setFundingAvailable] = useState<number | null>(
+    cachedFundingAvailable ?? account.perpetualsEquity ?? 0
+  );
   const [transferAmount, setTransferAmount] = useState("");
   const [transferBusy, setTransferBusy] = useState(false);
   const [transferMessage, setTransferMessage] = useState<string | null>(null);
   const [transferError, setTransferError] = useState<string | null>(null);
 
   useEffect(() => {
-    setFundingAvailable(account.perpetualsEquity ?? 0);
-  }, [account.perpetualsEquity]);
-
-  useEffect(() => {
-    if (!connected) return;
-    let active = true;
-    fetchFundingAccountBalance()
-      .then((balance) => {
-        if (active && balance != null) setFundingAvailable(balance);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [connected]);
+    setFundingAvailable(cachedFundingAvailable ?? account.perpetualsEquity ?? 0);
+  }, [account.perpetualsEquity, cachedFundingAvailable]);
 
   const onTransfer = async (direction: "toSpot" | "toFunding") => {
     setTransferBusy(true);
@@ -76,12 +65,13 @@ export function AccountsPanel() {
         direction,
       });
       const nextFundingAvailable = Number(result.fundingAvailable);
-      if (Number.isFinite(nextFundingAvailable)) setFundingAvailable(nextFundingAvailable);
+      if (Number.isFinite(nextFundingAvailable)) {
+        setFundingAvailable(nextFundingAvailable);
+        setCachedFundingAvailable(nextFundingAvailable);
+      }
       setTransferAmount("");
       setTransferMessage(
-        direction === "toSpot"
-          ? `Moved ${result.amount} USDA to Spot`
-          : `Moved ${result.amount} USDA to Futures`,
+        direction === "toSpot" ? `Moved ${result.amount} USDA to Spot` : `Moved ${result.amount} USDA to Futures`
       );
     } catch (error: unknown) {
       setTransferError(error instanceof Error ? error.message : String(error));

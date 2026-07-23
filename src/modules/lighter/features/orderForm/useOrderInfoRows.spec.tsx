@@ -53,7 +53,7 @@ const BASE_ARGS: UseOrderInfoRowsArgs = {
 };
 
 beforeEach(() => {
-  mAvail.mockReturnValue({ available: null, loading: false });
+  mAvail.mockReturnValue({ available: null, loading: false, setAvailable: vi.fn() });
   mPos.mockReturnValue([]);
 });
 afterEach(() => {
@@ -102,7 +102,7 @@ describe("useOrderInfoRows", () => {
   });
 
   it("Available falls back to the balance adapter when preview lacks it", () => {
-    mAvail.mockReturnValue({ available: 500, loading: false });
+    mAvail.mockReturnValue({ available: 500, loading: false, setAvailable: vi.fn() });
     const { container } = render(<Harness args={BASE_ARGS} onState={noop} />);
     const view = within(container);
     expect(view.getByTestId("avail").textContent).toBe("$500.00");

@@ -1,32 +1,34 @@
-import { useMemo } from "react";
+import useSWR from "swr";
 
-import { useChainId } from "lib/chains";
-import { usePrimitBalances } from "modules/lighter/api/hooks";
+import { fetchFundingAccountBalance } from "@/shared/lib/canton-wallet/funds";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 /**
  * 读取用户账户 Available to Trade(USD 值)。
- * 直接调 /account/balances — 与 preview 独立,不依赖订单表单输入。
+ * 直接读取 Futures Account 的 USDA available — 与 preview 独立,不依赖订单表单输入。
  * 未连钱包 / 未认证时返回 null。
  */
 export function useAvailableBalanceAdapter(): {
   available: number | null;
   loading: boolean;
+  setAvailable: (value: number) => void;
 } {
-  const { chainId } = useChainId();
-  const { data, isLoading } = usePrimitBalances(chainId);
-
-  const available = useMemo(() => {
-    const list = data?.balances;
-    if (!list || !list.length) return null;
-    // 优先取 USDT / USD 作为可用资金;否则累加所有 available
-    const usd = list.find((b) => /USDT?$/i.test(b.symbol));
-    if (usd?.available != null) {
-      const n = Number(usd.available);
-      return Number.isFinite(n) ? n : null;
+  const { connected, party, username } = useCantonSession();
+  const accountKey = connected ? party || username || "canton-session" : null;
+  const { data, isLoading, mutate } = useSWR<number | null>(
+    accountKey ? ["futures-usda-available", accountKey] : null,
+    fetchFundingAccountBalance,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+      refreshInterval: 10000,
     }
-    const total = list.reduce((sum, b) => sum + (Number(b.available) || 0), 0);
-    return Number.isFinite(total) ? total : null;
-  }, [data]);
+  );
 
-  return { available, loading: isLoading };
+  const available = data != null && Number.isFinite(data) ? data : null;
+  const setAvailable = (value: number) => {
+    void mutate(value, false);
+  };
+
+  return { available, loading: isLoading, setAvailable };
 }

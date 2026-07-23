@@ -64,7 +64,7 @@ beforeEach(() => {
     typeof useOrderPreviewAdapter
   >);
   mErr.mockReturnValue(null);
-  mAvail.mockReturnValue({ available: 1000, loading: false });
+  mAvail.mockReturnValue({ available: 1000, loading: false, setAvailable: vi.fn() });
   mPos.mockReturnValue([]);
   mPlace.mockReturnValue({ placeOrder, submitting: false } as unknown as ReturnType<typeof usePlaceOrderAdapter>);
 });

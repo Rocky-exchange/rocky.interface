@@ -1,3 +1,4 @@
+import BigNumber from "bignumber.js";
 import { useState } from "react";
 
 import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
@@ -189,7 +190,9 @@ export function SpotAccountsPanel({
     );
 
   const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDA");
-  const totalUsda = quoteBalance ? parseFloat(quoteBalance.free) + parseFloat(quoteBalance.locked) : 0;
+  const totalUsda = quoteBalance
+    ? new BigNumber(quoteBalance.free).plus(quoteBalance.locked).toFormat()
+    : "0";
   const allZero = account.balances.every(
     (balance) => parseFloat(balance.free) === 0 && parseFloat(balance.locked) === 0,
   );
@@ -238,7 +241,7 @@ export function SpotAccountsPanel({
         <div className={styles.title}>Spot Account</div>
         <div className={styles.totalRow}>
           <span className={styles.totalLabel}>USDA (free + locked)</span>
-          <span className={styles.totalValue}>{totalUsda.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+          <span className={styles.totalValue}>{totalUsda}</span>
         </div>
         {allZero && (
           <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>

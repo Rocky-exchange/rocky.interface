@@ -326,21 +326,22 @@ async function fetchAccountBalanceRecord(asset: CantonFundsAsset): Promise<Recor
 }
 
 export async function fetchPlatformAccountBalances(): Promise<PlatformAccountBalances> {
-  const rows = await Promise.all(
-    CANTON_FUNDING_ASSETS.map(async ({ symbol }) => {
-      try {
-        return [symbol, await fetchPlatformAccountBalance(symbol)] as const;
-      } catch (_error) {
-        return [symbol, null] as const;
-      }
-    })
-  );
-  return rows.reduce<PlatformAccountBalances>((balances, [asset, value]) => ({ ...balances, [asset]: value }), {
+  const balances: PlatformAccountBalances = {
     USDA: null,
     CBTC: null,
     cETH: null,
     CC: null,
-  });
+  };
+
+  for (const { symbol } of CANTON_FUNDING_ASSETS) {
+    try {
+      balances[symbol] = await fetchPlatformAccountBalance(symbol);
+    } catch (_error) {
+      balances[symbol] = null;
+    }
+  }
+
+  return balances;
 }
 
 export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {

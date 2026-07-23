@@ -356,6 +356,28 @@ describe("canton wallet funds", () => {
     });
   });
 
+  it("loads platform balances without overlapping requests rejected by the account service", async () => {
+    let inFlight = 0;
+    const fetchMock = vi.fn(async () => {
+      inFlight += 1;
+      if (inFlight > 1) {
+        inFlight -= 1;
+        throw new Error("upstream reset concurrent request");
+      }
+      await new Promise<void>((resolve) => queueMicrotask(resolve));
+      inFlight -= 1;
+      return jsonResponse({ spot_free: "1" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformAccountBalances()).resolves.toEqual({
+      USDA: 1,
+      CBTC: 1,
+      cETH: 1,
+      CC: 1,
+    });
+  });
+
   it("accepts camel-case and nested spot balance responses", async () => {
     const fetchMock = vi
       .fn()
