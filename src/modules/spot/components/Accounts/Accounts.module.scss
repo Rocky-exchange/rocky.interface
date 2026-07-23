@@ -211,12 +211,36 @@
   }
 }
 
-.transferInput {
-  background: var(--bg-secondary, #17181c);
-  border: 1px solid var(--border-color, #2a2c33);
-  border-radius: 6px;
-  color: inherit;
-  font-size: 12px;
-  padding: 6px 8px;
+.panel .transferInput {
+  height: 32px;
+  background: var(--rocky-input-surface, #2b2b30);
+  border: 1px solid var(--rocky-input-border, #8b95a5);
+  border-radius: 4px;
+  color: var(--ltr-text-primary);
+  cursor: text;
+  font: 400 12px / 16px var(--ltr-font-family);
+  padding: 0 8px;
   min-width: 0;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: var(--ltr-text-muted);
+    opacity: 1;
+  }
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    background: var(--rocky-input-surface-hover, #323239);
+  }
+
+  &:focus:not(:disabled) {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rocky-input-border, #8b95a5) 32%, transparent);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.55;
+  }
 }
