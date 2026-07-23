@@ -1,4 +1,6 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
@@ -17,6 +19,8 @@ import { resolveSpotMarket } from "../../model/spotMarkets";
 const mSession = vi.mocked(useCantonSession);
 const mSpotAccount = vi.mocked(useSpotAccount);
 const market = resolveSpotMarket("CBTC-USDA");
+// eslint-disable-next-line no-restricted-globals
+const accountStyles = readFileSync(resolve(process.cwd(), "src/modules/spot/components/Accounts/Accounts.module.scss"), "utf8");
 
 const account = (usdcx: string, locked = "0", cbtc = "0", ceth = "0") => ({
   accountType: "SPOT" as const,
@@ -38,6 +42,10 @@ afterEach(() => {
 });
 
 describe("SpotAccountsPanel", () => {
+  it("keeps the transfer input surface above the terminal-wide input reset", () => {
+    expect(accountStyles).toMatch(/\.panel\s+\.transferInput\s*\{/);
+  });
+
   it("hides the panel-level wallet CTA while account auth is unavailable", () => {
     mSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch: vi.fn() });
     mSession.mockReturnValue({
@@ -97,6 +105,37 @@ describe("SpotAccountsPanel", () => {
     expect(getByText("CBTC")).toBeTruthy();
     expect(getByText("cETH")).toBeTruthy();
     expect(queryByText(/Get test funds/)).toBeNull();
+  });
+
+  it("keeps the transfer amount editable and enables both directions after entering an amount", () => {
+    mSpotAccount.mockReturnValue({
+      ready: true,
+      account: account("1"),
+      err: null,
+      refetch: vi.fn(),
+    });
+    mSession.mockReturnValue({
+      connected: true,
+      token: "t",
+      party: "p1",
+      username: "u",
+      avatar: "",
+      provider: "",
+    });
+
+    const { getByRole } = render(<SpotAccountsPanel market={market} />);
+    const input = getByRole("textbox", { name: "Transfer amount" }) as HTMLInputElement;
+    const toSpot = getByRole("button", { name: "Futures → Spot" }) as HTMLButtonElement;
+    const toFutures = getByRole("button", { name: "Spot → Futures" }) as HTMLButtonElement;
+
+    expect(input.disabled).toBe(false);
+    expect(toSpot.disabled).toBe(true);
+    expect(toFutures.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: "0.1" } });
+
+    expect(toSpot.disabled).toBe(false);
+    expect(toFutures.disabled).toBe(false);
   });
 
   it("preserves loading and error states", () => {
