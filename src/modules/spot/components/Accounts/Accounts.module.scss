@@ -213,10 +213,8 @@
 
 .panel .transferInput {
   height: 32px;
-  background:
-    linear-gradient(var(--rocky-input-surface, #2b2b30), var(--rocky-input-surface, #2b2b30)) padding-box,
-    var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
-  border: 1px solid transparent;
+  background: var(--rocky-input-surface, #2b2b30);
+  border: 1px solid var(--rocky-input-border, #8b95a5);
   border-radius: 4px;
   color: var(--ltr-text-primary);
   cursor: text;
@@ -234,14 +232,11 @@
 
   &:hover:not(:disabled),
   &:focus:not(:disabled) {
-    background:
-      linear-gradient(var(--rocky-input-surface-hover, #323239), var(--rocky-input-surface-hover, #323239))
-        padding-box,
-      var(--rocky-input-border-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%)) border-box;
+    background: var(--rocky-input-surface-hover, #323239);
   }
 
   &:focus:not(:disabled) {
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rocky-input-border, #f5a85f) 32%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rocky-input-border, #8b95a5) 32%, transparent);
   }
 
   &:disabled {

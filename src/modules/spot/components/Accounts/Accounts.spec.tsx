@@ -44,6 +44,7 @@ afterEach(() => {
 describe("SpotAccountsPanel", () => {
   it("keeps the transfer input surface above the terminal-wide input reset", () => {
     expect(accountStyles).toMatch(/\.panel\s+\.transferInput\s*\{/);
+    expect(accountStyles).toContain("border: 1px solid var(--rocky-input-border, #8b95a5);");
   });
 
   it("hides the panel-level wallet CTA while account auth is unavailable", () => {
