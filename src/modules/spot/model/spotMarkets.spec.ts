@@ -3,11 +3,31 @@ import { describe, expect, it } from "vitest";
 import { SPOT_MARKETS, resolveSpotMarket, toSpotDisplayAsset } from "./spotMarkets";
 
 describe("SPOT_MARKETS", () => {
-  it("maps USDA routes to the backend USDA symbols", () => {
+  it("maps every route to its backend symbol (apiSymbol == routeSymbol)", () => {
     expect(SPOT_MARKETS.map(({ routeSymbol, apiSymbol }) => ({ routeSymbol, apiSymbol }))).toEqual([
       { routeSymbol: "CBTC-USDA", apiSymbol: "CBTC-USDA" },
       { routeSymbol: "CETH-USDA", apiSymbol: "CETH-USDA" },
+      { routeSymbol: "CC-USDA", apiSymbol: "CC-USDA" },
+      { routeSymbol: "CETH-CBTC", apiSymbol: "CETH-CBTC" },
     ]);
+  });
+
+  it("lists CC-USDA so it appears in the market dropdown", () => {
+    const cc = resolveSpotMarket("CC-USDA");
+    expect(cc.routeSymbol).toBe("CC-USDA");
+    expect(cc.displayBase).toBe("CC");
+    expect(cc.displayQuote).toBe("USDA");
+    expect(cc.chartSource).toBe("native"); // no Binance listing
+  });
+
+  it("lists the crypto-quoted CETH-CBTC pair", () => {
+    const m = resolveSpotMarket("CETH-CBTC");
+    expect(m.routeSymbol).toBe("CETH-CBTC");
+    expect(m.displayBase).toBe("cETH");
+    expect(m.displayQuote).toBe("CBTC");
+    expect(m.apiBase).toBe("CETH");
+    expect(m.apiQuote).toBe("CBTC");
+    expect(m.chartSource).toBe("native");
   });
 
   it("uses the approved CBTC display capitalization", () => {

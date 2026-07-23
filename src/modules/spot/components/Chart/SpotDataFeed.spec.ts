@@ -44,7 +44,7 @@ describe("onReady", () => {
   it("advertises the backend interval whitelist", async () => {
     const feed = new SpotDataFeed();
     const cfg = await new Promise<DatafeedConfiguration>((resolve) => feed.onReady(resolve));
-    expect(cfg.supported_resolutions).toEqual(["1", "5", "15", "30", "60", "240", "1D"]);
+    expect(cfg.supported_resolutions).toEqual(["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"]);
   });
 });
 
@@ -68,6 +68,22 @@ describe("resolveSymbol", () => {
     expect(info.ticker).toBe("CETH-USDA");
     expect(info.description).toBe("cETH/USDA");
     expect(info.currency_code).toBe("USDA");
+  });
+
+  it("labels the crypto-quoted CETH-CBTC pair with a 5-decimal price scale", async () => {
+    const feed = new SpotDataFeed();
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CETH-CBTC", resolve as never));
+    expect(info.name).toBe("CETH-CBTC");
+    expect(info.description).toBe("cETH/CBTC");
+    expect(info.currency_code).toBe("CBTC");
+    expect(info.pricescale).toBe(100000); // tick 0.00001 → 5 decimals
+  });
+
+  it("gives CC-USDA a 5-decimal price scale", async () => {
+    const feed = new SpotDataFeed();
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CC-USDA", resolve as never));
+    expect(info.description).toBe("CC/USDA");
+    expect(info.pricescale).toBe(100000);
   });
 
   it("canonicalizes a normalized known symbol", async () => {
@@ -150,6 +166,28 @@ describe("getBars", () => {
       feed.getBars(symbolInfo("UNKNOWN-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });
     expect(urls[0]).toContain("symbol=UNKNOWNUSDA");
+  });
+
+  it("routes native pairs (CC-USDA, CETH-CBTC) to Rocky's own klines, not Binance", async () => {
+    const { urls } = stubFetch([]);
+    const feed = new SpotDataFeed();
+
+    await new Promise<void>((resolve) => {
+      feed.getBars(symbolInfo("CC-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+    });
+    expect(urls[0]).not.toContain("binance");
+    expect(urls[0]).toContain("/api/v3/klines");
+    expect(urls[0]).toContain("symbol=CC-USDA");
+    expect(urls[0]).toContain("interval=5m");
+    expect(urls[0]).toContain("limit=200");
+
+    urls.length = 0;
+    await new Promise<void>((resolve) => {
+      feed.getBars(symbolInfo("CETH-CBTC"), "1" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+    });
+    expect(urls[0]).not.toContain("binance");
+    expect(urls[0]).toContain("/api/v3/klines");
+    expect(urls[0]).toContain("symbol=CETH-CBTC");
   });
 
   it("clamps limit to [100, 1000]", async () => {

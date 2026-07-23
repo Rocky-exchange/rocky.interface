@@ -84,20 +84,11 @@ function intervalSeconds(interval: string): number {
 type RawKline = [number, string, string, string, string, string, number, string, number, ...string[]];
 
 const BINANCE_KLINES = "https://data-api.binance.vision/api/v3/klines";
+// Rocky's own klines (same-origin via the /api/v3 proxy) — used for pairs with
+// no Binance listing (CC, crypto-quoted). Binance-compatible row shape.
+const NATIVE_KLINES = "/api/v3/klines";
 
-async function fetchKlines(rockySymbol: string, interval: string, limit: number, endTimeMs?: number): Promise<Bar[]> {
-  const binSym = toBinanceSymbol(rockySymbol);
-  const params = new URLSearchParams({
-    symbol: binSym,
-    interval,
-    limit: String(Math.min(Math.max(limit, 100), 1000)),
-  });
-  if (endTimeMs && isFinite(endTimeMs)) params.set("endTime", String(endTimeMs));
-  const r = await fetch(`${BINANCE_KLINES}?${params.toString()}`, {
-    headers: { accept: "application/json" },
-  });
-  if (!r.ok) throw new Error(`binance klines HTTP ${r.status}`);
-  const rows = (await r.json()) as RawKline[];
+function parseKlineRows(rows: RawKline[]): Bar[] {
   return rows
     .map((row) => ({
       time: row[0], // ms — TradingView expects ms
@@ -109,6 +100,31 @@ async function fetchKlines(rockySymbol: string, interval: string, limit: number,
     }))
     .filter((b) => isFinite(b.open) && isFinite(b.close))
     .sort((a, b) => (a.time as number) - (b.time as number));
+}
+
+async function fetchKlines(rockySymbol: string, interval: string, limit: number, endTimeMs?: number): Promise<Bar[]> {
+  const clampedLimit = String(Math.min(Math.max(limit, 100), 1000));
+  const market = resolveSpotMarket(rockySymbol);
+  const isKnown = market.routeSymbol === rockySymbol.trim().toUpperCase();
+
+  // Native pairs (CC, crypto-quoted) have no Binance symbol — read our own
+  // klines. Backend has no endTime pagination, so we always return the latest
+  // window; charts are sparse until trades accumulate (acceptable at launch).
+  if (isKnown && market.chartSource === "native") {
+    const params = new URLSearchParams({ symbol: market.apiSymbol, interval, limit: clampedLimit });
+    const r = await fetch(`${NATIVE_KLINES}?${params.toString()}`, { headers: { accept: "application/json" } });
+    if (!r.ok) throw new Error(`rocky klines HTTP ${r.status}`);
+    return parseKlineRows((await r.json()) as RawKline[]);
+  }
+
+  const binSym = toBinanceSymbol(rockySymbol);
+  const params = new URLSearchParams({ symbol: binSym, interval, limit: clampedLimit });
+  if (endTimeMs && isFinite(endTimeMs)) params.set("endTime", String(endTimeMs));
+  const r = await fetch(`${BINANCE_KLINES}?${params.toString()}`, {
+    headers: { accept: "application/json" },
+  });
+  if (!r.ok) throw new Error(`binance klines HTTP ${r.status}`);
+  return parseKlineRows((await r.json()) as RawKline[]);
 }
 
 export class SpotDataFeed implements IBasicDataFeed {
@@ -151,7 +167,7 @@ export class SpotDataFeed implements IBasicDataFeed {
       format: "price",
       minmov: 1,
       // rocky-backend tick=0.01 for the currently routed public markets.
-      pricescale: resolvedSymbolName === "CC-USDA" ? 100000 : 100,
+      pricescale: resolvedSymbolName === "CC-USDA" || resolvedSymbolName === "CETH-CBTC" ? 100000 : 100,
       has_intraday: true,
       has_daily: true,
       has_weekly_and_monthly: true,
