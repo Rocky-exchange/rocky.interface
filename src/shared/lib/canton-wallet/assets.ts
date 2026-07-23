@@ -50,7 +50,6 @@ export function walletFacingAssetSymbol(value: string | null | undefined): Canto
     normalized === "USDC" ||
     normalized === "USDA" ||
     normalized.includes("USDA") ||
-    normalized.includes("USDCX") ||
     normalized === "3574B536CAD140749B64859398713BA0"
   )
     return "USDA";
