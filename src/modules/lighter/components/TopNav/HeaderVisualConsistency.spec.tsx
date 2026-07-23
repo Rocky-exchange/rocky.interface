@@ -5,13 +5,10 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AssetBadge } from "@/modules/spot/components/SymbolBar/MarketDropdown";
-import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
-import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
-import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
 
 vi.mock("@/shared/components/TokenIcon/TokenIcon", () => ({
-  default: ({ symbol, displaySize }: { symbol: string; displaySize: number }) => (
-    <img src={`${symbol}.svg`} alt={symbol} width={displaySize} height={displaySize} />
+  default: ({ symbol, displaySize, imageUrl }: { symbol: string; displaySize: number; imageUrl?: string }) => (
+    <img src={imageUrl ?? `${symbol}.svg`} alt={symbol} width={displaySize} height={displaySize} />
   ),
 }));
 
@@ -26,21 +23,18 @@ afterEach(cleanup);
 
 describe("shared Spot and Futures header visuals", () => {
   it("uses the same 20px market icon size as the Futures selector", () => {
-    render(<AssetBadge symbol="CBTC" />);
+    render(<AssetBadge symbol="CBTC" iconUrl="/v1/token-icons/CBTC" />);
 
     const icon = screen.getByRole("img", { name: "CBTC" });
     expect(icon.getAttribute("width")).toBe("20");
     expect(icon.getAttribute("height")).toBe("20");
   });
 
-  it.each([
-    ["CBTC", cbtcIconSrc],
-    ["cETH", cethIconSrc],
-    ["CC", ccIconSrc],
-  ])("uses the Canton token artwork for the Spot %s market", (symbol, expectedSrc) => {
-    render(<AssetBadge symbol={symbol} />);
+  it.each(["CBTC", "cETH", "CC"])("uses the backend artwork for the Spot %s market", (symbol) => {
+    const iconUrl = `/v1/token-icons/${symbol.toUpperCase()}`;
+    render(<AssetBadge symbol={symbol} iconUrl={iconUrl} />);
 
-    expect(screen.getByRole("img", { name: symbol }).getAttribute("src")).toBe(expectedSrc);
+    expect(screen.getByRole("img", { name: symbol }).getAttribute("src")).toBe(iconUrl);
   });
 
   it("pins route-stable header typography to the shared Primit font", () => {

@@ -361,7 +361,12 @@ function TradingMarketRow({
       </td>
       <td className={cx("min-w-0 pl-4 text-[13px]", rowVerticalPadding, isMobile ? "pr-2" : "pr-8")}>
         <div className="flex min-w-0 items-center">
-          <TokenIcon className="ChartToken-list-icon mr-6 shrink-0" symbol={market.base_asset} displaySize={16} />
+          <TokenIcon
+            className="ChartToken-list-icon mr-6 shrink-0"
+            symbol={market.base_asset}
+            imageUrl={market.icon_url}
+            displaySize={16}
+          />
           <span className="flex min-w-0 flex-nowrap items-center gap-6">
             <span className="leading-tight min-w-0 truncate font-medium">
               <span className="text-typography-primary">{market.base_asset}</span>

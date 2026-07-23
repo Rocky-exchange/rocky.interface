@@ -13,10 +13,18 @@ import TokenIcon from "./TokenIcon";
 afterEach(cleanup);
 
 describe("TokenIcon", () => {
-  it.each(["BTC", "ETH", "CC"])("renders a real market icon for %s", (symbol) => {
+  it.each(["BTC", "ETH"])("renders a real generic market icon for %s", (symbol) => {
     const { container, getByRole } = render(<TokenIcon symbol={symbol} displaySize={16} />);
 
     expect(getByRole("img", { name: symbol })).toBeTruthy();
     expect(container.querySelector('[data-qa="token-icon-fallback"]')).toBeNull();
+  });
+
+  it("prefers the icon URL returned by the backend", () => {
+    const { getByRole } = render(
+      <TokenIcon symbol="CBTC" imageUrl="/v1/token-icons/CBTC" displaySize={20} />
+    );
+
+    expect(getByRole("img", { name: "CBTC" }).getAttribute("src")).toBe("/v1/token-icons/CBTC");
   });
 });

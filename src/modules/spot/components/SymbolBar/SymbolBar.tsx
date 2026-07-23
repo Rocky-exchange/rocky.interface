@@ -17,7 +17,7 @@ function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
 
   return (
     <div className={styles.bar}>
-      <SpotMarketDropdown market={market} />
+      <SpotMarketDropdown market={market} iconUrl={t?.iconUrl} />
       <div className={styles.divider} />
       <div className={styles.stats}>
         <div className={styles.priceBlock}>

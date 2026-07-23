@@ -258,6 +258,7 @@ interface RawMarketRow {
   symbol: string;
   base?: string;
   quote?: string;
+  icon_url?: string;
   max_leverage?: number;
   tick_size?: string;
   min_qty?: string;
@@ -273,6 +274,7 @@ function normalizeMarketRow(r: RawMarketRow, rank: number): Market {
     symbol: `${base}-USD`,
     base_asset: base,
     quote_asset: r.quote ?? "USDC",
+    icon_url: r.icon_url,
     last_price: "",
     price_change_24h: "0",
     price_change_percent_24h: "0",

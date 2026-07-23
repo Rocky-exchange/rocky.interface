@@ -1,15 +1,10 @@
 import cx from "classnames";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
 import { CHAIN_ID_TO_NETWORK_ICON } from "config/icons";
 import { tryImportImage } from "lib/legacy";
 
 import "./TokenIcon.scss";
-
-const TOKEN_ICON_OVERRIDES: Record<string, string> = {
-  CC: ccIconSrc,
-};
 
 function getIconUrlPath(symbol) {
   if (!symbol) return;
@@ -18,8 +13,7 @@ function getIconUrlPath(symbol) {
 }
 
 function getIconSource(symbol: string): string | undefined {
-  const normalizedSymbol = symbol.trim().toUpperCase();
-  return TOKEN_ICON_OVERRIDES[normalizedSymbol] ?? tryImportImage(getIconUrlPath(normalizedSymbol));
+  return tryImportImage(getIconUrlPath(symbol));
 }
 
 // Fallback component when icon is not found - displays first letter of symbol
@@ -60,20 +54,32 @@ function FallbackIcon({
 type Props = {
   symbol: string;
   displaySize: number;
+  imageUrl?: string;
   className?: string;
   badge?: string | readonly [topSymbol: string, bottomSymbol: string];
   chainIdBadge?: number;
   badgeClassName?: string;
 };
 
-function TokenIcon({ className, symbol, displaySize, badge, badgeClassName, chainIdBadge }: Props) {
+function TokenIcon({ className, symbol, displaySize, imageUrl, badge, badgeClassName, chainIdBadge }: Props) {
+  const [failedImageSource, setFailedImageSource] = useState<string>();
   const iconPath = getIconUrlPath(symbol);
   const classNames = cx("Token-icon inline rounded-full", className);
 
-  if (!iconPath) return <></>;
-
   // Try to get the image, returns undefined if not found
-  const imageSrc = getIconSource(symbol);
+  const inferredImageSrc = getIconSource(symbol);
+  const preferredImageSrc = imageUrl || inferredImageSrc;
+  const imageSrc =
+    preferredImageSrc && preferredImageSrc !== failedImageSource
+      ? preferredImageSrc
+      : imageUrl && inferredImageSrc !== failedImageSource
+        ? inferredImageSrc
+        : undefined;
+  const handleImageError = useCallback(() => {
+    if (imageSrc) setFailedImageSource(imageSrc);
+  }, [imageSrc]);
+
+  if (!iconPath && !imageUrl) return <></>;
 
   let sub;
   let containerClassName = "";
@@ -160,6 +166,7 @@ function TokenIcon({ className, symbol, displaySize, badge, badgeClassName, chai
       alt={symbol}
       width={displaySize}
       height={displaySize}
+      onError={handleImageError}
     />
   ) : (
     <FallbackIcon symbol={symbol} displaySize={displaySize} className={sub ? containerClassName : classNames} />

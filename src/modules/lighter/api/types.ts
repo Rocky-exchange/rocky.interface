@@ -41,6 +41,7 @@ export interface Market {
   symbol: string;
   base_asset: string;
   quote_asset: string;
+  icon_url?: string;
   last_price: string;
   price_change_24h: string;
   price_change_percent_24h: string;

@@ -71,6 +71,7 @@ export type Kline = [number, string, string, string, string, string, number, str
 
 export type Ticker24h = {
   symbol: string;
+  iconUrl?: string;
   priceChange: string;
   priceChangePercent: string;
   weightedAvgPrice: string;
