@@ -1119,6 +1119,18 @@
     border: 1px solid rgba(39, 173, 108, 0.3);
     border-radius: 2px;
   }
+
+  em.historyStatusCompleted {
+    color: var(--status-success);
+    background: rgba(39, 173, 108, 0.08);
+    border-color: rgba(39, 173, 108, 0.3);
+  }
+
+  em.historyStatusFailed {
+    color: var(--status-error);
+    background: rgba(199, 101, 93, 0.08);
+    border-color: rgba(199, 101, 93, 0.3);
+  }
 }
 
 .assetCell {
@@ -2038,6 +2050,14 @@
 .historyAmount {
   justify-items: end;
   font: 500 14px/20px var(--font-tech);
+
+  small.historyStatusCompleted {
+    color: var(--status-success);
+  }
+
+  small.historyStatusFailed {
+    color: var(--status-error);
+  }
 }
 
 .historyAmountValue {

@@ -1282,7 +1282,14 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         <span className={styles.historyAmountValue} aria-label={item.amount}>
                           <HistoryAssetAmount value={item.amount} asset={item.asset} />
                         </span>
-                        <small>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</small>
+                        <small
+                          className={cx(
+                            item.status === "Completed" && styles.historyStatusCompleted,
+                            item.status === "Failed" && styles.historyStatusFailed
+                          )}
+                        >
+                          {localizedHistoryStatus(item.status, (message) => i18n._(message))}
+                        </small>
                       </span>
                       <span className={styles.historyReference}>
                         {item.reference ? (
@@ -1574,7 +1581,14 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         <span className={styles.feeCell}>{item.networkFee || "-"}</span>
                       ) : null}
                       <span>
-                        <em>{localizedHistoryStatus(item.status, (message) => i18n._(message))}</em>
+                        <em
+                          className={cx(
+                            item.status === "Completed" && styles.historyStatusCompleted,
+                            item.status === "Failed" && styles.historyStatusFailed
+                          )}
+                        >
+                          {localizedHistoryStatus(item.status, (message) => i18n._(message))}
+                        </em>
                       </span>
                       <span>
                         {item.reference && item.explorerUrl ? (
