@@ -45,4 +45,18 @@ describe("TokenIcon", () => {
     fireEvent.load(image);
     expect(image.classList.contains("opacity-0")).toBe(false);
   });
+
+  it("shows an already loaded image immediately after a route remount", () => {
+    const firstRender = render(
+      <TokenIcon symbol="CETH" imageUrl="/v1/token-icons/CETH" displaySize={20} />
+    );
+    fireEvent.load(firstRender.getByRole("img", { name: "CETH" }));
+    firstRender.unmount();
+
+    const secondRender = render(
+      <TokenIcon symbol="CETH" imageUrl="/v1/token-icons/CETH" displaySize={20} />
+    );
+
+    expect(secondRender.getByRole("img", { name: "CETH" }).classList.contains("opacity-0")).toBe(false);
+  });
 });

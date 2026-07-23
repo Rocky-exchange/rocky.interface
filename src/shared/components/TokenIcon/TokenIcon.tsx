@@ -6,6 +6,8 @@ import { tryImportImage } from "lib/legacy";
 
 import "./TokenIcon.scss";
 
+const loadedImageSources = new Set<string>();
+
 function getIconUrlPath(symbol) {
   if (!symbol) return;
 
@@ -79,13 +81,18 @@ function TokenIcon({ className, symbol, displaySize, imageUrl, loading, badge, b
         : undefined;
   const handleImageError = useCallback(() => {
     if (imageSrc) {
+      loadedImageSources.delete(imageSrc);
       setFailedImageSource(imageSrc);
       setLoadedImageSource((loaded) => (loaded === imageSrc ? undefined : loaded));
     }
   }, [imageSrc]);
   const handleImageLoad = useCallback(() => {
-    if (imageSrc) setLoadedImageSource(imageSrc);
+    if (imageSrc) {
+      loadedImageSources.add(imageSrc);
+      setLoadedImageSource(imageSrc);
+    }
   }, [imageSrc]);
+  const imageLoaded = imageSrc ? loadedImageSources.has(imageSrc) || loadedImageSource === imageSrc : false;
 
   if (!iconPath && !imageUrl) return <></>;
 
@@ -169,7 +176,7 @@ function TokenIcon({ className, symbol, displaySize, imageUrl, loading, badge, b
   const img = imageSrc ? (
     <img
       data-qa="token-icon"
-      className={cx(sub ? containerClassName : classNames, loadedImageSource !== imageSrc && "opacity-0")}
+      className={cx(sub ? containerClassName : classNames, !imageLoaded && "opacity-0")}
       src={imageSrc}
       alt={symbol}
       width={displaySize}
