@@ -6,8 +6,8 @@ export const PROTOCOL_STATS_API_URL = "";
 // The active chain is selected by VITE_DEFAULT_CHAIN, so a single backend URL
 // pair is sufficient by default; Avalanche deployments may override it without
 // changing the rest of the API plumbing.
-const TRADING_API_URL = import.meta.env.VITE_PROXY_API_URL || "https://api.rocky.exchange";
-const TRADING_WS_URL = import.meta.env.VITE_PROXY_WS_URL || "wss://api.rocky.exchange";
+const TRADING_API_URL = import.meta.env.VITE_PROXY_API_URL || "https://api.rockytest.xyz";
+const TRADING_WS_URL = import.meta.env.VITE_PROXY_WS_URL || "wss://api.rockytest.xyz";
 const TRADING_AVAX_API_URL = import.meta.env.VITE_PROXY_AVAX_API_URL || TRADING_API_URL;
 const TRADING_AVAX_WS_URL = import.meta.env.VITE_PROXY_AVAX_WS_URL || TRADING_WS_URL;
 

@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const root = path.dirname(fileURLToPath(import.meta.url));
   const env = loadEnv(mode, root, "");
-  // Node 25 intermittently resets TLS 1.3 handshakes to api.rocky.exchange
+  // Node 25 intermittently resets TLS 1.3 handshakes to the API upstream
   // behind common local network proxies. TLS 1.2 is supported by the API and
   // keeps Vite's same-origin development proxy stable.
   const upstreamAgent = new https.Agent({ keepAlive: true, maxVersion: "TLSv1.2" });
@@ -42,18 +42,18 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Dev: proxy rocky-backend's real routes directly. demo.rocky.exchange
         // (and its /api, /auth BFF-shaped compatibility routes) is being
-        // deprecated -- api.rocky.exchange exposes rocky-backend's actual
+        // deprecated -- rocky-backend exposes the actual
         // /v1/* and /fapi/* surface with no /api prefix, which is what
         // getTradingBackendUrl()'s DEV-mode "" fallback relies on this proxy
         // to resolve.
         "/v1": {
-          target: env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
+          target: env.VITE_PROXY_API_URL || "https://api.rockytest.xyz",
           changeOrigin: true,
           secure: true,
           agent: upstreamAgent,
         },
         "/fapi": {
-          target: env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
+          target: env.VITE_PROXY_API_URL || "https://api.rockytest.xyz",
           changeOrigin: true,
           secure: true,
           agent: upstreamAgent,
@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
         // Spot backend (/api/v3/*). Set VITE_PROXY_SPOT_URL to point at
         // a local rocky-backend api-gateway (default :8080) for dev.
         "/api/v3": {
-          target: env.VITE_PROXY_SPOT_URL || env.VITE_PROXY_API_URL || "https://api.rocky.exchange",
+          target: env.VITE_PROXY_SPOT_URL || env.VITE_PROXY_API_URL || "https://api.rockytest.xyz",
           changeOrigin: true,
           secure: true,
           agent: upstreamAgent,

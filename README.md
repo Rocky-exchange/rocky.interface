@@ -24,7 +24,7 @@ port, e.g. 3013, if it's taken):
 yarn start
 ```
 
-In dev, `vite.config.ts` proxies `/v1` and `/fapi` to `https://api.rocky.exchange`
+In dev, `vite.config.ts` proxies `/v1`, `/fapi`, and `/api/v3` to `https://api.rockytest.xyz`
 (override with `VITE_PROXY_API_URL`), so the browser talks to the backend
 same-origin and there's no CORS to configure.
 
@@ -38,7 +38,7 @@ same-origin and there's no CORS to configure.
 
 ## Backend / API
 
-The UI talks to **`rocky-backend`** at `api.rocky.exchange`, which exposes two
+The dev branch UI talks to **`rocky-backend`** at `api.rockytest.xyz`, which exposes two
 surfaces:
 
 - `/v1/*` — Rocky-native (wallet-session Bearer auth; Rocky symbols like
@@ -53,10 +53,10 @@ code path if a WS server is ever added.
 
 ### Same-origin proxy (production)
 
-In production the browser must not fetch `api.rocky.exchange` cross-origin, so
+In production the browser must not fetch `api.rockytest.xyz` cross-origin, so
 `.env.production` sets `VITE_USE_SAME_ORIGIN_PROXY=true` → the app calls `/v1`
 and `/fapi` on its own origin (`app.rocky.exchange`), and that host's nginx
-reverse-proxies them to `api.rocky.exchange`. This mirrors the dev proxy and
+reverse-proxies them to `api.rockytest.xyz`. This mirrors the dev proxy and
 removes any CORS dependency. If you flip this flag, keep the app-nginx `/v1`
 + `/fapi` proxy in sync or data loading breaks.
 
@@ -66,7 +66,7 @@ removes any CORS dependency. If you flip this flag, keep the app-nginx `/v1`
 
 - `VITE_USE_SAME_ORIGIN_PROXY` — `true` to call `/v1`,`/fapi` same-origin (prod).
 - `VITE_PROXY_API_URL` / `VITE_PROXY_WS_URL` — override the backend origin (dev
-  proxy target / cross-origin build); default `https://api.rocky.exchange`.
+  proxy target / cross-origin build); default `https://api.rockytest.xyz`.
 - `VITE_WALLET_CONNECT_PROJECT_ID` — WalletConnect Cloud project id.
 - `VITE_CONSOLE_WALLET_TARGET` — Canton console-wallet target (`combined`).
 - `VITE_SENTRY_DSN` — optional Sentry DSN (monitoring off when unset).
