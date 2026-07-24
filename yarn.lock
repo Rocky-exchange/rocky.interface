@@ -1117,10 +1117,10 @@
     eventemitter3 "^5.0.1"
     preact "^10.24.2"
 
-"@console-wallet/dapp-sdk@^2.2.2":
-  version "2.2.2"
-  resolved "https://registry.npmjs.org/@console-wallet/dapp-sdk/-/dapp-sdk-2.2.2.tgz#0929b43e2001902cd1bd4c3e061390265ece3029"
-  integrity sha512-BKdXsek3t1VRiYXdS6FhQWsWXF/DM0WLkQLVkJXa93S2Su9dpwond24RiHPheV+Zbd8VjLxoYyBgHByKbUDb8g==
+"@console-wallet/dapp-sdk@^2.2.8":
+  version "2.2.8"
+  resolved "https://registry.yarnpkg.com/@console-wallet/dapp-sdk/-/dapp-sdk-2.2.8.tgz#aeb4c67f733c0bb70c1777b3cf1ee67bd5d4afbb"
+  integrity sha512-wZfiNhD2ugggISROcgb2KzXq9Tg/5qLjXMPcumw09qt8K+gO33hR8b5BqJNzzTVZH3ATn9MuMdszpU2zlp/ovg==
   dependencies:
     axios "^1.13.5"
     json-schema-to-openapi-schema "^0.4.0"

@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.5.6",
-    "@console-wallet/dapp-sdk": "^2.2.2",
+    "@console-wallet/dapp-sdk": "^2.2.8",
     "@fivenorth/loop-sdk": "^0.13.1",
     "@floating-ui/dom": "1.6.7",
     "@floating-ui/react": "0.26.19",
