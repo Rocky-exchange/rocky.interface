@@ -3023,6 +3023,10 @@ msgstr "트리거 가격이 지정가 가격보다 높습니다"
 msgid "Select a Pay token"
 msgstr "지불 토큰 선택"
 
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Campaigns"
+msgstr ""
+
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx

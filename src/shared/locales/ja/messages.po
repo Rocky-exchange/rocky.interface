@@ -3023,6 +3023,10 @@ msgstr "トリガー価格がリミット価格を上回っています"
 msgid "Select a Pay token"
 msgstr "支払いトークンを選択"
 
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Campaigns"
+msgstr ""
+
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx

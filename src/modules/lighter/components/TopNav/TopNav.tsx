@@ -19,7 +19,13 @@ const LANGUAGE_OPTIONS = [
   { key: "zh", label: "繁體中文" },
 ] as const;
 
-export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
+export function TopNav({
+  rightExtra,
+  transparent = false,
+}: {
+  rightExtra?: ReactNode;
+  transparent?: boolean;
+} = {}) {
   const { i18n } = useLingui();
   const { connected, locked, username, party, avatar } = useCantonSession();
   const { unlock, connecting } = useCantonWallet();
@@ -84,7 +90,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
   }, [isLanguageOpen]);
 
   return (
-    <nav className={styles.root}>
+    <nav className={cx(styles.root, transparent && styles.transparent)}>
       <NavLink to="/trade" className={styles.logo} aria-label="Rocky home">
         <img src="/logo.svg" alt="Rocky" className={styles.logoImage} />
       </NavLink>
@@ -104,6 +110,14 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         </NavLink>
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Futures</Trans>
+        </NavLink>
+        <NavLink
+          to="/campaigns/season-0"
+          className={styles.link}
+          activeClassName={styles.active}
+          isActive={(_match, location) => location.pathname.startsWith("/campaigns")}
+        >
+          <Trans>Campaigns</Trans>
         </NavLink>
       </div>
       <div className={styles.right}>
