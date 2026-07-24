@@ -47,7 +47,7 @@ import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDispla
 import cbtcIconSrc from "./token-icons/cBTC.webp";
 import ccIconSrc from "./token-icons/CC.webp";
 import cethIconSrc from "./token-icons/cETH.webp";
-import usdaIconSrc from "./token-icons/USDA.png";
+import cusdIconSrc from "./token-icons/CUSD.png";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
@@ -78,13 +78,13 @@ type LocalHistoryRow = {
 const PENDING_DEPOSIT_CONFIRM_ATTEMPTS = 36;
 const PENDING_DEPOSIT_CONFIRM_DELAY_MS = 10000;
 const EMPTY_PLATFORM_BALANCES: PlatformAccountBalances = {
-  USDA: null,
+  CUSD: null,
   CBTC: null,
   cETH: null,
   CC: null,
 };
 const CANTON_ASSET_ICON_SOURCES: Record<CantonFundsAsset, string> = {
-  USDA: usdaIconSrc,
+  CUSD: cusdIconSrc,
   CBTC: cbtcIconSrc,
   cETH: cethIconSrc,
   CC: ccIconSrc,
@@ -96,7 +96,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const { connected, locked, party, provider, username, avatar } = useCantonSession();
   const { disconnect } = useCantonWallet();
   const [snapshot, setSnapshot] = useState<WalletBalanceSnapshot | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<CantonFundsAsset>("USDA");
+  const [selectedAsset, setSelectedAsset] = useState<CantonFundsAsset>("CUSD");
   const [walletBalanceLoading, setWalletBalanceLoading] = useState(false);
   const [platformBalanceLoading, setPlatformBalanceLoading] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
@@ -187,7 +187,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
         (!query || asset.symbol.toLowerCase().includes(query))
     );
   }, [assetFilter, assetSearch]);
-  const transferSourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingAvailable;
+  const transferSourceAvailable = transferDirection === "toFunding" ? platformBalances.CUSD : fundingAvailable;
   const isAssetsDashboard = activeView === "assets";
   const operationTitle =
     activeView === "deposit"
@@ -535,7 +535,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     event.preventDefault();
     const amount = transferAmount.trim();
     const amountNumber = Number(amount);
-    const sourceAvailable = transferDirection === "toFunding" ? platformBalances.USDA : fundingAvailable;
+    const sourceAvailable = transferDirection === "toFunding" ? platformBalances.CUSD : fundingAvailable;
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) return;
     if (sourceAvailable !== null && amountNumber > sourceAvailable) {
       setError(i18n._(t`Insufficient balance for this transfer.`));
@@ -545,8 +545,8 @@ export function CantonFundsModal({ open, onClose }: Props) {
     setError("");
     setNotice("");
     try {
-      const result = await transferSpotBalance({ asset: "USDA", amount, direction: transferDirection });
-      setPlatformBalances((current) => ({ ...current, USDA: Number(result.spotFree) }));
+      const result = await transferSpotBalance({ asset: "CUSD", amount, direction: transferDirection });
+      setPlatformBalances((current) => ({ ...current, CUSD: Number(result.spotFree) }));
       setFundingAvailable(Number(result.fundingAvailable));
       setTransferAmount("");
       setNotice(i18n._(t`Transfer completed.`));
@@ -1111,7 +1111,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       {transferDirection === "toFunding" ? i18n._(t`Spot Account`) : i18n._(t`Futures Account`)}
                     </strong>
                     <span>
-                      {transferSourceAvailable === null ? "-" : formatDisplayAmount(transferSourceAvailable)} USDA
+                      {transferSourceAvailable === null ? "-" : formatDisplayAmount(transferSourceAvailable)} CUSD
                     </span>
                   </div>
                   <button
@@ -1132,10 +1132,10 @@ export function CantonFundsModal({ open, onClose }: Props) {
                         ? fundingAvailable === null
                           ? "-"
                           : formatDisplayAmount(fundingAvailable)
-                        : platformBalances.USDA === null
+                        : platformBalances.CUSD === null
                           ? "-"
-                          : formatDisplayAmount(platformBalances.USDA)}{" "}
-                      USDA
+                          : formatDisplayAmount(platformBalances.CUSD)}{" "}
+                      CUSD
                     </span>
                   </div>
                 </div>
@@ -1144,7 +1144,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     <span>{i18n._(t`Amount`)}</span>
                     <small>
                       {i18n._(t`Available`)}:{" "}
-                      {transferSourceAvailable === null ? "-" : formatDisplayAmount(transferSourceAvailable)} USDA
+                      {transferSourceAvailable === null ? "-" : formatDisplayAmount(transferSourceAvailable)} CUSD
                     </small>
                   </span>
                   <span className={styles.amountInput}>
@@ -1155,7 +1155,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                       placeholder="0.00"
                       aria-label={i18n._(t`Transfer amount`)}
                     />
-                    <strong>USDA</strong>
+                    <strong>CUSD</strong>
                     <button
                       type="button"
                       onClick={() =>
@@ -1170,7 +1170,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   type="submit"
                   className={styles.primarySubmit}
                   disabled={transferBusy || !transferAmount.trim()}
-                  aria-label={i18n._(t`Transfer USDA`)}
+                  aria-label={i18n._(t`Transfer CUSD`)}
                 >
                   {transferBusy ? i18n._(t`Transferring...`) : i18n._(t`Transfer`)}
                 </button>

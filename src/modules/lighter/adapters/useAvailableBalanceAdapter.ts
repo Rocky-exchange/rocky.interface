@@ -5,7 +5,7 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 /**
  * 读取用户账户 Available to Trade(USD 值)。
- * 直接读取 Futures Account 的 USDA available — 与 preview 独立,不依赖订单表单输入。
+ * 直接读取 Futures Account 的 CUSD available — 与 preview 独立,不依赖订单表单输入。
  * 未连钱包 / 未认证时返回 null。
  */
 export function useAvailableBalanceAdapter(): {

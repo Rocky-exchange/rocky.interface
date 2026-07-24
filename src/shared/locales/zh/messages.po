@@ -157,10 +157,6 @@ msgstr ""
 msgid "@username"
 msgstr "@使用者名稱"
 
-#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
-msgid "Moved {0} USDA to Spot"
-msgstr "已將 {0} USDA 劃轉至現貨帳戶"
-
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Amount is below the minimum withdraw."
 msgstr "金額低於最低提現額。"
@@ -999,6 +995,10 @@ msgstr ""
 msgid "Futures"
 msgstr "合約"
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} CUSD to Futures"
+msgstr "已將 {0} CUSD 劃轉至合約帳戶"
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Deposits and withdraws are temporarily paused. Please try again later."
 msgstr "存入與提現暫時暫停。請稍後再試。"
@@ -1012,6 +1012,10 @@ msgstr "可用流動性不足。"
 #: src/shared/components/AvaxUsdteSwapBanner/AvaxUsdteSwapBanner.tsx
 msgid "You hold native USDT — please swap to USDT.e on Avalanche before depositing."
 msgstr "您持有原生 USDT——請先在 Avalanche 上兌換為 USDT.e 再存入。"
+
+#: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
+msgid "CUSD Value"
+msgstr ""
 
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
 msgid "Trigger price above lowest limit price"
@@ -1370,6 +1374,10 @@ msgstr "可用流動性不足。當有流動性可用時，訂單將成交。"
 msgid "Market"
 msgstr "市場"
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} CUSD to Spot"
+msgstr "已將 {0} CUSD 劃轉至現貨帳戶"
+
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
@@ -1666,6 +1674,10 @@ msgstr "載入中…"
 msgid "Trial funds have expired. New opening orders are not tradable."
 msgstr ""
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Transfer CUSD"
+msgstr "劃轉 CUSD"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed TWAP Part"
 msgstr "TWAP 部分失敗"
@@ -1874,10 +1886,6 @@ msgstr "全倉保證金使用率"
 msgid "Redeem trading credit"
 msgstr ""
 
-#: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
-msgid "USDA Value"
-msgstr ""
-
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Stop Market"
 msgstr "止損市價失敗"
@@ -1989,10 +1997,6 @@ msgstr "连接钱包"
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Unlocking..."
 msgstr "解鎖中..."
-
-#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
-msgid "USDA account breakdown"
-msgstr ""
 
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Loading markets..."
@@ -2570,10 +2574,6 @@ msgstr "最小頭寸大小：{0}"
 msgid "Trigger price below mark price"
 msgstr "觸發價格低於標記價格"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Transfer USDA"
-msgstr "劃轉 USDA"
-
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "All cross positions share the same cross margin as collateral. In the event of liquidation, your cross margin balance and any remaining open positions under assets in this mode may be forfeited."
@@ -2680,10 +2680,6 @@ msgstr "RWA"
 msgid "The network fees are high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "當前网络费用較高，這可能是由於 {chainName} 網路上的交易暫時增加。"
 
-#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
-msgid "Moved {0} USDA to Futures"
-msgstr "已將 {0} USDA 劃轉至合約帳戶"
-
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
@@ -2729,6 +2725,10 @@ msgstr "返回資產"
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Recoverable trial funds have been recalled. Attribution history remains available."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "CUSD account breakdown"
 msgstr ""
 
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts

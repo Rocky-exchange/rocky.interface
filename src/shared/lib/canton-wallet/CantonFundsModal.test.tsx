@@ -81,14 +81,14 @@ describe("CantonFundsModal", () => {
     sessionMock.connected = true;
     sessionMock.locked = false;
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
-    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 100, CBTC: 2, cETH: 3, CC: 4 });
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 100, CBTC: 2, cETH: 3, CC: 4 });
     mocks.fetchFundingAccountBalance.mockResolvedValue(25);
     mocks.fetchSpotTransferHistory.mockResolvedValue({ transfers: [] });
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
     mocks.fetchWithdrawalFeeQuote.mockResolvedValue({
       asset: "USDC",
       fee_asset: "USDC",
-      fee_wallet_symbol: "USDA",
+      fee_wallet_symbol: "CUSD",
       fee_amount: "1",
     });
     mocks.makeWalletWithdrawalIdempotencyKey.mockReturnValue("withdrawal-key-1");
@@ -98,7 +98,7 @@ describe("CantonFundsModal", () => {
       party: PARTY_ID,
       status: "ready",
       balances: [
-        { symbol: "USDA", amount: "5.6" },
+        { symbol: "CUSD", amount: "5.6" },
         { symbol: "CBTC", amount: "0.00005459" },
         { symbol: "cETH", amount: "0.0000019" },
         { symbol: "CC", amount: "7" },
@@ -106,7 +106,7 @@ describe("CantonFundsModal", () => {
     });
     mocks.submitPlatformWithdrawal.mockResolvedValue({ status: "submitted", withdrawal_id: "withdrawal-1" });
     mocks.transferSpotBalance.mockResolvedValue({
-      asset: "USDA",
+      asset: "CUSD",
       direction: "toFunding",
       amount: "5",
       fundingAvailable: "30",
@@ -125,7 +125,7 @@ describe("CantonFundsModal", () => {
       "History",
     ]);
     await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
-    for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
+    for (const asset of ["CUSD", "CBTC", "cETH", "CC"]) {
       expect(screen.getAllByText(asset).length).toBeGreaterThan(0);
     }
   });
@@ -149,7 +149,7 @@ describe("CantonFundsModal", () => {
 
     expect(screen.queryByRole("combobox", { name: "Asset" })).toBeNull();
     const assetButton = screen.getByRole("button", { name: "Asset" });
-    expect(assetButton.textContent).toContain("USDA");
+    expect(assetButton.textContent).toContain("CUSD");
 
     fireEvent.click(assetButton);
     expect(screen.getByRole("listbox", { name: "Asset" })).toBeTruthy();
@@ -271,18 +271,18 @@ describe("CantonFundsModal", () => {
     }
   );
 
-  it("submits USDA transfers between Spot and Futures accounts", async () => {
+  it("submits CUSD transfers between Spot and Futures accounts", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
 
     expect(screen.getByText("Spot Account")).toBeTruthy();
     expect(screen.getByText("Futures Account")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Transfer USDA" }));
+    fireEvent.click(screen.getByRole("button", { name: "Transfer CUSD" }));
 
     await waitFor(() =>
       expect(mocks.transferSpotBalance).toHaveBeenCalledWith({
-        asset: "USDA",
+        asset: "CUSD",
         amount: "5",
         direction: "toFunding",
       })
@@ -295,7 +295,7 @@ describe("CantonFundsModal", () => {
     await waitFor(() => expect(screen.getByText("4", { selector: "sub" })).toBeTruthy());
     expect(screen.getByText("4", { selector: "sub" }).parentElement?.textContent).toContain("0.045459");
     expect(screen.getByText("5", { selector: "sub" }).parentElement?.textContent).toContain("0.0519");
-    for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
+    for (const asset of ["CUSD", "CBTC", "cETH", "CC"]) {
       const icon = screen.getByTestId(`canton-asset-icon-${asset}`);
       expect(icon.tagName).toBe("IMG");
       expect(icon.getAttribute("src")).toBeTruthy();
@@ -304,7 +304,7 @@ describe("CantonFundsModal", () => {
 
   it("shows exchange balances without waiting for the wallet balance request", async () => {
     mocks.fetchWalletBalanceSnapshot.mockReturnValue(new Promise(() => undefined));
-    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 1, CBTC: 0.000031, cETH: 0.0001, CC: 0 });
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 1, CBTC: 0.000031, cETH: 0.0001, CC: 0 });
 
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
@@ -336,14 +336,14 @@ describe("CantonFundsModal", () => {
           amount: "0.000016",
           status: "settled",
           fee_amount: "1",
-          fee_wallet_symbol: "USDA",
+          fee_wallet_symbol: "CUSD",
           requested_at: "2026-07-22T07:00:00Z",
         },
       ],
     });
     mocks.fetchSpotTransferHistory.mockResolvedValue({
       transfers: [
-        { eventId: "event-1", asset: "USDA", amount: "3", direction: "toFunding", createdAt: "2026-07-22T07:10:00Z" },
+        { eventId: "event-1", asset: "CUSD", amount: "3", direction: "toFunding", createdAt: "2026-07-22T07:10:00Z" },
       ],
     });
     render(<CantonFundsModal open onClose={vi.fn()} />);
@@ -360,20 +360,20 @@ describe("CantonFundsModal", () => {
       withdrawals: [
         {
           withdrawal_id: "withdrawal-failed",
-          asset: "USDA",
+          asset: "CUSD",
           amount: "5",
           status: "failed",
           fee_amount: "1",
-          fee_wallet_symbol: "USDA",
+          fee_wallet_symbol: "CUSD",
           requested_at: "2026-07-23T05:38:43Z",
         },
         {
           withdrawal_id: "withdrawal-completed",
-          asset: "USDA",
+          asset: "CUSD",
           amount: "2",
           status: "settled",
           fee_amount: "1",
-          fee_wallet_symbol: "USDA",
+          fee_wallet_symbol: "CUSD",
           requested_at: "2026-07-23T05:39:55Z",
         },
       ],
@@ -393,13 +393,13 @@ describe("CantonFundsModal", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("1.00 USDA")
+      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("1.00 CUSD")
     );
     fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
     await waitFor(() =>
       expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledWith({
-        asset: "USDA",
+        asset: "CUSD",
         amount: "5",
         destinationParty: PARTY_ID,
         idempotencyKey: "withdrawal-key-1",
@@ -408,7 +408,7 @@ describe("CantonFundsModal", () => {
   });
 
   it("shows the native fee, received amount, and subtracts the fee from Max", async () => {
-    mocks.fetchPlatformAccountBalances.mockResolvedValue({ USDA: 100, CBTC: 0.000031, cETH: 3, CC: 4 });
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 100, CBTC: 0.000031, cETH: 3, CC: 4 });
     mocks.fetchPlatformAccountBalance.mockResolvedValue(0.000031);
     mocks.fetchWithdrawalFeeQuote.mockImplementation(async (asset: string) => ({
       asset,
@@ -441,7 +441,7 @@ describe("CantonFundsModal", () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
     await waitFor(() =>
-      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("1.00 USDA")
+      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("1.00 CUSD")
     );
     fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
 

@@ -59,7 +59,7 @@ describe("market data requests", () => {
           {
             symbol: "PEPE-PERP",
             base: "PEPE",
-            quote: "USDA",
+            quote: "CUSD",
             tick_size: "0.00000001",
             min_qty: "1",
           },

@@ -28,7 +28,7 @@ const EN: Copy = {
   steps: [
     { num: "1", title: "Connect wallet", desc: "Use the button in the top-right corner." },
     { num: "2", title: "Establish connection", desc: "One gas-free signature to authenticate." },
-    { num: "3", title: "Deposit funds", desc: "Top up your trading account with USDA." },
+    { num: "3", title: "Deposit funds", desc: "Top up your trading account with CUSD." },
     { num: "4", title: "Place your first order", desc: "Pick a market, set size and leverage, go." },
   ],
 };
@@ -41,7 +41,7 @@ const ZH: Copy = {
   steps: [
     { num: "1", title: "连接钱包", desc: "点击右上角的按钮。" },
     { num: "2", title: "建立连接", desc: "一次免 Gas 签名完成身份验证。" },
-    { num: "3", title: "充值资金", desc: "用 USDA 为你的交易账户充值。" },
+    { num: "3", title: "充值资金", desc: "用 CUSD 为你的交易账户充值。" },
     { num: "4", title: "下第一单", desc: "选择交易对，设置数量与杠杆，出发。" },
   ],
 };

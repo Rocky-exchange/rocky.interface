@@ -19,7 +19,7 @@ import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 const mSession = vi.mocked(useCantonSession);
 const mSpotAccount = vi.mocked(useSpotAccount);
-const market = resolveSpotMarket("CBTC-USDA");
+const market = resolveSpotMarket("CBTC-CUSD");
 // eslint-disable-next-line no-restricted-globals
 const accountStyles = readFileSync(resolve(process.cwd(), "src/modules/spot/components/Accounts/Accounts.module.scss"), "utf8");
 
@@ -36,7 +36,7 @@ const account = (usdcx: string, locked = "0", cbtc = "0", ceth = "0") => ({
   canDeposit: false,
   updateTime: 0,
   balances: [
-    { asset: "USDA", free: usdcx, locked },
+    { asset: "CUSD", free: usdcx, locked },
     { asset: "CBTC", free: cbtc, locked: "0" },
     { asset: "CETH", free: ceth, locked: "0" },
   ],
@@ -101,7 +101,7 @@ describe("SpotAccountsPanel", () => {
     expect(queryByRole("button", { name: "Connect wallet" })).toBeNull();
   });
 
-  it("renders the account total and backend balances with public USDA and configured asset casing", () => {
+  it("renders the account total and backend balances with public CUSD and configured asset casing", () => {
     mSpotAccount.mockReturnValue({
       ready: true,
       account: account("1234.5", "0.5", "0.1", "0.2"),
@@ -120,15 +120,15 @@ describe("SpotAccountsPanel", () => {
 
     const { getByText, getAllByText, queryByText } = render(<SpotAccountsPanel market={market} />);
 
-    expect(getByText("USDA (free + locked)")).toBeTruthy();
+    expect(getByText("CUSD (free + locked)")).toBeTruthy();
     expect(getByText("1,235")).toBeTruthy();
-    expect(getAllByText("USDA")).toHaveLength(1);
+    expect(getAllByText("CUSD")).toHaveLength(1);
     expect(getByText("CBTC")).toBeTruthy();
     expect(getByText("cETH")).toBeTruthy();
     expect(queryByText(/Get test funds/)).toBeNull();
   });
 
-  it("preserves the exact USDA free plus locked precision without rounding", () => {
+  it("preserves the exact CUSD free plus locked precision without rounding", () => {
     mSpotAccount.mockReturnValue({
       ready: true,
       account: account("3.08894885", "0.00000001"),
@@ -150,7 +150,7 @@ describe("SpotAccountsPanel", () => {
     expect(queryByText("3.09")).toBeNull();
   });
 
-  it("uses the same ten-decimal truncation for the USDA summary and balance row", () => {
+  it("uses the same ten-decimal truncation for the CUSD summary and balance row", () => {
     mSpotAccount.mockReturnValue({
       ready: true,
       account: account("1.1453822379697668"),
@@ -195,7 +195,7 @@ describe("SpotAccountsPanel", () => {
 
     const { getByRole } = render(<SpotAccountsPanel market={market} />);
 
-    for (const asset of ["USDA", "CBTC", "cETH", "CC"]) {
+    for (const asset of ["CUSD", "CBTC", "cETH", "CC"]) {
       const row = getByRole("row", { name: new RegExp(asset) });
       expect(within(row).getByTestId(`balance-asset-icon-${asset}`)).toBeTruthy();
     }
@@ -209,7 +209,7 @@ describe("SpotAccountsPanel", () => {
         account: {
           ...account("1"),
           balances: [
-            { asset: "USDA", free: "1", locked: "0" },
+            { asset: "CUSD", free: "1", locked: "0" },
             { asset: "CBTC", free: "0.0000", locked: "0" },
             { asset: "CETH", free: "0", locked: "0.0001" },
             { asset: "CC", free: "0", locked: "0.0000" },
@@ -229,7 +229,7 @@ describe("SpotAccountsPanel", () => {
 
       const { getByRole, queryByRole } = render(<SpotAccountsPanel market={market} variant={variant} />);
 
-      expect(getByRole("row", { name: /USDA/ })).toBeTruthy();
+      expect(getByRole("row", { name: /CUSD/ })).toBeTruthy();
       expect(getByRole("row", { name: /cETH/ })).toBeTruthy();
       expect(queryByRole("row", { name: /CBTC/ })).toBeNull();
       expect(queryByRole("row", { name: /CC/ })).toBeNull();
@@ -283,7 +283,7 @@ describe("SpotAccountsPanel", () => {
     });
 
     const { getByRole } = render(<SpotAccountsPanel market={market} />);
-    const usdaRow = getByRole("row", { name: /USDA/ });
+    const usdaRow = getByRole("row", { name: /CUSD/ });
     const cbtcRow = getByRole("row", { name: /CBTC/ });
     const ccRow = getByRole("row", { name: /CC/ });
 

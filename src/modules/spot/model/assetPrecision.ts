@@ -3,7 +3,7 @@ import BigNumber from "bignumber.js";
 export type SpotAssetPrecisions = Record<string, number>;
 
 export const DEFAULT_SPOT_ASSET_PRECISIONS: SpotAssetPrecisions = {
-  USDA: 10,
+  CUSD: 10,
   CBTC: 8,
   CETH: 18,
   CC: 10,
@@ -11,7 +11,7 @@ export const DEFAULT_SPOT_ASSET_PRECISIONS: SpotAssetPrecisions = {
 
 function normalizedAsset(asset: string): string {
   const normalized = asset.trim().toUpperCase();
-  return normalized === "USDC" || normalized === "USDCX" ? "USDA" : normalized;
+  return normalized === "USDC" || normalized === "USDCX" ? "CUSD" : normalized;
 }
 
 export function spotAssetPrecision(

@@ -11,7 +11,7 @@ export function buildSpotAssetPrecisions(assets: SupportedAsset[] | undefined): 
   for (const asset of assets ?? []) {
     const walletSymbol = asset.metadata?.wallet_symbol?.trim();
     const displaySymbol =
-      walletSymbol || (asset.symbol.toUpperCase() === "USDC" ? "USDA" : asset.symbol);
+      walletSymbol || (asset.symbol.toUpperCase() === "USDC" ? "CUSD" : asset.symbol);
     if (Number.isInteger(asset.decimals) && asset.decimals >= 0) {
       next[displaySymbol.toUpperCase()] = asset.decimals;
     }

@@ -29,8 +29,8 @@ vi.mock("../../api/spotClient", async () => {
 const mUseSpotAccount = vi.mocked(useSpotAccount);
 const mPlace = vi.mocked(spotApi.placeOrder);
 const mConnect = vi.mocked(openCantonConnect);
-const market = resolveSpotMarket("CBTC-USDA");
-const cethMarket = resolveSpotMarket("CETH-USDA");
+const market = resolveSpotMarket("CBTC-CUSD");
+const cethMarket = resolveSpotMarket("CETH-CUSD");
 const refetch = vi.fn();
 
 const account: Account = {
@@ -40,7 +40,7 @@ const account: Account = {
   canDeposit: true,
   updateTime: 1,
   balances: [
-    { asset: "USDA", free: "1000", locked: "25" },
+    { asset: "CUSD", free: "1000", locked: "25" },
     { asset: "CBTC", free: "2.5", locked: "0.5" },
   ],
   permissions: ["SPOT"],
@@ -55,7 +55,7 @@ function accountWith({
     ...account,
     canTrade,
     balances: [
-      { asset: "USDA", free: quoteFree, locked: "25" },
+      { asset: "CUSD", free: quoteFree, locked: "25" },
       { asset: "CBTC", free: baseFree, locked: "0.5" },
     ],
   };
@@ -200,10 +200,10 @@ describe("SpotOrderForm", () => {
     );
   });
 
-  it("uses public USDA and CBTC labels for the available balance", () => {
+  it("uses public CUSD and CBTC labels for the available balance", () => {
     const { getByText, getByRole } = render(<SpotOrderForm market={market} />);
 
-    expect(getByText("1,000 USDA")).toBeTruthy();
+    expect(getByText("1,000 CUSD")).toBeTruthy();
     fireEvent.click(getByRole("tab", { name: `Sell ${market.displayBase}` }));
     expect(getByText("2.5 CBTC")).toBeTruthy();
   });
@@ -239,15 +239,15 @@ describe("SpotOrderForm", () => {
     readyAccount(accountWith({ quoteFree: "9007199254740993.123456789" }));
     const { getByText } = render(<SpotOrderForm market={market} />);
 
-    expect(getByText("9,007,199,254,740,993.123456789 USDA")).toBeTruthy();
+    expect(getByText("9,007,199,254,740,993.123456789 CUSD")).toBeTruthy();
   });
 
-  it("truncates the available USDA balance to ten decimals", () => {
+  it("truncates the available CUSD balance to ten decimals", () => {
     readyAccount(accountWith({ quoteFree: "1.1453822379697668" }));
     const { getByText, queryByText } = render(<SpotOrderForm market={market} />);
 
-    expect(getByText("1.1453822379 USDA")).toBeTruthy();
-    expect(queryByText("1.1453822379697668 USDA")).toBeNull();
+    expect(getByText("1.1453822379 CUSD")).toBeTruthy();
+    expect(queryByText("1.1453822379697668 CUSD")).toBeNull();
   });
 
   it("disables submit until price and amount are valid positive values", () => {
@@ -316,7 +316,7 @@ describe("SpotOrderForm", () => {
     fireEvent.change(getByLabelText(`Price (${market.displayQuote})`), { target: { value: "250" } });
     fireEvent.change(getByLabelText(`Amount (${market.displayBase})`), { target: { value: "1" } });
 
-    expect(getByText("0.25 USDA")).toBeTruthy();
+    expect(getByText("0.25 CUSD")).toBeTruthy();
   });
 
   it("sizes a sell from the full base balance without requiring a price", () => {
@@ -392,7 +392,7 @@ describe("SpotOrderForm", () => {
 
     await waitFor(() => expect(mPlace).toHaveBeenCalledOnce());
     expect(mPlace).toHaveBeenCalledWith({
-      symbol: "CBTC-USDA",
+      symbol: "CBTC-CUSD",
       side: "BUY",
       type: "LIMIT",
       price: "250",
@@ -416,7 +416,7 @@ describe("SpotOrderForm", () => {
 
     await waitFor(() =>
       expect(mPlace).toHaveBeenCalledWith({
-        symbol: "CBTC-USDA",
+        symbol: "CBTC-CUSD",
         side: "SELL",
         type: "LIMIT",
         price: "250",
@@ -483,7 +483,7 @@ describe("SpotOrderForm", () => {
     fireEvent.click(view.getByRole("button", { name: `BUY ${cethMarket.displayBase}` }));
     await waitFor(() => expect(mPlace).toHaveBeenCalledTimes(2));
     expect(mPlace).toHaveBeenLastCalledWith({
-      symbol: "CETH-USDA",
+      symbol: "CETH-CUSD",
       side: "BUY",
       type: "LIMIT",
       price: "250",

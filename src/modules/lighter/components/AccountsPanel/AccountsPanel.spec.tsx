@@ -58,7 +58,7 @@ beforeEach(() => {
     crossLeverage: null,
   });
   mTransfer.mockImplementation(async ({ amount, direction }) => ({
-    asset: "USDA",
+    asset: "CUSD",
     direction,
     amount,
     fundingAvailable: direction === "toSpot" ? "2.09" : "3.59",
@@ -90,11 +90,11 @@ describe("AccountsPanel", () => {
       </I18nProvider>,
     );
 
-    expect(view.getByText("USDA (可用)")).toBeTruthy();
+    expect(view.getByText("CUSD (可用)")).toBeTruthy();
     expect(view.getByPlaceholderText("金額")).toBeTruthy();
   });
 
-  it("uses the Futures Account title and exposes USDA transfer controls", () => {
+  it("uses the Futures Account title and exposes CUSD transfer controls", () => {
     const view = renderPanel();
 
     expect(view.getByText("Futures Account")).toBeTruthy();
@@ -113,7 +113,7 @@ describe("AccountsPanel", () => {
     expect(toSpot.className).not.toBe("");
   });
 
-  it("submits USDA transfers in both directions and updates the futures balance", async () => {
+  it("submits CUSD transfers in both directions and updates the futures balance", async () => {
     const view = renderPanel();
     const amount = view.getByRole("textbox", { name: "Transfer amount" });
 
@@ -122,7 +122,7 @@ describe("AccountsPanel", () => {
 
     await waitFor(() => {
       expect(mTransfer).toHaveBeenLastCalledWith({
-        asset: "USDA",
+        asset: "CUSD",
         amount: "1",
         direction: "toSpot",
       });
@@ -135,7 +135,7 @@ describe("AccountsPanel", () => {
 
     await waitFor(() => {
       expect(mTransfer).toHaveBeenLastCalledWith({
-        asset: "USDA",
+        asset: "CUSD",
         amount: "0.5",
         direction: "toFunding",
       });

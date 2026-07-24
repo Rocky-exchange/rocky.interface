@@ -29,8 +29,8 @@ const mAllOrders = vi.mocked(
   (spotApi as typeof spotApi & { allOrders: typeof spotApi.openOrders }).allOrders,
 );
 const mTrades = vi.mocked(spotApi.myTrades);
-const market = resolveSpotMarket("CBTC-USDA");
-const cethMarket = resolveSpotMarket("CETH-USDA");
+const market = resolveSpotMarket("CBTC-CUSD");
+const cethMarket = resolveSpotMarket("CETH-CUSD");
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -44,7 +44,7 @@ function deferred<T>() {
 
 function order(orderId: string, side: "BUY" | "SELL" = "SELL", price = "65000.00") {
   return {
-    symbol: "CBTC-USDA",
+    symbol: "CBTC-CUSD",
     orderId,
     clientOrderId: `client-${orderId}`,
     price,
@@ -146,7 +146,7 @@ describe("SpotBottomTabs", () => {
     expect(within(row).queryByText("$0.001")).toBeNull();
     expect(within(row).getByText("Filled")).toBeTruthy();
     expect(within(row).queryByText("FILLED")).toBeNull();
-    expect(mAllOrders).toHaveBeenCalledWith("CBTC-USDA");
+    expect(mAllOrders).toHaveBeenCalledWith("CBTC-CUSD");
   });
 
   it("switches to Open Orders without rendering a panel-level wallet CTA", () => {
@@ -168,7 +168,7 @@ describe("SpotBottomTabs", () => {
     fireEvent.click(getByRole("tab", { name: "Open Orders" }));
 
     expect((await findByRole("status")).textContent).toBe("No open orders");
-    expect(mOpen).toHaveBeenCalledWith("CBTC-USDA");
+    expect(mOpen).toHaveBeenCalledWith("CBTC-CUSD");
   });
 
   it("shows a loading state while open orders are pending", () => {
@@ -195,7 +195,7 @@ describe("SpotBottomTabs", () => {
     const cethOrders = deferred<ReturnType<typeof order>[]>();
     mReady.mockReturnValue(true);
     mOpen.mockImplementation((symbol) =>
-      symbol === "CBTC-USDA" ? Promise.resolve([order("cbtc-old")]) : cethOrders.promise,
+      symbol === "CBTC-CUSD" ? Promise.resolve([order("cbtc-old")]) : cethOrders.promise,
     );
 
     const { getByRole, findByRole, queryByRole, rerender } = render(<SpotBottomTabs market={market} />);
@@ -206,7 +206,7 @@ describe("SpotBottomTabs", () => {
 
     expect(queryByRole("row", { name: /65,000.*Cancel/ })).toBeNull();
     expect(getByRole("status").textContent).toBe("Loading…");
-    expect(mOpen).toHaveBeenCalledWith("CETH-USDA");
+    expect(mOpen).toHaveBeenCalledWith("CETH-CUSD");
     expect(mCancel).not.toHaveBeenCalled();
     cethOrders.resolve([]);
   });
@@ -222,7 +222,7 @@ describe("SpotBottomTabs", () => {
     fireEvent.click(within(row).getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => expect(mCancel).toHaveBeenCalledOnce());
-    expect(mCancel).toHaveBeenCalledWith("CBTC-USDA", "019f64e35ff175d18108787dd7af24f2");
+    expect(mCancel).toHaveBeenCalledWith("CBTC-CUSD", "019f64e35ff175d18108787dd7af24f2");
     await waitFor(() => expect(mOpen).toHaveBeenCalledTimes(2));
   });
 
@@ -276,13 +276,13 @@ describe("SpotBottomTabs", () => {
     mReady.mockReturnValue(true);
     mTrades.mockResolvedValue([
       {
-        symbol: "CBTC-USDA",
+        symbol: "CBTC-CUSD",
         id: "018f0000-0000-0000-0000-0000000000aa",
         price: "65000.00",
         qty: "0.001",
         quoteQty: "65.00",
         commission: "0.026",
-        commissionAsset: "USDA",
+        commissionAsset: "CUSD",
         time: 1_700_000_000_000,
         isBuyer: true,
         isMaker: false,
@@ -298,7 +298,7 @@ describe("SpotBottomTabs", () => {
     expect(within(row).getByText("0.001 CBTC")).toBeTruthy();
     expect(within(row).getByText("$65")).toBeTruthy();
     expect(within(row).getByText("Taker")).toBeTruthy();
-    expect(mTrades).toHaveBeenCalledWith("CBTC-USDA");
+    expect(mTrades).toHaveBeenCalledWith("CBTC-CUSD");
   });
 
   it("shows the empty state when the user has no trades", async () => {

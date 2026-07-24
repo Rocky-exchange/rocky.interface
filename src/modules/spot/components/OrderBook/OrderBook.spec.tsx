@@ -32,16 +32,16 @@ const mMarkets = vi.mocked(
     }
   ).markets,
 );
-const market = resolveSpotMarket("CBTC-USDA");
-const ethMarket = resolveSpotMarket("CETH-USDA");
+const market = resolveSpotMarket("CBTC-CUSD");
+const ethMarket = resolveSpotMarket("CETH-CUSD");
 const pepeMarket: SpotMarket = {
-  routeSymbol: "PEPE-USDA",
-  apiSymbol: "PEPE-USDA",
+  routeSymbol: "PEPE-CUSD",
+  apiSymbol: "PEPE-CUSD",
   displayBase: "PEPE",
-  displayQuote: "USDA",
+  displayQuote: "CUSD",
   apiBase: "PEPE",
-  apiQuote: "USDA",
-  chartSymbol: "PEPE-USDA",
+  apiQuote: "CUSD",
+  chartSymbol: "PEPE-CUSD",
   chartSource: "native",
 };
 
@@ -100,16 +100,16 @@ describe("SpotOrderBookPanel", () => {
     const { findByText, getByRole, getByText } = render(<SpotOrderBookPanel market={market} />);
 
     await findByText("65,010.00");
-    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CBTC-USDA", 20));
+    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CBTC-CUSD", 20));
     expect(getByRole("tablist")).toBeTruthy();
     expect(getByRole("tab", { name: "Order Book" }).getAttribute("aria-selected")).toBe("true");
     expect(getByRole("tab", { name: "Recent Trades" }).getAttribute("aria-selected")).toBe("false");
     expect(getByRole("button", { name: "Show full order book" })).toBeTruthy();
     expect(getByRole("button", { name: "Show asks only" })).toBeTruthy();
     expect(getByRole("button", { name: "Show bids only" })).toBeTruthy();
-    expect(getByText("Price (USDA)")).toBeTruthy();
+    expect(getByText("Price (CUSD)")).toBeTruthy();
     expect(getByText("Amount (CBTC)")).toBeTruthy();
-    expect(getByText("Total (USDA)")).toBeTruthy();
+    expect(getByText("Total (CUSD)")).toBeTruthy();
     expect(mTrades).not.toHaveBeenCalled();
   });
 
@@ -118,7 +118,7 @@ describe("SpotOrderBookPanel", () => {
     const { findByText, getByRole, getByTestId } = render(<SpotOrderBookPanel market={market} />);
 
     await findByText("65,010.00");
-    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("USDA");
+    expect(getByTestId("spot-orderbook-toolbar").textContent).toContain("CUSD");
     expect(getByRole("button", { name: "Order book price level" }).textContent).toContain("0.01");
   });
 
@@ -160,7 +160,7 @@ describe("SpotOrderBookPanel", () => {
     fireEvent.click(getByRole("tab", { name: "Recent Trades" }));
 
     await findByText("No trades yet");
-    await waitFor(() => expect(mTrades).toHaveBeenCalledWith("CBTC-USDA", 30));
+    await waitFor(() => expect(mTrades).toHaveBeenCalledWith("CBTC-CUSD", 30));
   });
 
   it("uses roving focus and arrow keys across the order book tabs", async () => {
@@ -262,7 +262,7 @@ describe("SpotOrderBookPanel", () => {
 
     expect(queryByText("65,010.00")).toBeNull();
     expect(getByText("Loading…")).toBeTruthy();
-    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CETH-USDA", 20));
+    await waitFor(() => expect(mDepth).toHaveBeenCalledWith("CETH-CUSD", 20));
 
     resolveNextDepth({ lastUpdateId: 2, asks: [["3501", "1"]], bids: [["3499", "1"]] });
     expect(await findAllByText("3,501.00")).toHaveLength(2);

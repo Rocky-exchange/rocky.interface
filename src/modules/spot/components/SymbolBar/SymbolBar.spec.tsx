@@ -41,8 +41,8 @@ import { resolveSpotMarket } from "../../model/spotMarkets";
 import { renderWithI18n as render } from "../../test/renderWithI18n";
 
 const mTicker = vi.mocked(spotApi.ticker);
-const cbtcMarket = resolveSpotMarket("CBTC-USDA");
-const cethMarket = resolveSpotMarket("CETH-USDA");
+const cbtcMarket = resolveSpotMarket("CBTC-CUSD");
+const cethMarket = resolveSpotMarket("CETH-CUSD");
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -94,12 +94,12 @@ describe("SpotSymbolBar", () => {
 
     rerender(<SpotSymbolBar market={cethMarket} />);
 
-    expect(getByTestId("market-dropdown").textContent).toBe("CETH-USDA");
+    expect(getByTestId("market-dropdown").textContent).toBe("CETH-CUSD");
     expect(getByTestId("market-dropdown").dataset.iconLoading).toBe("true");
     expect(queryAllByText("66,011.75")).toHaveLength(0);
     expect(getAllByText("—").length).toBeGreaterThan(0);
     await waitFor(() => {
-      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-USDA", "CETH-USDA"]);
+      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-CUSD", "CETH-CUSD"]);
     });
 
     await act(async () => {
@@ -132,7 +132,7 @@ describe("SpotSymbolBar", () => {
     );
     rerender(<SpotSymbolBar market={cethMarket} />);
     await waitFor(() => {
-      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-USDA", "CETH-USDA"]);
+      expect(mTicker.mock.calls.map(([symbol]) => symbol)).toEqual(["CBTC-CUSD", "CETH-CUSD"]);
     });
 
     await act(async () => {

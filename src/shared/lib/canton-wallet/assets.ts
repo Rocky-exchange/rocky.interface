@@ -1,5 +1,5 @@
-export type CantonFundsAsset = "CC" | "USDA" | "CBTC" | "cETH";
-export type CantonFundsApiAsset = "CC" | "USDC" | "CBTC" | "cETH";
+export type CantonFundsAsset = "CC" | "CUSD" | "CBTC" | "cETH";
+export type CantonFundsApiAsset = "CC" | "CUSD" | "CBTC" | "cETH";
 
 export type CantonFundingAsset = {
   symbol: CantonFundsAsset;
@@ -10,11 +10,11 @@ export type CantonFundingAsset = {
 
 export const CANTON_FUNDING_ASSETS: readonly CantonFundingAsset[] = [
   {
-    symbol: "USDA",
-    apiSymbol: "USDC",
+    symbol: "CUSD",
+    apiSymbol: "CUSD",
     instrumentAdmin:
       "party-28dc4516-b5ca-44ff-86c7-2107e90a6807::1220b8301e18aa8a401d6e34e6c20f8b0243183c514373bca8f1b6b9270246341a9e",
-    instrumentId: "3574b536-cad1-4074-9b64-859398713ba0",
+    instrumentId: "481871d4-ca56-42a8-b2d3-4b7d28742946",
   },
   {
     symbol: "CBTC",
@@ -47,11 +47,9 @@ export function walletFacingAssetSymbol(value: string | null | undefined): Canto
   if (normalized === "CBTC") return "CBTC";
   if (normalized === "CETH") return "cETH";
   if (
-    normalized === "USDC" ||
-    normalized === "USDA" ||
-    normalized.includes("USDA") ||
-    normalized === "3574B536CAD140749B64859398713BA0"
+    normalized === "CUSD" ||
+    normalized === "481871D4CA5642A8B2D34B7D28742946"
   )
-    return "USDA";
+    return "CUSD";
   return null;
 }

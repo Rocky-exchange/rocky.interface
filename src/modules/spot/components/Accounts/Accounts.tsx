@@ -7,7 +7,7 @@ import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
 import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
 import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
 import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
-import usdaIconSrc from "@/shared/lib/canton-wallet/token-icons/USDA.png";
+import cusdIconSrc from "@/shared/lib/canton-wallet/token-icons/CUSD.png";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./Accounts.module.scss";
@@ -20,10 +20,10 @@ import {
 } from "../../model/assetPrecision";
 import { SPOT_MARKETS, type SpotMarket, toSpotDisplayAsset } from "../../model/spotMarkets";
 
-export const TRANSFER_ASSETS = ["USDA"] as const;
+export const TRANSFER_ASSETS = ["CUSD"] as const;
 
 const BALANCE_ASSET_ICON_SOURCES: Record<string, string> = {
-  USDA: usdaIconSrc,
+  CUSD: cusdIconSrc,
   CBTC: cbtcIconSrc,
   CETH: cethIconSrc,
   CC: ccIconSrc,
@@ -206,11 +206,11 @@ export function SpotAccountsPanel({
       </div>
     );
 
-  const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "USDA");
+  const quoteBalance = account.balances.find((balance) => balance.asset.trim().toUpperCase() === "CUSD");
   const totalUsda = quoteBalance
     ? formatSpotAssetAmount(
         new BigNumber(quoteBalance.free).plus(quoteBalance.locked).toFixed(),
-        "USDA",
+        "CUSD",
         precisions,
       )
     : "0";
@@ -238,7 +238,7 @@ export function SpotAccountsPanel({
     setXferMsg(null);
     try {
       const result = await transferSpotBalance({
-        asset: "USDA",
+        asset: "CUSD",
         amount: xferAmount.trim(),
         direction,
       });
@@ -256,7 +256,7 @@ export function SpotAccountsPanel({
     }
   };
   const transferAmountValid =
-    Boolean(xferAmount.trim()) && hasSpotAssetPrecision(xferAmount.trim(), "USDA", precisions);
+    Boolean(xferAmount.trim()) && hasSpotAssetPrecision(xferAmount.trim(), "CUSD", precisions);
 
   return (
     <div className={styles.panel}>
@@ -266,7 +266,7 @@ export function SpotAccountsPanel({
         </div>
         <div className={styles.totalRow}>
           <span className={styles.totalLabel}>
-            USDA (<Trans>free + locked</Trans>)
+            CUSD (<Trans>free + locked</Trans>)
           </span>
           <span className={styles.totalValue}>{totalUsda}</span>
         </div>

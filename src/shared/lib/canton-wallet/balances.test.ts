@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeRockyWalletBalance } from "./balances";
 
 describe("normalizeRockyWalletBalance", () => {
-  it("does not report a USDCx balance as USDA", () => {
+  it("does not report a USDCx balance as CUSD", () => {
     const rows = normalizeRockyWalletBalance([
       {
         symbol: "USDCx",
@@ -21,6 +21,6 @@ describe("normalizeRockyWalletBalance", () => {
       },
     ]);
 
-    expect(rows.find((row) => row.symbol === "USDA")?.amount).toBe("0");
+    expect(rows.find((row) => row.symbol === "CUSD")?.amount).toBeNull();
   });
 });

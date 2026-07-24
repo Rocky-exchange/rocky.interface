@@ -62,7 +62,7 @@ export function AccountsPanel() {
     setTransferError(null);
     try {
       const result = await transferSpotBalance({
-        asset: "USDA",
+        asset: "CUSD",
         amount: transferAmount.trim(),
         direction,
       });
@@ -74,8 +74,8 @@ export function AccountsPanel() {
       setTransferAmount("");
       setTransferMessage(
         direction === "toSpot"
-          ? i18n._(t`Moved ${result.amount} USDA to Spot`)
-          : i18n._(t`Moved ${result.amount} USDA to Futures`)
+          ? i18n._(t`Moved ${result.amount} CUSD to Spot`)
+          : i18n._(t`Moved ${result.amount} CUSD to Futures`)
       );
     } catch (error: unknown) {
       setTransferError(error instanceof Error ? error.message : String(error));
@@ -93,7 +93,7 @@ export function AccountsPanel() {
         <Row
           label={
             <>
-              USDA (<Trans>available</Trans>)
+              CUSD (<Trans>available</Trans>)
             </>
           }
           value={formatUsda(fundingAvailable)}

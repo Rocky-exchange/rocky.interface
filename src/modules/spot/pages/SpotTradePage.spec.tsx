@@ -78,7 +78,7 @@ function renderSpotRoute(path: string) {
 
 describe("SpotTradePage", () => {
   it("uses the same primary and bottom panel skeleton as the futures terminal", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const primary = screen.getByTestId("spot-primary-workspace");
     const bottom = screen.getByTestId("spot-bottom-workspace");
@@ -92,7 +92,7 @@ describe("SpotTradePage", () => {
   });
 
   it("uses the futures market-header, favorites, and chart row order", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const workspace = screen.getByTestId("spot-market-workspace");
     const marketHeader = screen.getByTestId("symbol-bar-probe");
@@ -106,7 +106,7 @@ describe("SpotTradePage", () => {
   });
 
   it("coordinates the routed market across the ZTDX trading workspace", () => {
-    const history = createMemoryHistory({ initialEntries: ["/spot/CBTC-USDA"] });
+    const history = createMemoryHistory({ initialEntries: ["/spot/CBTC-CUSD"] });
 
     render(
       <Router history={history}>
@@ -125,15 +125,15 @@ describe("SpotTradePage", () => {
 
     for (const child of ["symbol-bar", "chart", "bottom-tabs", "orderbook", "orderform"]) {
       const probe = screen.getByTestId(`${child}-probe`);
-      expect(probe.getAttribute("data-route-symbol")).toBe("CBTC-USDA");
-      expect(probe.getAttribute("data-api-symbol")).toBe("CBTC-USDA");
+      expect(probe.getAttribute("data-route-symbol")).toBe("CBTC-CUSD");
+      expect(probe.getAttribute("data-api-symbol")).toBe("CBTC-CUSD");
     }
 
     expect(screen.getByTestId("spot-standalone-account")).not.toBeNull();
   });
 
   it("links the selected Price tab to its labelled tabpanel", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const chartTab = screen.getByRole("tab", { name: "Price" });
     const chartPanel = screen.getByRole("tabpanel", { name: "Price" });
@@ -146,7 +146,7 @@ describe("SpotTradePage", () => {
   });
 
   it("removes Funding and switches between Price and Details", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     expect(screen.queryByRole("tab", { name: "Funding" })).toBeNull();
 
@@ -155,12 +155,12 @@ describe("SpotTradePage", () => {
 
     expect(detailsTab.getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("tabpanel", { name: "Details" })).not.toBeNull();
-    expect(screen.getByTestId("market-details-probe").getAttribute("data-api-symbol")).toBe("CBTC-USDA");
+    expect(screen.getByTestId("market-details-probe").getAttribute("data-api-symbol")).toBe("CBTC-CUSD");
     expect(screen.queryByRole("button", { name: "Depth" })).toBeNull();
   });
 
   it("switches the Price view between TradingView and spot depth", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const tradingView = screen.getByRole("button", { name: "TradingView" });
     const depth = screen.getByRole("button", { name: "Depth" });
@@ -172,11 +172,11 @@ describe("SpotTradePage", () => {
 
     expect(depth.getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByTestId("chart-probe")).toBeNull();
-    expect(screen.getByTestId("depth-chart-probe").getAttribute("data-route-symbol")).toBe("CBTC-USDA");
+    expect(screen.getByTestId("depth-chart-probe").getAttribute("data-route-symbol")).toBe("CBTC-CUSD");
   });
 
   it("opens the chart layout menu and renders the selected split layout", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const layoutButton = screen.getByRole("button", { name: "Chart layout" });
     expect(layoutButton.getAttribute("aria-expanded")).toBe("false");
@@ -192,7 +192,7 @@ describe("SpotTradePage", () => {
   });
 
   it("uses the chart workspace for the fullscreen action", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const workspace = screen.getByTestId("spot-chart-workspace");
     const requestFullscreen = vi.fn().mockResolvedValue(undefined);
@@ -207,7 +207,7 @@ describe("SpotTradePage", () => {
   });
 
   it("keeps explicit local styles on every market-view tab", () => {
-    renderSpotRoute("/spot/CBTC-USDA");
+    renderSpotRoute("/spot/CBTC-CUSD");
 
     const tablist = screen.getByRole("tablist", { name: "Market view" });
     const tabs = within(tablist).getAllByRole("tab");
@@ -219,11 +219,11 @@ describe("SpotTradePage", () => {
   });
 
   it.each([
-    ["case-insensitive CETH symbol", "/spot/ceth-usda", "/spot/CETH-USDA"],
-    ["trimmed symbol", "/spot/%20CBTC-USDA%20", "/spot/CBTC-USDA"],
-    ["missing symbol", "/spot", "/spot/CBTC-USDA"],
-    ["lowercase public symbol", "/spot/cbtc-usda", "/spot/CBTC-USDA"],
-    ["unknown symbol", "/spot/not-a-market", "/spot/CBTC-USDA"],
+    ["case-insensitive CETH symbol", "/spot/ceth-cusd", "/spot/CETH-CUSD"],
+    ["trimmed symbol", "/spot/%20CBTC-CUSD%20", "/spot/CBTC-CUSD"],
+    ["missing symbol", "/spot", "/spot/CBTC-CUSD"],
+    ["lowercase public symbol", "/spot/cbtc-cusd", "/spot/CBTC-CUSD"],
+    ["unknown symbol", "/spot/not-a-market", "/spot/CBTC-CUSD"],
   ])("replaces the %s URL with its public canonical route", async (_name, path, canonicalPath) => {
     const { history, replace } = renderSpotRoute(path);
 
@@ -232,11 +232,11 @@ describe("SpotTradePage", () => {
     expect(replace).toHaveBeenCalledWith(canonicalPath);
   });
 
-  it("leaves an already-canonical USDA URL unchanged without a redirect loop", async () => {
-    const { history, replace } = renderSpotRoute("/spot/CBTC-USDA");
+  it("leaves an already-canonical CUSD URL unchanged without a redirect loop", async () => {
+    const { history, replace } = renderSpotRoute("/spot/CBTC-CUSD");
 
     await waitFor(() => expect(screen.getByTestId("symbol-bar-probe")).not.toBeNull());
-    expect(history.location.pathname).toBe("/spot/CBTC-USDA");
+    expect(history.location.pathname).toBe("/spot/CBTC-CUSD");
     expect(replace).not.toHaveBeenCalled();
   });
 });

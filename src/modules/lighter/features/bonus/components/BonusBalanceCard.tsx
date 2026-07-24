@@ -9,7 +9,7 @@ export type BonusBalanceCardProps = {
 
 export function formatUsda(value?: string, maximumFractionDigits = 2): string {
   const amount = Number(value ?? "0");
-  return `${Number.isFinite(amount) ? amount.toLocaleString(undefined, { maximumFractionDigits }) : "0"} USDA`;
+  return `${Number.isFinite(amount) ? amount.toLocaleString(undefined, { maximumFractionDigits }) : "0"} CUSD`;
 }
 
 export function BonusBalanceCard({ balance }: BonusBalanceCardProps) {
@@ -21,10 +21,10 @@ export function BonusBalanceCard({ balance }: BonusBalanceCardProps) {
             <Trans>Balance composition</Trans>
           </p>
           <h2 id="bonus-balance-heading" className={styles.heading}>
-            <Trans>USDA account breakdown</Trans>
+            <Trans>CUSD account breakdown</Trans>
           </h2>
         </div>
-        <span className={styles.asset}>USDA</span>
+        <span className={styles.asset}>CUSD</span>
       </div>
 
       <ul className={styles.rows} aria-labelledby="bonus-balance-heading">

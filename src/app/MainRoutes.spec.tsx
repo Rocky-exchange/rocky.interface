@@ -90,7 +90,7 @@ describe("MainRoutes trading terminal shell", () => {
     const { history } = renderRoute("/trade");
     const header = await screen.findByTestId("terminal-top-nav");
 
-    act(() => history.push("/spot/CBTC-USDA"));
+    act(() => history.push("/spot/CBTC-CUSD"));
 
     expect(await screen.findByRole("heading", { name: "Spot route" })).not.toBeNull();
     expect(screen.getByTestId("terminal-top-nav")).toBe(header);

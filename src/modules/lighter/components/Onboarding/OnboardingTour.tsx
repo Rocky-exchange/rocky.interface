@@ -36,7 +36,7 @@ const EN: Copy = {
     {
       title: "1 · Connect your wallet",
       description:
-        "Connect your Canton wallet to deposit USDA and start trading. Your funds stay in your wallet — no custodial account.",
+        "Connect your Canton wallet to deposit CUSD and start trading. Your funds stay in your wallet — no custodial account.",
     },
     {
       title: "2 · Pick a market",
@@ -82,7 +82,7 @@ const ZH: Copy = {
     },
     {
       title: "1 · 连接钱包",
-      description: "连接你的 Canton 钱包以充值 USDA 并开始交易。资金始终留在你的钱包中——无需托管账户。",
+      description: "连接你的 Canton 钱包以充值 CUSD 并开始交易。资金始终留在你的钱包中——无需托管账户。",
     },
     {
       title: "2 · 选择交易对",

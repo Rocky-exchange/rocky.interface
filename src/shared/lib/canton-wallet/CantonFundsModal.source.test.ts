@@ -6,19 +6,19 @@ import { describe, expect, it } from "vitest";
 const fixtureDirectory = dirname(fileURLToPath(import.meta.url));
 
 describe("CantonFundsModal source", () => {
-  it("uses the USDA asset icon instead of the legacy USDCx icon", () => {
+  it("uses the CUSD asset icon instead of the legacy USDCx icon", () => {
     const source = readFileSync(join(fixtureDirectory, "CantonFundsModal.tsx"), "utf8");
 
-    expect(source).toContain('import usdaIconSrc from "./token-icons/USDA.png";');
+    expect(source).toContain('import cusdIconSrc from "./token-icons/CUSD.png";');
     expect(source).not.toContain('./token-icons/USDCx.webp');
   });
 
-  it("does not render the USDA controls panel", () => {
+  it("does not render the CUSD controls panel", () => {
     const source = readFileSync(join(fixtureDirectory, "CantonFundsModal.tsx"), "utf8");
 
-    expect(source).not.toContain("USDA Controls");
-    expect(source).not.toContain("Authorize USDA");
-    expect(source).not.toContain("Accept USDA offers");
+    expect(source).not.toContain("CUSD Controls");
+    expect(source).not.toContain("Authorize CUSD");
+    expect(source).not.toContain("Accept CUSD offers");
   });
 
   it("loads persisted funds history when refreshing the wallet dashboard", () => {

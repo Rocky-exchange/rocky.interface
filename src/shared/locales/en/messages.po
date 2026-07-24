@@ -157,10 +157,6 @@ msgstr "Letters, numbers, and hyphens only. Minimum 4 characters."
 msgid "@username"
 msgstr "@username"
 
-#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
-msgid "Moved {0} USDA to Spot"
-msgstr "Moved {0} USDA to Spot"
-
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Amount is below the minimum withdraw."
 msgstr "Amount is below the minimum withdraw."
@@ -999,6 +995,10 @@ msgstr "Trade within the bonus risk controls"
 msgid "Futures"
 msgstr "Futures"
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} CUSD to Futures"
+msgstr "Moved {0} CUSD to Futures"
+
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Deposits and withdraws are temporarily paused. Please try again later."
 msgstr "Deposits and withdraws are temporarily paused. Please try again later."
@@ -1012,6 +1012,10 @@ msgstr "Insufficient available liquidity."
 #: src/shared/components/AvaxUsdteSwapBanner/AvaxUsdteSwapBanner.tsx
 msgid "You hold native USDT — please swap to USDT.e on Avalanche before depositing."
 msgstr "You hold native USDT — please swap to USDT.e on Avalanche before depositing."
+
+#: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
+msgid "CUSD Value"
+msgstr "CUSD Value"
 
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
 msgid "Trigger price above lowest limit price"
@@ -1370,6 +1374,10 @@ msgstr "Insufficient available liquidity. The order will fill when there is liqu
 msgid "Market"
 msgstr "Market"
 
+#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
+msgid "Moved {0} CUSD to Spot"
+msgstr "Moved {0} CUSD to Spot"
+
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
@@ -1666,6 +1674,10 @@ msgstr "Loading…"
 msgid "Trial funds have expired. New opening orders are not tradable."
 msgstr "Trial funds have expired. New opening orders are not tradable."
 
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
+msgid "Transfer CUSD"
+msgstr "Transfer CUSD"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed TWAP Part"
 msgstr "Failed TWAP Part"
@@ -1874,10 +1886,6 @@ msgstr "Cross Margin Usage"
 msgid "Redeem trading credit"
 msgstr "Redeem trading credit"
 
-#: src/modules/lighter/components/BottomTabs/AssetsTab.tsx
-msgid "USDA Value"
-msgstr "USDA Value"
-
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Stop Market"
 msgstr "Failed Stop Market"
@@ -1989,10 +1997,6 @@ msgstr "Connect wallet"
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Unlocking..."
 msgstr "Unlocking..."
-
-#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
-msgid "USDA account breakdown"
-msgstr "USDA account breakdown"
 
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "Loading markets..."
@@ -2570,10 +2574,6 @@ msgstr "Min position size: {0}"
 msgid "Trigger price below mark price"
 msgstr "Trigger price below mark price"
 
-#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
-msgid "Transfer USDA"
-msgstr "Transfer USDA"
-
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "All cross positions share the same cross margin as collateral. In the event of liquidation, your cross margin balance and any remaining open positions under assets in this mode may be forfeited."
@@ -2680,10 +2680,6 @@ msgstr "RWA"
 msgid "The network fees are high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "The network fees are high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 
-#: src/modules/lighter/components/AccountsPanel/AccountsPanel.tsx
-msgid "Moved {0} USDA to Futures"
-msgstr "Moved {0} USDA to Futures"
-
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
@@ -2730,6 +2726,10 @@ msgstr "Back to assets"
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Recoverable trial funds have been recalled. Attribution history remains available."
 msgstr "Recoverable trial funds have been recalled. Attribution history remains available."
+
+#: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+msgid "CUSD account breakdown"
+msgstr "CUSD account breakdown"
 
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 msgid "Connect wallet to claim"

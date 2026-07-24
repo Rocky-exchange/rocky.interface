@@ -14,38 +14,38 @@ export type SpotMarket = {
   chartSource: "binance" | "native";
 };
 
-// The backend (post usda_rename migration) keys every spot endpoint on the
-// "-USDA" symbol; apiSymbol == routeSymbol. The legacy quote form is retired.
+// The backend keys every spot endpoint on the "-CUSD" symbol;
+// apiSymbol == routeSymbol. The former USDA quote form is retired.
 export const SPOT_MARKETS = [
   {
-    routeSymbol: "CBTC-USDA",
-    apiSymbol: "CBTC-USDA",
+    routeSymbol: "CBTC-CUSD",
+    apiSymbol: "CBTC-CUSD",
     displayBase: "CBTC",
-    displayQuote: "USDA",
+    displayQuote: "CUSD",
     apiBase: "CBTC",
-    apiQuote: "USDA",
+    apiQuote: "CUSD",
     chartSymbol: "BTCUSDT",
     chartSource: "binance",
   },
   {
-    routeSymbol: "CETH-USDA",
-    apiSymbol: "CETH-USDA",
+    routeSymbol: "CETH-CUSD",
+    apiSymbol: "CETH-CUSD",
     displayBase: "cETH",
-    displayQuote: "USDA",
+    displayQuote: "CUSD",
     apiBase: "CETH",
-    apiQuote: "USDA",
+    apiQuote: "CUSD",
     chartSymbol: "ETHUSDT",
     chartSource: "binance",
   },
   {
-    routeSymbol: "CC-USDA",
-    apiSymbol: "CC-USDA",
+    routeSymbol: "CC-CUSD",
+    apiSymbol: "CC-CUSD",
     displayBase: "CC",
-    displayQuote: "USDA",
+    displayQuote: "CUSD",
     apiBase: "CC",
-    apiQuote: "USDA",
+    apiQuote: "CUSD",
     // Canton Coin has no Binance spot listing → chart off our own klines.
-    chartSymbol: "CC-USDA",
+    chartSymbol: "CC-CUSD",
     chartSource: "native",
   },
   {
@@ -69,7 +69,7 @@ export function resolveSpotMarket(routeSymbol?: string): SpotMarket {
 }
 
 // Spot balances come back from the backend already labeled with their public
-// asset ("USDA", "CBTC", "cETH", "CC"), so no display translation is needed.
+// asset ("CUSD", "CBTC", "cETH", "CC"), so no display translation is needed.
 export function toSpotDisplayAsset(asset: string): string {
   return asset;
 }

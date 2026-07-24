@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 describe("useAvailableBalanceAdapter", () => {
-  it("reads the futures USDA available balance used by the Futures Account panel", async () => {
+  it("reads the futures CUSD available balance used by the Futures Account panel", async () => {
     const view = render(<BalanceHarness />);
 
     await waitFor(() => expect(view.getByTestId("available").textContent).toBe("0.1"));

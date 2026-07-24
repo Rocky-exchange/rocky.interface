@@ -309,16 +309,16 @@ export async function getMarkets(chainId: number, limit?: number): Promise<Marke
 // Bilingual — picked by the active locale, like the onboarding tour.
 const MARKET_DESCRIPTIONS: Record<string, { en: string; zh: string }> = {
   BTC: {
-    en: "Bitcoin (BTC) is the first and largest cryptocurrency, a decentralized digital store of value secured by proof-of-work. BTC-PERP is a perpetual futures contract with up to 100x leverage, settled in USDA on the Canton Network.",
-    zh: "比特币（BTC）是第一个也是市值最大的加密货币，采用工作量证明保护的去中心化数字价值存储。BTC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDA 结算。",
+    en: "Bitcoin (BTC) is the first and largest cryptocurrency, a decentralized digital store of value secured by proof-of-work. BTC-PERP is a perpetual futures contract with up to 100x leverage, settled in CUSD on the Canton Network.",
+    zh: "比特币（BTC）是第一个也是市值最大的加密货币，采用工作量证明保护的去中心化数字价值存储。BTC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 CUSD 结算。",
   },
   ETH: {
-    en: "Ethereum (ETH) is the leading smart-contract platform, powering DeFi, NFTs and thousands of applications. ETH-PERP is a perpetual futures contract with up to 100x leverage, settled in USDA on the Canton Network.",
-    zh: "以太坊（ETH）是领先的智能合约平台，支撑 DeFi、NFT 及数千种应用。ETH-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDA 结算。",
+    en: "Ethereum (ETH) is the leading smart-contract platform, powering DeFi, NFTs and thousands of applications. ETH-PERP is a perpetual futures contract with up to 100x leverage, settled in CUSD on the Canton Network.",
+    zh: "以太坊（ETH）是领先的智能合约平台，支撑 DeFi、NFT 及数千种应用。ETH-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 CUSD 结算。",
   },
   CC: {
-    en: "Canton Coin (CC) is the native utility token of the Canton Network, a privacy-enabled public blockchain for institutional finance. CC-PERP is a perpetual futures contract with up to 100x leverage, settled in USDA on the Canton Network.",
-    zh: "Canton Coin（CC）是 Canton 网络的原生功能代币；Canton 是面向机构金融、支持隐私的公有链。CC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDA 结算。",
+    en: "Canton Coin (CC) is the native utility token of the Canton Network, a privacy-enabled public blockchain for institutional finance. CC-PERP is a perpetual futures contract with up to 100x leverage, settled in CUSD on the Canton Network.",
+    zh: "Canton Coin（CC）是 Canton 网络的原生功能代币；Canton 是面向机构金融、支持隐私的公有链。CC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 CUSD 结算。",
   },
 };
 

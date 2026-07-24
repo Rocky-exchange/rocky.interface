@@ -308,7 +308,7 @@ export async function fetchPlatformAccountBalance(asset: CantonFundsAsset): Prom
 }
 
 export async function fetchFundingAccountBalance(): Promise<number | null> {
-  const record = await fetchAccountBalanceRecord("USDA");
+  const record = await fetchAccountBalanceRecord("CUSD");
   const available = numericRecordField(record, "available");
   return Number.isFinite(available) ? available : null;
 }
@@ -327,7 +327,7 @@ async function fetchAccountBalanceRecord(asset: CantonFundsAsset): Promise<Recor
 
 export async function fetchPlatformAccountBalances(): Promise<PlatformAccountBalances> {
   const balances: PlatformAccountBalances = {
-    USDA: null,
+    CUSD: null,
     CBTC: null,
     cETH: null,
     CC: null,
@@ -397,9 +397,9 @@ export type SpotTransferResult = {
   spotFree: string;
 };
 
-/** Move USDA between the isolated contract and spot accounts. */
+/** Move CUSD between the isolated contract and spot accounts. */
 export async function transferSpotBalance(input: {
-  asset: "USDA";
+  asset: "CUSD";
   amount: string;
   direction: "toSpot" | "toFunding";
 }): Promise<SpotTransferResult> {
@@ -411,7 +411,7 @@ export async function transferSpotBalance(input: {
 }
 
 export async function authorizeUsdaWallet(): Promise<UsdaAuthorizationResult> {
-  return requestJson<UsdaAuthorizationResult>("/v1/wallet/usda/authorize", {
+  return requestJson<UsdaAuthorizationResult>("/v1/wallet/cusd/authorize", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -427,7 +427,7 @@ export async function acceptUsdaWalletTransfers(input: {
     return { acceptedCount: result.acceptedCount, raw: result };
   }
 
-  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usda/accept", {
+  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/cusd/accept", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -451,7 +451,7 @@ export async function fetchPendingUsdaOffers(input: {
 }
 
 export async function fetchUsdaAutoAccept(): Promise<UsdaAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/cusd/auto-accept", {
     method: "GET",
     headers: exchangeSessionHeaders(),
   });
@@ -459,7 +459,7 @@ export async function fetchUsdaAutoAccept(): Promise<UsdaAutoAcceptResult> {
 }
 
 export async function setUsdaAutoAccept(enabled: boolean): Promise<UsdaAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/cusd/auto-accept", {
     method: "PUT",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({ enabled }),

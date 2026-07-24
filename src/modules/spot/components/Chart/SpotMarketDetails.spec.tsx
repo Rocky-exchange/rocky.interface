@@ -18,7 +18,7 @@ import { spotApi, type Ticker24h } from "../../api/spotClient";
 import { resolveSpotMarket } from "../../model/spotMarkets";
 import { renderWithI18n as render } from "../../test/renderWithI18n";
 
-const market = resolveSpotMarket("CBTC-USDA");
+const market = resolveSpotMarket("CBTC-CUSD");
 const mMarkets = vi.mocked(spotApi.markets);
 const mTicker = vi.mocked(spotApi.ticker);
 
@@ -60,13 +60,13 @@ describe("SpotMarketDetails", () => {
     const view = render(<SpotMarketDetails market={market} />);
 
     await view.findByText("65,900");
-    expect(view.getAllByText("CBTC/USDA")).toHaveLength(2);
+    expect(view.getAllByText("CBTC/CUSD")).toHaveLength(2);
     expect(view.getByText("-0.152%")).toBeTruthy();
     expect(view.getByText("66,500")).toBeTruthy();
     expect(view.getByText("65,000")).toBeTruthy();
     expect(view.getByText("0.01")).toBeTruthy();
     expect(view.getByText("0.0001 CBTC")).toBeTruthy();
-    await waitFor(() => expect(mTicker).toHaveBeenCalledWith("CBTC-USDA"));
+    await waitFor(() => expect(mTicker).toHaveBeenCalledWith("CBTC-CUSD"));
     expect(mMarkets).toHaveBeenCalled();
   });
 

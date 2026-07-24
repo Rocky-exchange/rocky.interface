@@ -156,7 +156,7 @@ export async function acceptConsoleWalletUsdaOffers(
 
   const result = await sdk.consoleWallet.submitInstructionChoice({
     transferCid: offer.transferCid,
-    coin: offer.coin || "USDA",
+    coin: offer.coin || "CUSD",
     choice: "Accept",
     instructionData: offer,
   });
@@ -207,7 +207,7 @@ async function loadPendingConsoleWalletUsdaOffers(
     return (
       offer.transferCid &&
       offer.receiver === party &&
-      (coin === "USDA" ||
+      (coin === "CUSD" ||
         coin === "USDC" ||
         coin === "USDCX" ||
         coin === "3574B536-CAD1-4074-9B64-859398713BA0") &&

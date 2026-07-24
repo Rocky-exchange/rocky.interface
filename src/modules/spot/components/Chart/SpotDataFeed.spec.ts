@@ -32,7 +32,7 @@ function stubFetch(rows: unknown[] | ((url: string) => unknown[])): { urls: stri
 }
 
 // Minimal LibrarySymbolInfo — SpotDataFeed only reads .name.
-function symbolInfo(name = "CBTC-USDA"): LibrarySymbolInfo {
+function symbolInfo(name = "CBTC-CUSD"): LibrarySymbolInfo {
   return { name, ticker: name } as LibrarySymbolInfo;
 }
 
@@ -49,13 +49,13 @@ describe("onReady", () => {
 });
 
 describe("resolveSymbol", () => {
-  it("preserves USDA route identity and labels", async () => {
+  it("preserves CUSD route identity and labels", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-USDA", resolve as never));
-    expect(info.name).toBe("CBTC-USDA");
-    expect(info.ticker).toBe("CBTC-USDA");
-    expect(info.description).toBe("CBTC/USDA");
-    expect(info.currency_code).toBe("USDA");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CBTC-CUSD", resolve as never));
+    expect(info.name).toBe("CBTC-CUSD");
+    expect(info.ticker).toBe("CBTC-CUSD");
+    expect(info.description).toBe("CBTC/CUSD");
+    expect(info.currency_code).toBe("CUSD");
     expect(info.pricescale).toBe(100); // tick 0.01 → 2 decimals
     expect(info.session).toBe("24x7");
     expect(info.type).toBe("crypto");
@@ -63,11 +63,11 @@ describe("resolveSymbol", () => {
 
   it("preserves the configured cETH display capitalization", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CETH-USDA", resolve as never));
-    expect(info.name).toBe("CETH-USDA");
-    expect(info.ticker).toBe("CETH-USDA");
-    expect(info.description).toBe("cETH/USDA");
-    expect(info.currency_code).toBe("USDA");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CETH-CUSD", resolve as never));
+    expect(info.name).toBe("CETH-CUSD");
+    expect(info.ticker).toBe("CETH-CUSD");
+    expect(info.description).toBe("cETH/CUSD");
+    expect(info.currency_code).toBe("CUSD");
   });
 
   it("labels the crypto-quoted CETH-CBTC pair with a 5-decimal price scale", async () => {
@@ -79,20 +79,20 @@ describe("resolveSymbol", () => {
     expect(info.pricescale).toBe(100000); // tick 0.00001 → 5 decimals
   });
 
-  it("gives CC-USDA a 5-decimal price scale", async () => {
+  it("gives CC-CUSD a 5-decimal price scale", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CC-USDA", resolve as never));
-    expect(info.description).toBe("CC/USDA");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("CC-CUSD", resolve as never));
+    expect(info.description).toBe("CC/CUSD");
     expect(info.pricescale).toBe(100000);
   });
 
   it("canonicalizes a normalized known symbol", async () => {
     const feed = new SpotDataFeed();
-    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("  ceth-usda  ", resolve as never));
-    expect(info.name).toBe("CETH-USDA");
-    expect(info.ticker).toBe("CETH-USDA");
-    expect(info.description).toBe("cETH/USDA");
-    expect(info.currency_code).toBe("USDA");
+    const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("  ceth-cusd  ", resolve as never));
+    expect(info.name).toBe("CETH-CUSD");
+    expect(info.ticker).toBe("CETH-CUSD");
+    expect(info.description).toBe("cETH/CUSD");
+    expect(info.currency_code).toBe("CUSD");
   });
 
   it("uses generic labels for an unknown symbol without a dash", async () => {
@@ -100,8 +100,8 @@ describe("resolveSymbol", () => {
     const info = await new Promise<LibrarySymbolInfo>((resolve) => feed.resolveSymbol("UNKNOWN", resolve as never));
     expect(info.name).toBe("UNKNOWN");
     expect(info.ticker).toBe("UNKNOWN");
-    expect(info.description).toBe("UNKNOWN/USDA");
-    expect(info.currency_code).toBe("USDA");
+    expect(info.description).toBe("UNKNOWN/CUSD");
+    expect(info.currency_code).toBe("CUSD");
   });
 });
 
@@ -138,7 +138,7 @@ describe("getBars", () => {
     });
   });
 
-  it("hits Binance data-api with the USDA route's mapped symbol/interval/countBack limit", async () => {
+  it("hits Binance data-api with the CUSD route's mapped symbol/interval/countBack limit", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
     await new Promise<void>((resolve) => {
@@ -151,33 +151,33 @@ describe("getBars", () => {
       );
     });
     expect(urls[0]).toContain("data-api.binance.vision/api/v3/klines");
-    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-USDA → BTCUSDT mapping
+    expect(urls[0]).toContain("symbol=BTCUSDT"); // CBTC-CUSD → BTCUSDT mapping
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
 
     urls.length = 0;
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo("CETH-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+      feed.getBars(symbolInfo("CETH-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });
     expect(urls[0]).toContain("symbol=ETHUSDT");
 
     urls.length = 0;
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo("UNKNOWN-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+      feed.getBars(symbolInfo("UNKNOWN-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });
-    expect(urls[0]).toContain("symbol=UNKNOWNUSDA");
+    expect(urls[0]).toContain("symbol=UNKNOWNCUSD");
   });
 
-  it("routes native pairs (CC-USDA, CETH-CBTC) to Rocky's own klines, not Binance", async () => {
+  it("routes native pairs (CC-CUSD, CETH-CBTC) to Rocky's own klines, not Binance", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
 
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo("CC-USDA"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+      feed.getBars(symbolInfo("CC-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });
     expect(urls[0]).not.toContain("binance");
     expect(urls[0]).toContain("/api/v3/klines");
-    expect(urls[0]).toContain("symbol=CC-USDA");
+    expect(urls[0]).toContain("symbol=CC-CUSD");
     expect(urls[0]).toContain("interval=5m");
     expect(urls[0]).toContain("limit=200");
 
@@ -325,10 +325,10 @@ describe("subscribeBars / unsubscribeBars", () => {
     feed.unsubscribeBars("listener-2");
   });
 
-  it("maps CETH-USDA subscriptions to Binance ETHUSDT", async () => {
+  it("maps CETH-CUSD subscriptions to Binance ETHUSDT", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
-    feed.subscribeBars(symbolInfo("CETH-USDA"), "5" as ResolutionString, () => undefined, "ceth-listener");
+    feed.subscribeBars(symbolInfo("CETH-CUSD"), "5" as ResolutionString, () => undefined, "ceth-listener");
     await waitFor(() => urls.length >= 1);
     expect(urls[0]).toContain("symbol=ETHUSDT");
     feed.unsubscribeBars("ceth-listener");

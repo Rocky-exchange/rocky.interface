@@ -42,6 +42,6 @@ describe("TopNav", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-USDA");
+    expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-CUSD");
   });
 });

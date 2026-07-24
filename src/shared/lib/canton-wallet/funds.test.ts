@@ -28,18 +28,18 @@ beforeEach(() => {
 
 describe("canton wallet funds", () => {
   it("maps all funding assets to backend account symbols", () => {
-    expect((["USDA", "CBTC", "cETH", "CC"] as CantonFundsAsset[]).map(platformDepositApiAsset)).toEqual([
-      "USDC",
+    expect((["CUSD", "CBTC", "cETH", "CC"] as CantonFundsAsset[]).map(platformDepositApiAsset)).toEqual([
+      "CUSD",
       "CBTC",
       "cETH",
       "CC",
     ]);
   });
 
-  it("requests a USDA deposit reference with exchange session auth", async () => {
+  it("requests a CUSD deposit reference with exchange session auth", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
-        asset: "USDC",
+        asset: "CUSD",
         target_party_id: "target-party",
         deposit_ref: "dep-1",
         reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
@@ -48,7 +48,7 @@ describe("canton wallet funds", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const reference = await requestDepositReference({ asset: "USDA", amount: "12.50" });
+    const reference = await requestDepositReference({ asset: "CUSD", amount: "12.50" });
 
     expect(reference.deposit_ref).toBe("dep-1");
     expect(fetchMock).toHaveBeenCalledWith("/v1/deposits/reference", expect.objectContaining({ method: "POST" }));
@@ -58,7 +58,7 @@ describe("canton wallet funds", () => {
       "content-type": "application/json",
     });
     expect(JSON.parse(init.body as string)).toEqual({
-      asset: "USDC",
+      asset: "CUSD",
       amount_expected: "12.50",
     });
   });
@@ -102,10 +102,10 @@ describe("canton wallet funds", () => {
     expect(result.platform_available).toBe("1.5");
   });
 
-  it("submits explicit USDA contract-to-spot transfers with exchange session auth", async () => {
+  it("submits explicit CUSD contract-to-spot transfers with exchange session auth", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse({
-        asset: "USDA",
+        asset: "CUSD",
         direction: "toSpot",
         amount: "1",
         fundingAvailable: "0",
@@ -115,7 +115,7 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      transferSpotBalance({ asset: "USDA", amount: "1", direction: "toSpot" })
+      transferSpotBalance({ asset: "CUSD", amount: "1", direction: "toSpot" })
     ).resolves.toMatchObject({ spotFree: "1" });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -133,7 +133,7 @@ describe("canton wallet funds", () => {
         transfers: [
           {
             eventId: "event-1",
-            asset: "USDA",
+            asset: "CUSD",
             amount: "1",
             direction: "toSpot",
             createdAt: "2026-07-22T08:00:00Z",
@@ -147,7 +147,7 @@ describe("canton wallet funds", () => {
       transfers: [
         {
           eventId: "event-1",
-          asset: "USDA",
+          asset: "CUSD",
           amount: "1",
           direction: "toSpot",
           createdAt: "2026-07-22T08:00:00Z",
@@ -172,7 +172,7 @@ describe("canton wallet funds", () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL) => jsonResponse({ error: "invalid session" }, 401));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(requestDepositReference({ asset: "USDA", amount: "0.2" })).rejects.toMatchObject({
+    await expect(requestDepositReference({ asset: "CUSD", amount: "0.2" })).rejects.toMatchObject({
       message: "invalid session",
       status: 401,
     });
@@ -204,12 +204,12 @@ describe("canton wallet funds", () => {
     const provider = createRockyWalletProvider();
     window.rockyWallet = provider;
     const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      if (String(url) === "/v1/account/me/USDC") {
-        return jsonResponse({ asset: "USDC", available: "0", locked: "0" });
+      if (String(url) === "/v1/account/me/CUSD") {
+        return jsonResponse({ asset: "CUSD", available: "0", locked: "0" });
       }
       if (String(url) === "/v1/deposits/reference") {
         return jsonResponse({
-          asset: "USDC",
+          asset: "CUSD",
           target_party_id: "target-party",
           deposit_ref: "dep-delayed",
           reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
@@ -223,7 +223,7 @@ describe("canton wallet funds", () => {
     const pending = submitCantonWalletDeposit({
       provider: "rocky",
       walletParty: "party-1",
-      asset: "USDA",
+      asset: "CUSD",
       amount: "0.2",
     });
     await vi.runAllTimersAsync();
@@ -244,7 +244,7 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await submitPlatformWithdrawal({
-      asset: "USDA",
+      asset: "CUSD",
       amount: "5",
       destinationParty: " party-1 ",
       idempotencyKey: "idempotency-1",
@@ -254,7 +254,7 @@ describe("canton wallet funds", () => {
     expect(fetchMock).toHaveBeenCalledWith("/v1/withdrawals", expect.objectContaining({ method: "POST" }));
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(JSON.parse(init.body as string)).toEqual({
-      asset: "USDA",
+      asset: "CUSD",
       amount: "5",
       dest_user_handle_party: "party-1",
       idempotency_key: "idempotency-1",
@@ -320,22 +320,22 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("maps USDA platform balances to the USDC backend account", async () => {
+  it("uses the public CUSD account endpoint", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => jsonResponse({ available: "0.1" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchPlatformAccountBalance("USDA")).resolves.toBe(0.1);
-    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
+    await expect(fetchPlatformAccountBalance("CUSD")).resolves.toBe(0.1);
+    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/CUSD", {
       headers: { Authorization: "Bearer exchange-token" },
     });
   });
 
-  it("reads the USDA futures account balance separately from spot", async () => {
+  it("reads the CUSD futures account balance separately from spot", async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ available: "8.5", spot_free: "1.25" }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchFundingAccountBalance()).resolves.toBe(8.5);
-    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/USDC", {
+    expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/CUSD", {
       headers: { Authorization: "Bearer exchange-token" },
     });
   });
@@ -344,12 +344,12 @@ describe("canton wallet funds", () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
       const asset = String(url).split("/").pop();
       if (asset === "cETH") throw new Error("temporary network failure");
-      return jsonResponse({ spot_free: asset === "USDC" ? "1" : asset === "CBTC" ? "0.1" : "2" });
+      return jsonResponse({ spot_free: asset === "CUSD" ? "1" : asset === "CBTC" ? "0.1" : "2" });
     });
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchPlatformAccountBalances()).resolves.toEqual({
-      USDA: 1,
+      CUSD: 1,
       CBTC: 0.1,
       cETH: null,
       CC: 2,
@@ -371,7 +371,7 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchPlatformAccountBalances()).resolves.toEqual({
-      USDA: 1,
+      CUSD: 1,
       CBTC: 1,
       cETH: 1,
       CC: 1,
@@ -412,7 +412,7 @@ describe("canton wallet funds", () => {
               amount: "0.1",
               status: "settled",
               fee_amount: "1",
-              fee_wallet_symbol: "USDA",
+              fee_wallet_symbol: "CUSD",
             },
           ],
         });
@@ -437,7 +437,7 @@ describe("canton wallet funds", () => {
           amount: "0.1",
           status: "settled",
           fee_amount: "1",
-          fee_wallet_symbol: "USDA",
+          fee_wallet_symbol: "CUSD",
         },
       ],
     });
@@ -492,9 +492,9 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("reads and writes Rocky USDA auto-accept settings", async () => {
+  it("reads and writes Rocky CUSD auto-accept settings", async () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      if (String(url) === "/v1/wallet/usda/auto-accept" && init?.method === "PUT") {
+      if (String(url) === "/v1/wallet/cusd/auto-accept" && init?.method === "PUT") {
         return jsonResponse({ enabled: true });
       }
       return jsonResponse({ enabled: false });
@@ -509,7 +509,7 @@ describe("canton wallet funds", () => {
     expect(JSON.parse(putInit.body as string)).toEqual({ enabled: true });
   });
 
-  it("does not try to list pending USDA offers for non-Console wallets", async () => {
+  it("does not try to list pending CUSD offers for non-Console wallets", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -565,18 +565,18 @@ function createRockyWalletProvider() {
         instrument_id: null,
       },
       {
-        asset_id: "usda-asset",
+        asset_id: "cusd-asset",
         asset_type: "token_standard" as const,
-        symbol: "USDCx",
-        name: "USDA",
-        display_alias: "USDA",
+        symbol: "CUSD",
+        name: "CUSD",
+        display_alias: "CUSD",
         registry_name: null,
-        decimals: 6,
+        decimals: 10,
         enabled: true,
         can_send: true,
         instrument_admin:
           "party-28dc4516-b5ca-44ff-86c7-2107e90a6807::1220b8301e18aa8a401d6e34e6c20f8b0243183c514373bca8f1b6b9270246341a9e",
-        instrument_id: "3574b536-cad1-4074-9b64-859398713ba0",
+        instrument_id: "481871d4-ca56-42a8-b2d3-4b7d28742946",
       },
     ]),
     sendTransfer: vi.fn(async () => ({ status: true, transferId: "transfer-1" })),

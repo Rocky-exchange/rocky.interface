@@ -17,7 +17,7 @@ i18n.load("en", {});
 i18n.activate("en");
 
 describe("MobileSlideMenu", () => {
-  it("links Spot to the public USDA route", () => {
+  it("links Spot to the public CUSD route", () => {
     render(
       <I18nProvider i18n={i18n}>
         <MemoryRouter>
@@ -26,6 +26,6 @@ describe("MobileSlideMenu", () => {
       </I18nProvider>
     );
 
-    expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-USDA");
+    expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-CUSD");
   });
 });
