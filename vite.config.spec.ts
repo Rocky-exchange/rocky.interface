@@ -25,3 +25,15 @@ describe("Vite development proxy", () => {
     expect((agent as { options?: { keepAlive?: boolean } }).options?.keepAlive).toBe(true);
   });
 });
+
+describe("Vite production chunks", () => {
+  it("does not force chart and UI dependencies into mutually dependent chunks", async () => {
+    const config = await resolveConfig();
+    const output = config.build?.rollupOptions?.output;
+    const manualChunks = !Array.isArray(output) ? output?.manualChunks : undefined;
+
+    expect(manualChunks).toEqual({
+      utilities: ["date-fns", "lodash"],
+    });
+  });
+});

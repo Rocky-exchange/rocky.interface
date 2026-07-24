@@ -118,8 +118,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             utilities: ["date-fns", "lodash"],
-            charts: ["recharts"],
-            ui: ["@headlessui/react", "framer-motion", "react-select"],
           },
         },
       },
