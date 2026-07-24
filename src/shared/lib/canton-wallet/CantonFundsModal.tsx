@@ -290,6 +290,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
     }
     if (didRefreshOnOpenRef.current) return;
     didRefreshOnOpenRef.current = true;
+    setError("");
     void refreshWalletDashboard();
     void hydrateOwnProfile();
   }, [connected, open, refreshWalletDashboard]);

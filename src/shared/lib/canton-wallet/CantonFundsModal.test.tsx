@@ -462,4 +462,24 @@ describe("CantonFundsModal", () => {
     view.rerender(<CantonFundsModal open onClose={onClose} />);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("clears a stale invalid-session error after the extension reconnects", async () => {
+    mocks.fetchCantonFundsHistory
+      .mockRejectedValueOnce(new Error("invalid session"))
+      .mockResolvedValue({ deposits: [], withdrawals: [] });
+    mocks.fetchSpotTransferHistory
+      .mockRejectedValueOnce(new Error("invalid session"))
+      .mockResolvedValue({ transfers: [] });
+    const view = render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(screen.getByText("invalid session")).toBeTruthy());
+
+    sessionMock.connected = false;
+    view.rerender(<CantonFundsModal open onClose={vi.fn()} />);
+    sessionMock.connected = true;
+    view.rerender(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(screen.queryByText("invalid session")).toBeNull());
+    expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2);
+  });
 });

@@ -1457,7 +1457,7 @@
 .primaryTabs {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 4;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;

@@ -37,4 +37,14 @@ describe("CantonFundsModal source", () => {
     expect(styles).toContain("height: min(680px, calc(100vh - 32px));");
     expect(operationModalBlock).not.toMatch(/(?:^|\n)\s*height:\s*auto;/);
   });
+
+  it("keeps the sticky wallet actions above the scrolling asset filter", () => {
+    const styles = readFileSync(join(fixtureDirectory, "CantonFundsModal.module.scss"), "utf8");
+    const primaryTabsBlock = styles.match(/\.primaryTabs\s*\{([\s\S]*?)\}/)?.[1] || "";
+    const assetFilterBlock = styles.match(/\.assetFilter\s*\{([\s\S]*?)\}/)?.[1] || "";
+    const primaryTabsZIndex = Number(primaryTabsBlock.match(/z-index:\s*(\d+)/)?.[1]);
+    const assetFilterZIndex = Number(assetFilterBlock.match(/z-index:\s*(\d+)/)?.[1]);
+
+    expect(primaryTabsZIndex).toBeGreaterThan(assetFilterZIndex);
+  });
 });
