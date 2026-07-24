@@ -54,7 +54,7 @@ VITE_USE_SAME_ORIGIN_PROXY=$VITE_USE_SAME_ORIGIN_PROXY
 VITE_CONSOLE_WALLET_TARGET=$VITE_CONSOLE_WALLET_TARGET
 EOF
           echo "===> yarn install"
-          yarn install --frozen-lockfile
+          yarn install --frozen-lockfile --ignore-engines
           # 安装完成打勾
           SVC="检出代码:running,安装依赖:running,前端构建:created,上传S3:created" PHASE=deploying MESSAGE_ID="$MSG_ID" COMMIT="$IMAGE_TAG" python3 lark_notify.py >/dev/null 2>&1 || true
           echo "===> yarn build"
