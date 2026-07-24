@@ -61,7 +61,7 @@ input.transferInput {
   min-height: 32px;
   padding: 6px 8px;
   color: #000;
-  background: var(--ltr-accent, #d6a133);
+  background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
   border: 0;
   border-radius: var(--ltr-radius, 3px);
   font: inherit;
