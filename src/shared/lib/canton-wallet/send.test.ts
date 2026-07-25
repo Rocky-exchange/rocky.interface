@@ -10,8 +10,8 @@ const sendProvider = vi.hoisted(() => ({
 }));
 
 vi.mock("@partylayer/adapter-send", () => ({
-  SEND_INSTALL_URL: "https://sigilry.org",
   SEND_SIGNING_METHOD: "webauthn-prf",
+  SendNotInstalledError: class extends Error {},
   SendProvider: class {
     isInstalled = sendProvider.isInstalled;
     connect = sendProvider.connect;
@@ -47,7 +47,6 @@ describe("Send wallet adapter", () => {
   it("connects over the Send announcement channel and exposes a verifiable session", async () => {
     const wallet = await connectSendWallet();
 
-    expect(sendProvider.isInstalled).toHaveBeenCalledTimes(1);
     expect(sendProvider.connect).toHaveBeenCalledTimes(1);
     expect(wallet.connection).toEqual({
       provider: "send",
@@ -67,6 +66,19 @@ describe("Send wallet adapter", () => {
 
     await expect(wallet.signMessage?.("challenge")).resolves.toBe("3044deadbeef");
     expect(sendProvider.signMessage).toHaveBeenCalledWith("challenge");
+  });
+
+  it("does not reject an installed wallet when the short detection probe misses its announcement", async () => {
+    sendProvider.isInstalled.mockResolvedValue(false);
+
+    await expect(connectSendWallet()).resolves.toMatchObject({
+      connection: {
+        provider: "send",
+        partyId: "send-user::1220send",
+      },
+    });
+    expect(sendProvider.isInstalled).not.toHaveBeenCalled();
+    expect(sendProvider.connect).toHaveBeenCalledTimes(1);
   });
 
   it("disconnects the Send provider through the same adapter instance", async () => {

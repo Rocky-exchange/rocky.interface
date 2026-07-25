@@ -1,8 +1,14 @@
-import { SEND_INSTALL_URL, SEND_SIGNING_METHOD, SendProvider } from "@partylayer/adapter-send";
+import {
+  SEND_SIGNING_METHOD,
+  SendNotInstalledError,
+  SendProvider,
+} from "@partylayer/adapter-send";
 
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 const sendProvider = new SendProvider();
+const SEND_CONNECT_INSTALL_URL =
+  "https://chromewebstore.google.com/detail/send-connect/ldmohiccoioolenadmogclhoklmanpgi";
 
 export type SendWalletHolding = {
   contract_id: string;
@@ -14,11 +20,16 @@ export type SendWalletHolding = {
 };
 
 export async function connectSendWallet(): Promise<ConnectedWallet> {
-  if (!(await sendProvider.isInstalled())) {
-    throw new Error(`Send Wallet is not installed. Visit ${SEND_INSTALL_URL}`);
+  let status;
+  try {
+    status = await sendProvider.connect();
+  } catch (error) {
+    if (error instanceof SendNotInstalledError) {
+      throw new Error(`Send Connect is not installed. Visit ${SEND_CONNECT_INSTALL_URL}`);
+    }
+    throw error;
   }
 
-  const status = await sendProvider.connect();
   const account = await sendProvider.getPrimaryAccount();
   if (!status.isConnected || !account.partyId) {
     throw new Error("Send Wallet did not return a connected Canton account");
