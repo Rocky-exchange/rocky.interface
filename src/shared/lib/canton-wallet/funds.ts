@@ -13,6 +13,7 @@ import {
 } from "./console";
 import { submitLoopWalletTransfer } from "./loop";
 import { submitRockyWalletTransfer } from "./rocky";
+import { submitSendWalletTransfer } from "./send";
 import { exchangeSessionHeaders, getExchangeSessionToken } from "./session";
 import { disconnectCantonWalletSession } from "./sessionLogout";
 import type { WalletProviderId } from "./types";
@@ -23,7 +24,8 @@ export type CantonWalletTransferStatus =
   | "submitted_and_accepted"
   | "rocky_wallet_submitted"
   | "console_wallet_submitted"
-  | "loop_wallet_submitted";
+  | "loop_wallet_submitted"
+  | "send_wallet_submitted";
 
 export type CantonDepositReference = {
   asset: CantonFundsApiAsset | string;
@@ -204,7 +206,12 @@ export async function submitCantonWalletDeposit(input: {
 }): Promise<CantonDepositResult> {
   const amount = positiveAmount(input.amount);
 
-  if (input.provider === "rocky" || input.provider === "console" || input.provider === "loop") {
+  if (
+    input.provider === "rocky" ||
+    input.provider === "console" ||
+    input.provider === "loop" ||
+    input.provider === "send"
+  ) {
     const previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
     const reference = await requestDepositReference({ asset: input.asset, amount });
     await submitWalletTransfer({
@@ -214,6 +221,7 @@ export async function submitCantonWalletDeposit(input: {
       token: input.asset,
       amount,
       memo: reference.deposit_ref,
+      reasonMetadataKey: reference.reason_metadata_key,
     });
     const creditedBalance = await waitForPlatformDepositCredit({
       asset: input.asset,
@@ -491,12 +499,13 @@ function positiveAmount(value: string): string {
 }
 
 async function submitWalletTransfer(input: {
-  provider: "rocky" | "console" | "loop";
+  provider: "rocky" | "console" | "loop" | "send";
   from: string;
   to: string;
   token: CantonFundsAsset;
   amount: string;
   memo: string;
+  reasonMetadataKey?: string;
 }) {
   if (input.provider === "rocky") {
     return submitRockyWalletTransfer({
@@ -517,6 +526,17 @@ async function submitWalletTransfer(input: {
       amount: input.amount,
       memo: input.memo,
       waitForFinalization: 5000,
+    });
+  }
+
+  if (input.provider === "send") {
+    return submitSendWalletTransfer({
+      from: input.from,
+      to: input.to,
+      token: input.token,
+      amount: input.amount,
+      memo: input.memo,
+      reasonMetadataKey: input.reasonMetadataKey,
     });
   }
 

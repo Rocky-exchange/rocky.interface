@@ -7,6 +7,7 @@ const sendProvider = vi.hoisted(() => ({
   getPrimaryAccount: vi.fn(),
   signMessage: vi.fn(),
   ledgerApi: vi.fn(),
+  prepareExecuteAndWait: vi.fn(),
 }));
 
 vi.mock("@partylayer/adapter-send", () => ({
@@ -19,10 +20,16 @@ vi.mock("@partylayer/adapter-send", () => ({
     getPrimaryAccount = sendProvider.getPrimaryAccount;
     signMessage = sendProvider.signMessage;
     ledgerApi = sendProvider.ledgerApi;
+    prepareExecuteAndWait = sendProvider.prepareExecuteAndWait;
   },
 }));
 
-import { connectSendWallet, fetchSendWalletHoldings, sendWalletAdapter } from "./send";
+import {
+  connectSendWallet,
+  fetchSendWalletHoldings,
+  sendWalletAdapter,
+  submitSendWalletTransfer,
+} from "./send";
 
 describe("Send wallet adapter", () => {
   beforeEach(() => {
@@ -42,6 +49,16 @@ describe("Send wallet adapter", () => {
     });
     sendProvider.signMessage.mockResolvedValue({ signature: "3044deadbeef" });
     sendProvider.disconnect.mockResolvedValue(null);
+    sendProvider.prepareExecuteAndWait.mockResolvedValue({
+      tx: {
+        status: "executed",
+        commandId: "send-transfer-command",
+        payload: {
+          updateId: "1220update",
+          completionOffset: 420,
+        },
+      },
+    });
   });
 
   it("connects over the Send announcement channel and exposes a verifiable session", async () => {
@@ -156,5 +173,113 @@ describe("Send wallet adapter", () => {
         verbose: false,
       },
     });
+  });
+
+  it("submits CUSD through the Token Standard transfer factory and opens Send approval", async () => {
+    vi.setSystemTime(new Date("2026-07-25T06:30:00.000Z"));
+    sendProvider.ledgerApi
+      .mockResolvedValueOnce({ offset: 418 })
+      .mockResolvedValueOnce([
+        {
+          contractEntry: {
+            JsActiveContract: {
+              createdEvent: {
+                contractId: "00cusdholding",
+                interfaceViews: [
+                  {
+                    viewValue: {
+                      owner: "send-user::1220send",
+                      amount: "0.20",
+                      instrumentId: {
+                        admin:
+                          "party-28dc4516-b5ca-44ff-86c7-2107e90a6807::1220b8301e18aa8a401d6e34e6c20f8b0243183c514373bca8f1b6b9270246341a9e",
+                        id: "481871d4-ca56-42a8-b2d3-4b7d28742946",
+                      },
+                      lock: null,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ]);
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(
+        JSON.stringify({
+          factoryId: "00transferfactory",
+          transferKind: "direct",
+          choiceContext: {
+            choiceContextData: {
+              values: {
+                "sender-credential": {
+                  tag: "AV_ContractId",
+                  value: "00sendercredential",
+                },
+              },
+            },
+            disclosedContracts: [
+              {
+                templateId: "#package:Module:Template",
+                contractId: "00disclosed",
+                createdEventBlob: "blob",
+                synchronizerId: "sync",
+              },
+            ],
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitSendWalletTransfer({
+        from: "send-user::1220send",
+        to: "Rocky::1220rocky",
+        token: "CUSD",
+        amount: "0.20",
+        memo: "rocky:deposit:reference",
+      }),
+    ).resolves.toMatchObject({
+      status: "executed",
+      updateId: "1220update",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/v0/registrars/party-28dc4516-b5ca-44ff-86c7-2107e90a6807%3A%3A1220b8301e18aa8a401d6e34e6c20f8b0243183c514373bca8f1b6b9270246341a9e/registry/transfer-instruction/v1/transfer-factory",
+      ),
+      expect.objectContaining({ method: "POST" }),
+    );
+    const factoryBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(factoryBody.choiceArguments.transfer).toMatchObject({
+      sender: "send-user::1220send",
+      receiver: "Rocky::1220rocky",
+      amount: "0.20",
+      inputHoldingCids: ["00cusdholding"],
+      meta: {
+        values: {
+          "splice.lfdecentralizedtrust.org/reason": "rocky:deposit:reference",
+        },
+      },
+    });
+
+    expect(sendProvider.prepareExecuteAndWait).toHaveBeenCalledTimes(1);
+    const submission = sendProvider.prepareExecuteAndWait.mock.calls[0][0];
+    expect(submission.actAs).toEqual(["send-user::1220send"]);
+    expect(submission.commands.transfer.exercise).toMatchObject({
+      templateId:
+        "#splice-api-token-transfer-instruction-v1:Splice.Api.Token.TransferInstructionV1:TransferFactory",
+      contractId: "00transferfactory",
+      choice: "TransferFactory_Transfer",
+    });
+    expect(submission.disclosedContracts).toEqual([
+      {
+        contractId: "00disclosed",
+        createdEventBlob: "blob",
+        synchronizerId: "sync",
+      },
+    ]);
   });
 });

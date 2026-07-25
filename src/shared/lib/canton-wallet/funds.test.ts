@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const submitSendWalletTransfer = vi.hoisted(() => vi.fn());
+
+vi.mock("./send", () => ({
+  submitSendWalletTransfer,
+}));
+
 import {
   CantonFundsError,
   fetchCantonFundsHistory,
@@ -24,6 +30,10 @@ beforeEach(() => {
   vi.unstubAllGlobals();
   vi.stubGlobal("localStorage", createMemoryStorage());
   localStorage.setItem("rocky_exchange_session", "exchange-token");
+  submitSendWalletTransfer.mockResolvedValue({
+    status: "executed",
+    updateId: "1220sendupdate",
+  });
 });
 
 describe("canton wallet funds", () => {
@@ -100,6 +110,47 @@ describe("canton wallet funds", () => {
     expect(result.wallet_transfer).toBe("rocky_wallet_submitted");
     expect(result.platform_credit_status).toBe("confirmed");
     expect(result.platform_available).toBe("1.5");
+  });
+
+  it("submits Send deposits through the wallet approval flow", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/v1/account/me/CUSD") {
+        return jsonResponse({
+          asset: "CUSD",
+          available: fetchMock.mock.calls.length > 1 ? "0.20" : "0",
+          locked: "0",
+        });
+      }
+      if (String(url) === "/v1/deposits/reference") {
+        return jsonResponse({
+          asset: "CUSD",
+          target_party_id: "Rocky::1220rocky",
+          deposit_ref: "rocky:deposit:reference",
+          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
+          expires_at: "2030-01-01T00:00:00Z",
+        });
+      }
+      return jsonResponse({ error: "unexpected" }, 500);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await submitCantonWalletDeposit({
+      provider: "send",
+      walletParty: "send-user::1220send",
+      asset: "CUSD",
+      amount: "0.20",
+    });
+
+    expect(submitSendWalletTransfer).toHaveBeenCalledWith({
+      from: "send-user::1220send",
+      to: "Rocky::1220rocky",
+      token: "CUSD",
+      amount: "0.20",
+      memo: "rocky:deposit:reference",
+      reasonMetadataKey: "splice.lfdecentralizedtrust.org/reason",
+    });
+    expect(result.wallet_transfer).toBe("send_wallet_submitted");
+    expect(result.platform_credit_status).toBe("confirmed");
   });
 
   it("submits explicit CUSD contract-to-spot transfers with exchange session auth", async () => {
