@@ -223,7 +223,8 @@ describe("Send wallet adapter", () => {
                 templateId: "#package:Module:Template",
                 contractId: "00disclosed",
                 createdEventBlob: "blob",
-                synchronizerId: "sync",
+                domainId: "sync",
+                packageName: "splice-api-token-transfer-instruction-v1",
               },
             ],
           },
@@ -268,7 +269,8 @@ describe("Send wallet adapter", () => {
     expect(sendProvider.prepareExecuteAndWait).toHaveBeenCalledTimes(1);
     const submission = sendProvider.prepareExecuteAndWait.mock.calls[0][0];
     expect(submission.actAs).toEqual(["send-user::1220send"]);
-    expect(submission.commands.transfer.exercise).toMatchObject({
+    expect(submission.commands).toHaveLength(1);
+    expect(submission.commands[0].ExerciseCommand).toMatchObject({
       templateId:
         "#splice-api-token-transfer-instruction-v1:Splice.Api.Token.TransferInstructionV1:TransferFactory",
       contractId: "00transferfactory",

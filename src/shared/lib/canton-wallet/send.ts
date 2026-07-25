@@ -2,6 +2,7 @@ import {
   SEND_SIGNING_METHOD,
   SendNotInstalledError,
   SendProvider,
+  type SendDisclosedContract,
 } from "@partylayer/adapter-send";
 
 import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
@@ -47,21 +48,6 @@ type SendTransferFactoryResponse = {
     };
     disclosedContracts?: unknown[];
   };
-};
-
-type SendSubmissionResult = {
-  tx?: {
-    status?: string;
-    commandId?: string;
-    payload?: {
-      updateId?: string;
-      completionOffset?: string | number;
-    };
-  };
-};
-
-type SendSubmissionProvider = {
-  prepareExecuteAndWait(params: Record<string, unknown>): Promise<SendSubmissionResult>;
 };
 
 export async function connectSendWallet(): Promise<ConnectedWallet> {
@@ -339,24 +325,28 @@ export async function submitSendWalletTransfer(input: SendTransferInput) {
     factory.disclosedContracts ||
     factory.choiceContext?.disclosedContracts ||
     []
-  ).map(stripDisclosedContractTemplateId);
-  const submission = await (
-    sendProvider as unknown as SendSubmissionProvider
-  ).prepareExecuteAndWait({
+  )
+    .map(sanitizeDisclosedContract)
+    .filter((contract): contract is SendDisclosedContract => contract !== null);
+  const synchronizerId = disclosedContracts.find(
+    (contract) => contract.synchronizerId,
+  )?.synchronizerId;
+  const submission = await sendProvider.prepareExecuteAndWait({
     commandId,
-    commands: {
-      transfer: {
-        exercise: {
+    commands: [
+      {
+        ExerciseCommand: {
           templateId: TOKEN_TRANSFER_FACTORY_INTERFACE_ID,
           contractId: factory.factoryId,
           choice: "TransferFactory_Transfer",
           choiceArgument,
         },
       },
-    },
+    ],
     actAs: [input.from],
     readAs: [],
     disclosedContracts,
+    ...(synchronizerId ? { synchronizerId } : {}),
   });
   const updateId = submission.tx?.payload?.updateId;
   if (!updateId) {
@@ -394,10 +384,25 @@ function sendHoldingMatchesToken(
   return instrumentId === "cc" || instrumentId === "amulet" || instrumentId === "cantoncoin";
 }
 
-function stripDisclosedContractTemplateId(value: unknown): Record<string, unknown> {
-  const record = asRecord(value) || {};
-  const { templateId: _templateId, ...contract } = record;
-  return contract;
+function sanitizeDisclosedContract(value: unknown): SendDisclosedContract | null {
+  const record = asRecord(value);
+  if (!record || typeof record.createdEventBlob !== "string" || !record.createdEventBlob) {
+    return null;
+  }
+  const contractId =
+    typeof record.contractId === "string" && record.contractId
+      ? record.contractId
+      : undefined;
+  const synchronizerIdValue = record.synchronizerId || record.domainId;
+  const synchronizerId =
+    typeof synchronizerIdValue === "string" && synchronizerIdValue
+      ? synchronizerIdValue
+      : undefined;
+  return {
+    ...(contractId ? { contractId } : {}),
+    createdEventBlob: record.createdEventBlob,
+    ...(synchronizerId ? { synchronizerId } : {}),
+  };
 }
 
 function parseJson(value: string): unknown {
