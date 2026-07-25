@@ -88,33 +88,31 @@ describe("Send wallet adapter", () => {
 
   it("loads Token Standard holdings through Send's ledger API", async () => {
     sendProvider.ledgerApi
-      .mockResolvedValueOnce({ response: JSON.stringify({ offset: 418 }) })
-      .mockResolvedValueOnce({
-        response: JSON.stringify([
-          {
-            contractEntry: {
-              JsActiveContract: {
-                createdEvent: {
-                  contractId: "00holding",
-                  interfaceViews: [
-                    {
-                      viewValue: {
-                        owner: "send-user::1220send",
-                        amount: "2.75",
-                        instrumentId: {
-                          admin: "cbtc-network::1220admin",
-                          id: "CBTC",
-                        },
-                        lock: null,
+      .mockResolvedValueOnce({ offset: 418 })
+      .mockResolvedValueOnce([
+        {
+          contractEntry: {
+            JsActiveContract: {
+              createdEvent: {
+                contractId: "00holding",
+                interfaceViews: [
+                  {
+                    viewValue: {
+                      owner: "send-user::1220send",
+                      amount: "2.75",
+                      instrumentId: {
+                        admin: "cbtc-network::1220admin",
+                        id: "CBTC",
                       },
+                      lock: null,
                     },
-                  ],
-                },
+                  },
+                ],
               },
             },
           },
-        ]),
-      });
+        },
+      ]);
 
     await expect(fetchSendWalletHoldings("send-user::1220send")).resolves.toEqual([
       {

@@ -88,8 +88,8 @@ export async function fetchSendWalletHoldings(party: string): Promise<SendWallet
     requestMethod: "get",
     resource: "/v2/state/ledger-end",
   });
-  const ledgerEnd = JSON.parse(ledgerEndResult.response) as { offset?: unknown };
-  if (ledgerEnd.offset === undefined || ledgerEnd.offset === null) {
+  const ledgerEnd = asRecord(readLedgerApiPayload(ledgerEndResult));
+  if (!ledgerEnd || ledgerEnd.offset === undefined || ledgerEnd.offset === null) {
     throw new Error("Send Wallet ledger API did not return a ledger-end offset");
   }
 
@@ -120,7 +120,7 @@ export async function fetchSendWalletHoldings(party: string): Promise<SendWallet
       verbose: false,
     },
   });
-  const payload: unknown = JSON.parse(contractsResult.response);
+  const payload = readLedgerApiPayload(contractsResult);
   const createdEvents: Record<string, unknown>[] = [];
   collectCreatedEvents(payload, createdEvents);
 
@@ -154,6 +154,12 @@ export async function fetchSendWalletHoldings(party: string): Promise<SendWallet
     }
   }
   return holdings;
+}
+
+function readLedgerApiPayload(result: unknown): unknown {
+  const record = asRecord(result);
+  if (!record || !Object.prototype.hasOwnProperty.call(record, "response")) return result;
+  return typeof record.response === "string" ? JSON.parse(record.response) : record.response;
 }
 
 function collectCreatedEvents(value: unknown, output: Record<string, unknown>[]) {
