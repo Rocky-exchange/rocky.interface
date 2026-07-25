@@ -4,6 +4,7 @@ import { SpotMarketDropdown } from "./MarketDropdown";
 import styles from "./SymbolBar.module.scss";
 import { getCachedSpotIconUrl, spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
+import { formatSpotPrice } from "../../model/priceFormatting";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 function fmtNum(v: string, digits = 2): string {
@@ -24,7 +25,7 @@ function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
       <div className={styles.divider} />
       <div className={styles.stats}>
         <div className={styles.priceBlock}>
-          <div className={styles.priceMain}>{t ? fmtNum(t.lastPrice) : "—"}</div>
+          <div className={styles.priceMain}>{formatSpotPrice(t?.lastPrice)}</div>
           <span className={styles.priceQuote}>
             <Trans>Last Price</Trans>
           </span>
@@ -34,7 +35,7 @@ function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
             <Trans>24h Change</Trans>
           </span>
           <span className={`${styles.cellValue} ${pctCls}`}>
-            {t ? `${pct >= 0 ? "+" : ""}${fmtNum(t.priceChange)}` : "—"}{" "}
+            {t ? `${pct >= 0 ? "+" : ""}${formatSpotPrice(t.priceChange)}` : "—"}{" "}
             <span className={pctCls}>{t ? `(${pct.toFixed(3)}%)` : ""}</span>
           </span>
         </div>
@@ -42,13 +43,13 @@ function SpotSymbolBarContent({ market }: { market: SpotMarket }) {
           <span className={styles.cellLabel}>
             <Trans>24h High</Trans>
           </span>
-          <span className={styles.cellValue}>{t ? fmtNum(t.highPrice) : "—"}</span>
+          <span className={styles.cellValue}>{formatSpotPrice(t?.highPrice)}</span>
         </div>
         <div className={styles.cell}>
           <span className={styles.cellLabel}>
             <Trans>24h Low</Trans>
           </span>
-          <span className={styles.cellValue}>{t ? fmtNum(t.lowPrice) : "—"}</span>
+          <span className={styles.cellValue}>{formatSpotPrice(t?.lowPrice)}</span>
         </div>
         <div className={styles.cell}>
           <span className={styles.cellLabel}>
