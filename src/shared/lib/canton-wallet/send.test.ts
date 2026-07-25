@@ -276,6 +276,26 @@ describe("Send wallet adapter", () => {
       contractId: "00transferfactory",
       choice: "TransferFactory_Transfer",
     });
+    const choiceArgument = submission.commands[0].ExerciseCommand.choiceArgument;
+    const transferValue = choiceArgument.record.fields.find(
+      (field: { label: string }) => field.label === "transfer",
+    ).value;
+    const metaValue = transferValue.record.fields.find(
+      (field: { label: string }) => field.label === "meta",
+    ).value;
+    const metadataValues = metaValue.record.fields.find(
+      (field: { label: string }) => field.label === "values",
+    ).value;
+    expect(metadataValues).toEqual({
+      textMap: {
+        entries: [
+          {
+            key: "splice.lfdecentralizedtrust.org/reason",
+            value: { text: "rocky:deposit:reference" },
+          },
+        ],
+      },
+    });
     expect(submission.disclosedContracts).toEqual([
       {
         contractId: "00disclosed",

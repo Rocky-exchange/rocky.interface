@@ -288,7 +288,7 @@ export async function submitSendWalletTransfer(input: SendTransferInput) {
               vTextMap([
                 {
                   key: reasonMetadataKey,
-                  value: scanValueToAnyValue(input.memo),
+                  value: vText(input.memo),
                 },
               ]),
             ],
