@@ -157,31 +157,33 @@ describe("getBars", () => {
 
     urls.length = 0;
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo("CETH-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
-    });
-    expect(urls[0]).toContain("symbol=ETHUSDT");
-
-    urls.length = 0;
-    await new Promise<void>((resolve) => {
       feed.getBars(symbolInfo("UNKNOWN-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });
     expect(urls[0]).toContain("symbol=UNKNOWNCUSD");
   });
 
-  it("routes native pairs (CC-CUSD, CETH-CBTC) to Rocky's own klines, not Binance", async () => {
+  it("routes CETH-CUSD and CC-CUSD to the Binance Futures klines used by their market maker", async () => {
     const { urls } = stubFetch([]);
     const feed = new SpotDataFeed();
 
     await new Promise<void>((resolve) => {
-      feed.getBars(symbolInfo("CC-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+      feed.getBars(symbolInfo("CETH-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });
-    expect(urls[0]).not.toContain("binance");
-    expect(urls[0]).toContain("/api/v3/klines");
-    expect(urls[0]).toContain("symbol=CC-CUSD");
-    expect(urls[0]).toContain("interval=5m");
-    expect(urls[0]).toContain("limit=200");
+    expect(urls[0]).toContain("fapi.binance.com/fapi/v1/klines");
+    expect(urls[0]).toContain("symbol=ETHUSDT");
 
     urls.length = 0;
+    await new Promise<void>((resolve) => {
+      feed.getBars(symbolInfo("CC-CUSD"), "5" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
+    });
+    expect(urls[0]).toContain("fapi.binance.com/fapi/v1/klines");
+    expect(urls[0]).toContain("symbol=CCUSDT");
+  });
+
+  it("routes the crypto-quoted CETH-CBTC pair to Rocky's own klines", async () => {
+    const { urls } = stubFetch([]);
+    const feed = new SpotDataFeed();
+
     await new Promise<void>((resolve) => {
       feed.getBars(symbolInfo("CETH-CBTC"), "1" as ResolutionString, period(0, 1_000_000, 200), () => resolve(), () => resolve());
     });

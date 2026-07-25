@@ -17,7 +17,8 @@ describe("SPOT_MARKETS", () => {
     expect(cc.routeSymbol).toBe("CC-CUSD");
     expect(cc.displayBase).toBe("CC");
     expect(cc.displayQuote).toBe("CUSD");
-    expect(cc.chartSource).toBe("native"); // no Binance listing
+    expect(cc.chartSource).toBe("binance-futures");
+    expect(cc.chartSymbol).toBe("CCUSDT");
   });
 
   it("lists the crypto-quoted CETH-CBTC pair", () => {
@@ -35,7 +36,10 @@ describe("SPOT_MARKETS", () => {
   });
 
   it("uses the approved cETH display capitalization", () => {
-    expect(resolveSpotMarket("CETH-CUSD").displayBase).toBe("cETH");
+    const ceth = resolveSpotMarket("CETH-CUSD");
+    expect(ceth.displayBase).toBe("cETH");
+    expect(ceth.chartSource).toBe("binance-futures");
+    expect(ceth.chartSymbol).toBe("ETHUSDT");
   });
 });
 

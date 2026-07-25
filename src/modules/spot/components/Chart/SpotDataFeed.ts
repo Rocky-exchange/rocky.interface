@@ -1,12 +1,8 @@
 /**
- * TradingView IBasicDataFeed for spot pairs, backed by Binance's public
- * spot data mirror `data-api.binance.vision`. Rocky's own /api/v3/klines
- * only reflects local wash trades — starting cold shows a stub chart. Perp
- * shows a full history because it's been accumulating for weeks; spot has
- * no such head start, so we source visualization from Binance's spot feed
- * (BTCUSDT / ETHUSDT) while local orderbook/trade panels still read our
- * own backend. This matches the perp chart pattern: reference third-party
- * price, execute against Rocky.
+ * TradingView IBasicDataFeed for spot pairs. CBTC uses Binance spot history;
+ * cETH and CC use Binance USD-M futures history, matching the exact reference
+ * feeds used by rocky-bot; crypto-quoted pairs use Rocky's native klines.
+ * Local orderbook and trade panels always continue reading Rocky's backend.
  *
  * Implements the minimum surface TradingView needs:
  *   onReady          — resolutions
@@ -84,8 +80,9 @@ function intervalSeconds(interval: string): number {
 type RawKline = [number, string, string, string, string, string, number, string, number, ...string[]];
 
 const BINANCE_KLINES = "https://data-api.binance.vision/api/v3/klines";
-// Rocky's own klines (same-origin via the /api/v3 proxy) — used for pairs with
-// no Binance listing (CC, crypto-quoted). Binance-compatible row shape.
+const BINANCE_FUTURES_KLINES = "https://fapi.binance.com/fapi/v1/klines";
+// Rocky's own klines (same-origin via the /api/v3 proxy) — used for
+// crypto-quoted pairs with no direct Binance market. Binance-compatible shape.
 const NATIVE_KLINES = "/api/v3/klines";
 
 function parseKlineRows(rows: RawKline[]): Bar[] {
@@ -120,7 +117,8 @@ async function fetchKlines(rockySymbol: string, interval: string, limit: number,
   const binSym = toBinanceSymbol(rockySymbol);
   const params = new URLSearchParams({ symbol: binSym, interval, limit: clampedLimit });
   if (endTimeMs && isFinite(endTimeMs)) params.set("endTime", String(endTimeMs));
-  const r = await fetch(`${BINANCE_KLINES}?${params.toString()}`, {
+  const endpoint = isKnown && market.chartSource === "binance-futures" ? BINANCE_FUTURES_KLINES : BINANCE_KLINES;
+  const r = await fetch(`${endpoint}?${params.toString()}`, {
     headers: { accept: "application/json" },
   });
   if (!r.ok) throw new Error(`binance klines HTTP ${r.status}`);
