@@ -9,6 +9,8 @@ import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 const sendProvider = new SendProvider();
 const SEND_CONNECT_INSTALL_URL =
   "https://chromewebstore.google.com/detail/send-connect/ldmohiccoioolenadmogclhoklmanpgi";
+const TOKEN_HOLDING_INTERFACE_ID =
+  "#splice-api-token-holding-v1:Splice.Api.Token.HoldingV1:Holding";
 
 export type SendWalletHolding = {
   contract_id: string;
@@ -96,12 +98,26 @@ export async function fetchSendWalletHoldings(party: string): Promise<SendWallet
     resource: "/v2/state/active-contracts",
     body: {
       activeAtOffset: ledgerEnd.offset,
-      eventFormat: {
+      filter: {
         filtersByParty: {
-          [party]: { cumulative: [] },
+          [party]: {
+            cumulative: [
+              {
+                identifierFilter: {
+                  InterfaceFilter: {
+                    value: {
+                      interfaceId: TOKEN_HOLDING_INTERFACE_ID,
+                      includeInterfaceView: true,
+                      includeCreatedEventBlob: false,
+                    },
+                  },
+                },
+              },
+            ],
+          },
         },
-        verbose: true,
       },
+      verbose: false,
     },
   });
   const payload: unknown = JSON.parse(contractsResult.response);

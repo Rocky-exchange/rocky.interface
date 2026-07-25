@@ -135,12 +135,27 @@ describe("Send wallet adapter", () => {
       resource: "/v2/state/active-contracts",
       body: {
         activeAtOffset: 418,
-        eventFormat: {
+        filter: {
           filtersByParty: {
-            "send-user::1220send": { cumulative: [] },
+            "send-user::1220send": {
+              cumulative: [
+                {
+                  identifierFilter: {
+                    InterfaceFilter: {
+                      value: {
+                        interfaceId:
+                          "#splice-api-token-holding-v1:Splice.Api.Token.HoldingV1:Holding",
+                        includeInterfaceView: true,
+                        includeCreatedEventBlob: false,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
           },
-          verbose: true,
         },
+        verbose: false,
       },
     });
   });
