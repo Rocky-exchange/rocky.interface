@@ -1,18 +1,18 @@
 /**
  * Per-Canton-party HMAC session for spot trading.
  *
- * When the Canton wallet connects, mint (or fetch) an isolated
+ * When the Canton wallet connects, mint an isolated
  * (key, secret) pair from `POST /api/v3/session-key` and inject it into
  * `spotClient` so subsequent signed calls act as *that party*, not the
  * shared dev credentials. On disconnect, clear.
  *
- * v1 caveat: the backend endpoint TRUSTS the client's party string —
- * fine for dev, MUST be gated by a Canton signature before enabling
- * production spot trading. See `spot/routes_session.rs`.
+ * The backend requires the exchange wallet-session bearer and rejects a
+ * requested party that differs from the cryptographically verified session.
  */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
+import { exchangeSessionHeaders } from "@/shared/lib/canton-wallet/session";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { getSpotCredentials, setSpotCredentials, subscribeSpotCredentials } from "./spotClient";
@@ -20,7 +20,7 @@ import { getSpotCredentials, setSpotCredentials, subscribeSpotCredentials } from
 type SessionKeyResp = { userId: string; key: string; secret: string };
 
 // Simple in-memory cache: {party → creds}. Survives the tab lifetime but not
-// a reload (that's fine — the endpoint is idempotent).
+// a reload; a reload rotates the backend credential.
 const CACHE = new Map<string, { key: string; secret: string }>();
 
 async function fetchSessionKey(party: string): Promise<{ key: string; secret: string }> {
@@ -28,7 +28,11 @@ async function fetchSessionKey(party: string): Promise<{ key: string; secret: st
   if (cached) return cached;
   const r = await fetch("/api/v3/session-key", {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+      ...exchangeSessionHeaders(),
+    },
     body: JSON.stringify({ party }),
   });
   if (!r.ok) throw new Error(`session-key HTTP ${r.status}`);
