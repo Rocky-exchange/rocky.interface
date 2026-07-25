@@ -5,11 +5,13 @@ export type SpotMarket = {
   displayQuote: string;
   apiBase: string;
   apiQuote: string;
-  // Reference symbol used for the chart. `binance` reads spot klines,
-  // `binance-futures` reads USD-M futures klines (matching rocky-bot's pricing
-  // feed), and `native` reads Rocky's own /api/v3/klines.
+  // Binance reference symbol used for the chart when `chartSource === "binance"`.
+  // Pairs with no Binance listing (CC, and crypto-quoted pairs like CETH-CBTC)
+  // use `chartSource: "native"` and the chart reads Rocky's own /api/v3/klines
+  // keyed on `apiSymbol` instead — no third-party call. `chartSymbol` then just
+  // mirrors the route symbol.
   chartSymbol: string;
-  chartSource: "binance" | "binance-futures" | "native";
+  chartSource: "binance" | "native";
 };
 
 // The backend keys every spot endpoint on the "-CUSD" symbol;
@@ -33,7 +35,7 @@ export const SPOT_MARKETS = [
     apiBase: "CETH",
     apiQuote: "CUSD",
     chartSymbol: "ETHUSDT",
-    chartSource: "binance-futures",
+    chartSource: "binance",
   },
   {
     routeSymbol: "CC-CUSD",
@@ -42,10 +44,9 @@ export const SPOT_MARKETS = [
     displayQuote: "CUSD",
     apiBase: "CC",
     apiQuote: "CUSD",
-    // Canton Coin has no Binance spot listing; use the same Binance Futures
-    // CCUSDT feed that drives Rocky's market maker.
-    chartSymbol: "CCUSDT",
-    chartSource: "binance-futures",
+    // Canton Coin has no Binance spot listing → chart off our own klines.
+    chartSymbol: "CC-CUSD",
+    chartSource: "native",
   },
   {
     routeSymbol: "CETH-CBTC",
