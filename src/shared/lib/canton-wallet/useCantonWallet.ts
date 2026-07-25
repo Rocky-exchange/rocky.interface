@@ -4,6 +4,7 @@ import {
   connectLoopWallet,
   connectConsoleWallet,
   connectRockyWallet,
+  connectSendWallet,
   createExchangeSession,
   type ConnectedWallet,
 } from "./index";
@@ -16,7 +17,7 @@ export function useCantonWallet() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(async (provider: "rocky" | "loop" | "console") => {
+  const connect = useCallback(async (provider: "rocky" | "loop" | "console" | "send") => {
     setConnecting(true);
     setError(null);
     try {
@@ -25,6 +26,8 @@ export function useCantonWallet() {
         w = await connectRockyWallet();
       } else if (provider === "loop") {
         w = await connectLoopWallet();
+      } else if (provider === "send") {
+        w = await connectSendWallet();
       } else {
         w = await connectConsoleWallet();
       }

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   connectRockyWallet: vi.fn(),
   connectLoopWallet: vi.fn(),
   connectConsoleWallet: vi.fn(),
+  connectSendWallet: vi.fn(),
   createExchangeSession: vi.fn(),
   notifyCantonSessionChange: vi.fn(),
 }));
@@ -20,6 +21,7 @@ vi.mock("./index", () => ({
   connectRockyWallet: mocks.connectRockyWallet,
   connectLoopWallet: mocks.connectLoopWallet,
   connectConsoleWallet: mocks.connectConsoleWallet,
+  connectSendWallet: mocks.connectSendWallet,
   createExchangeSession: mocks.createExchangeSession,
 }));
 
@@ -47,5 +49,28 @@ describe("CantonConnectModal", () => {
       true
     );
     expect(screen.queryByText("Connecting...", { selector: "span" })).toBeTruthy();
+  });
+
+  it("connects Send Wallet and creates an exchange session", async () => {
+    const connectedWallet = {
+      connection: {
+        provider: "send" as const,
+        partyId: "send-user::1220send",
+        metadata: { publicKey: "base64-spki", namespace: "1220send" },
+      },
+      signMessage: vi.fn(async () => "3044deadbeef"),
+    };
+    mocks.connectSendWallet.mockResolvedValue(connectedWallet);
+    mocks.createExchangeSession.mockResolvedValue({});
+
+    openCantonConnect();
+    render(<CantonConnectModal />);
+    fireEvent.click(screen.getByRole("button", { name: "Send Wallet" }));
+
+    await waitFor(() => expect(mocks.connectSendWallet).toHaveBeenCalledTimes(1));
+    expect(mocks.createExchangeSession).toHaveBeenCalledWith(
+      connectedWallet.connection,
+      connectedWallet.signMessage
+    );
   });
 });

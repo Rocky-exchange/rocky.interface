@@ -21,5 +21,11 @@ describe("wallet provider logos", () => {
       fit: "cover",
     });
     expect(getWalletProviderLogo("console").src).toContain("console-wallet-icon");
+
+    expect(getWalletProviderLogo("send")).toMatchObject({
+      alt: "Send Wallet",
+      fit: "cover",
+    });
+    expect(getWalletProviderLogo("send").src).toContain("send-wallet");
   });
 });

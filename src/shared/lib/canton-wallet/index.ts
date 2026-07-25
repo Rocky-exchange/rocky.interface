@@ -24,6 +24,7 @@ export {
 export type { WalletBalanceRow, WalletBalanceSnapshot, WalletBalanceStatus } from "./balances";
 export { consoleWalletAdapter, connectConsoleWallet } from "./console";
 export { loopWalletAdapter, connectLoopWallet } from "./loop";
+export { connectSendWallet, sendWalletAdapter } from "./send";
 export {
   connectRockyWallet,
   fetchRockyWalletBalancesFromSdk,

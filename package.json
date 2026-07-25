@@ -39,6 +39,7 @@
     "@lingui/core": "4.10.0",
     "@lingui/macro": "4.11.3",
     "@lingui/react": "4.10.0",
+    "@partylayer/adapter-send": "^1.2.3",
     "@radix-ui/react-slot": "1.2.4",
     "@react-three/drei": "9.88.17",
     "@react-three/fiber": "8.15.19",
