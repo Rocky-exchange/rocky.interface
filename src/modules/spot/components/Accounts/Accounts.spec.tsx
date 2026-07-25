@@ -59,6 +59,9 @@ describe("SpotAccountsPanel", () => {
     expect(cssRule(accountStyles, "balanceHead")).toContain("font-size: 12px;");
     expect(cssRule(accountStyles, "balanceHead")).toContain("color: #f3f3f3;");
     expect(cssRule(accountStyles, "asset")).toContain("font-weight: 400;");
+    expect(cssRule(accountStyles, "connectCta")).toContain(
+      "background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));"
+    );
   });
 
   it("keeps the transfer input surface above the terminal-wide input reset", () => {

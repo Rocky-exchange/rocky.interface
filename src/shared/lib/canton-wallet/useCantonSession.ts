@@ -24,7 +24,11 @@ export function useCantonSession() {
   const avatar = typeof window !== "undefined" ? localStorage.getItem("mtc_avatar") || "" : "";
   const storedProvider = typeof window !== "undefined" ? localStorage.getItem("mtc_login_method") || "" : "";
   const provider: WalletProviderId | "" =
-    storedProvider === "rocky" || storedProvider === "loop" || storedProvider === "console" || storedProvider === "other"
+    storedProvider === "rocky" ||
+    storedProvider === "loop" ||
+    storedProvider === "console" ||
+    storedProvider === "send" ||
+    storedProvider === "other"
       ? storedProvider
       : "";
   const connected = Boolean(token);

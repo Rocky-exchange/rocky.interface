@@ -10,6 +10,7 @@ import { SelectorBase, useSelectorClose } from "components/SelectorBase/Selector
 import styles from "./MarketDropdown.module.scss";
 import { getCachedSpotIconUrl, spotApi, type Ticker24h } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
+import { formatSpotPrice } from "../../model/priceFormatting";
 import { SPOT_MARKETS, type SpotMarket } from "../../model/spotMarkets";
 
 export function AssetBadge({
@@ -26,7 +27,7 @@ export function AssetBadge({
   return <TokenIcon symbol={symbol} imageUrl={iconUrl} loading={iconLoading} displaySize={size} />;
 }
 
-function fmtPrice(v: string | undefined): string {
+function fmtNumber(v: string | undefined): string {
   const n = v ? parseFloat(v) : NaN;
   if (!isFinite(n) || n === 0) return "—";
   return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
@@ -75,9 +76,9 @@ function MarketRow({ market, active, query }: { market: SpotMarket; active: bool
         </span>
         <span className={styles.rowBadgeSpot}>1x</span>
       </span>
-      <span className={styles.rowPrice}>{fmtPrice(t?.lastPrice)}</span>
+      <span className={styles.rowPrice}>{formatSpotPrice(t?.lastPrice)}</span>
       <span className={`${styles.rowPct} ${pctCls}`}>{fmtPct(t?.priceChangePercent)}</span>
-      <span className={styles.rowVol}>{fmtPrice(t?.quoteVolume)}</span>
+      <span className={styles.rowVol}>{fmtNumber(t?.quoteVolume)}</span>
     </button>
   );
 }

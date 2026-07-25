@@ -27,7 +27,7 @@ export function TopNav({
   transparent?: boolean;
 } = {}) {
   const { i18n } = useLingui();
-  const { connected, locked, username, party, avatar } = useCantonSession();
+  const { connected, locked, username, party, avatar, provider } = useCantonSession();
   const { unlock, connecting } = useCantonWallet();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
@@ -39,7 +39,9 @@ export function TopNav({
       ? i18n._(t`Unlocking...`)
       : i18n._(t`Unlock`)
     : connected
-      ? username || `${party.slice(0, 8)}...`
+      ? provider === "send"
+        ? "sendwallet"
+        : username || `${party.slice(0, 8)}...`
       : null;
 
   const handleWalletClick = useCallback(() => {

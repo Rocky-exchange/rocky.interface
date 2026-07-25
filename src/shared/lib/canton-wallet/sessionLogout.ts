@@ -3,6 +3,7 @@ import type { RockyAccount } from "@rocky-wallet/dapp-sdk";
 import { consoleWalletAdapter } from "./console";
 import { loopWalletAdapter } from "./loop";
 import { rockyWalletAdapter } from "./rocky";
+import { sendWalletAdapter } from "./send";
 import { clearStoredCantonSession } from "./sessionStore";
 import type { WalletProviderAdapter, WalletProviderId } from "./types";
 
@@ -40,7 +41,11 @@ export function classifyRockyAccountChange(
 function storedProvider(): WalletProviderId | "" {
   if (typeof window === "undefined") return "";
   const provider = localStorage.getItem("mtc_login_method") || "";
-  return provider === "rocky" || provider === "loop" || provider === "console" || provider === "other"
+  return provider === "rocky" ||
+    provider === "loop" ||
+    provider === "console" ||
+    provider === "send" ||
+    provider === "other"
     ? provider
     : "";
 }
@@ -49,5 +54,6 @@ function adapterForProvider(provider: WalletProviderId | ""): WalletProviderAdap
   if (provider === "rocky") return rockyWalletAdapter;
   if (provider === "loop") return loopWalletAdapter;
   if (provider === "console") return consoleWalletAdapter;
+  if (provider === "send") return sendWalletAdapter;
   return undefined;
 }

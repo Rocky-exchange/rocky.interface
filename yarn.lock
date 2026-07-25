@@ -2077,6 +2077,26 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@partylayer/adapter-send@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@partylayer/adapter-send/-/adapter-send-1.2.3.tgz#a213f34501886c054cd2e2efebf733f41edfa059"
+  integrity sha512-YbdoUlzz0ZBTIcgZVpXn9K1OmkTIsxlhFktD0nG9I+gmDBRoPbCjjvtXgGvmden1Lzocd7zEWsn1q5jmuVGbng==
+  dependencies:
+    "@partylayer/core" "^0.11.0"
+    "@partylayer/provider" "^0.4.0"
+
+"@partylayer/core@^0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@partylayer/core/-/core-0.11.0.tgz#c5d86b96acbe1866f4e79d5b96b190dfdf6aab28"
+  integrity sha512-Z0gSpYUq0fusn9q2m677Ifr5AVaD9Jm/BtwBtMNEgEH2lc/GR3N4WG6L7rFN2Z58yX5u/3eQvNOMrJAuBu4sUg==
+
+"@partylayer/provider@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@partylayer/provider/-/provider-0.4.0.tgz#1042920e955075be32cdfe6f05ca2cbaa504ac2d"
+  integrity sha512-szWQFE647qrT1kK0QB8VB8NA015AMyjLhzzkkT/0sEkpDU7cKRVcK7uALLcBDyjHUTgXSGbrrDvJeUWd4lTDQw==
+  dependencies:
+    "@partylayer/core" "^0.11.0"
+
 "@radix-ui/primitive@1.1.4":
   version "1.1.4"
   resolved "https://registry.npmjs.org/@radix-ui/primitive/-/primitive-1.1.4.tgz#47ef0f6cff4a1a1c09ebbf6d79159b7f01b967cf"

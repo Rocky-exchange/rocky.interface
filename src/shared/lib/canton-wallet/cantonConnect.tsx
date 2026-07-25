@@ -1,8 +1,8 @@
 import { Trans } from "@lingui/macro";
 import React, { useState, useSyncExternalStore } from "react";
 
-import { useCantonWallet } from "./useCantonWallet";
 import type { WalletProviderId } from "./types";
+import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo, type WalletProviderLogo } from "./walletLogos";
 
 let isOpenState = false;
@@ -109,6 +109,7 @@ const WALLET_OPTIONS: Array<{ provider: Exclude<WalletProviderId, "other">; labe
   { provider: "rocky", label: "Rocky Wallet" },
   { provider: "loop", label: "Loop Wallet" },
   { provider: "console", label: "Console Wallet" },
+  { provider: "send", label: "Send Wallet" },
 ];
 
 export function CantonConnectModal() {
@@ -116,7 +117,7 @@ export function CantonConnectModal() {
   const { connect, connecting, error } = useCantonWallet();
   const [connectingProvider, setConnectingProvider] = useState<Exclude<WalletProviderId, "other"> | null>(null);
   if (!open) return null;
-  const pick = async (p: "rocky" | "loop" | "console") => {
+  const pick = async (p: Exclude<WalletProviderId, "other">) => {
     try {
       setConnectingProvider(p);
       await connect(p);

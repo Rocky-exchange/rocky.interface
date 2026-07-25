@@ -80,6 +80,8 @@ describe("CantonFundsModal", () => {
     vi.clearAllMocks();
     sessionMock.connected = true;
     sessionMock.locked = false;
+    sessionMock.provider = "rocky";
+    sessionMock.username = "Etouyang";
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
     mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 100, CBTC: 2, cETH: 3, CC: 4 });
     mocks.fetchFundingAccountBalance.mockResolvedValue(25);
@@ -128,6 +130,16 @@ describe("CantonFundsModal", () => {
     for (const asset of ["CUSD", "CBTC", "cETH", "CC"]) {
       expect(screen.getAllByText(asset).length).toBeGreaterThan(0);
     }
+  });
+
+  it("labels the Send wallet panel as sendwallet", () => {
+    sessionMock.provider = "send";
+    sessionMock.username = "cantonwallet-etouyang";
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    expect(screen.getByText("sendwallet")).toBeTruthy();
+    expect(screen.queryByText("cantonwallet-etouyang")).toBeNull();
   });
 
   it("filters assets through the custom asset menu", async () => {

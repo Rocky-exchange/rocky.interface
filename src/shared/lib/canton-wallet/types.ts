@@ -1,4 +1,4 @@
-export type WalletProviderId = "rocky" | "loop" | "console" | "other";
+export type WalletProviderId = "rocky" | "loop" | "console" | "send" | "other";
 
 export type WalletConnectionResult = {
   provider: WalletProviderId;

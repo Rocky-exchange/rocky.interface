@@ -43,6 +43,7 @@ import { renderWithI18n as render } from "../../test/renderWithI18n";
 const mTicker = vi.mocked(spotApi.ticker);
 const cbtcMarket = resolveSpotMarket("CBTC-CUSD");
 const cethMarket = resolveSpotMarket("CETH-CUSD");
+const ccMarket = resolveSpotMarket("CC-CUSD");
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -148,5 +149,14 @@ describe("SpotSymbolBar", () => {
       await nextTicker.promise;
     });
     await findAllByText("3,501.25");
+  });
+
+  it("shows CC at its meaningful five-decimal precision", async () => {
+    mTicker.mockResolvedValue(ticker(ccMarket.apiSymbol, "0.116540000000000000"));
+
+    const { findAllByText, queryAllByText } = render(<SpotSymbolBar market={ccMarket} />);
+
+    expect(await findAllByText("0.11654")).toHaveLength(3);
+    expect(queryAllByText("0.12")).toHaveLength(0);
   });
 });

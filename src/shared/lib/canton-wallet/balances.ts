@@ -1,6 +1,7 @@
-import { fetchRockyWalletBalancesFromSdk } from "./rocky";
-import type { WalletProviderId } from "./types";
 import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol, type CantonFundsAsset } from "./assets";
+import { fetchRockyWalletBalancesFromSdk } from "./rocky";
+import { fetchSendWalletHoldings } from "./send";
+import type { WalletProviderId } from "./types";
 
 export type WalletBalanceStatus = "ready" | "disconnected" | "unavailable" | "error";
 
@@ -40,6 +41,8 @@ export function getWalletProviderLabel(provider: WalletProviderId | "" | undefin
       return "Loop Wallet";
     case "console":
       return "Console Wallet";
+    case "send":
+      return "Send Wallet";
     case "other":
       return "Other Wallet";
     default:
@@ -73,6 +76,8 @@ export async function fetchWalletBalanceSnapshot(): Promise<WalletBalanceSnapsho
         return await fetchLoopWalletBalances(identity);
       case "rocky":
         return await fetchRockyWalletBalances(identity);
+      case "send":
+        return await fetchSendWalletBalances(identity);
       case "other":
         return {
           ...base,
@@ -162,7 +167,11 @@ function normalizeBalanceRows(
 }
 
 function normalizeWalletProvider(value: string | null): WalletProviderId | "" {
-  return value === "rocky" || value === "loop" || value === "console" || value === "other"
+  return value === "rocky" ||
+    value === "loop" ||
+    value === "console" ||
+    value === "send" ||
+    value === "other"
     ? value
     : "";
 }
@@ -261,6 +270,17 @@ async function fetchRockyWalletBalances(
     ...baseSnapshot({ ...identity, party: result.party }),
     status: "ready",
     balances: normalizeRockyWalletBalance(result.balance.tokens ?? result.balance.items ?? result.balance),
+  };
+}
+
+async function fetchSendWalletBalances(
+  identity: StoredWalletIdentity,
+): Promise<WalletBalanceSnapshot> {
+  const holdings = await fetchSendWalletHoldings(identity.party);
+  return {
+    ...baseSnapshot(identity),
+    status: "ready",
+    balances: normalizeLoopHoldings(holdings),
   };
 }
 

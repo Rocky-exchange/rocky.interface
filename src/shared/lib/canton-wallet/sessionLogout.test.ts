@@ -4,6 +4,7 @@ const adapterMocks = vi.hoisted(() => ({
   rockyDisconnect: vi.fn<() => Promise<void>>(),
   loopDisconnect: vi.fn<() => Promise<void>>(),
   consoleDisconnect: vi.fn<() => Promise<void>>(),
+  sendDisconnect: vi.fn<() => Promise<void>>(),
 }));
 
 vi.mock("./rocky", () => ({
@@ -14,6 +15,9 @@ vi.mock("./loop", () => ({
 }));
 vi.mock("./console", () => ({
   consoleWalletAdapter: { disconnect: adapterMocks.consoleDisconnect },
+}));
+vi.mock("./send", () => ({
+  sendWalletAdapter: { disconnect: adapterMocks.sendDisconnect },
 }));
 
 import {
@@ -33,6 +37,7 @@ beforeEach(() => {
   adapterMocks.rockyDisconnect.mockResolvedValue();
   adapterMocks.loopDisconnect.mockResolvedValue();
   adapterMocks.consoleDisconnect.mockResolvedValue();
+  adapterMocks.sendDisconnect.mockResolvedValue();
 });
 
 describe("Canton wallet session logout", () => {
@@ -58,6 +63,16 @@ describe("Canton wallet session logout", () => {
     await disconnectCantonWalletSession();
 
     expect(getCantonWalletLocked()).toBe(false);
+  });
+
+  it("disconnects an active Send Wallet session", async () => {
+    localStorage.setItem("mtc_login_method", "send");
+    localStorage.setItem("rocky_exchange_session", "send-session");
+
+    await disconnectCantonWalletSession();
+
+    expect(adapterMocks.sendDisconnect).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("rocky_exchange_session")).toBeNull();
   });
 
   it("coalesces concurrent logout requests", async () => {

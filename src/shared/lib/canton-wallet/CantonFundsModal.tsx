@@ -152,6 +152,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
   const walletParty = snapshot?.party || party;
   const walletProvider = snapshot?.provider || provider;
   const walletLabel = snapshot?.label || getWalletProviderLabel(provider);
+  const walletTitle = walletProvider === "send" ? "sendwallet" : username || walletLabel;
   const walletLogo = getWalletProviderLogo(walletProvider);
   const walletRows = snapshot?.balances ?? emptyWalletBalanceRows();
   const selectedWalletBalance = getBalanceAmount(walletRows, selectedAsset);
@@ -434,6 +435,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       const creditedBalance = await waitForPlatformDepositCredit({
         asset,
         amount,
+        depositRef: result.deposit_ref,
         previousBalance: result.platform_previous_balance,
         attempts: PENDING_DEPOSIT_CONFIRM_ATTEMPTS,
         delayMs: PENDING_DEPOSIT_CONFIRM_DELAY_MS,
@@ -716,7 +718,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 ) : (
                   <div className={styles.nameRow}>
                     <span id={titleId} className={styles.brandTitle}>
-                      {username || walletLabel}
+                      {walletTitle}
                     </span>
                     {connected ? (
                       <button

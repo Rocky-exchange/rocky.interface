@@ -196,7 +196,7 @@ describe("SpotOrderForm", () => {
 
     const source = readFileSync("src/modules/spot/components/OrderForm/OrderForm.module.scss", "utf8");
     expect(source).toMatch(
-      /\.connect\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#d9a441 0%,\s*#b9862c 100%\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/
+      /\.connect\s*\{[^}]*background:\s*var\(--rocky-tab-active-gradient,\s*linear-gradient\(90deg,\s*#f5a85f 0%,\s*#b0d6ea 100%\)\);[^}]*color:\s*#17110a;[^}]*font-weight:\s*600;/
     );
   });
 

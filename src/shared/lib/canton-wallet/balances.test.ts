@@ -1,6 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { normalizeRockyWalletBalance } from "./balances";
+const sendMocks = vi.hoisted(() => ({
+  fetchSendWalletHoldings: vi.fn(),
+}));
+
+vi.mock("./send", () => ({
+  fetchSendWalletHoldings: sendMocks.fetchSendWalletHoldings,
+}));
+
+import {
+  fetchWalletBalanceSnapshot,
+  getWalletProviderLabel,
+  normalizeRockyWalletBalance,
+} from "./balances";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubGlobal("localStorage", createMemoryStorage());
+});
 
 describe("normalizeRockyWalletBalance", () => {
   it("does not report a USDCx balance as CUSD", () => {
@@ -24,3 +41,54 @@ describe("normalizeRockyWalletBalance", () => {
     expect(rows.find((row) => row.symbol === "CUSD")?.amount).toBeNull();
   });
 });
+
+describe("Send Wallet balances", () => {
+  it("loads and labels the connected Send wallet", async () => {
+    localStorage.setItem("mtc_login_method", "send");
+    localStorage.setItem("mtc_party", "send-user::1220send");
+    sendMocks.fetchSendWalletHoldings.mockResolvedValue([
+      {
+        instrument_id: {
+          admin: "cbtc-network::1220admin",
+          id: "CBTC",
+        },
+        total_unlocked_coin: "2.75",
+      },
+    ]);
+
+    const snapshot = await fetchWalletBalanceSnapshot();
+
+    expect(getWalletProviderLabel("send")).toBe("Send Wallet");
+    expect(snapshot).toMatchObject({
+      provider: "send",
+      label: "Send Wallet",
+      party: "send-user::1220send",
+      status: "ready",
+    });
+    expect(snapshot.balances.find((row) => row.symbol === "CBTC")?.amount).toBe("2.75");
+  });
+});
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear() {
+      store.clear();
+    },
+    getItem(key: string) {
+      return store.get(key) ?? null;
+    },
+    key(index: number) {
+      return Array.from(store.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      store.delete(key);
+    },
+    setItem(key: string, value: string) {
+      store.set(key, String(value));
+    },
+  };
+}

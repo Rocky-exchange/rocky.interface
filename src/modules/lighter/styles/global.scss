@@ -429,7 +429,7 @@
   }
   /* Connect-wallet CTA shown in the order form when disconnected (Rocky accent). */
   .ltr-form__submit--connect {
-    background: linear-gradient(180deg, #d9a441 0%, #b9862c 100%);
+    background: var(--rocky-tab-active-gradient, linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%));
     color: #17110a;
     font-weight: 600;
   }
