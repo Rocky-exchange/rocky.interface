@@ -24,6 +24,10 @@ vi.mock("@partylayer/adapter-send", () => ({
   },
 }));
 
+vi.mock("./session", () => ({
+  exchangeSessionHeaders: () => ({ Authorization: "Bearer exchange-session" }),
+}));
+
 import {
   connectSendWallet,
   fetchSendWalletHoldings,
@@ -303,5 +307,71 @@ describe("Send wallet adapter", () => {
         synchronizerId: "sync",
       },
     ]);
+  });
+
+  it("routes CC through Rocky's authenticated Scan transfer factory instead of Utilities", async () => {
+    sendProvider.ledgerApi
+      .mockResolvedValueOnce({ offset: 419 })
+      .mockResolvedValueOnce([
+        {
+          contractEntry: {
+            JsActiveContract: {
+              createdEvent: {
+                contractId: "00cc-holding",
+                interfaceViews: [
+                  {
+                    viewValue: {
+                      owner: "send-user::1220send",
+                      amount: "20",
+                      instrumentId: {
+                        admin: "dso::1220admin",
+                        id: "Amulet",
+                      },
+                      lock: null,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ]);
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) !== "/v1/deposits/send/transfer-factory") {
+        return new Response(JSON.stringify({ error: "Instrument configuration not found" }), {
+          status: 404,
+        });
+      }
+      return new Response(
+        JSON.stringify({
+          factoryId: "00cc-transfer-factory",
+          transferKind: "direct",
+          choiceContext: {
+            choiceContextData: { values: {} },
+            disclosedContracts: [],
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitSendWalletTransfer({
+        from: "send-user::1220send",
+        to: "Rocky::1220rocky",
+        token: "CC",
+        amount: "6",
+        memo: "rocky:deposit:cc-reference",
+      }),
+    ).resolves.toMatchObject({
+      status: "executed",
+      updateId: "1220update",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/deposits/send/transfer-factory",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 });

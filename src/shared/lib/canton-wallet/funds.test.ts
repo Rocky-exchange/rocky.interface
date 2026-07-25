@@ -153,6 +153,64 @@ describe("canton wallet funds", () => {
     expect(result.platform_credit_status).toBe("confirmed");
   });
 
+  it("confirms a Send deposit after the wallet wait request times out", async () => {
+    submitSendWalletTransfer.mockRejectedValueOnce(
+      new Error('Wallet request "prepareExecuteAndWait" timed out after 30000ms')
+    );
+    let balanceReads = 0;
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === "/v1/account/me/CUSD") {
+        balanceReads += 1;
+        return jsonResponse({
+          asset: "CUSD",
+          available: balanceReads === 1 ? "0" : "0.11",
+          locked: "0",
+        });
+      }
+      if (String(url) === "/v1/deposits/reference") {
+        return jsonResponse({
+          asset: "CUSD",
+          target_party_id: "Rocky::1220rocky",
+          deposit_ref: "rocky:deposit:4634fde0-fe2e-46ba-bafe-a2793f5308f8",
+          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
+          expires_at: "2030-01-01T00:00:00Z",
+        });
+      }
+      if (String(url) === "/v1/deposits") {
+        return jsonResponse({
+          deposits: [
+            {
+              deposit_ref: "rocky:deposit:4634fde0-fe2e-46ba-bafe-a2793f5308f8",
+              status: "credited",
+              credited_at: "2026-07-25T06:47:34Z",
+            },
+          ],
+        });
+      }
+      return jsonResponse({ error: "unexpected" }, 500);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await submitCantonWalletDeposit({
+      provider: "send",
+      walletParty: "send-user::1220send",
+      asset: "CUSD",
+      amount: "0.11",
+    });
+
+    expect(submitSendWalletTransfer).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/deposits",
+      expect.objectContaining({ method: "GET" })
+    );
+    expect(result).toMatchObject({
+      deposit_ref: "rocky:deposit:4634fde0-fe2e-46ba-bafe-a2793f5308f8",
+      wallet_transfer: "send_wallet_submitted",
+      platform_credit_status: "confirmed",
+      platform_available: "0.11",
+    });
+  });
+
   it("submits explicit CUSD contract-to-spot transfers with exchange session auth", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse({

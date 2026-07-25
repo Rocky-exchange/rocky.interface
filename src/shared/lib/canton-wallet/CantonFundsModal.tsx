@@ -435,6 +435,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
       const creditedBalance = await waitForPlatformDepositCredit({
         asset,
         amount,
+        depositRef: result.deposit_ref,
         previousBalance: result.platform_previous_balance,
         attempts: PENDING_DEPOSIT_CONFIRM_ATTEMPTS,
         delayMs: PENDING_DEPOSIT_CONFIRM_DELAY_MS,

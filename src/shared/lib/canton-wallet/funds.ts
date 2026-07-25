@@ -145,6 +145,7 @@ export type UsdaAutoAcceptResult = {
 export type PlatformDepositCreditWaitInput = {
   asset: CantonFundsAsset;
   amount: string;
+  depositRef?: string;
   previousBalance?: number | string | null;
   attempts?: number;
   delayMs?: number;
@@ -214,18 +215,27 @@ export async function submitCantonWalletDeposit(input: {
   ) {
     const previousPlatformBalance = await fetchPlatformAccountBalance(input.asset);
     const reference = await requestDepositReference({ asset: input.asset, amount });
-    await submitWalletTransfer({
-      provider: input.provider,
-      from: input.walletParty,
-      to: reference.target_party_id,
-      token: input.asset,
-      amount,
-      memo: reference.deposit_ref,
-      reasonMetadataKey: reference.reason_metadata_key,
-    });
+    let walletConfirmationTimedOut = false;
+    try {
+      await submitWalletTransfer({
+        provider: input.provider,
+        from: input.walletParty,
+        to: reference.target_party_id,
+        token: input.asset,
+        amount,
+        memo: reference.deposit_ref,
+        reasonMetadataKey: reference.reason_metadata_key,
+      });
+    } catch (error) {
+      if (input.provider !== "send" || !isSendPrepareExecuteAndWaitTimeout(error)) {
+        throw error;
+      }
+      walletConfirmationTimedOut = true;
+    }
     const creditedBalance = await waitForPlatformDepositCredit({
       asset: input.asset,
       amount,
+      depositRef: walletConfirmationTimedOut ? reference.deposit_ref : undefined,
       previousBalance: previousPlatformBalance,
     });
     return {
@@ -238,6 +248,16 @@ export async function submitCantonWalletDeposit(input: {
   }
 
   return requestDepositReference({ asset: input.asset, amount });
+}
+
+function isSendPrepareExecuteAndWaitTimeout(error: unknown): boolean {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+        ? String(error.message)
+        : String(error);
+  return /request\s+["']prepareExecuteAndWait["']\s+timed out after \d+ms/i.test(message);
 }
 
 export async function submitPlatformWithdrawal(input: {
@@ -356,6 +376,7 @@ export async function waitForPlatformDepositCredit(input: PlatformDepositCreditW
   const {
     asset,
     amount,
+    depositRef,
     attempts = PLATFORM_DEPOSIT_SETTLEMENT_POLL_ATTEMPTS,
     delayMs = PLATFORM_DEPOSIT_SETTLEMENT_POLL_DELAY_MS,
   } = input;
@@ -364,15 +385,33 @@ export async function waitForPlatformDepositCredit(input: PlatformDepositCreditW
   if (!Number.isFinite(expectedDelta) || expectedDelta <= 0) return null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const currentBalance = await fetchPlatformAccountBalance(asset);
-    if (currentBalance !== null && hasExpectedDepositCredit(currentBalance, previousBalance, expectedDelta)) {
-      return currentBalance;
+    if (depositRef) {
+      const status = await fetchPlatformDepositStatus(depositRef);
+      if (status === "credited") {
+        return fetchPlatformAccountBalance(asset);
+      }
+      if (status === "expired" || status === "rejected") {
+        return null;
+      }
+    } else {
+      const currentBalance = await fetchPlatformAccountBalance(asset);
+      if (currentBalance !== null && hasExpectedDepositCredit(currentBalance, previousBalance, expectedDelta)) {
+        return currentBalance;
+      }
     }
     if (attempt < attempts - 1) {
       await delay(delayMs);
     }
   }
   return null;
+}
+
+async function fetchPlatformDepositStatus(depositRef: string): Promise<string | null> {
+  const data = await requestJson<{ deposits?: CantonDepositHistoryItem[] }>("/v1/deposits", {
+    method: "GET",
+    headers: exchangeSessionHeaders(),
+  });
+  return data.deposits?.find((deposit) => deposit.deposit_ref === depositRef)?.status || null;
 }
 
 function parseOptionalBalance(value: number | string | null | undefined): number | null {

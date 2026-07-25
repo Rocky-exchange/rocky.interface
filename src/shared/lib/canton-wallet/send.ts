@@ -6,6 +6,7 @@ import {
 } from "@partylayer/adapter-send";
 
 import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
+import { exchangeSessionHeaders } from "./session";
 import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 const sendProvider = new SendProvider();
@@ -237,12 +238,15 @@ export async function submitSendWalletTransfer(input: SendTransferInput) {
   };
 
   const factoryResponse = await fetch(
-    `${TOKEN_STANDARD_API_BASE}/v0/registrars/${encodeURIComponent(instrumentAdmin)}/registry/transfer-instruction/v1/transfer-factory`,
+    input.token === "CC"
+      ? "/v1/deposits/send/transfer-factory"
+      : `${TOKEN_STANDARD_API_BASE}/v0/registrars/${encodeURIComponent(instrumentAdmin)}/registry/transfer-instruction/v1/transfer-factory`,
     {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...(input.token === "CC" ? exchangeSessionHeaders() : {}),
       },
       body: JSON.stringify({
         choiceArguments,
