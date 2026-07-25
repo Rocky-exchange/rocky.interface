@@ -5,6 +5,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TopNav } from "./TopNav";
 
+const cantonSession = vi.hoisted(() => ({
+  connected: false,
+  locked: false,
+  username: "",
+  party: "",
+  avatar: "",
+  provider: "",
+}));
+
 vi.mock("@lingui/react", () => ({
   Trans: ({ children, id, message }: { children?: ReactNode; id?: string; message?: string }) => (
     <>{children ?? message ?? id}</>
@@ -25,14 +34,24 @@ vi.mock("@/shared/lib/canton-wallet/CantonFundsModal", () => ({
 }));
 
 vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
-  useCantonSession: () => ({ connected: false, username: "", party: "", avatar: "" }),
+  useCantonSession: () => cantonSession,
 }));
 
 vi.mock("@/shared/lib/i18n", () => ({
   dynamicActivate: vi.fn(),
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  Object.assign(cantonSession, {
+    connected: false,
+    locked: false,
+    username: "",
+    party: "",
+    avatar: "",
+    provider: "",
+  });
+});
 
 describe("TopNav", () => {
   it("links Spot to the canonical public market route", () => {
@@ -43,5 +62,22 @@ describe("TopNav", () => {
     );
 
     expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-CUSD");
+  });
+
+  it("labels an existing Send session as sendwallet", () => {
+    Object.assign(cantonSession, {
+      connected: true,
+      username: "cantonwallet-etouyang",
+      party: "cantonwallet-etouyang::1220send",
+      provider: "send",
+    });
+
+    render(
+      <MemoryRouter>
+        <TopNav />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "sendwallet" })).toBeDefined();
   });
 });

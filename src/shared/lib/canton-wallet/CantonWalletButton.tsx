@@ -9,7 +9,7 @@ import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 
 export function CantonWalletButton() {
-  const { connected, locked, username, party } = useCantonSession();
+  const { connected, locked, username, party, provider } = useCantonSession();
   const { unlock, connecting } = useCantonWallet();
   const [fundsOpen, setFundsOpen] = useState(false);
   if (locked) {
@@ -20,9 +20,10 @@ export function CantonWalletButton() {
     );
   }
   if (connected) {
+    const walletLabel = provider === "send" ? "sendwallet" : username || `${party.slice(0, 8)}...`;
     return (
       <>
-        <ConnectWalletButton onClick={() => setFundsOpen(true)}>{username || `${party.slice(0, 8)}...`}</ConnectWalletButton>
+        <ConnectWalletButton onClick={() => setFundsOpen(true)}>{walletLabel}</ConnectWalletButton>
         <CantonFundsModal open={fundsOpen} onClose={() => setFundsOpen(false)} />
       </>
     );

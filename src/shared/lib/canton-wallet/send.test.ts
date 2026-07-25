@@ -53,7 +53,7 @@ describe("Send wallet adapter", () => {
       partyId: "send-user::1220send",
       walletAddress: "send-user::1220send",
       alias: "Send User",
-      displayName: "Send User",
+      displayName: "sendwallet",
       metadata: {
         source: "partylayer-send-adapter",
         publicKey: "base64-spki",

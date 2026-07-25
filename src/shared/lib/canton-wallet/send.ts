@@ -42,7 +42,7 @@ export async function connectSendWallet(): Promise<ConnectedWallet> {
       partyId: account.partyId,
       walletAddress: account.partyId,
       alias: account.hint,
-      displayName: account.hint,
+      displayName: "sendwallet",
       metadata: {
         source: "partylayer-send-adapter",
         publicKey: account.publicKey,
