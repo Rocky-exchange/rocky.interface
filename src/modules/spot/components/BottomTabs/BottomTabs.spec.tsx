@@ -214,7 +214,11 @@ describe("SpotBottomTabs", () => {
   it("renders open-order rows and cancels with the backend API symbol", async () => {
     mReady.mockReturnValue(true);
     mOpen.mockResolvedValue([order("019f64e35ff175d18108787dd7af24f2")]);
-    mCancel.mockResolvedValue({ status: "CANCELED" });
+    mCancel.mockResolvedValue({
+      symbol: "CBTC-CUSD",
+      orderId: "019f64e35ff175d18108787dd7af24f2",
+      status: "CANCELED",
+    });
 
     const { getByRole, findByRole } = render(<SpotBottomTabs market={market} />);
     fireEvent.click(getByRole("tab", { name: "Open Orders" }));
@@ -227,8 +231,8 @@ describe("SpotBottomTabs", () => {
   });
 
   it("keeps each overlapping cancellation disabled until its own request finishes", async () => {
-    const firstCancel = deferred<{ status: "CANCELED" }>();
-    const secondCancel = deferred<{ status: "CANCELED" }>();
+    const firstCancel = deferred<{ symbol: string; orderId: string; status: "CANCELED" }>();
+    const secondCancel = deferred<{ symbol: string; orderId: string; status: "CANCELED" }>();
     mReady.mockReturnValue(true);
     mOpen.mockResolvedValue([order("order-1", "SELL", "65001"), order("order-2", "BUY", "65002")]);
     mCancel.mockImplementation((_symbol, orderId) =>
@@ -247,12 +251,12 @@ describe("SpotBottomTabs", () => {
     expect(firstButton.disabled).toBe(true);
     expect(secondButton.disabled).toBe(true);
 
-    firstCancel.resolve({ status: "CANCELED" });
+    firstCancel.resolve({ symbol: "CBTC-CUSD", orderId: "order-1", status: "CANCELED" });
     await waitFor(() => expect(firstButton.disabled).toBe(false));
     expect(secondButton.disabled).toBe(true);
     expect(mOpen).toHaveBeenCalledTimes(2);
 
-    secondCancel.resolve({ status: "CANCELED" });
+    secondCancel.resolve({ symbol: "CBTC-CUSD", orderId: "order-2", status: "CANCELED" });
     await waitFor(() => expect(secondButton.disabled).toBe(false));
     expect(mOpen).toHaveBeenCalledTimes(3);
   });

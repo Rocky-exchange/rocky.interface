@@ -199,10 +199,6 @@ msgstr ""
 msgid "Funding"
 msgstr ""
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Requesting…"
-msgstr ""
-
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "SELL"
@@ -495,10 +491,6 @@ msgstr "복사됨"
 
 #: src/shared/components/SettingsModal/DisplaySettings.tsx
 msgid "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
-msgstr ""
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Get test funds (dev)"
 msgstr ""
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
@@ -3022,6 +3014,10 @@ msgstr "트리거 가격이 지정가 가격보다 높습니다"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Select a Pay token"
 msgstr "지불 토큰 선택"
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Campaigns"
+msgstr ""
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx

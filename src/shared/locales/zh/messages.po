@@ -199,10 +199,6 @@ msgstr "歷史"
 msgid "Funding"
 msgstr "資金費"
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Requesting…"
-msgstr "請求中…"
-
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "SELL"
@@ -496,10 +492,6 @@ msgstr "已複製"
 #: src/shared/components/SettingsModal/DisplaySettings.tsx
 msgid "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
 msgstr "淨價格影響分為存儲價格影響（加倉訂單）和平倉價格影響（減倉訂單）。此設定在淨值提示和平倉執行詳情中顯示兩者，以及加倉訂單的存儲價格影響。"
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Get test funds (dev)"
-msgstr "領取測試資金 (dev)"
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
@@ -3022,6 +3014,10 @@ msgstr "觸發價格高於限價"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Select a Pay token"
 msgstr "選擇支付代幣"
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Campaigns"
+msgstr "活動"
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx

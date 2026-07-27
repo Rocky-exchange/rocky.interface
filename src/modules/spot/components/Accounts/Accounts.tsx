@@ -8,7 +8,6 @@ import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
 import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
 import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
 import cusdIconSrc from "@/shared/lib/canton-wallet/token-icons/CUSD.png";
-import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./Accounts.module.scss";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
@@ -91,15 +90,6 @@ function hasVisibleBalance(balance: { free: string; locked: string }): boolean {
   return !free.isZero() || !locked.isZero();
 }
 
-async function faucet(party: string): Promise<void> {
-  const r = await fetch("/api/v3/dev/faucet", {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ party }),
-  });
-  if (!r.ok) throw new Error(`faucet HTTP ${r.status}`);
-}
-
 function displayAsset(asset: string, market: SpotMarket): string {
   const publicAsset = toSpotDisplayAsset(asset);
   if (publicAsset !== asset) return publicAsset;
@@ -121,9 +111,6 @@ export function SpotAccountsPanel({
   const { i18n } = useLingui();
   const { ready, account, err, refetch } = useSpotAccount();
   const precisions = useSpotAssetPrecisions();
-  const { party } = useCantonSession();
-  const [faucetBusy, setFaucetBusy] = useState(false);
-  const [faucetErr, setFaucetErr] = useState<string | null>(null);
   const [xferAmount, setXferAmount] = useState("");
   const [xferBusy, setXferBusy] = useState(false);
   const [xferMsg, setXferMsg] = useState<string | null>(null);
@@ -214,24 +201,6 @@ export function SpotAccountsPanel({
         precisions,
       )
     : "0";
-  const allZero = account.balances.every(
-    (balance) => parseFloat(balance.free) === 0 && parseFloat(balance.locked) === 0,
-  );
-
-  const onFaucet = async () => {
-    if (!party) return;
-    setFaucetBusy(true);
-    setFaucetErr(null);
-    try {
-      await faucet(party);
-      refetch();
-    } catch (e: unknown) {
-      setFaucetErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setFaucetBusy(false);
-    }
-  };
-
   const onTransfer = async (direction: "toSpot" | "toFunding") => {
     setXferBusy(true);
     setXferErr(null);
@@ -270,16 +239,7 @@ export function SpotAccountsPanel({
           </span>
           <span className={styles.totalValue}>{totalUsda}</span>
         </div>
-        {allZero && (
-          <button type="button" className={styles.connectCta} onClick={onFaucet} disabled={faucetBusy}>
-            {faucetBusy ? <Trans>Requesting…</Trans> : <Trans>Get test funds (dev)</Trans>}
-          </button>
-        )}
-        {faucetErr && (
-          <div className={styles.err} role="alert">
-            {faucetErr}
-          </div>
-        )}
+        {/* Dev faucet entry is intentionally hidden. */}
         <div className={styles.title}>
           <Trans>Transfer</Trans>
         </div>

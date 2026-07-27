@@ -1,0 +1,1648 @@
+import { useLingui } from "@lingui/react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useHistory, useLocation } from "react-router-dom";
+
+import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
+import { ModalWithPortal, TooltipWithPortal } from "@/shared/ui";
+
+import "@/modules/lighter/styles/global.scss";
+import styles from "./SeasonZeroLeaderboardPage.module.scss";
+
+type CampaignTab = "missions" | "leaderboard" | "rewards";
+type TaskStatus = "not_started" | "verifying" | "pending" | "claimable" | "claiming" | "claimed" | "retry";
+type OriginalPostStatus = "idle" | "pending" | "claimable" | "claimed" | "rejected";
+type OriginalPostDialog = "submit" | "claimed" | "rejected" | null;
+
+type LeaderboardEntry = {
+  rank: number;
+  name: string;
+  address: string;
+  volume: string;
+  reward: string;
+  avatar?: string;
+};
+
+type Mission = {
+  description: string;
+  id: string;
+  icon?: string;
+  iconText?: string;
+  reward: string;
+  title: string;
+};
+
+type TaskStatusPresentation = {
+  disabled: boolean;
+  icon: string;
+  iconFirst?: boolean;
+  label: string;
+};
+
+const CAMPAIGN_ZH_TW: Record<string, string> = {
+  Start: "開始",
+  Verify: "驗證",
+  Pending: "審核中",
+  Claim: "領取",
+  "Claiming...": "領取中...",
+  Claimed: "已領取",
+  Retry: "重試",
+  Rejected: "未通過",
+  "Rocky First Ascent": "ROCKY 初次登頂",
+  "Rewards Panel": "獎勵面板",
+  "Rocky Trading Challenge": "ROCKY 交易挑戰賽",
+  "Earn free R Diamonds · Unlock CC rewards": "免費賺取 R 鑽石 · 解鎖 CC 獎勵",
+  "Track your R Diamonds, future rewards, and exclusive benefits. More rewards coming soon.":
+    "追蹤你的 R 鑽石、未來獎勵與專屬權益。更多獎勵即將推出。",
+  "Top 50 Traders. Highest Volume. R Diamonds Rewards.": "交易量最高的前 50 名交易者可獲得 R 鑽石獎勵。",
+  "Start Trading": "開始交易",
+  "View Leaderboard": "查看排行榜",
+  "Ends in": "距離結束",
+  Missions: "任務",
+  Leaderboard: "排行榜",
+  "My Rewards": "我的獎勵",
+  "Campaign sections": "活動分頁",
+  "Claim Reward": "領取獎勵",
+  "R Diamonds": "R 鑽石",
+  "Claim Now": "立即領取",
+  "must be claimed manually.": "必須手動領取。",
+  "Completed missions do not auto-credit rewards.": "完成任務後，獎勵不會自動入帳。",
+  Close: "關閉",
+  Mission: "任務",
+  "How to complete": "完成方式",
+  "Open your X profile": "開啟你的 X 個人檔案",
+  "Add 🪨ROCKY to your name": "在名稱中加入 🪨ROCKY",
+  "Return and verify": "返回並進行驗證",
+  "Your X URL": "你的 X 連結",
+  Cancel: "取消",
+  "Open X": "開啟 X",
+  "Submit Your Post": "提交你的貼文",
+  "Submit your original post on X to earn R Diamonds.": "提交你在 X 發佈的原創貼文以賺取 R 鑽石。",
+  "Submission progress": "提交進度",
+  "Paste Link": "貼上連結",
+  Confirm: "確認",
+  "X Post Link": "X 貼文連結",
+  "Paste the link to your original post on X (Twitter).": "貼上你在 X（Twitter）發佈的原創貼文連結。",
+  "Please enter a valid public X post link.": "請輸入有效且公開的 X 貼文連結。",
+  Requirements: "要求",
+  "Original content only": "僅限原創內容",
+  "Must be related to Rocky or Canton": "內容必須與 Rocky 或 Canton 相關",
+  "Public post visible to everyone": "貼文必須公開且所有人可見",
+  "No edited or deleted posts": "不得編輯或刪除貼文",
+  "Max 2 posts per day": "每日最多 2 篇貼文",
+  "Rewards are distributed after review": "審核通過後發放獎勵",
+  Submit: "提交",
+  "Post Not Approved": "貼文未通過審核",
+  "Your post did not meet our requirements.": "你的貼文未符合活動要求。",
+  "Please check the reason below and try again.": "請查看下方原因後重試。",
+  Reason: "原因",
+  "Content is not related to Rocky or Canton.": "內容與 Rocky 或 Canton 無關。",
+  "Try Again": "重新提交",
+  "Reward Claimed!": "獎勵已領取！",
+  "Your R Diamonds have been claimed successfully.": "你的 R 鑽石已成功領取。",
+  "The reward has been added to your account.": "獎勵已加入你的帳戶。",
+  "Claim Complete": "領取完成",
+  "Your qualified post reward is now complete.": "符合資格的貼文獎勵已領取完成。",
+  Done: "完成",
+  "Submit Post": "提交貼文",
+  "Original Posts": "原創貼文",
+  "Up to 2 / day • cumulative": "每日最多 2 篇 • 可累積",
+  "Earn cumulative R Diamonds from qualified original posts each day.": "每日透過符合資格的原創貼文累積 R 鑽石。",
+  Post: "貼文",
+  "Daily progress resets at 00:00 UTC.": "每日進度於 UTC 00:00 重置。",
+  "Qualified Today": "今日已通過",
+  "R Diamonds Earned": "已獲得 R 鑽石",
+  "Daily Complete": "今日已完成",
+  "Next Reward": "下一筆獎勵",
+  "Rewards Claimed": "獎勵已領取",
+  "Complete missions to earn R Diamonds": "完成任務以賺取 R 鑽石",
+  "X Connected": "X 已連接",
+  "Connect X": "連接 X",
+  "Your Progress": "你的進度",
+  Claimable: "可領取",
+  "Follow Rocky + Canton On X": "在 X 關注 Rocky + Canton",
+  "Follow both official accounts on X.": "在 X 關注兩個官方帳號。",
+  "Like Launch Post": "按讚上線貼文",
+  "Like the official Rocky launch post.": "按讚 Rocky 官方上線貼文。",
+  "Join Community": "加入社群",
+  "Join Rocky's official Discord community.": "加入 Rocky 官方 Discord 社群。",
+  "Add 🪨ROCKY To Your X Name": "在你的 X 名稱加入 🪨ROCKY",
+  "Add 🪨ROCKY as a suffix to your X display name.": "在你的 X 顯示名稱後加入 🪨ROCKY。",
+  "Quote Launch Post": "引用上線貼文",
+  "Quote the campaign post and share an original point of view.": "引用活動貼文並分享原創觀點。",
+  "Important Note": "重要提示",
+  "Complete each mission using the connected wallet.": "請使用已連接的錢包完成每項任務。",
+  "Social content must relate to Rocky, Canton, or the Beta campaign.": "社群內容必須與 Rocky、Canton 或本活動相關。",
+  "R Diamonds are relative contribution records and must be claimed manually.": "R 鑽石是相對貢獻紀錄，必須手動領取。",
+  "Fraudulent, copied, or automated submissions may be rejected.": "欺詐、抄襲或自動化提交可能會被拒絕。",
+  Ranking: "排行榜",
+  "Qualified accounts ranked by trading volume": "符合資格的帳戶依交易量排名",
+  Rank: "排名",
+  User: "用戶",
+  "Volume (USD)": "交易量（USD）",
+  "Est. R Diamonds Reward": "預估 R 鑽石獎勵",
+  "Season 0 leaderboard": "Season 0 排行榜",
+  "Leaderboard pages": "排行榜分頁",
+  "Previous page": "上一頁",
+  "Next page": "下一頁",
+  Page: "第",
+  "Top 50 Rewards": "前 50 名獎勵",
+  "Top 1": "第 1 名",
+  "Top 2 – 3": "第 2–3 名",
+  "Top 4 – 10": "第 4–10 名",
+  "Top 11 – 20": "第 11–20 名",
+  "Top 21 – 50": "第 21–50 名",
+  "Ranking Rules": "排名規則",
+  "This is a real-funds trading competition. Only eligible accounts enter the leaderboard, ranked by total qualified trading volume in descending order.":
+    "本活動為真實資金交易競賽。僅符合資格的帳戶可進入排行榜，並按有效總交易量由高至低排名。",
+  "Eligibility requires time-weighted average equity of at least $200, at least $2,000 in qualified notional trading volume, 10 effective trades, and activity on 2 or more trading days.":
+    "參賽資格要求時間加權平均權益不少於 200 美元、有效名義交易量不少於 2,000 美元、至少 10 筆有效交易，且交易日不少於 2 天。",
+  "Wash trading, related-account self-dealing, and other abnormal activity are excluded and may result in disqualification.":
+    "對敲交易、關聯帳戶自成交及其他異常行為將不計入，並可能導致取消資格。",
+  "The leaderboard closes at 24:00 UTC+8 on Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking.":
+    "排行榜於第 14 天 UTC+8 24:00 截止。僅截止前完成的合格交易會計入最終交易量排名。",
+  "The Top 50 share 56,500,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds.":
+    "前 50 名依上述級距共享 56,500,000 枚 R 鑽石。未進入前 50 名、但在至少 2 個交易日完成 10 筆有效交易的交易者，可獲得 500 枚 R 鑽石。",
+  "Coming Soon": "即將推出",
+  "Track your rewards, status, and exclusive benefits.": "追蹤你的獎勵、狀態與專屬權益。",
+  "（Reward Breakdown）": "（獎勵明細）",
+  "R Diamonds（Reward Breakdown）": "R 鑽石（獎勵明細）",
+  "Total Rewards": "總獎勵",
+  "About total rewards": "關於總獎勵",
+  "Earned from missions and campaign participation.": "來自任務與活動參與。",
+  "Task Rewards": "任務獎勵",
+  "About task rewards": "關於任務獎勵",
+  "Earned from missions.": "來自任務。",
+  "Campaign Rewards": "活動獎勵",
+  "About campaign rewards": "關於活動獎勵",
+  CLAIMED: "已領取",
+  "Referral Rewards": "推薦獎勵",
+  "About referral rewards": "關於推薦獎勵",
+  "Earned from successful referrals.": "來自成功推薦。",
+  "R Points (Future)": "R Points（未來）",
+  "Total R Points": "R Points 總數",
+  "Your Referrals": "你的推薦",
+  "Total Earned --": "累計獲得 --",
+  "Total Referred Users": "推薦用戶總數",
+  "Reward Rate": "獎勵比例",
+  "Your Referral Link": "你的推薦連結",
+  "Copy referral link": "複製推薦連結",
+  "Code:": "代碼：",
+  "Copy referral code": "複製推薦代碼",
+  Copied: "已複製",
+  "Copy Link": "複製連結",
+  "How It Works": "運作方式",
+  "Share Your Link": "分享你的連結",
+  "Copy and share your unique referral link.": "複製並分享你的專屬推薦連結。",
+  "Friends Join": "好友加入",
+  "They sign up and start earning using your link.": "他們透過你的連結註冊並開始獲得獎勵。",
+  "Earn Rewards": "獲得獎勵",
+  "Get 10% R Diamonds": "獲得 10% R 鑽石",
+  Badges: "徽章",
+  "Rocky OG badge": "Rocky OG 徽章",
+  "OG Badges · Rare": "OG 徽章 · 稀有",
+  Eligible: "符合資格",
+  "Eligible OG users will receive the badge after the activity review.": "符合資格的 OG 用戶將在活動審核後獲得徽章。",
+  "Limited 102/500": "限量 102/500",
+  "Learn More →": "了解更多 →",
+  "CC Rewards": "CC 獎勵",
+  "Specific ratios, schedules, and conditions are subject to the final announcement.":
+    "具體比例、時程與條件以最終公告為準。",
+  "Redemption ratio": "兌換比例",
+  "Unlock schedule": "解鎖時程",
+  Eligibility: "資格條件",
+};
+
+function useCampaignCopy() {
+  const { i18n } = useLingui();
+  const isTraditionalChinese = i18n.locale === "zh";
+  const copy = (text: string) => (isTraditionalChinese ? CAMPAIGN_ZH_TW[text] ?? text : text);
+
+  return { copy, isTraditionalChinese };
+}
+
+const TASK_STATUS_PRESENTATION: Record<TaskStatus, TaskStatusPresentation> = {
+  not_started: {
+    label: "Start",
+    icon: "/campaign/status-start.svg",
+    disabled: false,
+  },
+  verifying: {
+    label: "Verify",
+    icon: "/campaign/status-verify.svg",
+    disabled: false,
+  },
+  pending: {
+    label: "Pending",
+    icon: "/campaign/status-pending.svg",
+    disabled: true,
+  },
+  claimable: {
+    label: "Claim",
+    icon: "/campaign/status-claim.svg",
+    disabled: false,
+  },
+  claiming: {
+    label: "Claiming...",
+    icon: "/campaign/status-loading.svg",
+    iconFirst: true,
+    disabled: true,
+  },
+  claimed: {
+    label: "Claimed",
+    icon: "/campaign/status-claimed.svg",
+    disabled: true,
+  },
+  retry: {
+    label: "Retry",
+    icon: "/campaign/status-retry.svg",
+    disabled: false,
+  },
+};
+
+const TASK_STATUSES = Object.keys(TASK_STATUS_PRESENTATION) as TaskStatus[];
+
+const LEADERBOARD_PAGE_SIZE = 10;
+
+function leaderboardRewardForRank(rank: number) {
+  if (rank === 1) return "4,000,000";
+  if (rank <= 3) return "2,500,000";
+  if (rank <= 10) return "1,500,000";
+  if (rank <= 20) return "1,000,000";
+  return "900,000";
+}
+
+const FEATURED_TRADERS = [
+  { name: "Rocky Trader", avatar: "/campaign/avatar-rocky.png" },
+  { name: "PerpMaster", avatar: "/campaign/avatar-perp.png" },
+  { name: "CantonWhale", avatar: "/campaign/avatar-canton.jpg" },
+  { name: "OrbitMaker", avatar: "/campaign/avatar-user.png" },
+] as const;
+
+const TRADER_ALIASES = ["Nova", "Rift", "Atlas", "Vector", "Quartz", "Cipher", "Helix", "Apex"];
+
+const LEADERBOARD: LeaderboardEntry[] = Array.from({ length: 50 }, (_, index) => {
+  const rank = index + 1;
+  const featured = FEATURED_TRADERS[index];
+  const addressStart = (0xba3 + rank * 113).toString(16).padStart(3, "0").toUpperCase();
+  const addressEnd = ((rank * 977 + 0x7f3c) % 0xffff).toString(16).padStart(4, "0").toUpperCase();
+  const volume = 5_240_000 - index * 83_000;
+
+  return {
+    rank,
+    name: featured?.name ?? `${TRADER_ALIASES[index % TRADER_ALIASES.length]}Trader${rank}`,
+    address: `0x${addressStart}...${addressEnd}`,
+    volume: `$${volume.toLocaleString("en-US")}`,
+    reward: leaderboardRewardForRank(rank),
+    avatar: featured?.avatar,
+  };
+});
+
+const REWARD_TIERS = [
+  { label: "Top 1", reward: "4,000,000", showDiamond: true, tone: "gold" },
+  { label: "Top 2 – 3", reward: "2,500,000", showDiamond: true, tone: "silver" },
+  { label: "Top 4 – 10", reward: "1,500,000", showDiamond: true, tone: "bronze" },
+  { label: "Top 11 – 20", reward: "1,000,000", showDiamond: true, tone: "muted" },
+  { label: "Top 21 – 50", reward: "900,000", showDiamond: true, tone: "muted" },
+] as const;
+
+const MISSIONS: Mission[] = [
+  {
+    id: "follow-both",
+    title: "Follow Rocky + Canton On X",
+    description: "Follow both official accounts on X.",
+    reward: "+100",
+    icon: "/campaign/mission-x.jpg",
+  },
+  {
+    id: "like-launch",
+    title: "Like Launch Post",
+    description: "Like the official Rocky launch post.",
+    reward: "+50",
+    iconText: "♥",
+  },
+  {
+    id: "join-discord",
+    title: "Join Community",
+    description: "Join Rocky's official Discord community.",
+    reward: "+100",
+    icon: "/campaign/mission-discord.jpg",
+  },
+  {
+    id: "nickname-rocky",
+    title: "Add 🪨ROCKY To Your X Name",
+    description: "Add 🪨ROCKY as a suffix to your X display name.",
+    reward: "+50",
+    iconText: "$",
+  },
+  {
+    id: "quote-launch",
+    title: "Quote Launch Post",
+    description: "Quote the campaign post and share an original point of view.",
+    reward: "+150",
+    iconText: "•••",
+  },
+];
+
+const ORIGINAL_POST_REWARDS = [
+  { id: "01", reward: 200 },
+  { id: "02", reward: 200 },
+] as const;
+
+const ORIGINAL_POST_REQUIREMENTS = [
+  "Original content only",
+  "Must be related to Rocky or Canton",
+  "Public post visible to everyone",
+  "No edited or deleted posts",
+  "Max 2 posts per day",
+  "Rewards are distributed after review",
+] as const;
+
+function getCampaignTab(search: string): CampaignTab {
+  const tab = new URLSearchParams(search).get("tab");
+  if (tab === "leaderboard" || tab === "rewards") return tab;
+  return "missions";
+}
+
+function DiamondAmount({ children }: { children: string }) {
+  return (
+    <span className={styles.diamondAmount}>
+      <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+      <span>{children}</span>
+    </span>
+  );
+}
+
+function RankBadge({ rank }: { rank: number }) {
+  const { copy, isTraditionalChinese } = useCampaignCopy();
+
+  if (rank <= 3) {
+    return (
+      <span
+        className={`${styles.crown} ${styles[`crown${rank}`]}`}
+        aria-label={isTraditionalChinese ? `${copy("Rank")} ${rank}` : `Rank ${rank}`}
+      />
+    );
+  }
+
+  return <span className={styles.rankNumber}>{rank}</span>;
+}
+
+function CampaignCountdown() {
+  const { copy, isTraditionalChinese } = useCampaignCopy();
+
+  return (
+    <div
+      className={styles.countdown}
+      aria-label={
+        isTraditionalChinese
+          ? "活動倒數：5 天 12 小時 45 分鐘 30 秒"
+          : "Event countdown: 5 days 12 hours 45 minutes 30 seconds"
+      }
+    >
+      <span className={styles.countdownLabel}>{copy("Ends in")}</span>
+      <span className={styles.countdownValue}>05</span>
+      <span>{isTraditionalChinese ? "天" : "D"}</span>
+      <span className={styles.countdownColon}>:</span>
+      <span className={styles.countdownValue}>12</span>
+      <span>{isTraditionalChinese ? "時" : "H"}</span>
+      <span className={styles.countdownColon}>:</span>
+      <span className={styles.countdownValue}>45</span>
+      <span>{isTraditionalChinese ? "分" : "M"}</span>
+      <span className={styles.countdownColon}>:</span>
+      <span className={styles.countdownValue}>30</span>
+      <span>{isTraditionalChinese ? "秒" : "S"}</span>
+    </div>
+  );
+}
+
+function CampaignHero({ activeTab, onTabChange }: { activeTab: CampaignTab; onTabChange: (tab: CampaignTab) => void }) {
+  const history = useHistory();
+  const { copy } = useCampaignCopy();
+  const isMissions = activeTab === "missions";
+  const isLeaderboard = activeTab === "leaderboard";
+  const isRewards = activeTab === "rewards";
+
+  return (
+    <section
+      className={`${styles.hero} ${isMissions ? styles.missionsHero : ""} ${isLeaderboard ? styles.leaderboardHero : ""} ${isRewards ? styles.rewardsHero : ""}`}
+    >
+      {isMissions ? (
+        <video
+          className={`${styles.heroImage} ${styles.missionsVideo}`}
+          src="/campaign/missions-hero.mp4"
+          poster="/campaign/missions-hero.png"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+        />
+      ) : (
+        <img
+          className={`${styles.heroImage} ${isRewards ? styles.rewardsImage : styles.leaderboardImage}`}
+          src={isRewards ? "/campaign/rewards-hero.png" : "/campaign/hero-background.png"}
+          alt=""
+          aria-hidden="true"
+        />
+      )}
+      <div className={styles.heroShade} />
+      <div className={styles.heroContent}>
+        <div className={styles.heroMain}>
+          <div className={styles.heroCopy}>
+            <h1>{copy(isMissions ? "Rocky First Ascent" : isRewards ? "Rewards Panel" : "Rocky Trading Challenge")}</h1>
+            <p>
+              {copy(
+                isMissions
+                  ? "Earn free R Diamonds · Unlock CC rewards"
+                  : isRewards
+                    ? "Track your R Diamonds, future rewards, and exclusive benefits. More rewards coming soon."
+                    : "Top 50 Traders. Highest Volume. R Diamonds Rewards."
+              )}
+            </p>
+          </div>
+
+          {!isRewards ? (
+            <div className={styles.heroActions}>
+              <button type="button" className={styles.primaryButton} onClick={() => history.push("/trade")}>
+                <span>{copy("Start Trading")}</span>
+                <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" />
+              </button>
+              {isMissions ? (
+                <button type="button" className={styles.secondaryButton} onClick={() => onTabChange("leaderboard")}>
+                  <span>{copy("View Leaderboard")}</span>
+                  <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className={styles.heroFooter}>
+          <CampaignCountdown />
+          <div className={styles.heroDots} aria-hidden="true">
+            {(["missions", "leaderboard", "rewards"] as CampaignTab[]).map((tab) => (
+              <span className={tab === activeTab ? styles.activeDot : ""} key={tab} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SectionHeading({ title, description }: { title: string; description: string }) {
+  const { copy } = useCampaignCopy();
+
+  return (
+    <div className={styles.sectionHeading}>
+      <h2>{copy(title)}</h2>
+      <p>{copy(description)}</p>
+    </div>
+  );
+}
+
+function getInitialTaskStatuses(): Record<string, TaskStatus> {
+  const previewStatus = new URLSearchParams(window.location.search).get("missionState");
+  const initialStatus = TASK_STATUSES.includes(previewStatus as TaskStatus)
+    ? (previewStatus as TaskStatus)
+    : "not_started";
+
+  return Object.fromEntries(MISSIONS.map((mission) => [mission.id, initialStatus]));
+}
+
+function MissionStatusButton({ status, onClick }: { status: TaskStatus; onClick: () => void }) {
+  const presentation = TASK_STATUS_PRESENTATION[status];
+  const { copy } = useCampaignCopy();
+  const icon = (
+    <img
+      className={status === "claiming" ? styles.spinningStatusIcon : ""}
+      src={presentation.icon}
+      alt=""
+      aria-hidden="true"
+    />
+  );
+
+  return (
+    <button
+      type="button"
+      className={`${styles.missionStatusButton} ${styles[`missionStatus_${status}`]}`}
+      disabled={presentation.disabled}
+      onClick={onClick}
+    >
+      {presentation.iconFirst ? icon : null}
+      <span>{copy(presentation.label)}</span>
+      {!presentation.iconFirst ? icon : null}
+    </button>
+  );
+}
+
+function ClaimRewardModal({
+  mission,
+  onClaim,
+  onClose,
+}: {
+  mission: Mission | null;
+  onClaim: () => void;
+  onClose: () => void;
+}) {
+  const reward = mission?.reward.replace(/^\+/, "") ?? "0";
+  const { copy } = useCampaignCopy();
+
+  return (
+    <ModalWithPortal
+      className={styles.claimRewardModal}
+      contentClassName={styles.claimRewardPanel}
+      contentPadding={false}
+      disableOverflowHandling
+      isVisible={mission !== null}
+      setIsVisible={(isVisible) => {
+        if (!isVisible) onClose();
+      }}
+      variant="default"
+    >
+      <div className={styles.claimRewardArtwork} aria-hidden="true">
+        <img src="/campaign/claim-reward-art.png" alt="" />
+      </div>
+      <h2>{copy("Claim Reward")}</h2>
+      <div className={styles.claimRewardAmount}>
+        <strong>{reward}</strong>
+        <span>{copy("R Diamonds")}</span>
+      </div>
+      <button type="button" className={styles.claimNowButton} onClick={onClaim}>
+        {copy("Claim Now")}
+      </button>
+      <div className={styles.claimRewardNotice}>
+        <img src="/campaign/claim-alert.svg" alt="" aria-hidden="true" />
+        <div className={styles.claimRewardNoticeCopy}>
+          <p>
+            {copy("R Diamonds")} <strong>{copy("must be claimed manually.")}</strong>
+          </p>
+          <p>{copy("Completed missions do not auto-credit rewards.")}</p>
+        </div>
+      </div>
+    </ModalWithPortal>
+  );
+}
+
+function MissionSubmitModal({
+  mission,
+  onClose,
+  onContinue,
+}: {
+  mission: Mission | null;
+  onClose: () => void;
+  onContinue: (xUrl: string) => void;
+}) {
+  const [xUrl, setXUrl] = useState("");
+  const reward = mission?.reward ?? "+0";
+  const { copy } = useCampaignCopy();
+
+  useEffect(() => {
+    if (mission) setXUrl("");
+  }, [mission]);
+
+  return (
+    <ModalWithPortal
+      className={styles.missionSubmitModal}
+      contentClassName={styles.missionSubmitPanel}
+      contentPadding={false}
+      disableOverflowHandling
+      isVisible={mission !== null}
+      setIsVisible={(isVisible) => {
+        if (!isVisible) onClose();
+      }}
+      variant="default"
+    >
+      <button type="button" className={styles.missionSubmitClose} aria-label={copy("Close")} onClick={onClose}>
+        <img src="/campaign/submit-close.svg" alt="" aria-hidden="true" />
+      </button>
+
+      <header className={styles.missionSubmitHeader}>
+        <h2>{copy(mission?.title ?? "Mission")}</h2>
+        <p>{mission?.description ? copy(mission.description) : null}</p>
+      </header>
+
+      <section className={styles.missionSubmitSteps} aria-labelledby="mission-submit-steps-title">
+        <h3 id="mission-submit-steps-title">{copy("How to complete")}</h3>
+        <ol>
+          <li>{copy("Open your X profile")}</li>
+          <li>{copy("Add 🪨ROCKY to your name")}</li>
+          <li>{copy("Return and verify")}</li>
+        </ol>
+      </section>
+
+      <div className={styles.missionSubmitDetails}>
+        <label>
+          <span>{copy("Your X URL")}</span>
+          <input
+            type="url"
+            value={xUrl}
+            onChange={(event) => setXUrl(event.target.value)}
+            placeholder="Https://X.Com/Username/Status/."
+          />
+        </label>
+
+        <div className={styles.missionSubmitReward}>
+          <img src="/campaign/submit-reward-icon.png" alt="" aria-hidden="true" />
+          <span>{reward}</span>
+          <span>{copy("R Diamonds")}</span>
+        </div>
+      </div>
+
+      <div className={styles.missionSubmitActions}>
+        <button type="button" className={styles.missionSubmitCancel} onClick={onClose}>
+          {copy("Cancel")}
+        </button>
+        <button type="button" className={styles.missionSubmitPrimary} onClick={() => onContinue(xUrl)}>
+          <span>{copy("Open X")}</span>
+          <img src="/campaign/submit-open-x.svg" alt="" aria-hidden="true" />
+        </button>
+      </div>
+    </ModalWithPortal>
+  );
+}
+
+function isValidXPostUrl(value: string) {
+  try {
+    const url = new URL(value.trim());
+    const isXHost = url.hostname === "x.com" || url.hostname === "www.x.com";
+    const isTwitterHost = url.hostname === "twitter.com" || url.hostname === "www.twitter.com";
+    return (isXHost || isTwitterHost) && /\/status\/\d+/.test(url.pathname);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function OriginalPostSubmitModal({
+  isVisible,
+  onClose,
+  onSubmit,
+}: {
+  isVisible: boolean;
+  onClose: () => void;
+  onSubmit: (postUrl: string) => void;
+}) {
+  const [postUrl, setPostUrl] = useState("");
+  const [showError, setShowError] = useState(false);
+  const { copy } = useCampaignCopy();
+
+  useEffect(() => {
+    if (isVisible) {
+      setPostUrl("");
+      setShowError(false);
+    }
+  }, [isVisible]);
+
+  const submitPost = () => {
+    if (!isValidXPostUrl(postUrl)) {
+      setShowError(true);
+      return;
+    }
+
+    onSubmit(postUrl.trim());
+  };
+
+  return (
+    <ModalWithPortal
+      className={styles.originalPostSubmitModal}
+      contentClassName={styles.originalPostSubmitPanel}
+      contentPadding={false}
+      disableOverflowHandling
+      isVisible={isVisible}
+      setIsVisible={(visible) => {
+        if (!visible) onClose();
+      }}
+      variant="default"
+    >
+      <button type="button" className={styles.originalPostModalClose} aria-label={copy("Close")} onClick={onClose}>
+        <img src="/campaign/submit-close.svg" alt="" aria-hidden="true" />
+      </button>
+
+      <header className={styles.originalPostSubmitHeader}>
+        <h2>{copy("Submit Your Post")}</h2>
+        <p>{copy("Submit your original post on X to earn R Diamonds.")}</p>
+      </header>
+
+      <ol className={styles.originalPostSubmitSteps} aria-label={copy("Submission progress")}>
+        <li className={styles.originalPostSubmitStepActive}>
+          <span>1</span>
+          <strong>{copy("Paste Link")}</strong>
+        </li>
+        <img src="/campaign/post-submit-line-active.svg" alt="" aria-hidden="true" />
+        <li>
+          <span>2</span>
+          <strong>{copy("Verify")}</strong>
+        </li>
+        <img src="/campaign/post-submit-line-muted.svg" alt="" aria-hidden="true" />
+        <li>
+          <span>3</span>
+          <strong>{copy("Confirm")}</strong>
+        </li>
+      </ol>
+
+      <label className={styles.originalPostUrlField}>
+        <span>{copy("X Post Link")}</span>
+        <small>{copy("Paste the link to your original post on X (Twitter).")}</small>
+        <input
+          type="url"
+          value={postUrl}
+          aria-invalid={showError}
+          placeholder="https://x.com/username/status/1234567890"
+          onChange={(event) => {
+            setPostUrl(event.target.value);
+            if (showError) setShowError(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") submitPost();
+          }}
+        />
+        {showError ? <em>{copy("Please enter a valid public X post link.")}</em> : null}
+      </label>
+
+      <section className={styles.originalPostRequirements}>
+        <h3>
+          <img src="/campaign/post-submit-alert.svg" alt="" aria-hidden="true" />
+          {copy("Requirements")}
+        </h3>
+        <ul>
+          {ORIGINAL_POST_REQUIREMENTS.map((requirement) => (
+            <li key={requirement}>{copy(requirement)}</li>
+          ))}
+        </ul>
+      </section>
+
+      <div className={styles.originalPostSubmitActions}>
+        <button type="button" onClick={onClose}>
+          {copy("Cancel")}
+        </button>
+        <button type="button" onClick={submitPost}>
+          <span>{copy("Submit")}</span>
+          <img src="/campaign/original-post-arrow.svg" alt="" aria-hidden="true" />
+        </button>
+      </div>
+    </ModalWithPortal>
+  );
+}
+
+function OriginalPostResultModal({
+  mode,
+  onClose,
+  onRetry,
+  reward,
+}: {
+  mode: Exclude<OriginalPostDialog, "submit" | null>;
+  onClose: () => void;
+  onRetry: () => void;
+  reward: number;
+}) {
+  const isRejected = mode === "rejected";
+  const { copy } = useCampaignCopy();
+
+  return (
+    <ModalWithPortal
+      className={styles.originalPostResultModal}
+      contentClassName={`${styles.originalPostResultPanel} ${isRejected ? styles.originalPostRejectedPanel : ""}`}
+      contentPadding={false}
+      disableOverflowHandling
+      isVisible
+      setIsVisible={(visible) => {
+        if (!visible) onClose();
+      }}
+      variant="default"
+    >
+      <img
+        className={styles.originalPostResultBadge}
+        src={isRejected ? "/campaign/post-review-rejected.svg" : "/campaign/post-review-approved.svg"}
+        alt=""
+        aria-hidden="true"
+      />
+
+      {isRejected ? (
+        <>
+          <header className={styles.originalPostResultHeader}>
+            <h2>{copy("Post Not Approved")}</h2>
+            <p>
+              {copy("Your post did not meet our requirements.")}
+              <br />
+              {copy("Please check the reason below and try again.")}
+            </p>
+          </header>
+          <section className={styles.originalPostRejectReason}>
+            <strong>{copy("Reason")}</strong>
+            <p>{copy("Content is not related to Rocky or Canton.")}</p>
+          </section>
+          <button type="button" className={styles.originalPostResultButton} onClick={onRetry}>
+            {copy("Try Again")}
+          </button>
+        </>
+      ) : (
+        <>
+          <header className={styles.originalPostResultHeader}>
+            <h2>{copy("Reward Claimed!")}</h2>
+            <p>
+              {copy("Your R Diamonds have been claimed successfully.")}
+              <br />
+              {copy("The reward has been added to your account.")}
+            </p>
+          </header>
+          <section className={styles.originalPostRewardResult}>
+            <div>
+              <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+              <span>
+                <strong>+{reward}</strong>
+                <small>{copy("R Diamonds")}</small>
+              </span>
+            </div>
+            <span>{copy("Claim Complete")}</span>
+            <p>{copy("Your qualified post reward is now complete.")}</p>
+          </section>
+          <button type="button" className={styles.originalPostResultButton} onClick={onClose}>
+            {copy("Done")}
+          </button>
+        </>
+      )}
+    </ModalWithPortal>
+  );
+}
+
+function OriginalPostsModule() {
+  const [status, setStatus] = useState<OriginalPostStatus>("idle");
+  const [dialog, setDialog] = useState<OriginalPostDialog>(null);
+  const [qualifiedCount, setQualifiedCount] = useState(0);
+  const reviewTimerRef = useRef<number | null>(null);
+  const { copy } = useCampaignCopy();
+
+  useEffect(
+    () => () => {
+      if (reviewTimerRef.current !== null) window.clearTimeout(reviewTimerRef.current);
+    },
+    []
+  );
+
+  const handleSubmit = () => {
+    setDialog(null);
+    setStatus("pending");
+
+    reviewTimerRef.current = window.setTimeout(() => {
+      const shouldReject = new URLSearchParams(window.location.search).get("postReview") === "rejected";
+      setStatus(shouldReject ? "rejected" : "claimable");
+      if (shouldReject) setDialog("rejected");
+    }, 2200);
+  };
+
+  const handleAction = () => {
+    if (status === "idle") {
+      setDialog("submit");
+      return;
+    }
+
+    if (status === "claimable") {
+      setQualifiedCount((count) => Math.min(count + 1, ORIGINAL_POST_REWARDS.length));
+      setStatus("claimed");
+      setDialog("claimed");
+      return;
+    }
+
+    if (status === "rejected") setDialog("rejected");
+  };
+
+  const statusPresentation: Record<OriginalPostStatus, { label: string; icon?: string }> = {
+    idle: { label: copy("Submit Post"), icon: "/campaign/original-post-arrow.svg" },
+    pending: { label: copy("Pending"), icon: "/campaign/status-pending.svg" },
+    claimable: { label: copy("Claim"), icon: "/campaign/original-post-arrow.svg" },
+    claimed: { label: copy("Claimed"), icon: "/campaign/status-claimed.svg" },
+    rejected: { label: copy("Rejected"), icon: "/campaign/status-retry.svg" },
+  };
+  const action = statusPresentation[status];
+  const displayedRewards = ORIGINAL_POST_REWARDS.slice(0, qualifiedCount).reduce(
+    (total, post) => total + post.reward,
+    0
+  );
+  const nextReward = ORIGINAL_POST_REWARDS[qualifiedCount]?.reward ?? 0;
+  const isDailyComplete = qualifiedCount === ORIGINAL_POST_REWARDS.length;
+
+  return (
+    <section className={styles.originalPostsModule} aria-labelledby="original-posts-title">
+      <header className={styles.originalPostsHeader}>
+        <div>
+          <h2 id="original-posts-title">{copy("Original Posts")}</h2>
+          <span>{copy("Up to 2 / day • cumulative")}</span>
+        </div>
+        <p>{copy("Earn cumulative R Diamonds from qualified original posts each day.")}</p>
+      </header>
+
+      <div className={styles.originalPostsBody}>
+        <div className={styles.originalPostsProgress}>
+          <div className={styles.originalPostTimeline}>
+            {isDailyComplete ? (
+              <span
+                className={`${styles.originalPostConnector} ${styles.originalPostConnectorAllComplete}`}
+                aria-hidden="true"
+              />
+            ) : (
+              <img
+                className={`${styles.originalPostConnector} ${
+                  qualifiedCount >= 1 ? styles.originalPostConnectorComplete : styles.originalPostConnectorPending
+                }`}
+                src={
+                  qualifiedCount >= 1
+                    ? "/campaign/original-post-connector-complete.svg"
+                    : "/campaign/original-post-connector-pending.svg"
+                }
+                alt=""
+                aria-hidden="true"
+              />
+            )}
+
+            {ORIGINAL_POST_REWARDS.map((post, index) => {
+              const isCompleted = index < qualifiedCount;
+
+              return (
+                <div
+                  className={`${styles.originalPostNode} ${isCompleted ? styles.originalPostNodeCompleted : ""}`}
+                  key={post.id}
+                >
+                  <span className={styles.originalPostBadge}>
+                    <img
+                      src={isCompleted ? "/campaign/original-post-complete.svg" : "/campaign/original-post-pending.svg"}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    {!isCompleted ? <strong>{post.id}</strong> : null}
+                  </span>
+                  <span className={styles.originalPostNodeCopy}>
+                    <small>
+                      {copy("Post")} {post.id}
+                    </small>
+                    <strong className={isCompleted ? styles.originalPostEarned : ""}>+{post.reward}</strong>
+                    <small>{copy("R Diamonds")}</small>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={styles.originalPostsReset}>
+            <img src="/campaign/original-post-baseline.svg" alt="" aria-hidden="true" />
+            <p>{copy("Daily progress resets at 00:00 UTC.")}</p>
+          </div>
+        </div>
+
+        <span className={styles.originalPostsDivider} aria-hidden="true">
+          <img src="/campaign/original-post-divider.svg" alt="" />
+        </span>
+
+        <div className={styles.originalPostsSummary}>
+          <div className={styles.originalPostStats}>
+            <span className={styles.originalPostStat}>
+              <span>
+                <strong>{qualifiedCount}</strong>
+                <em>/ 2</em>
+              </span>
+              <small>{copy("Qualified Today")}</small>
+            </span>
+            <span className={styles.originalPostStatDivider} aria-hidden="true">
+              <img src="/campaign/original-post-stat-divider.svg" alt="" />
+            </span>
+            <span className={styles.originalPostStat}>
+              <span>
+                <strong>{displayedRewards}</strong>
+                <em>/ 400</em>
+              </span>
+              <small>{copy("R Diamonds Earned")}</small>
+            </span>
+          </div>
+
+          <div className={styles.originalPostNextReward}>
+            <div>
+              <small>{copy(isDailyComplete ? "Daily Complete" : "Next Reward")}</small>
+              <strong>{isDailyComplete ? "2 / 2" : `+${nextReward}`}</strong>
+              <span>
+                <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+                {copy(isDailyComplete ? "Rewards Claimed" : "R Diamonds")}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={`${styles.originalPostSubmitButton} ${styles[`originalPostSubmitButton_${status}`]}`}
+              disabled={status === "pending" || status === "claimed"}
+              onClick={handleAction}
+            >
+              <span>{action.label}</span>
+              {action.icon ? (
+                <img
+                  className={status === "pending" ? styles.spinningStatusIcon : ""}
+                  src={action.icon}
+                  alt=""
+                  aria-hidden="true"
+                />
+              ) : null}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <OriginalPostSubmitModal
+        isVisible={dialog === "submit"}
+        onClose={() => setDialog(null)}
+        onSubmit={handleSubmit}
+      />
+      {dialog === "claimed" || dialog === "rejected" ? (
+        <OriginalPostResultModal
+          mode={dialog}
+          reward={ORIGINAL_POST_REWARDS[Math.max(qualifiedCount - 1, 0)].reward}
+          onClose={() => {
+            setDialog(null);
+            if (!isDailyComplete) setStatus("idle");
+          }}
+          onRetry={() => {
+            setStatus("idle");
+            setDialog("submit");
+          }}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function MissionsContent() {
+  const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>(getInitialTaskStatuses);
+  const [claimMission, setClaimMission] = useState<Mission | null>(null);
+  const [submitMission, setSubmitMission] = useState<Mission | null>(null);
+  const [isXConnected, setIsXConnected] = useState(false);
+  const timersRef = useRef<number[]>([]);
+  const submittedUrlsRef = useRef<Record<string, string>>({});
+  const { copy, isTraditionalChinese } = useCampaignCopy();
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, []);
+
+  const updateTaskStatus = (missionId: string, status: TaskStatus) => {
+    setTaskStatuses((current) => ({ ...current, [missionId]: status }));
+  };
+
+  const scheduleTaskStatus = (missionId: string, status: TaskStatus, delay: number) => {
+    const timer = window.setTimeout(() => updateTaskStatus(missionId, status), delay);
+    timersRef.current.push(timer);
+  };
+
+  const handleMissionAction = (mission: Mission) => {
+    const status = taskStatuses[mission.id];
+
+    if (status === "not_started") {
+      if (mission.id === "nickname-rocky") {
+        setSubmitMission(mission);
+        return;
+      }
+
+      updateTaskStatus(mission.id, "verifying");
+      return;
+    }
+
+    if (status === "verifying" || status === "retry") {
+      updateTaskStatus(mission.id, "pending");
+      scheduleTaskStatus(mission.id, "claimable", 1200);
+      return;
+    }
+
+    if (status === "claimable") {
+      setClaimMission(mission);
+    }
+  };
+
+  const handleClaim = () => {
+    if (!claimMission) return;
+    const missionId = claimMission.id;
+    setClaimMission(null);
+    updateTaskStatus(missionId, "claiming");
+    scheduleTaskStatus(missionId, "claimed", 1000);
+  };
+
+  const handleMissionSubmit = (xUrl: string) => {
+    if (!submitMission) return;
+    const missionId = submitMission.id;
+    submittedUrlsRef.current[missionId] = xUrl.trim();
+    setSubmitMission(null);
+    updateTaskStatus(missionId, "verifying");
+    window.open("https://x.com/settings/profile", "_blank", "noopener,noreferrer");
+  };
+
+  const completedCount = MISSIONS.filter((mission) =>
+    ["claimable", "claiming", "claimed"].includes(taskStatuses[mission.id])
+  ).length;
+
+  return (
+    <section className={`${styles.content} ${styles.missionsContent}`}>
+      <div className={styles.missionsHeading}>
+        <SectionHeading title="Missions" description="Complete missions to earn R Diamonds" />
+        <button
+          type="button"
+          className={`${styles.xConnectButton} ${isXConnected ? styles.xConnectButtonConnected : ""}`}
+          aria-pressed={isXConnected}
+          onClick={() => setIsXConnected((connected) => !connected)}
+        >
+          <span>{copy(isXConnected ? "X Connected" : "Connect X")}</span>
+          {!isXConnected ? <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" /> : null}
+        </button>
+      </div>
+
+      <div className={styles.progressOverview}>
+        <span>{copy("Your Progress")}</span>
+        <span
+          className={styles.progressTrack}
+          role="img"
+          aria-label={
+            isTraditionalChinese
+              ? `已完成 ${completedCount}/${MISSIONS.length} 項任務`
+              : `${completedCount} of ${MISSIONS.length} missions completed`
+          }
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <span className={index < completedCount ? styles.completedProgressStep : ""} key={index} />
+          ))}
+        </span>
+        <span className={styles.progressValue}>
+          <strong>{completedCount}</strong> / {MISSIONS.length}
+        </span>
+        <span>{copy("Claimable")}</span>
+      </div>
+
+      <div className={styles.missionList}>
+        {MISSIONS.map((mission, index) => (
+          <article className={styles.missionRow} key={mission.title}>
+            <span className={styles.missionNumber}>{String(index + 1).padStart(2, "0")}</span>
+            <span className={styles.missionIcon}>
+              {mission.icon ? <img src={mission.icon} alt="" aria-hidden="true" /> : mission.iconText}
+            </span>
+            <span className={styles.missionCopy}>
+              <strong>{copy(mission.title)}</strong>
+              <small>{copy(mission.description)}</small>
+            </span>
+            <span className={styles.missionReward}>
+              <DiamondAmount>{mission.reward}</DiamondAmount>
+              <small>{copy("R Diamonds")}</small>
+            </span>
+            <MissionStatusButton status={taskStatuses[mission.id]} onClick={() => handleMissionAction(mission)} />
+          </article>
+        ))}
+      </div>
+
+      <OriginalPostsModule />
+
+      <ClaimRewardModal mission={claimMission} onClaim={handleClaim} onClose={() => setClaimMission(null)} />
+      <MissionSubmitModal
+        mission={submitMission}
+        onClose={() => setSubmitMission(null)}
+        onContinue={handleMissionSubmit}
+      />
+
+      <aside className={styles.rules}>
+        <h2>
+          <img src="/campaign/alert.svg" alt="" aria-hidden="true" />
+          {copy("Important Note")}
+        </h2>
+        <ul>
+          <li>{copy("Complete each mission using the connected wallet.")}</li>
+          <li>{copy("Social content must relate to Rocky, Canton, or the Beta campaign.")}</li>
+          <li>{copy("R Diamonds are relative contribution records and must be claimed manually.")}</li>
+          <li>{copy("Fraudulent, copied, or automated submissions may be rejected.")}</li>
+        </ul>
+      </aside>
+    </section>
+  );
+}
+
+function LeaderboardContent() {
+  const [currentPage, setCurrentPage] = useState(2);
+  const totalPages = Math.ceil(LEADERBOARD.length / LEADERBOARD_PAGE_SIZE);
+  const pageEntries = LEADERBOARD.slice((currentPage - 1) * LEADERBOARD_PAGE_SIZE, currentPage * LEADERBOARD_PAGE_SIZE);
+  const { copy, isTraditionalChinese } = useCampaignCopy();
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(totalPages, Math.max(1, page)));
+  };
+
+  return (
+    <section className={`${styles.content} ${styles.leaderboardContent}`}>
+      <SectionHeading title="Ranking" description="Qualified accounts ranked by trading volume" />
+
+      <div className={styles.tableWrap}>
+        <div className={styles.tableHeader} aria-hidden="true">
+          <span>{copy("Rank")}</span>
+          <span>{copy("User")}</span>
+          <span>{copy("Volume (USD)")}</span>
+          <span>{copy("Est. R Diamonds Reward")}</span>
+        </div>
+
+        <div className={styles.leaderboard} role="table" aria-label={copy("Season 0 leaderboard")}>
+          {pageEntries.map((entry) => (
+            <div className={`${styles.row} ${entry.rank <= 3 ? styles.podiumRow : ""}`} role="row" key={entry.rank}>
+              <div className={styles.rankCell} role="cell">
+                <RankBadge rank={entry.rank} />
+              </div>
+              <div className={styles.userCell} role="cell">
+                <span className={styles.avatar}>
+                  {entry.avatar ? <img src={entry.avatar} alt="" aria-hidden="true" /> : null}
+                </span>
+                <span className={styles.userCopy}>
+                  <strong>{entry.name}</strong>
+                  <small>{entry.address}</small>
+                </span>
+              </div>
+              <span className={styles.volume} role="cell">
+                {entry.volume}
+              </span>
+              <span className={styles.rewardCell} role="cell">
+                <DiamondAmount>{entry.reward}</DiamondAmount>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <nav className={styles.pagination} aria-label={copy("Leaderboard pages")}>
+        <button
+          type="button"
+          aria-label={copy("Previous page")}
+          disabled={currentPage === 1}
+          onClick={() => goToPage(currentPage - 1)}
+        >
+          <img src="/campaign/chevron-left.svg" alt="" aria-hidden="true" />
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+          <button
+            type="button"
+            className={page === currentPage ? styles.currentPage : ""}
+            aria-current={page === currentPage ? "page" : undefined}
+            aria-label={isTraditionalChinese ? `${copy("Page")} ${page} 頁` : `Page ${page}`}
+            onClick={() => goToPage(page)}
+            key={page}
+          >
+            {String(page).padStart(2, "0")}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label={copy("Next page")}
+          disabled={currentPage === totalPages}
+          onClick={() => goToPage(currentPage + 1)}
+        >
+          <img src="/campaign/chevron-right.svg" alt="" aria-hidden="true" />
+        </button>
+      </nav>
+
+      <section className={styles.rewards}>
+        <h2>
+          <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+          {copy("Top 50 Rewards")}
+        </h2>
+        <div className={styles.rewardTiers}>
+          {REWARD_TIERS.map((tier) => (
+            <div className={styles.rewardTier} key={tier.label}>
+              <span className={styles[tier.tone]}>{copy(tier.label)}</span>
+              {tier.showDiamond ? (
+                <DiamondAmount>{tier.reward}</DiamondAmount>
+              ) : (
+                <span className={styles.plainReward}>{tier.reward}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <aside className={styles.rules}>
+        <h2>
+          <img src="/campaign/alert.svg" alt="" aria-hidden="true" />
+          {copy("Ranking Rules")}
+        </h2>
+        <ul>
+          <li>
+            {copy(
+              "This is a real-funds trading competition. Only eligible accounts enter the leaderboard, ranked by total qualified trading volume in descending order."
+            )}
+          </li>
+          <li>
+            {copy(
+              "Eligibility requires time-weighted average equity of at least $200, at least $2,000 in qualified notional trading volume, 10 effective trades, and activity on 2 or more trading days."
+            )}
+          </li>
+          <li>
+            {copy(
+              "Wash trading, related-account self-dealing, and other abnormal activity are excluded and may result in disqualification."
+            )}
+          </li>
+          <li>
+            {copy(
+              "The leaderboard closes at 24:00 UTC+8 on Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking."
+            )}
+          </li>
+          <li>
+            {copy(
+              "The Top 50 share 56,500,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds."
+            )}
+          </li>
+        </ul>
+      </aside>
+    </section>
+  );
+}
+
+function ComingSoon() {
+  const { copy } = useCampaignCopy();
+
+  return (
+    <div className={styles.comingSoon}>
+      <img src="/campaign/lock.svg" alt="" aria-hidden="true" />
+      <span>{copy("Coming Soon")}</span>
+    </div>
+  );
+}
+
+function RewardInfoTooltip({ ariaLabel, content }: { ariaLabel: string; content: ReactNode }) {
+  return (
+    <TooltipWithPortal
+      content={content}
+      handle={
+        <button type="button" className={styles.rewardInfoButton} aria-label={ariaLabel}>
+          <img src="/campaign/reward-tooltip-info.svg" alt="" aria-hidden="true" />
+        </button>
+      }
+      position="right-start"
+      openDelay={0}
+      closeDelay={80}
+      maxAllowedWidth={230}
+      tooltipClassName={styles.rewardTooltip}
+      variant="none"
+    />
+  );
+}
+
+function MyRewardsContent() {
+  const [copied, setCopied] = useState(false);
+  const referralLink = "Https://xxxxxx.xxxxx.xxx.xxxxxxx";
+  const { copy } = useCampaignCopy();
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  return (
+    <section className={`${styles.content} ${styles.rewardsContent}`}>
+      <SectionHeading title="My Rewards" description="Track your rewards, status, and exclusive benefits." />
+
+      <div className={styles.rewardDashboard}>
+        <article className={`${styles.dashboardCard} ${styles.diamondCard}`}>
+          <h3>
+            {copy("R Diamonds")}
+            <small>{copy("（Reward Breakdown）")}</small>
+          </h3>
+          <img className={styles.dashboardArtwork} src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+          <div className={styles.diamondStats}>
+            <div className={styles.totalRewardLabel}>
+              <span className={styles.metricLabel}>{copy("Total Rewards")}</span>
+              <RewardInfoTooltip
+                ariaLabel={copy("About total rewards")}
+                content={copy("Earned from missions and campaign participation.")}
+              />
+            </div>
+            <strong className={styles.totalRewards}>2,000</strong>
+            <div className={styles.rewardBreakdown}>
+              <span>
+                <span className={styles.breakdownRewardLabel}>
+                  <small>{copy("Task Rewards")}</small>
+                  <RewardInfoTooltip ariaLabel={copy("About task rewards")} content={copy("Earned from missions.")} />
+                </span>
+                <strong>900</strong>
+              </span>
+              <span>
+                <span className={styles.breakdownRewardLabel}>
+                  <small>{copy("Campaign Rewards")}</small>
+                  <RewardInfoTooltip
+                    ariaLabel={copy("About campaign rewards")}
+                    content={
+                      <>
+                        <span className={styles.rewardTooltipMuted}>{copy("CLAIMED")}</span>
+                        <span> 750 {copy("R Diamonds")}</span>
+                      </>
+                    }
+                  />
+                </span>
+                <strong>1,100</strong>
+              </span>
+              <span>
+                <span className={styles.breakdownRewardLabel}>
+                  <small>{copy("Referral Rewards")}</small>
+                  <RewardInfoTooltip
+                    ariaLabel={copy("About referral rewards")}
+                    content={copy("Earned from successful referrals.")}
+                  />
+                </span>
+                <strong>900</strong>
+              </span>
+            </div>
+            <div className={styles.claimPanel}>
+              <span>
+                <small>{copy("Claimable")}</small>
+                <strong>1,250</strong>
+              </span>
+              <button type="button" className={styles.primaryButton}>
+                {copy("Claim")}
+                <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article className={`${styles.dashboardCard} ${styles.pointsCard}`}>
+          <h3>{copy("R Points (Future)")}</h3>
+          <div className={styles.pointsBody}>
+            <img src="/campaign/r-points.png" alt="" aria-hidden="true" />
+            <span>
+              <small className={styles.metricLabel}>{copy("Total R Points")}</small>
+              <strong>0</strong>
+            </span>
+          </div>
+          <ComingSoon />
+        </article>
+
+        <article className={`${styles.dashboardCard} ${styles.referralsCard}`}>
+          <h3>{copy("Your Referrals")}</h3>
+          <div className={styles.referralMetrics}>
+            <span className={styles.earnedMetric}>
+              <strong>
+                0.00
+                <img src="/campaign/r-diamond.png" alt={copy("R Diamonds")} />
+              </strong>
+              <small>{copy("Total Earned --")}</small>
+            </span>
+            <span>
+              <strong>0</strong>
+              <small>{copy("Total Referred Users")}</small>
+            </span>
+            <span>
+              <strong className={styles.coolMetric}>10%</strong>
+              <small>{copy("Reward Rate")}</small>
+            </span>
+          </div>
+        </article>
+
+        <article className={`${styles.dashboardCard} ${styles.referralLinkCard}`}>
+          <h3>{copy("Your Referral Link")}</h3>
+          <div className={styles.copyRow}>
+            <span>{referralLink}</span>
+            <button type="button" onClick={handleCopy} aria-label={copy("Copy referral link")}>
+              <img src="/campaign/copy.svg" alt="" aria-hidden="true" />
+            </button>
+          </div>
+          <div className={styles.copyRow}>
+            <span>
+              {copy("Code:")} <strong>GLZ885</strong>
+            </span>
+            <button type="button" onClick={handleCopy} aria-label={copy("Copy referral code")}>
+              <img src="/campaign/copy.svg" alt="" aria-hidden="true" />
+            </button>
+          </div>
+          <button type="button" className={styles.copyButton} onClick={handleCopy}>
+            <img src="/campaign/share.svg" alt="" aria-hidden="true" />
+            {copy(copied ? "Copied" : "Copy Link")}
+          </button>
+        </article>
+
+        <article className={`${styles.dashboardCard} ${styles.howItWorksCard}`}>
+          <h3>{copy("How It Works")}</h3>
+          <ol>
+            <li>
+              <span>1</span>
+              <div>
+                <strong>{copy("Share Your Link")}</strong>
+                <small>{copy("Copy and share your unique referral link.")}</small>
+              </div>
+            </li>
+            <li>
+              <span>2</span>
+              <div>
+                <strong>{copy("Friends Join")}</strong>
+                <small>{copy("They sign up and start earning using your link.")}</small>
+              </div>
+            </li>
+            <li>
+              <span>3</span>
+              <div>
+                <strong>{copy("Earn Rewards")}</strong>
+                <small>{copy("Get 10% R Diamonds")}</small>
+              </div>
+            </li>
+          </ol>
+        </article>
+
+        <article className={`${styles.dashboardCard} ${styles.badgeCard}`}>
+          <h3>{copy("Badges")}</h3>
+          <div className={styles.badgeBody}>
+            <span className={styles.badgeArtwork}>
+              <img src="/campaign/og-badge.png" alt={copy("Rocky OG badge")} />
+              <small>{copy("OG Badges · Rare")}</small>
+            </span>
+            <span className={styles.badgeCopy}>
+              <strong>
+                {copy("Eligible")}
+                <img src="/campaign/eligible-check.svg" alt="" aria-hidden="true" />
+              </strong>
+              <p>{copy("Eligible OG users will receive the badge after the activity review.")}</p>
+              <em>{copy("Limited 102/500")}</em>
+              <small>{copy("Learn More →")}</small>
+            </span>
+          </div>
+        </article>
+
+        <article className={`${styles.dashboardCard} ${styles.ccCard}`}>
+          <h3>{copy("CC Rewards")}</h3>
+          <p>{copy("Specific ratios, schedules, and conditions are subject to the final announcement.")}</p>
+          <div className={styles.ccBody}>
+            <img src="/campaign/cc-chest.png" alt="" aria-hidden="true" />
+            <span>
+              {["Redemption ratio", "Unlock schedule", "Eligibility"].map((item) => (
+                <span className={styles.ccLine} key={item}>
+                  <img src="/campaign/reward-bullet.png" alt="" aria-hidden="true" />
+                  <span>{copy(item)}</span>
+                  <small>TBA</small>
+                </span>
+              ))}
+              <ComingSoon />
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+export default function SeasonZeroLeaderboardPage() {
+  const history = useHistory();
+  const location = useLocation();
+  const activeTab = getCampaignTab(location.search);
+  const { copy } = useCampaignCopy();
+
+  useEffect(() => {
+    document.documentElement.classList.add("campaign-active");
+    document.body.classList.add("lighter-active");
+    return () => {
+      document.documentElement.classList.remove("campaign-active");
+      document.body.classList.remove("lighter-active");
+    };
+  }, []);
+
+  const handleTabChange = (tab: CampaignTab) => {
+    const search = tab === "missions" ? "" : `?tab=${tab}`;
+    history.push({ pathname: location.pathname, search });
+  };
+
+  return (
+    <div className={`lighter-root ${styles.page}`}>
+      <header className={styles.topnav}>
+        <TopNav transparent />
+      </header>
+
+      <main>
+        <CampaignHero activeTab={activeTab} onTabChange={handleTabChange} />
+
+        <nav className={styles.campaignTabs} aria-label={copy("Campaign sections")}>
+          {(
+            [
+              ["missions", "Missions"],
+              ["leaderboard", "Leaderboard"],
+              ["rewards", "My Rewards"],
+            ] as const
+          ).map(([tab, label]) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                type="button"
+                className={isActive ? styles.activeTab : ""}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => handleTabChange(tab)}
+                key={tab}
+              >
+                {isActive ? `[ ${copy(label)} ]` : copy(label)}
+              </button>
+            );
+          })}
+        </nav>
+
+        {activeTab === "missions" ? (
+          <MissionsContent />
+        ) : activeTab === "leaderboard" ? (
+          <LeaderboardContent />
+        ) : (
+          <MyRewardsContent />
+        )}
+      </main>
+    </div>
+  );
+}

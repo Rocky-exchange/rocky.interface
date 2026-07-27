@@ -24,9 +24,10 @@ port, e.g. 3013, if it's taken):
 yarn start
 ```
 
-In dev, `vite.config.ts` proxies `/v1` and `/fapi` to `https://api.rocky.exchange`
-(override with `VITE_PROXY_API_URL`), so the browser talks to the backend
-same-origin and there's no CORS to configure.
+In dev, `vite.config.ts` proxies `/v1`, `/fapi`, and `/api/v3` to
+`https://api.rocky.exchange` by default. Override `VITE_PROXY_API_URL` (and,
+when needed, `VITE_PROXY_SPOT_URL`) to target a local or test backend, so the
+browser still talks to the backend same-origin without additional CORS setup.
 
 ## Scripts
 
@@ -38,8 +39,8 @@ same-origin and there's no CORS to configure.
 
 ## Backend / API
 
-The UI talks to **`rocky-backend`** at `api.rocky.exchange`, which exposes two
-surfaces:
+The UI talks to **`rocky-backend`** through the configured API origin, which
+exposes two surfaces:
 
 - `/v1/*` — Rocky-native (wallet-session Bearer auth; Rocky symbols like
   `BTC-PERP`). Markets, orderbook, ticker, candles, orders, positions, and the

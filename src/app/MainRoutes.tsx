@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Route, Switch, useLocation } from "react-router-dom";
 
+import SeasonZeroLeaderboardPage from "@/modules/campaigns/pages/SeasonZeroLeaderboardPage";
 import LighterPortfolioPage from "@/modules/lighter/pages/LighterPortfolioPage";
 import LighterTradePage from "@/modules/lighter/pages/LighterTradePage";
 import { LighterTradeRuntimeProviders } from "@/modules/lighter/providers/LighterTradeRuntimeProviders";
@@ -20,6 +21,8 @@ const RedeemCodePage = lazy(() =>
     default: RedeemCodePage,
   }))
 );
+
+const CAMPAIGN_ROUTES = ["/campaigns", "/campaigns/season-0"];
 
 export function MainRoutes({ openSettings: _openSettings }: { openSettings: () => void }) {
   const { pathname } = useLocation();
@@ -79,6 +82,10 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
             <RedeemCodePage />
           </Suspense>
         </LighterTradeRuntimeProviders>
+      </Route>
+
+      <Route exact path={CAMPAIGN_ROUTES}>
+        <SeasonZeroLeaderboardPage />
       </Route>
 
       <Route>

@@ -91,6 +91,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mUseCantonSession.mockReturnValue({
     connected: false,
+    locked: false,
     token: "",
     party: "",
     username: "",

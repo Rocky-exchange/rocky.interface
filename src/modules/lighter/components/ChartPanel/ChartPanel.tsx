@@ -803,7 +803,9 @@ export function ChartPanel() {
                             customCssUrl="/lighter-tv.css"
                             initialBarsCount={170}
                             forcedPeriod={tf}
-                            onPeriodChange={paneIdx === 0 ? setTf : undefined}
+                            onPeriodChange={
+                              paneIdx === 0 ? (period) => setTf(period as ChartTimeframe) : undefined
+                            }
                             onWidgetReady={paneIdx === 0 ? setTvWidget : undefined}
                           />
                         </ChartPaneErrorBoundary>

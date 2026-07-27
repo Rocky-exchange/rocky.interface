@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const root = path.dirname(fileURLToPath(import.meta.url));
   const env = loadEnv(mode, root, "");
-  // Node 25 intermittently resets TLS 1.3 handshakes to api.rocky.exchange
+  // Node 25 intermittently resets TLS 1.3 handshakes to the API upstream
   // behind common local network proxies. TLS 1.2 is supported by the API and
   // keeps Vite's same-origin development proxy stable.
   const upstreamAgent = new https.Agent({ keepAlive: true, maxVersion: "TLSv1.2" });
@@ -118,8 +118,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             utilities: ["date-fns", "lodash"],
-            charts: ["recharts"],
-            ui: ["@headlessui/react", "framer-motion", "react-select"],
           },
         },
       },

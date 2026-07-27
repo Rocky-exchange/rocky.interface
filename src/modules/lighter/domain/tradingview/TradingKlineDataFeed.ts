@@ -502,7 +502,7 @@ export class TradingKlineDataFeed extends EventTarget implements IBasicDataFeed 
         if (price) {
           this.handleTickerUpdate({ symbol: backendSymbol, last_price: ticker.last_price, mark_price: ticker.mark_price } as never);
         }
-      } catch {
+      } catch (_error) {
         // transient — next tick retries
       }
     };

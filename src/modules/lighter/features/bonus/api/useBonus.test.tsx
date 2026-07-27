@@ -186,6 +186,7 @@ beforeEach(() => {
   cache = new Map();
   session = {
     connected: true,
+    locked: false,
     token: "session-1",
     party: "party-a",
     username: "alice",

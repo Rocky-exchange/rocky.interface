@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -73,6 +73,7 @@ describe("SpotAccountsPanel", () => {
     mSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch: vi.fn() });
     mSession.mockReturnValue({
       connected: false,
+      locked: false,
       token: "",
       party: "",
       username: "",
@@ -90,6 +91,7 @@ describe("SpotAccountsPanel", () => {
     mSpotAccount.mockReturnValue({ ready: false, account: null, err: null, refetch: vi.fn() });
     mSession.mockReturnValue({
       connected: false,
+      locked: false,
       token: "",
       party: "",
       username: "",
@@ -140,6 +142,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -189,6 +192,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -223,6 +227,7 @@ describe("SpotAccountsPanel", () => {
       });
       mSession.mockReturnValue({
         connected: true,
+        locked: false,
         token: "t",
         party: "p1",
         username: "u",
@@ -248,6 +253,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -278,6 +284,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -307,6 +314,7 @@ describe("SpotAccountsPanel", () => {
     });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -332,6 +340,7 @@ describe("SpotAccountsPanel", () => {
   it("preserves loading and error states", () => {
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "p1",
       username: "u",
@@ -348,47 +357,21 @@ describe("SpotAccountsPanel", () => {
     expect(failed.getByRole("alert").textContent).toBe("account unavailable");
   });
 
-  it("preserves the dev faucet flow and refreshes the shared account state", async () => {
-    const refetch = vi.fn();
-    mSpotAccount.mockReturnValue({ ready: true, account: account("0"), err: null, refetch });
-    mSession.mockReturnValue({
-      connected: true,
-      token: "t",
-      party: "party-abc",
-      username: "u",
-      avatar: "",
-      provider: "",
-    });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
-
-    const { findByRole } = render(<SpotAccountsPanel market={market} />);
-    fireEvent.click(await findByRole("button", { name: "Get test funds (dev)" }));
-
-    await waitFor(() =>
-      expect(fetchSpy.mock.calls.some(([url]) => url === "/api/v3/dev/faucet")).toBe(true),
-    );
-    const [, init] = fetchSpy.mock.calls.find(([url]) => url === "/api/v3/dev/faucet")!;
-    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ party: "party-abc" });
-    expect(refetch).toHaveBeenCalledOnce();
-    fetchSpy.mockRestore();
-  });
-
-  it("announces faucet request failures", async () => {
+  it("keeps the dev faucet hidden when every spot balance is zero", () => {
     mSpotAccount.mockReturnValue({ ready: true, account: account("0"), err: null, refetch: vi.fn() });
     mSession.mockReturnValue({
       connected: true,
+      locked: false,
       token: "t",
       party: "party-abc",
       username: "u",
       avatar: "",
       provider: "",
     });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("", { status: 500 }));
 
-    const { findByRole } = render(<SpotAccountsPanel market={market} />);
-    fireEvent.click(await findByRole("button", { name: "Get test funds (dev)" }));
+    const { queryByRole, queryByText } = render(<SpotAccountsPanel market={market} />);
 
-    expect((await findByRole("alert")).textContent).toBe("faucet HTTP 500");
-    fetchSpy.mockRestore();
+    expect(queryByRole("button", { name: "Get test funds (dev)" })).toBeNull();
+    expect(queryByText(/faucet HTTP/)).toBeNull();
   });
 });

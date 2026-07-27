@@ -199,10 +199,6 @@ msgstr "History"
 msgid "Funding"
 msgstr "Funding"
 
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Requesting…"
-msgstr "Requesting…"
-
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "SELL"
@@ -496,10 +492,6 @@ msgstr "Copied"
 #: src/shared/components/SettingsModal/DisplaySettings.tsx
 msgid "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
 msgstr "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
-
-#: src/modules/spot/components/Accounts/Accounts.tsx
-msgid "Get test funds (dev)"
-msgstr "Get test funds (dev)"
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
@@ -3022,6 +3014,10 @@ msgstr "Trigger price above limit price"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Select a Pay token"
 msgstr "Select a Pay token"
+
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Campaigns"
+msgstr "Campaigns"
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
