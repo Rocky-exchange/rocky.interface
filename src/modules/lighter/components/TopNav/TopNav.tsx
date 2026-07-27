@@ -4,8 +4,8 @@ import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 
-// 临时隐藏 Header 的 Redeem 入口；保留 BonusBadge 组件与兑换路由，便于后续恢复。
-// import { BonusBadge } from "@/modules/lighter/features/bonus/components/BonusBadge";
+import { BonusBadge } from "@/modules/lighter/features/bonus/components/BonusBadge";
+import { BonusInviteModal } from "@/modules/lighter/features/bonus/components/BonusInviteModal";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { CantonFundsModal } from "@/shared/lib/canton-wallet/CantonFundsModal";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
@@ -25,6 +25,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
   const { unlock, connecting } = useCantonWallet();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
+  const [bonusInviteOpen, setBonusInviteOpen] = useState(false);
   const [fundsOpen, setFundsOpen] = useState(false);
   const languageRef = useRef<HTMLDivElement>(null);
 
@@ -107,9 +108,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
         </NavLink>
       </div>
       <div className={styles.right}>
-        {/* 临时隐藏 Header 的 Redeem 入口。
-        <BonusBadge />
-        */}
+        <BonusBadge onClick={() => setBonusInviteOpen(true)} />
         {rightExtra}
         <div className={styles.langWrap} ref={languageRef}>
           <button
@@ -204,6 +203,7 @@ export function TopNav({ rightExtra }: { rightExtra?: ReactNode } = {}) {
           {walletLabel || <Trans>Connect wallet</Trans>}
         </button>
       </div>
+      <BonusInviteModal open={bonusInviteOpen} onClose={() => setBonusInviteOpen(false)} />
       <CantonFundsModal open={fundsOpen} onClose={() => setFundsOpen(false)} />
     </nav>
   );

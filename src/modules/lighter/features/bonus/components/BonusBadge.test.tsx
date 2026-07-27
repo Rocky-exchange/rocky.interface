@@ -1,6 +1,6 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryHistory } from "history";
 import { readFileSync } from "node:fs";
 import type { PropsWithChildren } from "react";
@@ -11,8 +11,15 @@ import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { BonusBadge } from "./BonusBadge";
-import { BonusApiError, type BonusStatusResponse } from "../api/bonus.types";
-import { useBonusStatus } from "../api/useBonus";
+import { redeemBonusCode } from "../api/bonus.api";
+import {
+  BonusApiError,
+  type BonusBalanceInfoResponse,
+  type BonusHistoryRow,
+  type BonusRedeemResponse,
+  type BonusStatusResponse,
+} from "../api/bonus.types";
+import { notifyBonusDataChanged, useBonusBalance, useBonusHistory, useBonusStatus } from "../api/useBonus";
 
 vi.mock("@/shared/lib/canton-wallet/CantonFundsModal", () => ({
   CantonFundsModal: () => null,
@@ -31,7 +38,14 @@ vi.mock("@/shared/lib/i18n", () => ({
 }));
 
 vi.mock("../api/useBonus", () => ({
+  notifyBonusDataChanged: vi.fn(),
+  useBonusBalance: vi.fn(),
+  useBonusHistory: vi.fn(),
   useBonusStatus: vi.fn(),
+}));
+
+vi.mock("../api/bonus.api", () => ({
+  redeemBonusCode: vi.fn(),
 }));
 
 const ACTIVE_STATUS: BonusStatusResponse = {
@@ -49,8 +63,56 @@ const ACTIVE_STATUS: BonusStatusResponse = {
   expires_at: "2026-07-28T00:00:00Z",
 };
 
+const MODAL_STATUS: BonusStatusResponse = {
+  ...ACTIVE_STATUS,
+  bonus_initial: "212.3456",
+  bonus_balance: "200",
+  bonus_locked_in_margin: "0",
+  bonus_consumed_total: "12.3456",
+  max_leverage: 10,
+  expires_at: "2099-07-28T00:00:00Z",
+};
+
+const MODAL_BALANCE: BonusBalanceInfoResponse = {
+  total_available: "201",
+  available: "201",
+  locked: "0",
+  principal_free: "1",
+  principal_locked: "0",
+  bonus_free: "200",
+  bonus_locked: "0",
+  effective_withdrawable: "1",
+  status: "active",
+};
+
+const MODAL_HISTORY: BonusHistoryRow[] = [
+  {
+    id: "history-1",
+    event_type: "trading_fee",
+    total_cost: "13.5801",
+    bonus_share: "12.3456",
+    principal_share: "1.2345",
+    attribution_rule: "50_50",
+    source_trade_id: "019f8496-6c57-71d1-bb35-10b1d4bc0bd1",
+    source_funding_id: "",
+    occurred_at: "2026-07-27T17:40:18Z",
+  },
+];
+
+const REDEEM_RESPONSE: BonusRedeemResponse = {
+  bonus_account_id: "bonus-1",
+  amount: "200",
+  granted_at: "2026-07-27T00:00:00Z",
+  expires_at: "2099-07-28T00:00:00Z",
+  replayed: false,
+};
+
 const mUseBonusStatus = vi.mocked(useBonusStatus);
+const mUseBonusBalance = vi.mocked(useBonusBalance);
+const mUseBonusHistory = vi.mocked(useBonusHistory);
 const mUseCantonSession = vi.mocked(useCantonSession);
+const mRedeemBonusCode = vi.mocked(redeemBonusCode);
+const mNotifyBonusDataChanged = vi.mocked(notifyBonusDataChanged);
 
 i18n.load("en", {});
 i18n.activate("en");
@@ -99,6 +161,21 @@ beforeEach(() => {
     provider: "",
   });
   mockStatus({});
+  mUseBonusBalance.mockReturnValue({
+    data: MODAL_BALANCE,
+    error: undefined,
+    isLoading: false,
+    mutate: vi.fn(),
+  } as unknown as ReturnType<typeof useBonusBalance>);
+  mUseBonusHistory.mockReturnValue({
+    rows: MODAL_HISTORY,
+    error: undefined,
+    isLoading: false,
+    hasMore: false,
+    loadMore: vi.fn(),
+    refresh: vi.fn(),
+  });
+  mRedeemBonusCode.mockResolvedValue(REDEEM_RESPONSE);
 });
 
 afterEach(cleanup);
@@ -224,19 +301,177 @@ describe("BonusBadge", () => {
 });
 
 describe("TopNav bonus placement", () => {
-  it("omits the redeem badge while keeping extras, language, and wallet controls", () => {
+  it("opens the bound trial-funds overview directly from the header button", () => {
+    mockStatus({ data: MODAL_STATUS });
+    mUseCantonSession.mockReturnValue({
+      connected: true,
+      locked: false,
+      token: "session-token",
+      party: "party::test",
+      username: "test",
+      avatar: "",
+      provider: "rocky",
+    });
+
+    render(<TopNav />, { wrapper: TestShell });
+
+    fireEvent.click(screen.getByRole("button", { name: "Trial funds: 200 USDA" }));
+
+    expect(screen.getByRole("dialog", { name: "Trial funds overview" })).not.toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Invitation code" })).toBeNull();
+    expect(screen.getByText("$201.00")).not.toBeNull();
+    expect(screen.getByRole("timer", { name: "Bonus expiry countdown" })).not.toBeNull();
+    expect(screen.getByText("Principal (withdrawable)")).not.toBeNull();
+    expect(screen.getByText("Trial funds (available)")).not.toBeNull();
+    expect(screen.getByText("Currently withdrawable: $1.00")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rules" }));
+    expect(screen.getByText("Trial funds are valid for seven days and cannot be withdrawn.")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Attribution details" }));
+    expect(screen.getByRole("dialog", { name: "Trial funds usage history" })).not.toBeNull();
+    expect(screen.getByRole("textbox", { name: "Search event, source, or rule" })).not.toBeNull();
+    expect(screen.getByText("Cumulative trial funds attributed")).not.toBeNull();
+    expect(screen.getByText("$12.3456")).not.toBeNull();
+    expect(screen.getByText("$1.2345")).not.toBeNull();
+    expect(screen.getByText("-$13.5801")).not.toBeNull();
+    expect(screen.getByRole("table", { name: "Trial funds usage history records" })).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to overview" }));
+    expect(screen.getByRole("dialog", { name: "Trial funds overview" })).not.toBeNull();
+  });
+
+  it("shows recoverable balance and history request states inside the modal", () => {
+    const retryBalance = vi.fn();
+    const retryHistory = vi.fn();
+    mockStatus({ data: MODAL_STATUS });
+    mUseBonusBalance.mockReturnValue({
+      data: undefined,
+      error: new BonusApiError("balance unavailable", {
+        status: 503,
+        code: "bonus_request_failed",
+        data: {},
+      }),
+      isLoading: false,
+      mutate: retryBalance,
+    } as unknown as ReturnType<typeof useBonusBalance>);
+    mUseBonusHistory.mockReturnValue({
+      rows: [],
+      error: new BonusApiError("history unavailable", {
+        status: 503,
+        code: "bonus_request_failed",
+        data: {},
+      }),
+      isLoading: false,
+      hasMore: false,
+      loadMore: vi.fn(),
+      refresh: retryHistory,
+    });
+    mUseCantonSession.mockReturnValue({
+      connected: true,
+      locked: false,
+      token: "session-token",
+      party: "party::test",
+      username: "test",
+      avatar: "",
+      provider: "rocky",
+    });
+
+    render(<TopNav />, { wrapper: TestShell });
+    fireEvent.click(screen.getByRole("button", { name: "Trial funds: 200 USDA" }));
+
+    expect(screen.getByRole("alert").textContent).toContain("Unable to load the latest balance.");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retryBalance).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Attribution details" }));
+    expect(screen.getByRole("alert").textContent).toContain("Unable to load attribution history.");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retryHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests the next backend history cursor from the modal pagination", () => {
+    const loadMore = vi.fn();
+    mockStatus({ data: MODAL_STATUS });
+    mUseBonusHistory.mockReturnValue({
+      rows: Array.from({ length: 6 }, (_, index) => ({
+        ...MODAL_HISTORY[0]!,
+        id: `history-${index}`,
+      })),
+      error: undefined,
+      isLoading: false,
+      hasMore: true,
+      loadMore,
+      refresh: vi.fn(),
+    });
+    mUseCantonSession.mockReturnValue({
+      connected: true,
+      locked: false,
+      token: "session-token",
+      party: "party::test",
+      username: "test",
+      avatar: "",
+      provider: "rocky",
+    });
+
+    render(<TopNav />, { wrapper: TestShell });
+    fireEvent.click(screen.getByRole("button", { name: "Trial funds: 200 USDA" }));
+    fireEvent.click(screen.getByRole("button", { name: "Attribution details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+
+    expect(loadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("redeems an invitation code through the backend before showing the overview", async () => {
+    const mutate = vi.fn().mockResolvedValue(MODAL_STATUS);
+    mockStatus({
+      data: { ...MODAL_STATUS, has_bonus: false, bonus_account_id: "", status: "" },
+      mutate,
+    });
+    mUseCantonSession.mockReturnValue({
+      connected: true,
+      locked: false,
+      token: "session-token",
+      party: "party::test",
+      username: "test",
+      avatar: "",
+      provider: "rocky",
+    });
+
+    render(<TopNav />, { wrapper: TestShell });
+
+    fireEvent.click(screen.getByRole("button", { name: "Redeem" }));
+    expect(screen.getByRole("dialog", { name: "Bind trial funds invitation code" })).not.toBeNull();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Invitation code" }), {
+      target: { value: "rocky-live-1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Bind now" }));
+
+    await waitFor(() => expect(mRedeemBonusCode).toHaveBeenCalledTimes(1));
+    expect(mRedeemBonusCode.mock.calls[0]?.[0]).toEqual({
+      code: "ROCKY-LIVE-1",
+      request_id: expect.stringMatching(/^bonus-redeem-/),
+    });
+    expect(mNotifyBonusDataChanged).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog", { name: "Trial funds overview" })).not.toBeNull();
+  });
+
+  it("shows the redeem badge before extras, language, and wallet controls", () => {
     mockStatus({});
 
     render(<TopNav rightExtra={<span data-testid="right-extra">extra</span>} />, { wrapper: TestShell });
 
+    const redeem = screen.getByRole("button", { name: "Redeem" });
     const extra = screen.getByTestId("right-extra");
     const language = screen.getByRole("button", { name: "language" });
     const wallet = screen.getByRole("button", { name: "Connect wallet" });
-    const right = extra.parentElement;
+    const right = redeem.parentElement;
 
-    expect(screen.queryByRole("link", { name: "Redeem" })).toBeNull();
+    expect(right).toBe(extra.parentElement);
     expect(right).toBe(language.parentElement?.parentElement);
     expect(right).toBe(wallet.parentElement);
-    expect([...right!.children]).toEqual([extra, language.parentElement, wallet]);
+    expect([...right!.children]).toEqual([redeem, extra, language.parentElement, wallet]);
   });
 });

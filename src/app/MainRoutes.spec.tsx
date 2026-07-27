@@ -65,6 +65,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("MainRoutes default route", () => {
+  it("redirects the root path to the futures terminal", async () => {
+    const { history } = renderRoute("/");
+
+    expect(await screen.findByRole("heading", { name: "Trade route" })).not.toBeNull();
+    expect(history.location.pathname).toBe("/trade");
+  });
+});
+
 describe("MainRoutes bonus routes", () => {
   it.each([
     ["/bonus", "Bonus route"],

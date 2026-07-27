@@ -48,6 +48,11 @@ msgstr "什麼能讓您的評分達到 9 或 10？"
 msgid "Execute Stop Loss"
 msgstr "執行止損"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds overview"
+msgstr "體驗金總覽"
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "No deposit history yet"
 msgstr "尚無存入歷史"
@@ -105,6 +110,10 @@ msgstr "顯示錯誤"
 msgid "Execute Market Swap"
 msgstr "執行市場交換"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Next page"
+msgstr "下一頁"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Limit Swap"
 msgstr "取消限價交換"
@@ -127,6 +136,10 @@ msgstr "訂單已更新"
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderInfoRows.tsx
 msgid "Fees"
 msgstr "費用"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Principal (withdrawable)"
+msgstr "本金（可提領）"
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Enter partial size"
@@ -161,6 +174,10 @@ msgstr "止損市價 - 做空增加"
 msgid "Failed Take Profit"
 msgstr "止盈失敗"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds are valid for seven days and cannot be withdrawn."
+msgstr "體驗金有效期為七天，且不可提領。"
+
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Next Funding Countdown"
 msgstr "下次資金費倒數"
@@ -173,6 +190,11 @@ msgstr "止損市場價格高於標記價格"
 msgid "Interval"
 msgstr "週期"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds usage history"
+msgstr "體驗金使用歷史"
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "History"
@@ -182,6 +204,8 @@ msgstr "歷史"
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
 msgid "Funding"
 msgstr "資金費"
@@ -191,8 +215,9 @@ msgid "Max {0} short exceeded"
 msgstr "超過最大 {0} 做空"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Event"
-msgstr ""
+msgstr "事件"
 
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Insufficient margin for this order."
@@ -243,6 +268,10 @@ msgstr "可用交易"
 msgid "No"
 msgstr "否"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Total (USD)"
+msgstr "總計（USD）"
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 msgid "Funding Fee"
 msgstr "資金費用"
@@ -264,8 +293,9 @@ msgid "Maximum Order Value"
 msgstr "最大訂單價值"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Realized PnL"
-msgstr ""
+msgstr "已實現盈虧"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Market Swap"
@@ -294,6 +324,10 @@ msgstr ""
 #: src/modules/lighter/mobile/TradePage/MobileTradeCTA.tsx
 msgid "Sell / Short"
 msgstr "賣出 / 做空"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Principal attributed in loaded records"
+msgstr "已載入記錄中的本金分攤"
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Recalled"
@@ -376,6 +410,10 @@ msgstr "平均"
 msgid "The 60% net-direction limit can restrict opposite opening orders; reduce-only orders remain available."
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Unable to load attribution history."
+msgstr "無法載入歸因歷史。"
+
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
 msgid "How can we address your concerns and improve your experience?"
 msgstr "我們如何解決您的擔憂並改善您的體驗？"
@@ -396,6 +434,10 @@ msgstr "訂單的可接受價格。"
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Unknown position"
 msgstr "未知倉位"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Rules"
+msgstr "規則"
 
 #: src/shared/components/TradingMarketsList/TradingMarketsDropdown.tsx
 msgid "No markets matched"
@@ -450,9 +492,18 @@ msgstr "請求提款"
 msgid "Copied"
 msgstr "已複製"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Retry"
+msgstr "重試"
+
 #: src/shared/components/SettingsModal/DisplaySettings.tsx
 msgid "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
 msgstr "淨價格影響分為存儲價格影響（加倉訂單）和平倉價格影響（減倉訂單）。此設定在淨值提示和平倉執行詳情中顯示兩者，以及加倉訂單的存儲價格影響。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Bind now"
+msgstr "立即綁定"
 
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
@@ -460,8 +511,9 @@ msgid "Total"
 msgstr "總計"
 
 #: src/modules/lighter/features/bonus/components/BonusBalanceCard.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Trial funds in margin"
-msgstr ""
+msgstr "持倉占用體驗金"
 
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "Index Price"
@@ -554,6 +606,10 @@ msgstr "買入 / 做多"
 msgid "Withdraw {selectedAsset} to your Wallet"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Profits generated using trial funds belong to you."
+msgstr "使用體驗金產生的盈利歸您所有。"
+
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Mark Price Line"
 msgstr "標記價格線"
@@ -639,6 +695,10 @@ msgstr "市場減少失敗"
 msgid "Mark price for the order."
 msgstr "訂單的標記價格。"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Attribution rule: {0}"
+msgstr "歸因規則：{0}"
+
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Max Slippage (%)"
@@ -653,6 +713,14 @@ msgstr "搜尋市場"
 #: src/shared/components/SearchInput/SearchInput.tsx
 msgid "Search"
 msgstr "搜尋"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds can be used as perpetual contract margin and cannot be withdrawn."
+msgstr "體驗金可用作永續合約保證金，但不可提領。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Exported the currently loaded attribution records."
+msgstr "已匯出目前載入的歸因記錄。"
 
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
@@ -754,8 +822,9 @@ msgid "Borrow Fee"
 msgstr "借款費用"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "No attribution events yet."
-msgstr ""
+msgstr "暫無歸因事件。"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -830,9 +899,18 @@ msgstr "交易雜湊"
 msgid "Close All"
 msgstr "全部平倉"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "Connect your wallet before redeeming."
-msgstr ""
+msgstr "兌換前請先連接錢包。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Back to overview"
+msgstr "返回總覽"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Principal in margin"
+msgstr "持倉占用本金"
 
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Amount is below the minimum deposit."
@@ -894,8 +972,9 @@ msgid "Destination"
 msgstr "目的地址"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Trial funds recall"
-msgstr ""
+msgstr "體驗金回收"
 
 #: src/modules/lighter/adapters/useOrderPreviewAdapter.ts
 msgid "Price is outside the acceptable band for this market."
@@ -1010,8 +1089,13 @@ msgid "Execute TWAP Part"
 msgstr "執行 TWAP 部分"
 
 #: src/modules/lighter/components/BottomTabs/BottomTabs.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Export"
 msgstr "匯出"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Each invitation code can only be bound once. Trial funds are valid for seven days."
+msgstr "每個邀請碼僅可綁定一次，體驗金有效期為七天。"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -1049,8 +1133,9 @@ msgid "Collapse"
 msgstr "摺疊"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Withdrawal recall"
-msgstr ""
+msgstr "提領回收"
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Market Name:"
@@ -1156,13 +1241,22 @@ msgstr "分解淨價格影響"
 msgid "Position close order submitted"
 msgstr "平倉訂單已提交"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Currently withdrawable: {0}"
+msgstr "目前可提領：{0}"
+
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
 msgid "Trigger price above highest limit price"
 msgstr "觸發價格高於最高限價"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "Enter at least 4 characters."
-msgstr ""
+msgstr "請至少輸入 4 個字元。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Date range"
+msgstr "日期範圍"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Deposit {selectedAsset} to Rocky Exchange"
@@ -1247,8 +1341,9 @@ msgid "Loading trial funds"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Loading attribution history…"
-msgstr ""
+msgstr "正在載入歸因歷史…"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
@@ -1300,6 +1395,10 @@ msgstr "可用流動性不足。當有流動性可用時，訂單將成交。"
 msgid "Market"
 msgstr "市場"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "View rules"
+msgstr "查看規則"
+
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
@@ -1315,6 +1414,7 @@ msgstr "觸發價格低於清算價格"
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/mobile/TradePage/panels/RecentTradesPanel.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Time"
@@ -1535,6 +1635,10 @@ msgstr "在瀏覽器中檢視"
 msgid "Canton"
 msgstr "Canton"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "View attribution record details"
+msgstr "查看歸因記錄詳情"
+
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Fee"
@@ -1609,11 +1713,19 @@ msgstr ""
 msgid "Connect your wallet first"
 msgstr "請先連接您的錢包"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds are trading credits provided by the platform and cannot be withdrawn."
+msgstr "體驗金是平台提供的交易資金，不可提領。"
+
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 msgid "Trigger price for the order."
 msgstr "訂單的觸發價格。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Invitation code"
+msgstr "邀請碼"
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
@@ -1677,9 +1789,17 @@ msgstr "全倉保證金率"
 msgid "Insufficient {0} balance to pay for gas"
 msgstr "{0} 餘額不足以支付 gas"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Withdrawing will first recall unlocked trial funds."
+msgstr "發起提領後，將優先回收已解鎖體驗金。"
+
 #: src/modules/lighter/features/bonus/api/useBonusOrderGate.ts
 msgid "Order is not allowed for trial funds"
 msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Total available"
+msgstr "總可用"
 
 #: src/shared/components/AddressDropdown/AddressDropdownWithoutMultichain.tsx
 msgid "PnL Analysis"
@@ -1781,8 +1901,10 @@ msgid "Trial funds console"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Realized loss"
-msgstr ""
+msgstr "平倉虧損分攤"
 
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
@@ -1799,6 +1921,7 @@ msgid "Net Price Impact"
 msgstr "淨價格影響"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
 msgid "Details"
 msgstr "詳情"
@@ -1842,7 +1965,7 @@ msgstr "解鎖"
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Redeem"
-msgstr ""
+msgstr "領取體驗金"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Loss"
@@ -1850,6 +1973,7 @@ msgstr "建立止損"
 
 #: src/modules/lighter/components/TopNav/TopNav.tsx
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
@@ -1910,6 +2034,10 @@ msgstr "收藏"
 msgid "Reason: {0}"
 msgstr "原因：{0}"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Binding…"
+msgstr "綁定中…"
+
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Position envelope"
 msgstr ""
@@ -1919,8 +2047,9 @@ msgid "Minimum deposit is {0} USDT.e."
 msgstr "最低存入額為 {0} USDT.e。"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Funding paid"
-msgstr ""
+msgstr "已支付資金費"
 
 #: src/shared/components/DateRangeSelect/DateRangeSelect.tsx
 #: src/shared/components/DateRangeSelect/DateRangeSelect.tsx
@@ -1933,8 +2062,9 @@ msgid "Market Cap:"
 msgstr "市值："
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Funding received"
-msgstr ""
+msgstr "已收取資金費"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Create Stop Market"
@@ -1947,6 +2077,10 @@ msgstr "目標參與方"
 #: src/shared/components/SideNav/SideNav.tsx
 msgid "Referrals"
 msgstr "推薦"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "All event types"
+msgstr "全部事件類型"
 
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 msgid "Order Type"
@@ -2032,6 +2166,10 @@ msgstr ""
 msgid "Execution price for the order."
 msgstr "訂單的執行價格。"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds"
+msgstr "體驗金"
+
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Partial Position"
 msgstr "部分倉位"
@@ -2064,6 +2202,10 @@ msgstr "平台餘額不足以完成此次提領。可用：{0} {asset}。所需�
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "No assets found"
 msgstr "找不到資產"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Previous page"
+msgstr "上一頁"
 
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
 #: src/modules/lighter/api/custom/useReferralRebateClaim.ts
@@ -2106,8 +2248,9 @@ msgid "<0>Smart wallets are not supported on {0}.</0><1/><2>Please switch to a d
 msgstr "<0>{0} 不支援智能錢包。</0><1/><2>請切換至其他網路或使用 EOA 錢包。</2>"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Realized profit"
-msgstr ""
+msgstr "已實現盈利"
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Trial funds expiring"
@@ -2152,6 +2295,10 @@ msgstr "止盈限價"
 msgid "Available Balance"
 msgstr "可用餘額"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "6 per page"
+msgstr "每頁 6 筆"
+
 #: src/modules/lighter/api/custom/useReferralCode.ts
 msgid "Referral code bound successfully!"
 msgstr "推薦碼綁定成功！"
@@ -2167,6 +2314,16 @@ msgstr "選擇不同的代幣"
 #: src/modules/lighter/domain/synthetics/fees/utils/index.ts
 msgid "The network fees are very high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "當前网络费用非常高，這可能是由於 {chainName} 網路上的交易暫時增加。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Event type"
+msgstr "事件類型"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Eligible trading costs use trial funds first; principal covers any remaining amount."
+msgstr "符合條件的交易成本會優先扣除體驗金，不足部分再由本金承擔。"
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Redeem an eligible Rocky code to activate seven days of trading credit."
@@ -2187,6 +2344,10 @@ msgstr "最大槓桿："
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Trading profits remain principal and trial funds are non-withdrawable."
 msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Attribution details"
+msgstr "歸因明細"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -2210,8 +2371,9 @@ msgid "Insufficient liquidity to swap collateral"
 msgstr "流動性不足以交換抵押品"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Manual recall"
-msgstr ""
+msgstr "手動回收"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 #: src/shared/components/TradeHistory/keys.ts
@@ -2239,9 +2401,18 @@ msgstr "執行 TWAP 交換部分"
 msgid "Withdraw History"
 msgstr "提領歷史"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds usage history records"
+msgstr "體驗金使用歷史記錄"
+
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 msgid "Loading funding history..."
 msgstr "正在載入資金費歷史..."
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Showing loaded records while the latest history request is unavailable."
+msgstr "最新歷史請求暫時無法使用，正在顯示已載入的記錄。"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Balances"
@@ -2369,6 +2540,11 @@ msgstr "找不到具有足夠流動性的交換路徑"
 msgid "Something went wrong. Please try again."
 msgstr "發生錯誤。請重試。"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Bind trial funds invitation code"
+msgstr "綁定體驗金邀請碼"
+
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Failed to update TP/SL"
 msgstr "更新止盈/止損失敗"
@@ -2398,6 +2574,12 @@ msgstr "止損市價低於標記價格"
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 msgid "Rate"
 msgstr "費率"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Search event, source, or rule"
+msgstr "搜尋事件、來源或規則"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "On connected exchange"
@@ -2520,6 +2702,10 @@ msgstr "RWA"
 msgid "The network fees are high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "當前网络费用較高，這可能是由於 {chainName} 網路上的交易暫時增加。"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds (available)"
+msgstr "體驗金（可用）"
+
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/orders/getPositionOrderError.tsx
 #: src/modules/lighter/domain/synthetics/sidecarOrders/utils.ts
@@ -2559,6 +2745,10 @@ msgstr "更新止盈"
 msgid "Back to assets"
 msgstr "返回資產"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Principal (USD)"
+msgstr "本金（USD）"
+
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Recoverable trial funds have been recalled. Attribution history remains available."
 msgstr ""
@@ -2571,9 +2761,10 @@ msgstr "連接錢包以領取"
 msgid "Fees exceed amount"
 msgstr "費用超過金額"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "Redemption failed. Please try again."
-msgstr ""
+msgstr "兌換失敗，請重試。"
 
 #: src/shared/lib/contracts/notifications.tsx
 #: src/shared/lib/contracts/notifications.tsx
@@ -2603,12 +2794,14 @@ msgid "Min USD Amount:"
 msgstr "最低 USD 金額："
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Bonus event"
-msgstr ""
+msgstr "體驗金事件"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Expiry recall"
-msgstr ""
+msgstr "到期回收"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
@@ -2709,6 +2902,10 @@ msgstr "預估強平價格"
 #: src/shared/components/ToastifyDebug/ToastifyDebug.tsx
 msgid "Copy error"
 msgstr "複製錯誤"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Loading balance…"
+msgstr "正在載入餘額…"
 
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
 msgid "What areas can we improve to make your experience better?"
@@ -2873,6 +3070,10 @@ msgstr "存入已提交"
 msgid "DeFi"
 msgstr "DeFi"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds (USD)"
+msgstr "體驗金（USD）"
+
 #: src/modules/lighter/components/BottomTabs/BottomTabs.tsx
 msgid "Funding History"
 msgstr "資金費歷史"
@@ -2900,6 +3101,10 @@ msgstr "深色"
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "Increase"
 msgstr "增加"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Principal"
+msgstr "本金"
 
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "take profit"
@@ -2937,6 +3142,10 @@ msgstr ""
 #: src/modules/lighter/components/SymbolBar/SymbolBar.tsx
 msgid "8h Funding"
 msgstr "8 小時資金費"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Unable to load the latest balance."
+msgstr "無法載入最新餘額。"
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Yearly Funding Rate"
@@ -3020,6 +3229,10 @@ msgstr "K 線"
 msgid "Alerts"
 msgstr "警報"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "No matching records."
+msgstr "沒有符合的記錄。"
+
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 msgid "Closed PnL"
 msgstr "已實現盈虧"
@@ -3036,6 +3249,10 @@ msgstr "止盈價格"
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 msgid "Exit fullscreen"
 msgstr "退出全螢幕"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Review how trading costs are split between principal and trial funds."
+msgstr "查看體驗金與本金的分攤與消耗記錄。"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdrawal submitted: {withdrawalRef}"
@@ -3187,9 +3404,14 @@ msgstr ""
 msgid "Language"
 msgstr "語言"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Enter an invitation code to claim your trial funds."
+msgstr "輸入邀請碼即可領取體驗金。"
+
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Frozen funds recall"
-msgstr ""
+msgstr "凍結資金回收"
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Trial funds frozen"
@@ -3217,8 +3439,10 @@ msgid "Enter a new size or price"
 msgstr "輸入新規模或價格"
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Trading fee"
-msgstr ""
+msgstr "交易手續費"
 
 #: src/modules/lighter/components/BottomTabs/ModifyOrderModal.tsx
 msgid "Unknown order"
@@ -3430,6 +3654,10 @@ msgstr "更新 TWAP 部分"
 #: src/modules/lighter/components/BottomTabs/FundingHistoryTab.tsx
 msgid "No funding history."
 msgstr "沒有資金費歷史。"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Cumulative trial funds attributed"
+msgstr "累計分攤體驗金"
 
 #: src/shared/components/AddressDropdown/AddressDropdownWithoutMultichain.tsx
 msgid "Copy Address"

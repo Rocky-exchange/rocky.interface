@@ -31,9 +31,7 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
   return (
     <Switch>
       <Route exact path="/">
-        <LighterTradeRuntimeProviders>
-          <LighterPortfolioPage />
-        </LighterTradeRuntimeProviders>
+        <RedirectWithQuery to="/trade" />
       </Route>
 
       <Route path={TRADING_ROUTE_PATHS}>

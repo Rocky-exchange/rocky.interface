@@ -7,42 +7,68 @@ import { useBonusStatus } from "../api/useBonus";
 
 type BadgePresentation = {
   ariaLabel?: string;
-  status: "active" | "expired_pending" | "frozen" | "recalled" | "redeem" | "unavailable";
+  status: "active" | "expired_pending" | "frozen" | "loading" | "recalled" | "redeem" | "unavailable";
   to: string;
   content: React.ReactNode;
 };
 
-export function BonusBadge() {
+type Props = {
+  onClick?: () => void;
+};
+
+export function BonusBadge({ onClick }: Props = {}) {
   const { data, error, isLoading } = useBonusStatus();
 
-  if (!data && isLoading) {
+  const presentation: BadgePresentation =
+    !data && isLoading
+      ? {
+          status: "loading",
+          to: "/bonus",
+          ariaLabel: t`Loading trial funds`,
+          content: (
+            <>
+              <span className={styles.skeleton} data-bonus-skeleton="true" aria-hidden="true" />
+            </>
+          ),
+        }
+      : getPresentation(data, Boolean(error));
+  const className = `${styles.badge} ${presentation.status === "loading" ? styles.loading : ""}`;
+  const content =
+    presentation.status === "loading" ? (
+      presentation.content
+    ) : (
+      <>
+        <span className={styles.mark} aria-hidden="true">
+          RX
+        </span>
+        {presentation.content}
+      </>
+    );
+
+  if (onClick) {
     return (
-      <NavLink
-        exact
-        to="/bonus"
-        className={`${styles.badge} ${styles.loading}`}
-        data-status="loading"
-        aria-label={t`Loading trial funds`}
+      <button
+        type="button"
+        className={className}
+        data-status={presentation.status}
+        aria-label={presentation.ariaLabel}
+        disabled={presentation.status === "loading"}
+        onClick={onClick}
       >
-        <span className={styles.skeleton} data-bonus-skeleton="true" aria-hidden="true" />
-      </NavLink>
+        {content}
+      </button>
     );
   }
-
-  const presentation = getPresentation(data, Boolean(error));
 
   return (
     <NavLink
       exact
       to={presentation.to}
-      className={styles.badge}
+      className={className}
       data-status={presentation.status}
       aria-label={presentation.ariaLabel}
     >
-      <span className={styles.mark} aria-hidden="true">
-        RX
-      </span>
-      {presentation.content}
+      {content}
     </NavLink>
   );
 }
