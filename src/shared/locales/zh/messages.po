@@ -3025,7 +3025,7 @@ msgstr "選擇支付代幣"
 
 #: src/modules/lighter/components/TopNav/TopNav.tsx
 msgid "Campaigns"
-msgstr ""
+msgstr "活動"
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
