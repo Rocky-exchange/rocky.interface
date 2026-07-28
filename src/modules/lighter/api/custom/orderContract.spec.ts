@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CreateOrderRequest } from "../types";
-import { cancelOrder, closePosition, createOrder, getOrders, getPositions } from "./client";
+import { cancelOrder, closePosition, createOrder, getAccountTrades, getOrders, getPositions } from "./client";
 
 const UNIT_18 = 10n ** 18n;
 const UNIT_30 = 10n ** 30n;
@@ -227,6 +227,64 @@ describe("Rocky order request contract", () => {
     for (const [, init] of fetchMock.mock.calls) {
       expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-exchange-session");
     }
+  });
+
+  it("normalizes Rocky's native array responses for positions, trades, and orders", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), "https://rocky.test").pathname;
+      if (path === "/v1/positions/me") {
+        return jsonResponse([
+          {
+            user_id: "user-1",
+            symbol: "BTC-PERP",
+            qty: "0.00060709",
+            entry_price: "63239.61",
+            locked_margin: "3.83921348349",
+            realized_pnl: "0",
+          },
+        ]);
+      }
+      if (path === "/v1/trades/me") {
+        return jsonResponse([
+          {
+            trade_id: "trade-1",
+            user_id: "user-1",
+            symbol: "BTC-PERP",
+            side: "BUY",
+            price: "63239.61",
+            qty: "0.00060709",
+            fee: "0.01919606741745",
+            ts: "2026-07-28T03:15:07.432264Z",
+          },
+        ]);
+      }
+      if (path === "/v1/orders/me") return jsonResponse([]);
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const positions = await getPositions(1, "party-1");
+    const trades = await getAccountTrades(1, "party-1");
+    const orders = await getOrders(1, "party-1");
+
+    expect(positions.positions).toEqual([
+      expect.objectContaining({
+        position_id: "user-1:BTC-PERP",
+        symbol: "BTC-PERP",
+        side: "long",
+        amount: "0.00060709",
+        collateral_amount: "3.83921348349",
+      }),
+    ]);
+    expect(trades.trades).toEqual([
+      expect.objectContaining({
+        id: "trade-1",
+        side: "buy",
+        amount: "0.00060709",
+        timestamp: "2026-07-28T03:15:07.432264Z",
+      }),
+    ]);
+    expect(orders).toEqual({ orders: [] });
   });
 
   it("fails safely before fetch when the exchange session is missing", async () => {

@@ -34,6 +34,7 @@ function parseNumber(value: string | number | null | undefined): number {
 
 function toMarket(symbol: string): string {
   if (!symbol) return "?";
+  if (symbol.endsWith("-PERP")) return symbol.slice(0, -5);
   return symbol.endsWith("USDT") ? symbol.slice(0, -4) : symbol;
 }
 

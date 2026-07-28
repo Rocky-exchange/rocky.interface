@@ -99,7 +99,7 @@ export function useTradeHistoryAdapterState(): UseTradeHistoryAdapterResult {
 
         return {
           id: trade.id,
-          market: marketSymbol.replace(/USDT$/i, "") || "--",
+          market: marketSymbol.replace(/-PERP$/i, "").replace(/USDT$/i, "") || "--",
           side: deriveSide(rawTrade),
           isClose: rawTrade.reduce_only === true,
           date: pickTimestamp(rawTrade),

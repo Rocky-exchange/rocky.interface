@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useUserApiOrders } from "modules/lighter/api";
+import { useUserAccountTrades, useUserApiOrders } from "modules/lighter/api";
 
 type LighterOrderHistoryStatus = "filled" | "cancelled" | "rejected" | "expired" | "--";
 
@@ -52,13 +52,14 @@ function toOrderStatus(status: string | null | undefined): LighterOrderHistorySt
 
 export function useOrderHistoryAdapter(): LighterOrderHistoryRow[] {
   const { apiOrders } = useUserApiOrders();
+  const { trades } = useUserAccountTrades();
 
   return useMemo(() => {
-    const rows: LighterOrderHistoryRow[] = (apiOrders ?? [])
+    const closedOrderRows: LighterOrderHistoryRow[] = (apiOrders ?? [])
       .filter((order) => CLOSED_STATUSES.has(order.status))
       .map((order) => ({
         id: order.id,
-        market: order.symbol?.replace(/USDT$/i, "") || "--",
+        market: order.symbol?.replace(/-PERP$/i, "").replace(/USDT$/i, "") || "--",
         side: toOrderSide(order.side),
         date: toTimestamp(order.updated_at || order.created_at),
         type: order.order_type === "market" ? "Market" : "Limit",
@@ -68,9 +69,29 @@ export function useOrderHistoryAdapter(): LighterOrderHistoryRow[] {
         average: toNumber(order.average_price),
         reduceOnly: order.reduce_only ?? null,
         status: toOrderStatus(order.status),
-      }))
-      .sort((a, b) => b.date - a.date);
+      }));
 
-    return rows;
-  }, [apiOrders]);
+    // The current Rocky endpoint only persists open orders. Once an order is
+    // completely filled it disappears from /v1/orders/me, while its execution
+    // remains authoritative in /v1/trades/me. Surface those executions as
+    // filled order-history rows until the backend ships a closed-order store.
+    const knownIds = new Set(closedOrderRows.map((order) => order.id));
+    const filledTradeRows: LighterOrderHistoryRow[] = (trades ?? [])
+      .filter((trade) => !knownIds.has(trade.order_id || trade.id))
+      .map((trade) => ({
+        id: trade.order_id || trade.id,
+        market: trade.symbol?.replace(/-PERP$/i, "").replace(/USDT$/i, "") || "--",
+        side: toOrderSide(trade.side),
+        date: toTimestamp(trade.executed_at || trade.created_at || trade.timestamp),
+        type: "Market",
+        amount: toNumber(trade.amount ?? trade.size),
+        filled: toNumber(trade.amount ?? trade.size),
+        price: toNumber(trade.price),
+        average: toNumber(trade.price),
+        reduceOnly: trade.reduce_only ?? null,
+        status: "filled",
+      }));
+
+    return [...closedOrderRows, ...filledTradeRows].sort((a, b) => b.date - a.date);
+  }, [apiOrders, trades]);
 }
