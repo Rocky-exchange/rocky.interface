@@ -3218,6 +3218,10 @@ msgstr "觸發價格高於限價"
 msgid "Select a Pay token"
 msgstr "選擇支付代幣"
 
+#: src/modules/lighter/components/TopNav/TopNav.tsx
+msgid "Campaigns"
+msgstr "活動"
+
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx

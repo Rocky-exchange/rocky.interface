@@ -64,6 +64,16 @@ describe("TopNav", () => {
     expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-CUSD");
   });
 
+  it("links Campaigns to the Season 0 activity page", () => {
+    render(
+      <MemoryRouter>
+        <TopNav />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("link", { name: "Campaigns" }).getAttribute("href")).toBe("/campaigns/season-0");
+  });
+
   it("labels an existing Send session as sendwallet", () => {
     Object.assign(cantonSession, {
       connected: true,

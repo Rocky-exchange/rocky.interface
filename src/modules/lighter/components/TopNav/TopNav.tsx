@@ -114,7 +114,14 @@ export function TopNav({
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Futures</Trans>
         </NavLink>
-        {/* Campaigns is temporarily hidden from the main launch navigation. */}
+        <NavLink
+          to="/campaigns/season-0"
+          className={styles.link}
+          activeClassName={styles.active}
+          isActive={(_match, location) => location.pathname.startsWith("/campaigns")}
+        >
+          <Trans>Campaigns</Trans>
+        </NavLink>
       </div>
       <div className={styles.right}>
         <BonusBadge onClick={() => setBonusInviteOpen(true)} />
