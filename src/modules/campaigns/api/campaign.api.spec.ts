@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getCampaign, getLeaderboard, getMissions, startXOAuth } from "./campaign.api";
+import {
+  getCampaign,
+  getLeaderboard,
+  getMissions,
+  startWalletBoundXOAuth,
+  startXOAuth,
+} from "./campaign.api";
 
 describe("campaign activity API", () => {
   beforeEach(() => {
@@ -56,6 +62,47 @@ describe("campaign activity API", () => {
     );
 
     await expect(startXOAuth()).resolves.toBe("https://x.com/i/oauth2/authorize?state=opaque");
+  });
+
+  it("synchronizes the signed wallet identity before starting X authorization", async () => {
+    localStorage.setItem("rocky_exchange_session", "exchange-token");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: {
+              userId: "user-1",
+              role: "NORMAL",
+              activatedAt: "2026-07-28T00:00:00.000Z",
+              activationDay: 1,
+              phase: "active",
+            },
+            meta: { requestId: "sync-request", serverTime: "2026-07-28T00:00:00.000Z" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: { authorizationUrl: "https://x.com/i/oauth2/authorize?state=wallet-bound" },
+            meta: { requestId: "oauth-request", serverTime: "2026-07-28T00:00:01.000Z" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(startWalletBoundXOAuth()).resolves.toContain("state=wallet-bound");
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/external-active/v1/me/campaign",
+      "/external-active/v1/social/x/oauth/start",
+    ]);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect((init?.headers as Headers).get("authorization")).toBe("Bearer exchange-token");
+    }
   });
 
   it("keeps the public leaderboard unauthenticated and pinned to its requested page", async () => {

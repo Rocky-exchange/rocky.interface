@@ -9,13 +9,16 @@ import {
   getMissions,
   getRewards,
   startMission,
-  startXOAuth,
+  startWalletBoundXOAuth,
   verifyMission,
   type LeaderboardEntry as ActivityLeaderboardEntry,
   type MissionKey,
   type RewardSummary,
 } from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
+import { useCantonWallet } from "@/shared/lib/canton-wallet/useCantonWallet";
 import { ModalWithPortal, TooltipWithPortal } from "@/shared/ui";
 
 import "@/modules/lighter/styles/global.scss";
@@ -130,6 +133,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Complete missions to earn R Diamonds": "完成任務以賺取 R 鑽石",
   "X Connected": "X 已連接",
   "Connect X": "連接 X",
+  "Connect Wallet First": "請先連接錢包",
   "Connecting...": "連接中...",
   "Your Progress": "你的進度",
   Claimable: "可領取",
@@ -1089,6 +1093,8 @@ function MissionsContent() {
   const [isXConnecting, setIsXConnecting] = useState(false);
   const submittedUrlsRef = useRef<Record<string, string>>({});
   const { copy, isTraditionalChinese } = useCampaignCopy();
+  const { connected, locked } = useCantonSession();
+  const { unlock } = useCantonWallet();
 
   useEffect(() => {
     let active = true;
@@ -1187,9 +1193,14 @@ function MissionsContent() {
 
   const handleXConnect = async () => {
     if (isXConnected || isXConnecting) return;
+    if (!connected) {
+      openCantonConnect();
+      return;
+    }
     setIsXConnecting(true);
     try {
-      window.location.assign(await startXOAuth());
+      if (locked) await unlock();
+      window.location.assign(await startWalletBoundXOAuth());
     } catch {
       setIsXConnecting(false);
     }
@@ -1210,7 +1221,17 @@ function MissionsContent() {
           disabled={isXConnecting}
           onClick={() => void handleXConnect()}
         >
-          <span>{copy(isXConnected ? "X Connected" : isXConnecting ? "Connecting..." : "Connect X")}</span>
+          <span>
+            {copy(
+              isXConnected
+                ? "X Connected"
+                : isXConnecting
+                  ? "Connecting..."
+                  : connected
+                    ? "Connect X"
+                    : "Connect Wallet First"
+            )}
+          </span>
           {!isXConnected ? <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" /> : null}
         </button>
       </div>
