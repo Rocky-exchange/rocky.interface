@@ -1143,6 +1143,9 @@ function MissionsContent() {
       try {
         const result = await startMission(missionKey);
         updateTaskStatus(mission.id, result.state);
+        if (mission.id === "like-launch" && result.actionUrls?.[0]) {
+          window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
+        }
       } catch (_error) {
         updateTaskStatus(mission.id, "retry");
       }

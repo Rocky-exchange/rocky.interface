@@ -1,10 +1,14 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getMissions, type MissionList } from "@/modules/campaigns/api/campaign.api";
+import {
+  getMissions,
+  startMission,
+  type MissionList,
+} from "@/modules/campaigns/api/campaign.api";
 import { helperToast } from "@/shared/lib/helperToast";
 import SeasonZeroLeaderboardPage from "./SeasonZeroLeaderboardPage";
 
@@ -56,6 +60,10 @@ vi.mock("@/shared/lib/helperToast", () => ({
 }));
 
 describe("SeasonZeroLeaderboardPage X binding", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     i18n.load("en", {});
@@ -115,5 +123,44 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
         "This wallet is already connected to another X account. Please authorize the previously connected X account.",
       );
     });
+  });
+
+  it("opens the configured Rocky launch post when the Like Launch Post mission starts", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "LIKE_LAUNCH", state: "not_started", title: "Like the launch post", reward: "50" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(startMission).mockResolvedValue({
+      state: "verifying",
+      actionUrls: ["https://x.com/Rocky_exchange/status/2081771534134530514"],
+    });
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Like Launch Post");
+    const mission = title.closest("article");
+    expect(mission).not.toBeNull();
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Start" }));
+
+    await waitFor(() => {
+      expect(openSpy).toHaveBeenCalledWith(
+        "https://x.com/Rocky_exchange/status/2081771534134530514",
+        "_blank",
+        "noopener,noreferrer",
+      );
+    });
+    openSpy.mockRestore();
   });
 });

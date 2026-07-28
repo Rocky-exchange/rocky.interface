@@ -153,7 +153,9 @@ export async function startWalletBoundXOAuth(): Promise<string> {
   return startXOAuth();
 }
 
-export function startMission(key: MissionKey): Promise<{ state: MissionState; status?: string }> {
+export function startMission(
+  key: MissionKey
+): Promise<{ state: MissionState; status?: string; actionUrls?: string[] }> {
   return activityRequest(`/v1/me/missions/${key}/start`, { method: "POST" });
 }
 
