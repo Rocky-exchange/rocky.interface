@@ -192,10 +192,25 @@ function LeaveForTradeButton() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.stubGlobal("localStorage", createMemoryStorage());
   mockConnectedSession();
   mockBonusHooks();
   mRedeemBonusCode.mockResolvedValue(REDEEMED);
 });
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+    getItem: (key) => store.get(key) ?? null,
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key) => store.delete(key),
+    setItem: (key, value) => store.set(key, String(value)),
+  };
+}
 
 afterEach(() => {
   cleanup();
@@ -521,6 +536,13 @@ describe("Bonus visual components", () => {
 });
 
 describe("RedeemCodePage", () => {
+  it("uses CUSD for the redeem policy display asset", () => {
+    renderAt(<RedeemCodePage />, "/bonus/redeem");
+
+    expect(screen.getByText("CUSD")).not.toBeNull();
+    expect(screen.queryByText("USDCx")).toBeNull();
+  });
+
   it("normalizes to uppercase [A-Z0-9-] and caps input at 32 characters", () => {
     renderAt(<RedeemCodePage />, "/bonus/redeem");
     const input = getCodeInput();
@@ -578,10 +600,8 @@ describe("RedeemCodePage", () => {
     expect(getCodeInput().value).toBe("ROCKY-2026");
   });
 
-  it("uses a new prefixed request id per attempt, refreshes bonus data, and replaces the route on success", async () => {
-    mRedeemBonusCode
-      .mockRejectedValueOnce(new BonusApiError("Try the code again", { status: 409, code: "retry", data: {} }))
-      .mockResolvedValueOnce(REDEEMED);
+  it("reuses the request id after an ambiguous failure, refreshes bonus data, and replaces on success", async () => {
+    mRedeemBonusCode.mockRejectedValueOnce(new TypeError("response lost")).mockResolvedValueOnce(REDEEMED);
     const { history } = renderAt(<RedeemCodePage />, "/bonus/redeem");
     fireEvent.change(getCodeInput(), { target: { value: "rocky-2026" } });
 
@@ -594,8 +614,8 @@ describe("RedeemCodePage", () => {
     expect(mRedeemBonusCode.mock.calls[0][0].code).toBe("ROCKY-2026");
     expect(mRedeemBonusCode.mock.calls[0][0].request_id).toMatch(/^bonus-redeem-/);
     expect(mRedeemBonusCode.mock.calls[1][0].request_id).toMatch(/^bonus-redeem-/);
-    expect(mRedeemBonusCode.mock.calls[0][0].request_id).not.toBe(mRedeemBonusCode.mock.calls[1][0].request_id);
-    expect(mNotifyBonusDataChanged).toHaveBeenCalledTimes(1);
+    expect(mRedeemBonusCode.mock.calls[1][0].request_id).toBe(mRedeemBonusCode.mock.calls[0][0].request_id);
+    expect(mNotifyBonusDataChanged).toHaveBeenCalledTimes(2);
     expect(history.action).toBe("REPLACE");
   });
 

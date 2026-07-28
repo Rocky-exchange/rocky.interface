@@ -8,6 +8,7 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import "../../../styles/global.scss";
 import styles from "./RedeemCodePage.module.scss";
+import { acquireRedeemRequestId, settleRedeemIntent, shouldRetainRedeemIntent } from "./redeemIntentRegistry";
 import { redeemBonusCode } from "../api/bonus.api";
 import { BonusApiError } from "../api/bonus.types";
 import { notifyBonusDataChanged } from "../api/useBonus";
@@ -24,7 +25,7 @@ type Feedback =
 
 export function RedeemCodePage() {
   const history = useHistory();
-  const { connected } = useCantonSession();
+  const { connected, party, provider } = useCantonSession();
   const mountedRef = useRef(true);
   const pendingRef = useRef(false);
   const [code, setCode] = useState("");
@@ -55,15 +56,20 @@ export function RedeemCodePage() {
     pendingRef.current = true;
     setPending(true);
     setFeedback(null);
-    const requestId = createRedeemRequestId();
+    const scope = { party, provider };
+    const requestId = acquireRedeemRequestId(scope, code);
     const attemptPathname = history.location.pathname;
     const canCommitAttempt = () => mountedRef.current && history.location.pathname === attemptPathname;
 
     try {
       await redeemBonusCode({ code, request_id: requestId });
+      settleRedeemIntent(scope, code, requestId, "complete");
       notifyBonusDataChanged();
       if (canCommitAttempt()) history.replace("/bonus");
     } catch (error) {
+      const ambiguous = shouldRetainRedeemIntent(error);
+      settleRedeemIntent(scope, code, requestId, ambiguous ? "ambiguous" : "complete");
+      if (ambiguous) notifyBonusDataChanged();
       if (canCommitAttempt()) {
         setFeedback(error instanceof BonusApiError ? { type: "api", message: error.message } : { type: "generic" });
       }
@@ -92,7 +98,7 @@ export function RedeemCodePage() {
         <div className={styles.redeemGrid}>
           <section className={styles.intro}>
             <div className={styles.stationMark} aria-hidden="true">
-              01 / CLAIM
+              <Trans>01 / CLAIM</Trans>
             </div>
             <p className={styles.eyebrow}>
               <Trans>Rocky trial funds</Trans>
@@ -244,15 +250,6 @@ function normalizeRedeemCode(raw: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9-]/g, "")
     .slice(0, MAX_REDEEM_CODE_LENGTH);
-}
-
-function createRedeemRequestId(): string {
-  const randomUuid = globalThis.crypto?.randomUUID;
-  const nonce =
-    typeof randomUuid === "function"
-      ? randomUuid.call(globalThis.crypto)
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  return `bonus-redeem-${nonce}`;
 }
 
 function useLighterBody(): void {

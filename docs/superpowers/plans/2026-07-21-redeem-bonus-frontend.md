@@ -595,12 +595,12 @@ Expected: tests exit 0.
 ## Task 7: Localize, harden, and verify the complete frontend
 
 **Files:**
-- Modify: `src/locales/en/messages.po`
-- Modify: `src/locales/zh/messages.po`
-- Modify: generated Lingui catalogs under `src/locales`
+- Modify: `src/shared/locales/en/messages.po`
+- Modify: `src/shared/locales/zh/messages.po`
+- Modify: generated Lingui catalogs under `src/shared/locales`
 - Modify: `docs/superpowers/plans/2026-07-21-redeem-bonus-frontend.md` checkbox state during execution
 
-- [ ] **Step 1: Extract and translate every new message**
+- [x] **Step 1: Extract and translate every new message**
 
 ```bash
 yarn extract
@@ -608,7 +608,7 @@ yarn extract
 
 Fill both English and Traditional Chinese `msgstr` values for every new bonus string. Required concepts include Redeem, Trial funds, Active, Frozen, Expiring, Recalled, Available/locked trial funds, Effective withdrawable, attribution history, 50/50 rule, 60% direction rule, code validation, order rejection, withdrawal recall, loading, empty, and retry states. No user-facing Chinese/English literal should remain outside `<Trans>`/`t`.
 
-- [ ] **Step 2: Compile catalogs**
+- [x] **Step 2: Compile catalogs**
 
 ```bash
 yarn compile
@@ -616,7 +616,7 @@ yarn compile
 
 Expected: exits 0 and generated catalogs change only for the intended messages.
 
-- [ ] **Step 3: Run all focused bonus and integration tests**
+- [x] **Step 3: Run all focused bonus and integration tests**
 
 ```bash
 yarn test:ci \
@@ -643,6 +643,8 @@ git status --short
 
 Expected: lint, all Vitest suites, TypeScript, and production build exit 0; `git diff --check` emits nothing. Inspect `git status` and ensure only planned feature/catalog/plan files are present.
 
+Status on 2026-07-22: production build exits 0 and the Task 7 TypeScript files pass focused ESLint. Full verification remains unchecked because repository baselines stop `yarn check:ci`: ESLint reports 12 pre-existing errors/590 warnings, full Vitest reports 15 pre-existing failures (SDK/EVM, external oracle, Node 25 `localStorage`, and legacy snapshots), and TypeScript reports the known `src/modules/spot/components/BottomTabs/BottomTabs.spec.tsx:73` TS2353 error.
+
 - [ ] **Step 5: Perform a manual two-viewport smoke check**
 
 With backend local services configured and bonus enabled:
@@ -654,7 +656,9 @@ With backend local services configured and bonus enabled:
 
 Record any environment-only blocker with the exact URL/command and output; do not mark the smoke check passed without observing it.
 
-- [ ] **Step 6: Commit localization and verification fixes**
+Status on 2026-07-22: production route smoke at `http://127.0.0.1:4173/bonus` and `/bonus/redeem` observed no horizontal overflow at 1440px or 390px and normalized `ab c!d-` to `ABCD-`. The authenticated scenarios remain unchecked because no signed Canton exchange session or bonus-enabled local backend was configured, so redeem/order/withdraw/account-switch outcomes were not observed.
+
+- [x] **Step 6: Commit localization and verification fixes**
 
 ```bash
 git add src/locales docs/superpowers/plans/2026-07-21-redeem-bonus-frontend.md

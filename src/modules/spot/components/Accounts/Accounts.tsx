@@ -4,6 +4,7 @@ import BigNumber from "bignumber.js";
 import { useState } from "react";
 
 import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import cbtcIconSrc from "@/shared/lib/canton-wallet/token-icons/cBTC.webp";
 import ccIconSrc from "@/shared/lib/canton-wallet/token-icons/CC.webp";
 import cethIconSrc from "@/shared/lib/canton-wallet/token-icons/cETH.webp";
@@ -109,6 +110,7 @@ export function SpotAccountsPanel({
   variant?: "account" | "workspace";
 }) {
   const { i18n } = useLingui();
+  const { party, provider } = useCantonSession();
   const { ready, account, err, refetch } = useSpotAccount();
   const precisions = useSpotAssetPrecisions();
   const [xferAmount, setXferAmount] = useState("");
@@ -210,6 +212,9 @@ export function SpotAccountsPanel({
         asset: "CUSD",
         amount: xferAmount.trim(),
         direction,
+        walletParty: party,
+        sessionParty: party,
+        walletProvider: provider,
       });
       setXferMsg(
         direction === "toSpot"

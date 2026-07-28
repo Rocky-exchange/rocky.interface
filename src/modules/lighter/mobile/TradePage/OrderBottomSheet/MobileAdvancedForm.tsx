@@ -2,13 +2,13 @@
 import { Trans, t } from "@lingui/macro";
 import type { ReactNode } from "react";
 
+import type { AdvancedMode, Side } from "@/modules/lighter/features/orderForm/types";
 import { useMobileAdvancedOrder } from "@/modules/lighter/features/orderForm/useMobileAdvancedOrder";
 import { useOrderInfoRows } from "@/modules/lighter/features/orderForm/useOrderInfoRows";
-import type { AdvancedMode, Side } from "@/modules/lighter/features/orderForm/types";
 
 import { MobilePercentSlider } from "./MobilePercentSlider";
-import { SizeInput } from "./SizeInput";
 import styles from "./OrderBottomSheet.module.scss";
+import { SizeInput } from "./SizeInput";
 
 type Props = {
   type: AdvancedMode;
@@ -110,6 +110,11 @@ export function MobileAdvancedForm({ type, side, isConnected, leverage, marginMo
       <Row label={<Trans>Fees</Trans>} value={info.fees} />
 
       {adv.previewErrorMessage && <div className={styles.error}>{adv.previewErrorMessage}</div>}
+      {adv.submissionRejection && (
+        <div role="alert" className={styles.error}>
+          {adv.submissionRejection}
+        </div>
+      )}
 
       {isConnected && (
         <button

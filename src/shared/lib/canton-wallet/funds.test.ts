@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const submitSendWalletTransfer = vi.hoisted(() => vi.fn());
-
-vi.mock("./send", () => ({
-  submitSendWalletTransfer,
-}));
+import { BONUS_DATA_CHANGED_EVENT } from "@/modules/lighter/features/bonus/api/useBonus";
 
 import {
   CantonFundsError,
@@ -12,10 +8,11 @@ import {
   fetchFundingAccountBalance,
   fetchPlatformAccountBalance,
   fetchPlatformAccountBalances,
+  fetchPlatformWithdrawableBalance,
+  fetchWithdrawalFeeQuote,
   fetchPendingUsdaOffers,
   fetchSpotTransferHistory,
   fetchUsdaAutoAccept,
-  fetchWithdrawalFeeQuote,
   platformDepositApiAsset,
   requestDepositReference,
   submitCantonWalletDeposit,
@@ -25,15 +22,24 @@ import {
   type CantonFundsAsset,
 } from "./funds";
 
+const BONUS_BALANCE_INFO = {
+  total_available: "100",
+  available: "100",
+  locked: "0",
+  principal_free: "4",
+  principal_locked: "0",
+  bonus_free: "96",
+  bonus_locked: "0",
+  effective_withdrawable: "4",
+  status: "active",
+};
+
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.stubGlobal("localStorage", createMemoryStorage());
+  vi.stubGlobal("sessionStorage", createMemoryStorage());
   localStorage.setItem("rocky_exchange_session", "exchange-token");
-  submitSendWalletTransfer.mockResolvedValue({
-    status: "executed",
-    updateId: "1220sendupdate",
-  });
 });
 
 describe("canton wallet funds", () => {
@@ -71,6 +77,36 @@ describe("canton wallet funds", () => {
       asset: "CUSD",
       amount_expected: "12.50",
     });
+  });
+
+  it("loads the authoritative withdrawal fee quote for the selected asset", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      jsonResponse({
+        asset: "CBTC",
+        fee_asset: "CBTC",
+        fee_wallet_symbol: "CBTC",
+        fee_amount: "0.00001",
+        fee_quote_price: "100000",
+        fee_quote_ts_ms: 1784745600000,
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchWithdrawalFeeQuote("CBTC")).resolves.toEqual({
+      asset: "CBTC",
+      feeAsset: "CBTC",
+      feeWalletSymbol: "CBTC",
+      feeAmount: "0.00001",
+      feeQuotePrice: "100000",
+      feeQuoteTsMs: 1784745600000,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/withdrawals/quote?asset=CBTC",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
   });
 
   it("submits Rocky deposits through the local wallet SDK transfer flow", async () => {
@@ -112,107 +148,8 @@ describe("canton wallet funds", () => {
     expect(result.platform_available).toBe("1.5");
   });
 
-  it("submits Send deposits through the wallet approval flow", async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      if (String(url) === "/v1/account/me/CUSD") {
-        return jsonResponse({
-          asset: "CUSD",
-          available: fetchMock.mock.calls.length > 1 ? "0.20" : "0",
-          locked: "0",
-        });
-      }
-      if (String(url) === "/v1/deposits/reference") {
-        return jsonResponse({
-          asset: "CUSD",
-          target_party_id: "Rocky::1220rocky",
-          deposit_ref: "rocky:deposit:reference",
-          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-      return jsonResponse({ error: "unexpected" }, 500);
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await submitCantonWalletDeposit({
-      provider: "send",
-      walletParty: "send-user::1220send",
-      asset: "CUSD",
-      amount: "0.20",
-    });
-
-    expect(submitSendWalletTransfer).toHaveBeenCalledWith({
-      from: "send-user::1220send",
-      to: "Rocky::1220rocky",
-      token: "CUSD",
-      amount: "0.20",
-      memo: "rocky:deposit:reference",
-      reasonMetadataKey: "splice.lfdecentralizedtrust.org/reason",
-    });
-    expect(result.wallet_transfer).toBe("send_wallet_submitted");
-    expect(result.platform_credit_status).toBe("confirmed");
-  });
-
-  it("confirms a Send deposit after the wallet wait request times out", async () => {
-    submitSendWalletTransfer.mockRejectedValueOnce(
-      new Error('Wallet request "prepareExecuteAndWait" timed out after 30000ms')
-    );
-    let balanceReads = 0;
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      if (String(url) === "/v1/account/me/CUSD") {
-        balanceReads += 1;
-        return jsonResponse({
-          asset: "CUSD",
-          available: balanceReads === 1 ? "0" : "0.11",
-          locked: "0",
-        });
-      }
-      if (String(url) === "/v1/deposits/reference") {
-        return jsonResponse({
-          asset: "CUSD",
-          target_party_id: "Rocky::1220rocky",
-          deposit_ref: "rocky:deposit:4634fde0-fe2e-46ba-bafe-a2793f5308f8",
-          reason_metadata_key: "splice.lfdecentralizedtrust.org/reason",
-          expires_at: "2030-01-01T00:00:00Z",
-        });
-      }
-      if (String(url) === "/v1/deposits") {
-        return jsonResponse({
-          deposits: [
-            {
-              deposit_ref: "rocky:deposit:4634fde0-fe2e-46ba-bafe-a2793f5308f8",
-              status: "credited",
-              credited_at: "2026-07-25T06:47:34Z",
-            },
-          ],
-        });
-      }
-      return jsonResponse({ error: "unexpected" }, 500);
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await submitCantonWalletDeposit({
-      provider: "send",
-      walletParty: "send-user::1220send",
-      asset: "CUSD",
-      amount: "0.11",
-    });
-
-    expect(submitSendWalletTransfer).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/v1/deposits",
-      expect.objectContaining({ method: "GET" })
-    );
-    expect(result).toMatchObject({
-      deposit_ref: "rocky:deposit:4634fde0-fe2e-46ba-bafe-a2793f5308f8",
-      wallet_transfer: "send_wallet_submitted",
-      platform_credit_status: "confirmed",
-      platform_available: "0.11",
-    });
-  });
-
   it("submits explicit CUSD contract-to-spot transfers with exchange session auth", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<typeof fetch>(async () =>
       jsonResponse({
         asset: "CUSD",
         direction: "toSpot",
@@ -223,9 +160,7 @@ describe("canton wallet funds", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      transferSpotBalance({ asset: "CUSD", amount: "1", direction: "toSpot" })
-    ).resolves.toMatchObject({ spotFree: "1" });
+    await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/spot/transfer",
@@ -234,6 +169,93 @@ describe("canton wallet funds", () => {
         headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
       })
     );
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body).toEqual({
+      asset: "CUSD",
+      amount: "1",
+      direction: "toSpot",
+      idempotency_key: expect.any(String),
+    });
+    expect(body.idempotency_key.length).toBeLessThanOrEqual(256);
+    expect(localStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
+  });
+
+  it.each([
+    ["a lost network response", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["a request timeout", () => Promise.reject(new DOMException("Timed out", "AbortError"))],
+    ["an HTTP timeout", () => Promise.resolve(jsonResponse({ error: "request timeout" }, 408))],
+    ["a 5xx response", () => Promise.resolve(jsonResponse({ error: "temporarily unavailable" }, 503))],
+  ])("reuses the transfer idempotency key after %s", async (_label, firstResponse) => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(firstResponse)
+      .mockResolvedValueOnce(
+        jsonResponse({
+          asset: "CUSD",
+          direction: "toSpot",
+          amount: "1",
+          fundingAvailable: "0",
+          spotFree: "1",
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(transferSpotBalance(spotTransferInput())).rejects.toBeTruthy();
+    expect(localStorage.getItem("rocky_pending_spot_transfer_intents_v1")).not.toContain("exchange-token");
+    await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
+
+    expect(spotTransferKey(fetchMock, 1)).toBe(spotTransferKey(fetchMock, 0));
+  });
+
+  it("coalesces identical concurrent transfers in the same runtime", async () => {
+    let resolveResponse!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      resolveResponse = resolve;
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockReturnValue(response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = transferSpotBalance(spotTransferInput());
+    const second = transferSpotBalance(spotTransferInput());
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolveResponse(
+      jsonResponse({
+        asset: "CUSD",
+        direction: "toSpot",
+        amount: "1",
+        fundingAvailable: "0",
+        spotFree: "1",
+      })
+    );
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+  });
+
+  it.each([
+    [
+      "success",
+      () => jsonResponse({ asset: "CUSD", direction: "toSpot", amount: "1", fundingAvailable: "0", spotFree: "1" }),
+    ],
+    ["an explicit 4xx response", () => jsonResponse({ error: "invalid amount" }, 400)],
+  ])("clears the transfer intent after %s", async (_label, firstResponse) => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(firstResponse())
+      .mockResolvedValueOnce(
+        jsonResponse({
+          asset: "CUSD",
+          direction: "toSpot",
+          amount: "1",
+          fundingAvailable: "0",
+          spotFree: "1",
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await transferSpotBalance(spotTransferInput()).catch(() => undefined);
+    await expect(transferSpotBalance(spotTransferInput())).resolves.toMatchObject({ spotFree: "1" });
+
+    expect(spotTransferKey(fetchMock, 1)).not.toBe(spotTransferKey(fetchMock, 0));
   });
 
   it("loads persistent user spot transfer history", async () => {
@@ -343,31 +365,128 @@ describe("canton wallet funds", () => {
     expect(result.deposit_ref).toBe("dep-delayed");
   });
 
-  it("submits withdrawals to the connected wallet party", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({
-        withdrawal_id: "wid-1",
-        status: "submitted",
-      })
-    );
+  it("submits withdrawal and bonus recall through one atomic backend request", async () => {
+    const randomUUID = vi.fn(() => "123e4567-e89b-12d3-a456-426614174000");
+    vi.stubGlobal("crypto", { randomUUID });
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ withdrawal_id: "wid-1", status: "submitted" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const bonusChanged = vi.fn();
+    window.addEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
+
+    try {
+      const result = await submitPlatformWithdrawal({
+        asset: "CUSD",
+        amount: "5",
+        destinationParty: " party-1 ",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
+      });
+
+      expect(result).toMatchObject({ withdrawal_id: "wid-1", status: "submitted" });
+      expect(randomUUID).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/v1/withdrawals"]);
+
+      const withdrawalInit = fetchMock.mock.calls[0][1] as RequestInit;
+      expect(withdrawalInit.method).toBe("POST");
+      expect(headerValue(withdrawalInit.headers, "Authorization")).toBe("Bearer exchange-token");
+      expect(JSON.parse(withdrawalInit.body as string)).toEqual({
+        asset: "CUSD",
+        amount: "5",
+        dest_user_handle_party: "party-1",
+        idempotency_key: "withdraw-cusd-123e4567-e89b-12d3-a456-426614174000",
+      });
+      expect(localStorage.getItem("rocky_pending_withdrawal_intents_v1")).not.toContain("exchange-token");
+      expect(bonusChanged).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener(BONUS_DATA_CHANGED_EVENT, bonusChanged);
+    }
+  });
+
+  it("reuses the same withdrawal key after a lost response", async () => {
+    const randomUUID = vi.fn(() => "123e4567-e89b-12d3-a456-426614174000");
+    vi.stubGlobal("crypto", { randomUUID });
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network response lost"))
+      .mockResolvedValueOnce(jsonResponse({ withdrawal_id: "wid-replayed", status: "submitted" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitPlatformWithdrawal({
-      asset: "CUSD",
+    const input = {
+      asset: "CUSD" as const,
       amount: "5",
-      destinationParty: " party-1 ",
-      idempotencyKey: "idempotency-1",
-    });
+      destinationParty: "party-1",
+      sessionParty: "session-party",
+      walletProvider: "rocky",
+    };
+    await expect(submitPlatformWithdrawal(input)).rejects.toThrow("network response lost");
+    await expect(submitPlatformWithdrawal(input)).resolves.toMatchObject({ withdrawal_id: "wid-replayed" });
 
-    expect(result.withdrawal_id).toBe("wid-1");
-    expect(fetchMock).toHaveBeenCalledWith("/v1/withdrawals", expect.objectContaining({ method: "POST" }));
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect(JSON.parse(init.body as string)).toEqual({
-      asset: "CUSD",
-      amount: "5",
-      dest_user_handle_party: "party-1",
-      idempotency_key: "idempotency-1",
+    const firstBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    const retryBody = JSON.parse(fetchMock.mock.calls[1][1]?.body as string);
+    expect(retryBody.idempotency_key).toBe(firstBody.idempotency_key);
+    expect(randomUUID).toHaveBeenCalledTimes(1);
+  });
+
+  it("coalesces identical concurrent withdrawals in the same runtime", async () => {
+    let resolveResponse!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      resolveResponse = resolve;
     });
+    const fetchMock = vi.fn<typeof fetch>().mockReturnValue(response);
+    vi.stubGlobal("fetch", fetchMock);
+    const input = {
+      asset: "CUSD" as const,
+      amount: "5",
+      destinationParty: "party-1",
+      sessionParty: "session-party",
+      walletProvider: "rocky",
+    };
+
+    const first = submitPlatformWithdrawal(input);
+    const second = submitPlatformWithdrawal(input);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolveResponse(jsonResponse({ withdrawal_id: "wid-one", status: "submitted" }));
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+  });
+
+  it("clears a definitive withdrawal rejection before a new attempt", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ error: "insufficient balance" }, 409))
+      .mockResolvedValueOnce(jsonResponse({ withdrawal_id: "wid-next", status: "submitted" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const input = {
+      asset: "CUSD" as const,
+      amount: "5",
+      destinationParty: "party-1",
+      sessionParty: "session-party",
+      walletProvider: "rocky",
+    };
+
+    await expect(submitPlatformWithdrawal(input)).rejects.toMatchObject({ status: 409 });
+    await expect(submitPlatformWithdrawal(input)).resolves.toMatchObject({ withdrawal_id: "wid-next" });
+
+    expect(JSON.parse(fetchMock.mock.calls[1][1]?.body as string).idempotency_key).not.toBe(
+      JSON.parse(fetchMock.mock.calls[0][1]?.body as string).idempotency_key
+    );
+  });
+
+  it("requires an exchange session before attempting withdrawals", async () => {
+    localStorage.removeItem("rocky_exchange_session");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitPlatformWithdrawal({
+        asset: "CUSD",
+        amount: "5",
+        destinationParty: "party-1",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
+      })
+    ).rejects.toMatchObject({ code: "not_logged_in" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("loads the native withdrawal fee quote for the selected asset", async () => {
@@ -384,9 +503,9 @@ describe("canton wallet funds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchWithdrawalFeeQuote("CBTC")).resolves.toMatchObject({
-      fee_asset: "CBTC",
-      fee_wallet_symbol: "CBTC",
-      fee_amount: "0.0000142858",
+      feeAsset: "CBTC",
+      feeWalletSymbol: "CBTC",
+      feeAmount: "0.0000142858",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/withdrawals/quote?asset=CBTC",
@@ -396,10 +515,11 @@ describe("canton wallet funds", () => {
 
   it("times out a stalled withdrawal request so the UI can safely retry", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn((_url: RequestInfo | URL, init?: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
-      })
+    const fetchMock = vi.fn(
+      (_url: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        })
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -407,7 +527,8 @@ describe("canton wallet funds", () => {
       asset: "CBTC",
       amount: "0.00001",
       destinationParty: "party-1",
-      idempotencyKey: "idempotency-timeout",
+      sessionParty: "party-1",
+      walletProvider: "rocky",
     });
     const rejection = expect(pending).rejects.toMatchObject({
       code: "request_timeout",
@@ -429,7 +550,7 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("uses the public CUSD account endpoint", async () => {
+  it("maps CUSD platform balances to the CUSD public backend account", async () => {
     const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => jsonResponse({ available: "0.1" }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -437,6 +558,55 @@ describe("canton wallet funds", () => {
     expect(fetchMock).toHaveBeenCalledWith("/v1/account/me/CUSD", {
       headers: { Authorization: "Bearer exchange-token" },
     });
+  });
+
+  it("reads principal-only withdrawable funds from bonus balance info instead of raw account availability", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(BONUS_BALANCE_INFO));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBe(4);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/v1/bonus/balance-info",
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({ Authorization: "Bearer exchange-token" }),
+      })
+    );
+  });
+
+  it("uses effective withdrawable funds for users without a bonus account", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ...BONUS_BALANCE_INFO,
+        principal_free: "100",
+        bonus_free: "0",
+        effective_withdrawable: "100",
+        status: "no_bonus",
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBe(100);
+  });
+
+  it.each(["", "-1", "not-a-number"])("treats invalid effective withdrawable value %s as unknown", async (value) => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        ...BONUS_BALANCE_INFO,
+        effective_withdrawable: value,
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBeNull();
+  });
+
+  it("treats bonus balance-info failures as an unknown local withdrawal limit", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ error: "bonus_unavailable" }, 503));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchPlatformWithdrawableBalance()).resolves.toBeNull();
   });
 
   it("reads the CUSD futures account balance separately from spot", async () => {
@@ -465,28 +635,6 @@ describe("canton wallet funds", () => {
     });
   });
 
-  it("loads platform balances without overlapping requests rejected by the account service", async () => {
-    let inFlight = 0;
-    const fetchMock = vi.fn(async () => {
-      inFlight += 1;
-      if (inFlight > 1) {
-        inFlight -= 1;
-        throw new Error("upstream reset concurrent request");
-      }
-      await new Promise<void>((resolve) => queueMicrotask(resolve));
-      inFlight -= 1;
-      return jsonResponse({ spot_free: "1" });
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(fetchPlatformAccountBalances()).resolves.toEqual({
-      CUSD: 1,
-      CBTC: 1,
-      cETH: 1,
-      CC: 1,
-    });
-  });
-
   it("accepts camel-case and nested spot balance responses", async () => {
     const fetchMock = vi
       .fn()
@@ -505,7 +653,7 @@ describe("canton wallet funds", () => {
           deposits: [
             {
               deposit_id: "deposit-1",
-              asset: "USDC",
+              asset: "CUSD",
               amount_expected: "0.2",
               status: "credited",
             },
@@ -517,7 +665,7 @@ describe("canton wallet funds", () => {
           withdrawals: [
             {
               withdrawal_id: "withdrawal-1",
-              asset: "USDC",
+              asset: "CUSD",
               amount: "0.1",
               status: "settled",
               fee_amount: "1",
@@ -534,7 +682,7 @@ describe("canton wallet funds", () => {
       deposits: [
         {
           deposit_id: "deposit-1",
-          asset: "USDC",
+          asset: "CUSD",
           amount_expected: "0.2",
           status: "credited",
         },
@@ -542,7 +690,7 @@ describe("canton wallet funds", () => {
       withdrawals: [
         {
           withdrawal_id: "withdrawal-1",
-          asset: "USDC",
+          asset: "CUSD",
           amount: "0.1",
           status: "settled",
           fee_amount: "1",
@@ -557,9 +705,7 @@ describe("canton wallet funds", () => {
   });
 
   it("surfaces withdrawal API error messages from non-error fields", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({ message: "Insufficient balance for this withdraw." }, 409)
-    );
+    const fetchMock = vi.fn(async () => jsonResponse({ message: "Insufficient balance for this withdraw." }, 409));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
@@ -567,7 +713,8 @@ describe("canton wallet funds", () => {
         asset: "CC",
         amount: "5",
         destinationParty: "party-1",
-        idempotencyKey: "idempotency-1",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
       })
     ).rejects.toMatchObject({
       message: "Insufficient balance for this withdraw.",
@@ -576,7 +723,7 @@ describe("canton wallet funds", () => {
   });
 
   it("uses a withdrawal-specific fallback for empty 409 responses", async () => {
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => new Response("", { status: 409 }));
+    const fetchMock = vi.fn(async () => new Response("", { status: 409 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
@@ -584,7 +731,8 @@ describe("canton wallet funds", () => {
         asset: "CC",
         amount: "5",
         destinationParty: "party-1",
-        idempotencyKey: "idempotency-1",
+        sessionParty: "session-party",
+        walletProvider: "rocky",
       })
     ).rejects.toMatchObject({
       message: "Withdrawal could not be submitted. Check available platform balance and retry.",
@@ -603,7 +751,7 @@ describe("canton wallet funds", () => {
 
   it("reads and writes Rocky CUSD auto-accept settings", async () => {
     const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      if (String(url) === "/v1/wallet/cusd/auto-accept" && init?.method === "PUT") {
+      if (String(url) === "/v1/wallet/usda/auto-accept" && init?.method === "PUT") {
         return jsonResponse({ enabled: true });
       }
       return jsonResponse({ enabled: false });
@@ -674,13 +822,13 @@ function createRockyWalletProvider() {
         instrument_id: null,
       },
       {
-        asset_id: "cusd-asset",
+        asset_id: "usda-asset",
         asset_type: "token_standard" as const,
-        symbol: "CUSD",
+        symbol: "USDCx",
         name: "CUSD",
         display_alias: "CUSD",
         registry_name: null,
-        decimals: 10,
+        decimals: 6,
         enabled: true,
         can_send: true,
         instrument_admin:
@@ -703,6 +851,22 @@ function headerValue(headers: HeadersInit | undefined, name: string): string | u
   }
   const record = headers as Record<string, string>;
   return record[name] || record[name.toLowerCase()];
+}
+
+function spotTransferInput() {
+  return {
+    asset: "CUSD" as const,
+    amount: "1",
+    direction: "toSpot" as const,
+    walletParty: "wallet-party",
+    sessionParty: "session-party",
+    walletProvider: "rocky" as const,
+  };
+}
+
+function spotTransferKey(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, callIndex: number): string {
+  const init = fetchMock.mock.calls[callIndex]?.[1] as RequestInit;
+  return JSON.parse(init.body as string).idempotency_key as string;
 }
 
 function createMemoryStorage(): Storage {

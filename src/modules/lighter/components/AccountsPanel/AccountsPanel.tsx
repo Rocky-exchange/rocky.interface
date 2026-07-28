@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { transferSpotBalance } from "@/shared/lib/canton-wallet/funds";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./AccountsPanel.module.scss";
 import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
@@ -42,6 +43,7 @@ function formatUsda(value: number | null | undefined) {
 
 export function AccountsPanel() {
   const { i18n } = useLingui();
+  const { party, provider } = useCantonSession();
   const account = useUnifiedAccountAdapter();
   const { available: cachedFundingAvailable, setAvailable: setCachedFundingAvailable } = useAvailableBalanceAdapter();
   const [fundingAvailable, setFundingAvailable] = useState<number | null>(
@@ -65,6 +67,9 @@ export function AccountsPanel() {
         asset: "CUSD",
         amount: transferAmount.trim(),
         direction,
+        walletParty: party,
+        sessionParty: party,
+        walletProvider: provider,
       });
       const nextFundingAvailable = Number(result.fundingAvailable);
       if (Number.isFinite(nextFundingAvailable)) {

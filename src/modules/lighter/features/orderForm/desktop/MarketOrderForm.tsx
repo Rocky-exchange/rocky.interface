@@ -2,18 +2,15 @@ import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
-
-import { formatAvailableToTrade } from "./availableBalanceFormat";
 import { getCurrentOrderFormPosition, getProjectedOrderFormPositionValue } from "./orderFormPosition";
 import { formatPreviewFeeRatePercent } from "./orderPreviewFeeFormat";
-import { useOrderGate } from "./useOrderGate";
 import { useAvailableBalanceAdapter } from "../../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
-import { Checkbox } from "../../../components/Checkbox/Checkbox";
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { useOrderGate } from "./useOrderGate";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
 
 /** slippage override 超过该阈值时展示一条黄色警示(只提示,不阻断)。*/
@@ -31,12 +28,6 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
   const [amount, setAmount] = useState("");
   const [amountUnit, setAmountUnit] = useState<"SYMBOL" | "USD">("USD");
   const [pct, setPct] = useState(0);
-  const [reduceOnly, setReduceOnly] = useState(false);
-  const [tpsl, setTpsl] = useState(false);
-  const [tpPrice, setTpPrice] = useState("");
-  const [tpGain, setTpGain] = useState("");
-  const [slPrice, setSlPrice] = useState("");
-  const [slLoss, setSlLoss] = useState("");
   const [slippageOverride, setSlippageOverride] = useState("");
   const { placeOrder, submitting } = usePlaceOrderAdapter();
   const market = useMarketInfoAdapter();
@@ -82,7 +73,6 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
     amount: tentativeAmountNum,
     leverage,
     marginMode,
-    reduceOnly,
   });
   const previewEstPrice = tentativePreview.data?.est_price ? Number(tentativePreview.data.est_price) : null;
   // submit 用的换算价:conversionPrice 优先,实在没有(WS 从没连上)才回退后端 est_price。
@@ -151,7 +141,7 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
   const bonusGate = useOrderGate({
     symbol: `${baseSymbol}USDT`,
     side,
-    isOpening: !reduceOnly,
+    isOpening: true,
     marginMode: "isolated_hedge",
   });
 
@@ -164,9 +154,6 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
         effectivePrice: effectivePrice ?? undefined,
         leverage,
         marginMode,
-        reduceOnly,
-        tpPrice: tpsl && tpPrice ? Number(tpPrice) : undefined,
-        slPrice: tpsl && slPrice ? Number(slPrice) : undefined,
         maxSlippage: effectiveMaxSlippage,
       })
     );
@@ -176,11 +163,17 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
       <div className="ltr-form__section">
         <Row
           label={<Trans>Available to Trade</Trans>}
-          value={formatAvailableToTrade(p?.available_balance, available)}
+          value={
+            p?.available_balance
+              ? fmtUsd(p.available_balance)
+              : available != null
+                ? `$${available.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : "-"
+          }
         />
         <Row
           label={<Trans>Position</Trans>}
-          value={getProjectedOrderFormPositionValue(currentPosition, baseSymbol, amountNum, side, reduceOnly)}
+          value={getProjectedOrderFormPositionValue(currentPosition, baseSymbol, amountNum, side, false)}
         />
       </div>
 
@@ -243,67 +236,7 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
           side={side}
         />
 
-        <Checkbox
-          checked={reduceOnly}
-          onChange={(checked) => {
-            setReduceOnly(checked);
-            if (checked) setTpsl(false);
-          }}
-          label={i18n._(t`Reduce Only`)}
-        />
-        {!reduceOnly && (
-          <Checkbox
-            checked={tpsl}
-            onChange={(checked) => {
-              setTpsl(checked);
-              if (checked) setReduceOnly(false);
-            }}
-            label={i18n._(t`Take Profit / Stop Loss`)}
-          />
-        )}
-
-        {tpsl && (
-          <div className="ltr-form__grid2">
-            <FormField label={<Trans>TP Price</Trans>}>
-              <input
-                className="ltr-form__input"
-                value={tpPrice}
-                onChange={(e) => setTpPrice(e.target.value)}
-                placeholder="0.0"
-                inputMode="decimal"
-              />
-            </FormField>
-            <FormField label={<Trans>Gain</Trans>}>
-              <input
-                className="ltr-form__input"
-                value={tpGain}
-                onChange={(e) => setTpGain(e.target.value)}
-                placeholder="0.00"
-                inputMode="decimal"
-              />
-              <UnitSelect unit="%" />
-            </FormField>
-            <FormField label={<Trans>SL Price</Trans>}>
-              <input
-                className="ltr-form__input"
-                value={slPrice}
-                onChange={(e) => setSlPrice(e.target.value)}
-                placeholder="0.0"
-                inputMode="decimal"
-              />
-            </FormField>
-            <FormField label={<Trans>Loss</Trans>}>
-              <input
-                className="ltr-form__input"
-                value={slLoss}
-                onChange={(e) => setSlLoss(e.target.value)}
-                placeholder="0.00"
-                inputMode="decimal"
-              />
-              <UnitSelect unit="%" />
-            </FormField>
-          </div>
-        )}
+        <UnsupportedBasicOrderOptions />
       </div>
 
       <div className="ltr-form__section">
@@ -394,6 +327,19 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
   );
 }
 
+export function UnsupportedBasicOrderOptions() {
+  return (
+    <>
+      <div className="ltr-form__note ltr-form__note--warn">
+        <Trans>Reduce Only is unavailable here. Use Close Position to reduce an open position.</Trans>
+      </div>
+      <div className="ltr-form__note ltr-form__note--warn">
+        <Trans>Attached Take Profit / Stop Loss is not supported yet.</Trans>
+      </div>
+    </>
+  );
+}
+
 function FormField({ label, children }: { label: ReactNode; children: React.ReactNode }) {
   return (
     <div className="ltr-form__field">
@@ -458,15 +404,6 @@ export function CoinSelect({
         </div>
       )}
     </div>
-  );
-}
-
-function UnitSelect({ unit }: { unit: string }) {
-  return (
-    <button className="ltr-form__trailing" type="button">
-      <span>{unit}</span>
-      <Caret />
-    </button>
   );
 }
 

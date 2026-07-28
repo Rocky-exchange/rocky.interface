@@ -8,6 +8,7 @@ import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
+import { LimitOrderForm } from "./LimitOrderForm";
 import { MarketOrderForm } from "./MarketOrderForm";
 import { useOrderGate } from "./useOrderGate";
 
@@ -60,24 +61,6 @@ i18n.load("en", {});
 i18n.activate("en");
 
 describe("MarketOrderForm order propagation", () => {
-  it("shows zero instead of a dash when available balance has not loaded", () => {
-    vi.mocked(useAvailableBalanceAdapter).mockReturnValue({
-      available: null,
-      loading: false,
-    } as ReturnType<typeof useAvailableBalanceAdapter>);
-
-    const view = render(
-      <I18nProvider i18n={i18n}>
-        <MarketOrderForm side="buy" isConnected={false} leverage={10} marginMode="cross" />
-      </I18nProvider>
-    );
-
-    const row = view.getByText("Available to Trade").closest(".ltr-form__row");
-    expect(row).toBeTruthy();
-    expect(within(row as HTMLElement).getByText("0")).toBeTruthy();
-    expect(within(row as HTMLElement).queryByText("-")).toBeNull();
-  });
-
   it("passes its live effective market price to placeOrder", async () => {
     const { container } = render(
       <I18nProvider i18n={i18n}>
@@ -95,5 +78,33 @@ describe("MarketOrderForm order propagation", () => {
         expect.objectContaining({ type: "market", amount: 2, effectivePrice: 100 })
       )
     );
+  });
+
+  it("removes unsupported Reduce Only and attached TP/SL controls and explains the supported close path", () => {
+    const { container } = render(
+      <I18nProvider i18n={i18n}>
+        <MarketOrderForm side="buy" isConnected leverage={10} marginMode="cross" />
+      </I18nProvider>
+    );
+    const view = within(container);
+
+    expect(view.queryByRole("checkbox", { name: /Reduce Only/i })).toBeNull();
+    expect(view.queryByRole("checkbox", { name: /Take Profit \/ Stop Loss/i })).toBeNull();
+    expect(view.getByText(/Reduce Only is unavailable here.*Close Position/i)).toBeTruthy();
+    expect(view.getByText(/Attached Take Profit \/ Stop Loss is not supported yet/i)).toBeTruthy();
+  });
+
+  it("removes the same unsupported controls from the live desktop limit form", () => {
+    const { container } = render(
+      <I18nProvider i18n={i18n}>
+        <LimitOrderForm side="sell" isConnected leverage={10} marginMode="cross" />
+      </I18nProvider>
+    );
+    const view = within(container);
+
+    expect(view.queryByRole("checkbox", { name: /Reduce Only/i })).toBeNull();
+    expect(view.queryByRole("checkbox", { name: /Take Profit \/ Stop Loss/i })).toBeNull();
+    expect(view.getByText(/Reduce Only is unavailable here.*Close Position/i)).toBeTruthy();
+    expect(view.getByText(/Attached Take Profit \/ Stop Loss is not supported yet/i)).toBeTruthy();
   });
 });

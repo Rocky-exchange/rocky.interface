@@ -15,7 +15,6 @@ import { LeverageSlider } from "./LeverageSlider";
 import styles from "./OrderBottomSheet.module.scss";
 import { OrderTypeTabs } from "./OrderTypeTabs";
 import { SizeInput } from "./SizeInput";
-import { TPSLSection } from "./TPSLSection";
 
 type Props = {
   open: boolean;
@@ -83,8 +82,6 @@ export function OrderBottomSheet({ open, side, baseSymbol, onOpenChange, maxLeve
         price: form.mode === "Limit" ? Number(form.price) : undefined,
         leverage: form.leverageValue,
         marginMode: form.marginTab.toLowerCase() as "cross" | "isolated",
-        tpPrice: form.tp ? Number(form.tp) : undefined,
-        slPrice: form.sl ? Number(form.sl) : undefined,
       });
       onOpenChange(false);
     } catch (e) {
@@ -142,7 +139,12 @@ export function OrderBottomSheet({ open, side, baseSymbol, onOpenChange, maxLeve
               </div>
             )}
 
-            <TPSLSection tp={form.tp} sl={form.sl} onTpChange={form.setTp} onSlChange={form.setSl} />
+            <div className={styles.notice}>
+              <Trans>Reduce Only is unavailable here. Use Close Position to reduce an open position.</Trans>
+            </div>
+            <div className={styles.notice}>
+              <Trans>Attached Take Profit / Stop Loss is not supported yet.</Trans>
+            </div>
 
             <OrderInfoRows
               availableToTrade={info.availableToTrade}

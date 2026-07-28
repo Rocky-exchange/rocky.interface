@@ -1,3 +1,6 @@
+import { fetchBonusBalanceInfo } from "@/modules/lighter/features/bonus/api/bonus.api";
+import { notifyBonusDataChanged } from "@/modules/lighter/features/bonus/api/useBonus";
+
 import {
   CANTON_FUNDING_ASSETS,
   getCantonFundingAsset,
@@ -16,7 +19,21 @@ import { submitRockyWalletTransfer } from "./rocky";
 import { submitSendWalletTransfer } from "./send";
 import { exchangeSessionHeaders, getExchangeSessionToken } from "./session";
 import { disconnectCantonWalletSession } from "./sessionLogout";
+import {
+  acquireSpotTransferIntentKey,
+  settleSpotTransferIntent,
+  shouldRetainSpotTransferIntent,
+  type SpotTransferIntent,
+  type SpotTransferIntentScope,
+} from "./spotTransferIntentRegistry";
 import type { WalletProviderId } from "./types";
+import {
+  acquireWithdrawalIntentKey,
+  settleWithdrawalIntent,
+  shouldRetainWithdrawalIntent,
+  type WithdrawalIntent,
+  type WithdrawalIntentScope,
+} from "./withdrawalIntentRegistry";
 
 export type { CantonFundsApiAsset, CantonFundsAsset } from "./assets";
 export type CantonWalletTransferStatus =
@@ -67,11 +84,11 @@ export type CantonWithdrawalResult = {
 
 export type CantonWithdrawalFeeQuote = {
   asset: string;
-  fee_asset: string;
-  fee_wallet_symbol: string;
-  fee_amount: string;
-  fee_quote_price?: string;
-  fee_quote_ts_ms?: number;
+  feeAsset: string;
+  feeWalletSymbol: string;
+  feeAmount: string;
+  feeQuotePrice?: string;
+  feeQuoteTsMs?: number;
 };
 
 export type CantonDepositHistoryItem = {
@@ -182,7 +199,7 @@ export function makeWalletWithdrawalIdempotencyKey(asset: CantonFundsAsset): str
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `wallet-withdraw-${asset.toLowerCase()}-${nonce}`;
+  return `withdraw-${asset.toLowerCase()}-${nonce}`;
 }
 
 export async function requestDepositReference(input: {
@@ -260,44 +277,98 @@ function isSendPrepareExecuteAndWaitTimeout(error: unknown): boolean {
   return /request\s+["']prepareExecuteAndWait["']\s+timed out after \d+ms/i.test(message);
 }
 
+const inFlightWithdrawals = new Map<string, Promise<CantonWithdrawalResult>>();
+
+export async function fetchWithdrawalFeeQuote(asset: CantonFundsAsset): Promise<CantonWithdrawalFeeQuote> {
+  const data = await requestJson<{
+    asset: string;
+    fee_asset: string;
+    fee_wallet_symbol: string;
+    fee_amount: string;
+    fee_quote_price?: string;
+    fee_quote_ts_ms?: number;
+  }>(`/v1/withdrawals/quote?asset=${encodeURIComponent(platformDepositApiAsset(asset))}`, {
+    method: "GET",
+    headers: exchangeSessionHeaders(),
+  });
+  return {
+    asset: data.asset,
+    feeAsset: data.fee_asset,
+    feeWalletSymbol: data.fee_wallet_symbol,
+    feeAmount: data.fee_amount,
+    ...(data.fee_quote_price === undefined ? {} : { feeQuotePrice: data.fee_quote_price }),
+    ...(data.fee_quote_ts_ms === undefined ? {} : { feeQuoteTsMs: data.fee_quote_ts_ms }),
+  };
+}
+
 export async function submitPlatformWithdrawal(input: {
   asset: CantonFundsAsset;
   amount: string;
   destinationParty: string;
-  idempotencyKey?: string;
+  sessionParty: string;
+  walletProvider: string;
 }): Promise<CantonWithdrawalResult> {
   const destinationParty = input.destinationParty.trim();
   if (!destinationParty) {
     throw new CantonFundsError("Destination party is required", { code: "destination_party_required" });
   }
 
-  return requestJson<CantonWithdrawalResult>(
+  ensureExchangeSession();
+  const amount = positiveAmount(input.amount);
+  const scope = withdrawalScope(input);
+  const intent: WithdrawalIntent = { asset: input.asset, amount, destinationParty };
+  const withdrawalKey = acquireWithdrawalIntentKey(scope, intent);
+  const existingRequest = inFlightWithdrawals.get(withdrawalKey);
+  if (existingRequest) return existingRequest;
+
+  const request = { ...intent, idempotency_key: withdrawalKey };
+  let trackedRequest: Promise<CantonWithdrawalResult>;
+  trackedRequest = requestJson<CantonWithdrawalResult>(
     "/v1/withdrawals",
     {
       method: "POST",
       headers: sessionJsonHeaders(),
       body: JSON.stringify({
         asset: input.asset,
-        amount: positiveAmount(input.amount),
+        amount,
         dest_user_handle_party: destinationParty,
-        idempotency_key: input.idempotencyKey || makeWalletWithdrawalIdempotencyKey(input.asset),
+        idempotency_key: withdrawalKey,
       }),
     },
     {
       timeoutMs: WITHDRAWAL_REQUEST_TIMEOUT_MS,
       timeoutMessage: "Withdrawal request timed out. Please retry.",
     }
-  );
+  )
+    .then((result) => {
+      settleWithdrawalIntent(scope, request, "complete");
+      notifyBonusDataChanged();
+      return result;
+    })
+    .catch((error: unknown) => {
+      const ambiguous = shouldRetainWithdrawalIntent(error);
+      settleWithdrawalIntent(scope, request, ambiguous ? "ambiguous" : "complete");
+      if (ambiguous) notifyBonusDataChanged();
+      throw error;
+    })
+    .finally(() => {
+      if (inFlightWithdrawals.get(withdrawalKey) === trackedRequest) {
+        inFlightWithdrawals.delete(withdrawalKey);
+      }
+    });
+  inFlightWithdrawals.set(withdrawalKey, trackedRequest);
+  return trackedRequest;
 }
 
-export async function fetchWithdrawalFeeQuote(asset: CantonFundsAsset): Promise<CantonWithdrawalFeeQuote> {
-  return requestJson<CantonWithdrawalFeeQuote>(
-    `/v1/withdrawals/quote?asset=${encodeURIComponent(platformDepositApiAsset(asset))}`,
-    {
-      method: "GET",
-      headers: exchangeSessionHeaders(),
-    }
-  );
+function withdrawalScope(input: { sessionParty: string; walletProvider: string }): WithdrawalIntentScope {
+  const scope = {
+    sessionParty: input.sessionParty.trim(),
+    walletProvider: input.walletProvider.trim(),
+  };
+  if (!scope.sessionParty || !scope.walletProvider) {
+    throw new CantonFundsError("Wallet session identity is unavailable", { code: "wallet_identity_unavailable" });
+  }
+  return scope;
 }
 
 export async function fetchCantonFundsHistory(): Promise<CantonFundsHistory> {
@@ -354,22 +425,33 @@ async function fetchAccountBalanceRecord(asset: CantonFundsAsset): Promise<Recor
 }
 
 export async function fetchPlatformAccountBalances(): Promise<PlatformAccountBalances> {
-  const balances: PlatformAccountBalances = {
+  const rows = await Promise.all(
+    CANTON_FUNDING_ASSETS.map(async ({ symbol }) => {
+      try {
+        return [symbol, await fetchPlatformAccountBalance(symbol)] as const;
+      } catch (_error) {
+        return [symbol, null] as const;
+      }
+    })
+  );
+  return rows.reduce<PlatformAccountBalances>((balances, [asset, value]) => ({ ...balances, [asset]: value }), {
     CUSD: null,
     CBTC: null,
     cETH: null,
     CC: null,
-  };
+  });
+}
 
-  for (const { symbol } of CANTON_FUNDING_ASSETS) {
-    try {
-      balances[symbol] = await fetchPlatformAccountBalance(symbol);
-    } catch (_error) {
-      balances[symbol] = null;
-    }
+export async function fetchPlatformWithdrawableBalance(): Promise<number | null> {
+  try {
+    const balance = await fetchBonusBalanceInfo();
+    const effectiveWithdrawableText = balance.effective_withdrawable.trim();
+    if (!effectiveWithdrawableText) return null;
+    const effectiveWithdrawable = Number(effectiveWithdrawableText);
+    return Number.isFinite(effectiveWithdrawable) && effectiveWithdrawable >= 0 ? effectiveWithdrawable : null;
+  } catch (_error) {
+    return null;
   }
-
-  return balances;
 }
 
 export async function waitForPlatformDepositCredit(input: PlatformDepositCreditWaitInput): Promise<number | null> {
@@ -444,21 +526,61 @@ export type SpotTransferResult = {
   spotFree: string;
 };
 
+export type SpotTransferInput = SpotTransferIntent & SpotTransferIntentScope;
+
+const inFlightSpotTransfers = new Map<string, Promise<SpotTransferResult>>();
+
 /** Move CUSD between the isolated contract and spot accounts. */
-export async function transferSpotBalance(input: {
-  asset: "CUSD";
-  amount: string;
-  direction: "toSpot" | "toFunding";
-}): Promise<SpotTransferResult> {
-  return requestJson<SpotTransferResult>("/v1/spot/transfer", {
+export function transferSpotBalance(input: SpotTransferInput): Promise<SpotTransferResult> {
+  const headers = sessionJsonHeaders();
+  const intent: SpotTransferIntent = {
+    asset: input.asset,
+    amount: positiveAmount(input.amount),
+    direction: input.direction,
+  };
+  const scope = spotTransferScope(input);
+  const idempotencyKey = acquireSpotTransferIntentKey(scope, intent);
+  const existingRequest = inFlightSpotTransfers.get(idempotencyKey);
+  if (existingRequest) return existingRequest;
+
+  const request = { ...intent, idempotency_key: idempotencyKey };
+  let trackedRequest: Promise<SpotTransferResult>;
+  trackedRequest = requestJson<SpotTransferResult>("/v1/spot/transfer", {
     method: "POST",
-    headers: sessionJsonHeaders(),
-    body: JSON.stringify(input),
-  });
+    headers,
+    body: JSON.stringify(request),
+  })
+    .then((result) => {
+      settleSpotTransferIntent(scope, request, "complete");
+      return result;
+    })
+    .catch((error: unknown) => {
+      settleSpotTransferIntent(scope, request, shouldRetainSpotTransferIntent(error) ? "ambiguous" : "complete");
+      throw error;
+    })
+    .finally(() => {
+      if (inFlightSpotTransfers.get(idempotencyKey) === trackedRequest) {
+        inFlightSpotTransfers.delete(idempotencyKey);
+      }
+    });
+  inFlightSpotTransfers.set(idempotencyKey, trackedRequest);
+  return trackedRequest;
+}
+
+function spotTransferScope(input: SpotTransferInput): SpotTransferIntentScope {
+  const scope = {
+    walletParty: input.walletParty.trim(),
+    sessionParty: input.sessionParty.trim(),
+    walletProvider: input.walletProvider.trim(),
+  };
+  if (!scope.walletParty || !scope.sessionParty || !scope.walletProvider) {
+    throw new CantonFundsError("Wallet session identity is unavailable", { code: "wallet_identity_unavailable" });
+  }
+  return scope;
 }
 
 export async function authorizeUsdaWallet(): Promise<UsdaAuthorizationResult> {
-  return requestJson<UsdaAuthorizationResult>("/v1/wallet/cusd/authorize", {
+  return requestJson<UsdaAuthorizationResult>("/v1/wallet/usda/authorize", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -474,7 +596,7 @@ export async function acceptUsdaWalletTransfers(input: {
     return { acceptedCount: result.acceptedCount, raw: result };
   }
 
-  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/cusd/accept", {
+  const data = await requestJson<{ accepted_count?: number }>("/v1/wallet/usda/accept", {
     method: "POST",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({}),
@@ -498,7 +620,7 @@ export async function fetchPendingUsdaOffers(input: {
 }
 
 export async function fetchUsdaAutoAccept(): Promise<UsdaAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/cusd/auto-accept", {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
     method: "GET",
     headers: exchangeSessionHeaders(),
   });
@@ -506,7 +628,7 @@ export async function fetchUsdaAutoAccept(): Promise<UsdaAutoAcceptResult> {
 }
 
 export async function setUsdaAutoAccept(enabled: boolean): Promise<UsdaAutoAcceptResult> {
-  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/cusd/auto-accept", {
+  const data = await requestJson<{ enabled?: boolean }>("/v1/wallet/usda/auto-accept", {
     method: "PUT",
     headers: sessionJsonHeaders(),
     body: JSON.stringify({ enabled }),
@@ -594,9 +716,7 @@ async function requestJson<T>(
   options: { timeoutMs?: number; timeoutMessage?: string } = {}
 ): Promise<T> {
   const controller = options.timeoutMs ? new AbortController() : null;
-  const timer = controller
-    ? setTimeout(() => controller.abort(), options.timeoutMs)
-    : null;
+  const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : null;
   try {
     const response = await fetch(url, {
       ...init,

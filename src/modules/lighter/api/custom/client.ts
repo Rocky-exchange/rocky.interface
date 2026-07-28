@@ -14,6 +14,11 @@ import { isDevelopment } from "config/env";
 
 import { marketDataRequest } from "../marketRequests";
 import {
+  acquirePendingOrderIntentKey,
+  settlePendingOrderIntent,
+  shouldRetainPendingOrderIntent,
+} from "./orderIntentRegistry";
+import {
   mapReferralDashboardToOnChainResponse,
   normalizeReferralDashboardResponse,
 } from "./referralDashboard.normalize";
@@ -25,7 +30,6 @@ import {
   getReferralStatusMock,
   referralUseMockFromEnv,
 } from "./referralMock";
-import { perpDisplayQuote } from "../../utils/displayQuote";
 import type {
   ApiError,
   NonceResponse,
@@ -680,7 +684,6 @@ interface RawMarketRow {
   symbol: string;
   base?: string;
   quote?: string;
-  icon_url?: string;
   max_leverage?: number;
   tick_size?: string;
   min_qty?: string;
@@ -695,8 +698,7 @@ function normalizeMarketRow(r: RawMarketRow, rank: number): Market {
   return {
     symbol: `${base}-USD`,
     base_asset: base,
-    quote_asset: perpDisplayQuote(r.quote),
-    icon_url: r.icon_url,
+    quote_asset: r.quote ?? "USDC",
     last_price: "",
     price_change_24h: "0",
     price_change_percent_24h: "0",
@@ -732,16 +734,16 @@ export async function getMarkets(chainId: number, limit?: number): Promise<Marke
 // description). Bilingual — picked by the active locale, like the onboarding tour.
 const MARKET_DESCRIPTIONS: Record<string, { en: string; zh: string }> = {
   BTC: {
-    en: "Bitcoin (BTC) is the first and largest cryptocurrency, a decentralized digital store of value secured by proof-of-work. BTC-PERP is a perpetual futures contract with up to 100x leverage, settled in CUSD on the Canton Network.",
-    zh: "比特币（BTC）是第一个也是市值最大的加密货币，采用工作量证明保护的去中心化数字价值存储。BTC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 CUSD 结算。",
+    en: "Bitcoin (BTC) is the first and largest cryptocurrency, a decentralized digital store of value secured by proof-of-work. BTC-PERP is a perpetual futures contract with up to 100x leverage, settled in USDC on the Canton Network.",
+    zh: "比特币（BTC）是第一个也是市值最大的加密货币，采用工作量证明保护的去中心化数字价值存储。BTC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDC 结算。",
   },
   ETH: {
-    en: "Ethereum (ETH) is the leading smart-contract platform, powering DeFi, NFTs and thousands of applications. ETH-PERP is a perpetual futures contract with up to 100x leverage, settled in CUSD on the Canton Network.",
-    zh: "以太坊（ETH）是领先的智能合约平台，支撑 DeFi、NFT 及数千种应用。ETH-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 CUSD 结算。",
+    en: "Ethereum (ETH) is the leading smart-contract platform, powering DeFi, NFTs and thousands of applications. ETH-PERP is a perpetual futures contract with up to 100x leverage, settled in USDC on the Canton Network.",
+    zh: "以太坊（ETH）是领先的智能合约平台，支撑 DeFi、NFT 及数千种应用。ETH-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDC 结算。",
   },
   CC: {
-    en: "Canton Coin (CC) is the native utility token of the Canton Network, a privacy-enabled public blockchain for institutional finance. CC-PERP is a perpetual futures contract with up to 100x leverage, settled in CUSD on the Canton Network.",
-    zh: "Canton Coin（CC）是 Canton 网络的原生功能代币；Canton 是面向机构金融、支持隐私的公有链。CC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 CUSD 结算。",
+    en: "Canton Coin (CC) is the native utility token of the Canton Network, a privacy-enabled public blockchain for institutional finance. CC-PERP is a perpetual futures contract with up to 100x leverage, settled in USDC on the Canton Network.",
+    zh: "Canton Coin（CC）是 Canton 网络的原生功能代币；Canton 是面向机构金融、支持隐私的公有链。CC-PERP 是永续合约，最高 100 倍杠杆，由 Canton 网络以 USDC 结算。",
   },
 };
 
@@ -768,7 +770,7 @@ export async function getMarketDetails(chainId: number, symbol: string): Promise
     symbol: rockySymbol,
     market_name: rockySymbol,
     base_asset: m?.base_asset ?? base,
-    quote_asset: perpDisplayQuote(m?.quote_asset),
+    quote_asset: m?.quote_asset ?? "USDC",
     description: desc ? desc[locale] : null,
     min_base_amount: minQty,
     min_usd_amount: minUsd,
@@ -929,123 +931,12 @@ export interface UnifiedAccountResponse {
   account_status: string;
 }
 
-type RockyPositionRow = {
-  user_id: string;
-  symbol: string;
-  qty: string;
-  entry_price: string;
-  locked_margin: string;
-  realized_pnl: string;
-};
-
-type RockyOrderRow = {
-  order_id: string;
-  symbol: string;
-  side: string;
-  price: string;
-  qty: string;
-  qty_remaining: string;
-  created_at: string;
-};
-
-type RockyTradeRow = {
-  trade_id: string;
-  symbol: string;
-  side: string;
-  price: string;
-  qty: string;
-  fee: string;
-  ts: string;
-};
-
-function normalizePosition(position: Position | RockyPositionRow): Position {
-  if ("position_id" in position) return position;
-
-  const signedQty = Number(position.qty);
-  const amount = Math.abs(Number.isFinite(signedQty) ? signedQty : 0);
-  const entryPrice = Number(position.entry_price);
-
-  return {
-    position_id: `${position.user_id}:${position.symbol}`,
-    symbol: position.symbol,
-    side: signedQty < 0 ? "short" : "long",
-    size: String(amount * (Number.isFinite(entryPrice) ? entryPrice : 0)),
-    amount: String(amount),
-    entry_price: position.entry_price,
-    mark_price: position.entry_price,
-    unrealized_pnl: "0",
-    realized_pnl: position.realized_pnl,
-    collateral_amount: position.locked_margin,
-    leverage: 10,
-    margin_ratio: "0",
-    created_at: 0,
-    updated_at: 0,
-  };
-}
-
-function normalizeOrder(order: Order | RockyOrderRow): Order {
-  if ("id" in order) return order;
-
-  const qty = Number(order.qty);
-  const remaining = Number(order.qty_remaining);
-  const filled = Number.isFinite(qty) && Number.isFinite(remaining) ? Math.max(0, qty - remaining) : 0;
-
-  return {
-    id: order.order_id,
-    symbol: order.symbol,
-    side: order.side.toLowerCase() === "sell" ? "sell" : "buy",
-    order_type: "limit",
-    size: order.qty,
-    price: order.price,
-    filled_size: String(filled),
-    status: filled > 0 ? "partially_filled" : "open",
-    reduce_only: false,
-    time_in_force: "GTC",
-    created_at: order.created_at,
-    updated_at: order.created_at,
-  };
-}
-
-function normalizeTrade(trade: Trade | RockyTradeRow): Trade {
-  if ("id" in trade) return trade;
-
-  return {
-    id: trade.trade_id,
-    symbol: trade.symbol,
-    price: trade.price,
-    amount: trade.qty,
-    size: trade.qty,
-    side: trade.side.toLowerCase() === "sell" ? "sell" : "buy",
-    timestamp: trade.ts,
-    created_at: trade.ts,
-    executed_at: trade.ts,
-    fee: trade.fee,
-  };
-}
-
 export async function getPositions(chainId: number, address?: string | null): Promise<PositionsResponse> {
-  const response = await apiFetch<PositionsResponse | Array<Position | RockyPositionRow>>(
-    chainId,
-    "/v1/positions/me",
-    { authMode: "exchange", address }
-  );
-  const positions = (Array.isArray(response) ? response : response.positions).map(normalizePosition);
-
-  return {
-    positions,
-    total_unrealized_pnl: Array.isArray(response) ? "0" : response.total_unrealized_pnl,
-    total_collateral: Array.isArray(response) ? "0" : response.total_collateral,
-  };
+  return apiFetch<PositionsResponse>(chainId, "/v1/positions/me", { authMode: "exchange", address });
 }
 
 export async function getOrders(chainId: number, address?: string | null): Promise<OrdersResponse> {
-  const response = await apiFetch<OrdersResponse | Array<Order | RockyOrderRow>>(chainId, "/v1/orders/me", {
-    authMode: "exchange",
-    address,
-  });
-  return {
-    orders: (Array.isArray(response) ? response : response.orders).map(normalizeOrder),
-  };
+  return apiFetch<OrdersResponse>(chainId, "/v1/orders/me", { authMode: "exchange", address });
 }
 
 // NOT SUPPORTED by rocky-backend -- conditional/trigger orders are
@@ -1132,13 +1023,7 @@ export interface AccountTradesResponse {
 }
 
 export async function getAccountTrades(chainId: number, address?: string | null): Promise<AccountTradesResponse> {
-  const response = await apiFetch<AccountTradesResponse | Array<Trade | RockyTradeRow>>(chainId, "/v1/trades/me", {
-    authMode: "exchange",
-    address,
-  });
-  return {
-    trades: (Array.isArray(response) ? response : response.trades).map(normalizeTrade),
-  };
+  return apiFetch<AccountTradesResponse>(chainId, "/v1/trades/me", { authMode: "exchange", address });
 }
 
 export interface WithdrawHistoryResponse {
@@ -1256,26 +1141,27 @@ export interface CreateOrderResponse {
   };
 }
 
-let orderIdempotencySequence = 0;
-
-export function createOrderIdempotencyKey(): string {
-  const nativeUuid = globalThis.crypto?.randomUUID?.();
-  if (nativeUuid) return nativeUuid;
-  orderIdempotencySequence += 1;
-  return `web-${Date.now().toString(36)}-${orderIdempotencySequence.toString(36)}`;
-}
+export { createOrderIdempotencyKey } from "./orderIntentRegistry";
 
 export async function createOrder(
   chainId: number,
   request: CreateOrderRequest,
   address?: string | null
 ): Promise<CreateOrderResponse> {
-  const response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
-    method: "POST",
-    body: JSON.stringify(request),
-    authMode: "exchange",
-    address,
-  });
+  const intentScope = { chainId, accountKey: address ?? "" };
+  let response: Partial<CreateOrderResponse> & { order_id: string };
+  try {
+    response = await apiFetch<Partial<CreateOrderResponse> & { order_id: string }>(chainId, "/v1/orders", {
+      method: "POST",
+      body: JSON.stringify(request),
+      authMode: "exchange",
+      address,
+    });
+    settlePendingOrderIntent(intentScope, request, "complete");
+  } catch (error) {
+    settlePendingOrderIntent(intentScope, request, shouldRetainPendingOrderIntent(error) ? "ambiguous" : "complete");
+    throw error;
+  }
 
   return {
     order_id: response.order_id,
@@ -1435,13 +1321,16 @@ export async function closePosition(
   const price =
     closingSide === "sell" ? mark * (1 - CLOSE_POSITION_AGGRESSION) : mark * (1 + CLOSE_POSITION_AGGRESSION);
 
-  const orderRequest: CreateOrderRequest = {
+  const intent: Omit<CreateOrderRequest, "idempotency_key"> = {
     symbol: request.symbol,
     side: closingSide.toUpperCase() as "BUY" | "SELL",
     price: price.toFixed(8),
     qty: request.qty,
     leverage: request.leverage ?? 1,
-    idempotency_key: createOrderIdempotencyKey(),
+  };
+  const orderRequest: CreateOrderRequest = {
+    ...intent,
+    idempotency_key: acquirePendingOrderIntentKey({ chainId, accountKey: address ?? "" }, intent),
   };
 
   return createOrder(chainId, orderRequest, address);
@@ -1518,7 +1407,7 @@ export async function setPositionTpSl(
   const response = await apiFetch<{ success: boolean; data: TpSlResponse }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
   return response.data;
@@ -1536,7 +1425,7 @@ export async function getPositionTpSl(
   address?: string | null
 ): Promise<TpSlResponse> {
   const response = await apiFetch<{ success: boolean; data: TpSlResponse }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
   return response.data;
@@ -1554,7 +1443,7 @@ export async function deletePositionTpSl(
 ): Promise<{ success: boolean; data: string; error: string | null }> {
   return apiFetch<{ success: boolean; data: string; error: string | null }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
     method: "DELETE",
-    requireAuth: true,
+    authMode: "exchange",
   });
 }
 

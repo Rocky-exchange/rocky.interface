@@ -350,7 +350,9 @@ describe("subscribeBars / unsubscribeBars", () => {
     const feed = new SpotDataFeed();
     // If the internal tick() didn't swallow, this would emit an uncaught
     // promise rejection; the assertion is the absence of a throw.
-    expect(() => feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => undefined, "resilient")).not.toThrow();
+    expect(() =>
+      feed.subscribeBars(symbolInfo(), "1" as ResolutionString, () => undefined, "resilient")
+    ).not.toThrow();
     // Let the immediate rejected fetch drain so no unhandled promise warning.
     await new Promise((r) => setTimeout(r, 20));
     feed.unsubscribeBars("resilient");

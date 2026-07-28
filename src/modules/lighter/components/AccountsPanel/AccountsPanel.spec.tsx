@@ -21,6 +21,9 @@ vi.mock("../../adapters/useUnifiedAccountAdapter", () => ({
 vi.mock("@/shared/lib/canton-wallet/funds", () => ({
   transferSpotBalance: vi.fn(),
 }));
+vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
+  useCantonSession: () => ({ party: "test-party", provider: "rocky" }),
+}));
 
 const mAccount = vi.mocked(useUnifiedAccountAdapter);
 const mAvailable = vi.mocked(useAvailableBalanceAdapter);
@@ -125,6 +128,9 @@ describe("AccountsPanel", () => {
         asset: "CUSD",
         amount: "1",
         direction: "toSpot",
+        walletParty: "test-party",
+        sessionParty: "test-party",
+        walletProvider: "rocky",
       });
     });
     expect(mSetAvailable).toHaveBeenLastCalledWith(2.09);
@@ -138,6 +144,9 @@ describe("AccountsPanel", () => {
         asset: "CUSD",
         amount: "0.5",
         direction: "toFunding",
+        walletParty: "test-party",
+        sessionParty: "test-party",
+        walletProvider: "rocky",
       });
     });
     expect(view.getByText("3.59")).toBeTruthy();

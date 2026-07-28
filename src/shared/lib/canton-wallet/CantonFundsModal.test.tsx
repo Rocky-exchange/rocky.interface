@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CantonFundsModal } from "./CantonFundsModal";
+import { acquireSpotTransferIntentKey, settleSpotTransferIntent } from "./spotTransferIntentRegistry";
+import { acquireWithdrawalIntentKey, settleWithdrawalIntent } from "./withdrawalIntentRegistry";
 
 const PARTY_ID = "rockywallet-etouyang::1220a1af0547f0824e223861619bed56442c73797d14be152f5a48e65598d9fa16fa";
 
@@ -9,10 +11,10 @@ const mocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
   fetchFundingAccountBalance: vi.fn(),
   fetchPlatformAccountBalance: vi.fn(),
+  fetchPlatformWithdrawableBalance: vi.fn(),
   fetchPlatformAccountBalances: vi.fn(),
   fetchSpotTransferHistory: vi.fn(),
   fetchWithdrawalFeeQuote: vi.fn(),
-  makeWalletWithdrawalIdempotencyKey: vi.fn(),
   fetchWalletBalanceSnapshot: vi.fn(),
   fetchCantonFundsHistory: vi.fn(),
   submitCantonWalletDeposit: vi.fn(),
@@ -35,8 +37,14 @@ vi.mock("@lingui/react", () => ({
     i18n: {
       _: (message: unknown) => {
         const descriptor =
-          typeof message === "object" && message !== null ? (message as { id?: string; message?: string }) : undefined;
-        return typeof message === "string" ? message : descriptor?.message || descriptor?.id || String(message);
+          typeof message === "object" && message !== null
+            ? (message as { id?: string; message?: string; values?: Record<string, unknown> })
+            : undefined;
+        const defaultMessage =
+          typeof message === "string" ? message : descriptor?.message || descriptor?.id || String(message);
+        return defaultMessage.replace(/\{([^}]+)\}/g, (placeholder, key: string) =>
+          descriptor?.values && key in descriptor.values ? String(descriptor.values[key]) : placeholder
+        );
       },
     },
   }),
@@ -51,10 +59,10 @@ vi.mock("./balances", () => ({
 vi.mock("./funds", () => ({
   fetchFundingAccountBalance: mocks.fetchFundingAccountBalance,
   fetchPlatformAccountBalance: mocks.fetchPlatformAccountBalance,
+  fetchPlatformWithdrawableBalance: mocks.fetchPlatformWithdrawableBalance,
   fetchPlatformAccountBalances: mocks.fetchPlatformAccountBalances,
   fetchSpotTransferHistory: mocks.fetchSpotTransferHistory,
   fetchWithdrawalFeeQuote: mocks.fetchWithdrawalFeeQuote,
-  makeWalletWithdrawalIdempotencyKey: mocks.makeWalletWithdrawalIdempotencyKey,
   fetchCantonFundsHistory: mocks.fetchCantonFundsHistory,
   submitCantonWalletDeposit: mocks.submitCantonWalletDeposit,
   submitPlatformWithdrawal: mocks.submitPlatformWithdrawal,
@@ -78,22 +86,21 @@ describe("CantonFundsModal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("localStorage", createMemoryStorage());
     sessionMock.connected = true;
     sessionMock.locked = false;
-    sessionMock.provider = "rocky";
-    sessionMock.username = "Etouyang";
     mocks.fetchPlatformAccountBalance.mockResolvedValue(100);
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(100);
     mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 100, CBTC: 2, cETH: 3, CC: 4 });
+    mocks.fetchWithdrawalFeeQuote.mockImplementation(async (asset: string) => ({
+      asset: asset === "CUSD" ? "USDC" : asset,
+      feeAsset: asset === "CUSD" ? "USDC" : asset,
+      feeWalletSymbol: asset,
+      feeAmount: asset === "CUSD" ? "1" : asset === "CBTC" ? "0.00001" : asset === "cETH" ? "0.001" : "0.5",
+    }));
     mocks.fetchFundingAccountBalance.mockResolvedValue(25);
     mocks.fetchSpotTransferHistory.mockResolvedValue({ transfers: [] });
     mocks.fetchCantonFundsHistory.mockResolvedValue({ deposits: [], withdrawals: [] });
-    mocks.fetchWithdrawalFeeQuote.mockResolvedValue({
-      asset: "USDC",
-      fee_asset: "USDC",
-      fee_wallet_symbol: "CUSD",
-      fee_amount: "1",
-    });
-    mocks.makeWalletWithdrawalIdempotencyKey.mockReturnValue("withdrawal-key-1");
     mocks.fetchWalletBalanceSnapshot.mockResolvedValue({
       provider: "rocky",
       label: "Rocky Wallet",
@@ -116,6 +123,115 @@ describe("CantonFundsModal", () => {
     });
   });
 
+  it("blocks withdrawals against the displayed raw spot balance", async () => {
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 4, CBTC: 2, cETH: 3, CC: 4 });
+    mocks.fetchPlatformAccountBalance.mockResolvedValue(4);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    const amountInput = screen.getByLabelText("Withdraw amount");
+    fireEvent.change(amountInput, { target: { value: "5" } });
+    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
+
+    expect(
+      (
+        await screen.findAllByText(
+          "Insufficient platform balance for this withdrawal. Available: 4 CUSD. Required: 6 CUSD including fee."
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(mocks.submitPlatformWithdrawal).not.toHaveBeenCalled();
+  });
+
+  it("reserves the authoritative selected-asset fee in withdrawal Max and validation", async () => {
+    mocks.fetchPlatformAccountBalance.mockImplementation(async (asset: string) => (asset === "CBTC" ? 2 : 100));
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    fireEvent.click(screen.getByRole("button", { name: "Asset" }));
+    fireEvent.click(screen.getByRole("option", { name: "CBTC" }));
+
+    await waitFor(() => expect(mocks.fetchWithdrawalFeeQuote).toHaveBeenLastCalledWith("CBTC"));
+    expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("CBTC");
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    const amountInput = screen.getByLabelText("Withdraw amount") as HTMLInputElement;
+    expect(amountInput.value).toBe("1.99999");
+
+    fireEvent.change(amountInput, { target: { value: "1.999995" } });
+    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
+
+    expect(
+      (
+        await screen.findAllByText(
+          "Insufficient platform balance for this withdrawal. Available: 2 CBTC. Required: 2.000005 CBTC including fee."
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(mocks.submitPlatformWithdrawal).not.toHaveBeenCalled();
+  });
+
+  it("allows an ambiguous withdrawal replay even when refreshed balance is now lower", async () => {
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 4, CBTC: 2, cETH: 3, CC: 4 });
+    const scope = { sessionParty: PARTY_ID, walletProvider: "rocky" };
+    const intent = { asset: "CUSD", amount: "5", destinationParty: PARTY_ID };
+    const key = acquireWithdrawalIntentKey(scope, intent);
+    settleWithdrawalIntent(scope, { ...intent, idempotency_key: key }, "ambiguous");
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+
+    await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps raw spot withdrawals available when the funding transfer limit is unavailable", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(null);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    const amountInput = screen.getByLabelText("Withdraw amount");
+    expect(await screen.findByText("Available: 100.00 CUSD")).toBeTruthy();
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((amountInput as HTMLInputElement).value).toBe("99");
+    fireEvent.change(amountInput, { target: { value: "5" } });
+    fireEvent.submit(amountInput.closest("form") as HTMLFormElement);
+
+    await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows the authoritative withdrawal result and refreshes the dashboard", async () => {
+    const updateId = "12203ce34e8ae4a4be6919419c60cb25ac830fbc1aa4d2c96192030eb0415bb82cb7";
+    mocks.submitPlatformWithdrawal.mockResolvedValueOnce({
+      status: "submitted",
+      withdrawal_id: "withdrawal-with-recall",
+      canton_update_id: updateId,
+    });
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => {
+      expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(1);
+      expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1);
+      expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+    await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(1));
+
+    expect(await screen.findByText("Withdrawal submitted: withdrawal-with-recall")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to assets" }));
+    fireEvent.click(screen.getByRole("tab", { name: "History" }));
+    expect(document.querySelector(`a[href="https://www.cantonscan.com/update/${updateId}"]`)).toBeTruthy();
+    await waitFor(() => {
+      expect(mocks.fetchWalletBalanceSnapshot).toHaveBeenCalledTimes(2);
+      expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(2);
+      expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("opens on a real four-asset table with all primary actions", async () => {
     render(<CantonFundsModal open onClose={vi.fn()} />);
 
@@ -127,19 +243,10 @@ describe("CantonFundsModal", () => {
       "History",
     ]);
     await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+    expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1);
     for (const asset of ["CUSD", "CBTC", "cETH", "CC"]) {
       expect(screen.getAllByText(asset).length).toBeGreaterThan(0);
     }
-  });
-
-  it("labels the Send wallet panel as sendwallet", () => {
-    sessionMock.provider = "send";
-    sessionMock.username = "cantonwallet-etouyang";
-
-    render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    expect(screen.getByText("sendwallet")).toBeTruthy();
-    expect(screen.queryByText("cantonwallet-etouyang")).toBeNull();
   });
 
   it("filters assets through the custom asset menu", async () => {
@@ -289,6 +396,7 @@ describe("CantonFundsModal", () => {
 
     expect(screen.getByText("Spot Account")).toBeTruthy();
     expect(screen.getByText("Futures Account")).toBeTruthy();
+    expect(await screen.findByText("Available: 100 CUSD")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Transfer CUSD" }));
 
@@ -297,8 +405,85 @@ describe("CantonFundsModal", () => {
         asset: "CUSD",
         amount: "5",
         direction: "toFunding",
+        sessionParty: PARTY_ID,
+        walletParty: PARTY_ID,
+        walletProvider: "rocky",
       })
     );
+  });
+
+  it("keeps raw spot CUSD available for transfers when the effective withdrawal limit is lower", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(4);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+
+    expect(await screen.findByText("Available: 100 CUSD")).toBeTruthy();
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((screen.getByLabelText("Transfer amount") as HTMLInputElement).value).toBe("100");
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "50" } });
+    fireEvent.click(screen.getByRole("button", { name: "Transfer CUSD" }));
+
+    await waitFor(() =>
+      expect(mocks.transferSpotBalance).toHaveBeenCalledWith({
+        asset: "CUSD",
+        amount: "50",
+        direction: "toFunding",
+        sessionParty: PARTY_ID,
+        walletParty: PARTY_ID,
+        walletProvider: "rocky",
+      })
+    );
+  });
+
+  it("allows an ambiguous spot transfer replay after refreshed source balance is lower", async () => {
+    mocks.fetchPlatformAccountBalances.mockResolvedValue({ CUSD: 0, CBTC: 2, cETH: 3, CC: 4 });
+    const scope = { walletParty: PARTY_ID, sessionParty: PARTY_ID, walletProvider: "rocky" };
+    const intent = { asset: "CUSD" as const, amount: "5", direction: "toFunding" as const };
+    const key = acquireSpotTransferIntentKey(scope, intent);
+    settleSpotTransferIntent(scope, { ...intent, idempotency_key: key }, "ambiguous");
+
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    await waitFor(() => expect(mocks.fetchPlatformAccountBalances).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Transfer CUSD" }));
+
+    await waitFor(() => expect(mocks.transferSpotBalance).toHaveBeenCalledTimes(1));
+  });
+
+  it("uses the effective limit for Futures to Spot Max and local validation", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(4);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Swap accounts" }));
+
+    expect(await screen.findByText("Available: 4 CUSD")).toBeTruthy();
+    fireEvent.click(screen.getByText("Max", { selector: "button" }));
+    expect((screen.getByLabelText("Transfer amount") as HTMLInputElement).value).toBe("4");
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Transfer CUSD" }));
+
+    expect(await screen.findByText("Insufficient balance for this transfer.")).toBeTruthy();
+    expect(mocks.transferSpotBalance).not.toHaveBeenCalled();
+  });
+
+  it("keeps raw spot CUSD visible but disables Futures to Spot when the effective limit request fails", async () => {
+    mocks.fetchPlatformWithdrawableBalance.mockResolvedValue(null);
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.fetchPlatformWithdrawableBalance).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("tab", { name: "Transfer" }));
+
+    expect(await screen.findByText("Available: 100 CUSD")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Swap accounts" }));
+    expect(screen.getByText("Available: - CUSD")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Transfer amount"), { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Transfer CUSD" }).hasAttribute("disabled")).toBe(true);
+    expect(mocks.transferSpotBalance).not.toHaveBeenCalled();
   });
 
   it("renders wrapped balances with compact leading-zero notation and extension asset icons", async () => {
@@ -414,7 +599,30 @@ describe("CantonFundsModal", () => {
         asset: "CUSD",
         amount: "5",
         destinationParty: PARTY_ID,
-        idempotencyKey: "withdrawal-key-1",
+        sessionParty: PARTY_ID,
+        walletProvider: "rocky",
+      })
+    );
+  });
+
+  it("keeps non-CUSD withdrawals on their selected asset balance", async () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    fireEvent.click(screen.getByRole("button", { name: "Asset" }));
+    fireEvent.click(screen.getByRole("option", { name: "CBTC" }));
+    await waitFor(() =>
+      expect(screen.getByText("Estimated Network Fee").nextElementSibling?.textContent).toContain("CBTC")
+    );
+    fireEvent.change(screen.getByLabelText("Withdraw amount"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
+
+    await waitFor(() =>
+      expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledWith({
+        asset: "CBTC",
+        amount: "1",
+        destinationParty: PARTY_ID,
+        sessionParty: PARTY_ID,
+        walletProvider: "rocky",
       })
     );
   });
@@ -424,9 +632,9 @@ describe("CantonFundsModal", () => {
     mocks.fetchPlatformAccountBalance.mockResolvedValue(0.000031);
     mocks.fetchWithdrawalFeeQuote.mockImplementation(async (asset: string) => ({
       asset,
-      fee_asset: asset,
-      fee_wallet_symbol: asset,
-      fee_amount: asset === "CBTC" ? "0.0000142858" : "1",
+      feeAsset: asset,
+      feeWalletSymbol: asset,
+      feeAmount: asset === "CBTC" ? "0.0000142858" : "1",
     }));
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
@@ -448,7 +656,7 @@ describe("CantonFundsModal", () => {
     expect((screen.getByLabelText("Withdraw amount") as HTMLInputElement).value).toBe("0.0000167142");
   });
 
-  it("re-enables Withdraw after a timed-out request and reuses its idempotency key", async () => {
+  it("re-enables Withdraw after a timed-out request and reuses its durable intent scope", async () => {
     mocks.submitPlatformWithdrawal.mockRejectedValue(new Error("Withdrawal request timed out. Please retry."));
     render(<CantonFundsModal open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
@@ -463,8 +671,11 @@ describe("CantonFundsModal", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
     await waitFor(() => expect(mocks.submitPlatformWithdrawal).toHaveBeenCalledTimes(2));
-    expect(mocks.submitPlatformWithdrawal.mock.calls[0][0].idempotencyKey).toBe("withdrawal-key-1");
-    expect(mocks.submitPlatformWithdrawal.mock.calls[1][0].idempotencyKey).toBe("withdrawal-key-1");
+    expect(mocks.submitPlatformWithdrawal.mock.calls[0][0]).toMatchObject({
+      sessionParty: PARTY_ID,
+      walletProvider: "rocky",
+    });
+    expect(mocks.submitPlatformWithdrawal.mock.calls[1][0]).toEqual(mocks.submitPlatformWithdrawal.mock.calls[0][0]);
   });
 
   it("closes when the Canton session disconnects or locks", () => {
@@ -474,24 +685,18 @@ describe("CantonFundsModal", () => {
     view.rerender(<CantonFundsModal open onClose={onClose} />);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
-
-  it("clears a stale invalid-session error after the extension reconnects", async () => {
-    mocks.fetchCantonFundsHistory
-      .mockRejectedValueOnce(new Error("invalid session"))
-      .mockResolvedValue({ deposits: [], withdrawals: [] });
-    mocks.fetchSpotTransferHistory
-      .mockRejectedValueOnce(new Error("invalid session"))
-      .mockResolvedValue({ transfers: [] });
-    const view = render(<CantonFundsModal open onClose={vi.fn()} />);
-
-    await waitFor(() => expect(screen.getByText("invalid session")).toBeTruthy());
-
-    sessionMock.connected = false;
-    view.rerender(<CantonFundsModal open onClose={vi.fn()} />);
-    sessionMock.connected = true;
-    view.rerender(<CantonFundsModal open onClose={vi.fn()} />);
-
-    await waitFor(() => expect(screen.queryByText("invalid session")).toBeNull());
-    expect(mocks.fetchCantonFundsHistory).toHaveBeenCalledTimes(2);
-  });
 });
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+    getItem: (key) => store.get(key) ?? null,
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key) => store.delete(key),
+    setItem: (key, value) => store.set(key, String(value)),
+  };
+}

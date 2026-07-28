@@ -1,14 +1,15 @@
 // src/modules/lighter/features/orderForm/useMobileAdvancedOrder.spec.tsx
 // RTL v11 has no renderHook — Harness component + explicit cleanup.
+import { act, render, cleanup, fireEvent, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
-import { render, cleanup, fireEvent, within } from "@testing-library/react";
 
+import { useMobileAdvancedOrder, UseMobileAdvancedOrderArgs } from "./useMobileAdvancedOrder";
+import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../adapters/useOrderPreviewAdapter";
-import { useAvailableBalanceAdapter } from "../../adapters/useAvailableBalanceAdapter";
-import { usePositionsAdapter } from "../../adapters/usePositionsAdapter";
 import { usePlaceOrderAdapter } from "../../adapters/usePlaceOrderAdapter";
-import { useMobileAdvancedOrder, UseMobileAdvancedOrderArgs } from "./useMobileAdvancedOrder";
+import { usePositionsAdapter } from "../../adapters/usePositionsAdapter";
+import { BonusOrderRejectedError } from "../bonus/api/useBonusOrderGate";
 
 vi.mock("../../adapters/useMarketInfoAdapter", () => ({ useMarketInfoAdapter: vi.fn() }));
 vi.mock("../../adapters/useOrderPreviewAdapter", () => ({
@@ -41,6 +42,8 @@ function Harness({
     <div>
       <span data-testid="amount">{String(s.amountNum)}</span>
       <span data-testid="can">{s.canSubmit ? "yes" : "no"}</span>
+      <span data-testid="submitting">{s.submitting ? "yes" : "no"}</span>
+      <span data-testid="submission-rejection">{s.submissionRejection}</span>
       <button onClick={() => s.setTriggerPrice("100")}>set-trigger</button>
       <button onClick={() => s.onAmountInput("200")}>set-amt</button>
       <button onClick={() => s.setLimitPrice("50")}>set-limit</button>
@@ -55,8 +58,19 @@ const BASE_ARGS: UseMobileAdvancedOrderArgs = {
   leverage: 10,
   marginMode: "cross",
 };
+const STOP_LIMIT_ARGS: UseMobileAdvancedOrderArgs = { ...BASE_ARGS, type: "Stop Limit" };
+const TAKE_PROFIT_LIMIT_ARGS: UseMobileAdvancedOrderArgs = { ...BASE_ARGS, type: "Take Profit Limit" };
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 beforeEach(() => {
+  placeOrder.mockResolvedValue(undefined);
   mInfo.mockReturnValue({ symbol: "BTC", markPrice: 80000, markPriceReceivedAt: 1 } as ReturnType<
     typeof useMarketInfoAdapter
   >);
@@ -87,7 +101,7 @@ describe("useMobileAdvancedOrder", () => {
   });
 
   it("Stop Limit: refPrice uses the limit price; previewOrderType is limit", () => {
-    const { container } = render(<Harness args={{ ...BASE_ARGS, type: "Stop Limit" }} onState={noop} />);
+    const { container } = render(<Harness args={STOP_LIMIT_ARGS} onState={noop} />);
     const view = within(container);
     fireEvent.click(view.getByText("set-trigger")); // 100
     fireEvent.click(view.getByText("set-limit")); // 50
@@ -97,7 +111,7 @@ describe("useMobileAdvancedOrder", () => {
   });
 
   it("submit() sends the mapped request type + trigger/price/timeInForce", () => {
-    const { container } = render(<Harness args={{ ...BASE_ARGS, type: "Take Profit Limit" }} onState={noop} />);
+    const { container } = render(<Harness args={TAKE_PROFIT_LIMIT_ARGS} onState={noop} />);
     const view = within(container);
     fireEvent.click(view.getByText("set-trigger")); // 100
     fireEvent.click(view.getByText("set-limit")); // 50
@@ -115,5 +129,94 @@ describe("useMobileAdvancedOrder", () => {
         reduceOnly: false,
       })
     );
+  });
+
+  it("stores a bonus rejection, resolves, and releases the submission lock for retry", async () => {
+    const rejection = new BonusOrderRejectedError("bonus_direction_restricted", "Safe mobile rejection");
+    placeOrder.mockRejectedValueOnce(rejection);
+    let state!: ReturnType<typeof useMobileAdvancedOrder>;
+    const { container } = render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const view = within(container);
+
+    await act(async () => {
+      await expect(state.submit()).resolves.toBeUndefined();
+    });
+
+    expect(view.getByTestId("submission-rejection").textContent).toBe("Safe mobile rejection");
+    expect(view.getByTestId("submitting").textContent).toBe("no");
+    expect(placeOrder).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await state.submit();
+    });
+    expect(placeOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears an earlier bonus rejection when the next submission starts", async () => {
+    placeOrder.mockRejectedValueOnce(new BonusOrderRejectedError("blocked", "Old mobile rejection"));
+    let state!: ReturnType<typeof useMobileAdvancedOrder>;
+    const { container } = render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const view = within(container);
+    await act(async () => {
+      await state.submit();
+    });
+    const pendingOrder = deferred<void>();
+    placeOrder.mockReturnValueOnce(pendingOrder.promise);
+    let nextAttempt!: Promise<void>;
+
+    act(() => {
+      nextAttempt = state.submit();
+    });
+
+    expect(view.getByTestId("submission-rejection").textContent).toBe("");
+    expect(placeOrder).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      pendingOrder.resolve();
+      await nextAttempt;
+    });
+  });
+
+  it("continues to propagate non-bonus submission errors", async () => {
+    const error = new Error("signature failed");
+    placeOrder.mockRejectedValueOnce(error);
+    let state!: ReturnType<typeof useMobileAdvancedOrder>;
+    const { container } = render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const view = within(container);
+
+    await act(async () => {
+      await expect(state.submit()).rejects.toBe(error);
+    });
+    expect(view.getByTestId("submitting").textContent).toBe("no");
+
+    await act(async () => {
+      await state.submit();
+    });
+    expect(placeOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it("prevents synchronous duplicate submits and reports pending until settlement", async () => {
+    const pendingOrder = deferred<void>();
+    placeOrder.mockReturnValue(pendingOrder.promise);
+    let state!: ReturnType<typeof useMobileAdvancedOrder>;
+    const { container } = render(<Harness args={BASE_ARGS} onState={(next) => (state = next)} />);
+    const view = within(container);
+    let firstAttempt!: Promise<void>;
+    let duplicateAttempt!: Promise<void>;
+
+    act(() => {
+      firstAttempt = state.submit();
+      duplicateAttempt = state.submit();
+    });
+
+    expect(placeOrder).toHaveBeenCalledTimes(1);
+    expect(view.getByTestId("submitting").textContent).toBe("yes");
+    await expect(duplicateAttempt).resolves.toBeUndefined();
+
+    await act(async () => {
+      pendingOrder.resolve();
+      await firstAttempt;
+    });
+    expect(view.getByTestId("submitting").textContent).toBe("no");
   });
 });

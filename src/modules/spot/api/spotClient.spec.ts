@@ -34,6 +34,13 @@ async function importFreshApi() {
   return await import("./spotClient");
 }
 
+describe("SPOT_MARKETS", () => {
+  it("has exactly the v1 spot pairs — matches rocky-backend seed", async () => {
+    const { SPOT_MARKETS } = await importFreshApi();
+    expect(SPOT_MARKETS.map((m) => m.symbol)).toEqual(["CBTC-USDA", "CETH-USDA", "CETH-CBTC", "CC-USDA"]);
+  });
+});
+
 describe("spotApi.depth (public)", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_SPOT_API_KEY", "");
@@ -143,6 +150,8 @@ describe("spotApi signed endpoints", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_SPOT_API_KEY", "alice_key");
     vi.stubEnv("VITE_SPOT_API_SECRET", "alice_secret_shhh");
+    vi.stubGlobal("localStorage", createMemoryStorage());
+    vi.stubGlobal("sessionStorage", createMemoryStorage());
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -190,6 +199,38 @@ describe("spotApi signed endpoints", () => {
     expect(calls[0].url).toContain("type=LIMIT");
     expect(calls[0].url).toContain("price=500");
     expect(calls[0].url).toContain("quantity=0.001");
+    expect(new URL(calls[0].url, "https://rocky.test").searchParams.get("newClientOrderId")).toMatch(/^spot-order-/);
+  });
+
+  it("reuses the generated client order id after a lost response", async () => {
+    const calls: FetchArgs[] = [];
+    let attempt = 0;
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      attempt += 1;
+      if (attempt === 1) return Promise.reject(new TypeError("response lost"));
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ orderId: "abc", status: "FILLED", symbol: "CETH-USDA" }),
+      } as Response);
+    });
+    const { spotApi } = await importFreshApi();
+    const order = {
+      symbol: "CETH-USDA",
+      side: "BUY" as const,
+      type: "MARKET" as const,
+      quantity: "0.5",
+    };
+
+    await expect(spotApi.placeOrder(order)).rejects.toThrow("response lost");
+    await expect(spotApi.placeOrder(order)).resolves.toMatchObject({ orderId: "abc" });
+
+    const clientOrderIds = calls.map(({ url }) =>
+      new URL(url, "https://rocky.test").searchParams.get("newClientOrderId")
+    );
+    expect(clientOrderIds[0]).toMatch(/^spot-order-/);
+    expect(clientOrderIds[1]).toBe(clientOrderIds[0]);
   });
 
   it("cancelOrder: DELETE /api/v3/order", async () => {
@@ -228,9 +269,11 @@ describe("spotApi signed endpoints", () => {
   it("allOrders: GET /api/v3/allOrders with symbol + limit", async () => {
     const calls = stubFetch(() => ({ body: [] }));
     const { spotApi } = await importFreshApi();
-    const allOrders = (spotApi as typeof spotApi & {
-      allOrders?: (symbol: string, limit?: number) => Promise<unknown>;
-    }).allOrders;
+    const allOrders = (
+      spotApi as typeof spotApi & {
+        allOrders?: (symbol: string, limit?: number) => Promise<unknown>;
+      }
+    ).allOrders;
 
     expect(typeof allOrders).toBe("function");
     if (!allOrders) return;
@@ -251,3 +294,17 @@ describe("spotApi signed endpoints", () => {
     await expect(freshApi.account()).rejects.toMatchObject({ code: -401 });
   });
 });
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: () => store.clear(),
+    getItem: (key) => store.get(key) ?? null,
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key) => store.delete(key),
+    setItem: (key, value) => store.set(key, String(value)),
+  };
+}

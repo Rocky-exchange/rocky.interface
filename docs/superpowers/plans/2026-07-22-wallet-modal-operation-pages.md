@@ -229,4 +229,3 @@ git add src/shared/lib/canton-wallet/CantonFundsModal.tsx \
   src/shared/lib/canton-wallet/CantonFundsModal.test.tsx
 git commit -m "feat: add wallet modal operation pages"
 ```
-

@@ -250,4 +250,3 @@ Verify `npx` exists, start the Vite app on an unused local port, open the wallet
 Run: `git diff --check && git status --short --branch`
 
 Expected: no whitespace errors and only intended commits/files.
-
