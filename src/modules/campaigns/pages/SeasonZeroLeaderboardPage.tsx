@@ -2,6 +2,18 @@ import { useLingui } from "@lingui/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useHistory, useLocation } from "react-router-dom";
 
+import {
+  claimMission as claimCampaignMission,
+  getLeaderboard,
+  getMissions,
+  getRewards,
+  startMission,
+  startXOAuth,
+  verifyMission,
+  type LeaderboardEntry as ActivityLeaderboardEntry,
+  type MissionKey,
+  type RewardSummary,
+} from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import { ModalWithPortal, TooltipWithPortal } from "@/shared/ui";
 
@@ -13,7 +25,7 @@ type TaskStatus = "not_started" | "verifying" | "pending" | "claimable" | "claim
 type OriginalPostStatus = "idle" | "pending" | "claimable" | "claimed" | "rejected";
 type OriginalPostDialog = "submit" | "claimed" | "rejected" | null;
 
-type LeaderboardEntry = {
+type DisplayLeaderboardEntry = {
   rank: number;
   name: string;
   address: string;
@@ -117,6 +129,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Complete missions to earn R Diamonds": "完成任務以賺取 R 鑽石",
   "X Connected": "X 已連接",
   "Connect X": "連接 X",
+  "Connecting...": "連接中...",
   "Your Progress": "你的進度",
   Claimable: "可領取",
   "Follow Rocky + Canton On X": "在 X 關注 Rocky + Canton",
@@ -141,6 +154,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Volume (USD)": "交易量（USD）",
   "Est. R Diamonds Reward": "預估 R 鑽石獎勵",
   "Season 0 leaderboard": "Season 0 排行榜",
+  "No qualified traders yet.": "目前尚無符合資格的交易者。",
   "Leaderboard pages": "排行榜分頁",
   "Previous page": "上一頁",
   "Next page": "下一頁",
@@ -263,46 +277,12 @@ const TASK_STATUSES = Object.keys(TASK_STATUS_PRESENTATION) as TaskStatus[];
 
 const LEADERBOARD_PAGE_SIZE = 10;
 
-function leaderboardRewardForRank(rank: number) {
-  if (rank === 1) return "4,000,000";
-  if (rank <= 3) return "2,500,000";
-  if (rank <= 10) return "1,500,000";
-  if (rank <= 20) return "1,000,000";
-  return "900,000";
-}
-
-const FEATURED_TRADERS = [
-  { name: "Rocky Trader", avatar: "/campaign/avatar-rocky.png" },
-  { name: "PerpMaster", avatar: "/campaign/avatar-perp.png" },
-  { name: "CantonWhale", avatar: "/campaign/avatar-canton.jpg" },
-  { name: "OrbitMaker", avatar: "/campaign/avatar-user.png" },
-] as const;
-
-const TRADER_ALIASES = ["Nova", "Rift", "Atlas", "Vector", "Quartz", "Cipher", "Helix", "Apex"];
-
-const LEADERBOARD: LeaderboardEntry[] = Array.from({ length: 50 }, (_, index) => {
-  const rank = index + 1;
-  const featured = FEATURED_TRADERS[index];
-  const addressStart = (0xba3 + rank * 113).toString(16).padStart(3, "0").toUpperCase();
-  const addressEnd = ((rank * 977 + 0x7f3c) % 0xffff).toString(16).padStart(4, "0").toUpperCase();
-  const volume = 5_240_000 - index * 83_000;
-
-  return {
-    rank,
-    name: featured?.name ?? `${TRADER_ALIASES[index % TRADER_ALIASES.length]}Trader${rank}`,
-    address: `0x${addressStart}...${addressEnd}`,
-    volume: `$${volume.toLocaleString("en-US")}`,
-    reward: leaderboardRewardForRank(rank),
-    avatar: featured?.avatar,
-  };
-});
-
 const REWARD_TIERS = [
-  { label: "Top 1", reward: "4,000,000", showDiamond: true, tone: "gold" },
-  { label: "Top 2 – 3", reward: "2,500,000", showDiamond: true, tone: "silver" },
-  { label: "Top 4 – 10", reward: "1,500,000", showDiamond: true, tone: "bronze" },
-  { label: "Top 11 – 20", reward: "1,000,000", showDiamond: true, tone: "muted" },
-  { label: "Top 21 – 50", reward: "900,000", showDiamond: true, tone: "muted" },
+  { label: "Top 1", reward: "5,000,000", showDiamond: true, tone: "gold" },
+  { label: "Top 2 – 3", reward: "3,000,000", showDiamond: true, tone: "silver" },
+  { label: "Top 4 – 10", reward: "1,600,000", showDiamond: true, tone: "bronze" },
+  { label: "Top 11 – 20", reward: "1,050,000", showDiamond: true, tone: "muted" },
+  { label: "Top 21 – 50", reward: "910,000", showDiamond: true, tone: "muted" },
 ] as const;
 
 const MISSIONS: Mission[] = [
@@ -342,6 +322,18 @@ const MISSIONS: Mission[] = [
     iconText: "•••",
   },
 ];
+
+const MISSION_KEY_BY_ID: Record<string, MissionKey> = {
+  "follow-both": "FOLLOW_BOTH",
+  "like-launch": "LIKE_LAUNCH",
+  "join-discord": "JOIN_DISCORD",
+  "nickname-rocky": "NICKNAME_ROCKY",
+  "quote-launch": "QUOTE_LAUNCH",
+};
+
+const MISSION_ID_BY_KEY: Partial<Record<MissionKey, string>> = Object.fromEntries(
+  Object.entries(MISSION_KEY_BY_ID).map(([id, key]) => [key, id])
+);
 
 const ORIGINAL_POST_REWARDS = [
   { id: "01", reward: 200 },
@@ -1071,14 +1063,31 @@ function MissionsContent() {
   const [claimMission, setClaimMission] = useState<Mission | null>(null);
   const [submitMission, setSubmitMission] = useState<Mission | null>(null);
   const [isXConnected, setIsXConnected] = useState(false);
-  const timersRef = useRef<number[]>([]);
+  const [isXConnecting, setIsXConnecting] = useState(false);
   const submittedUrlsRef = useRef<Record<string, string>>({});
   const { copy, isTraditionalChinese } = useCampaignCopy();
 
   useEffect(() => {
-    const timers = timersRef.current;
+    let active = true;
+    void getMissions()
+      .then((result) => {
+        if (!active) return;
+        const statuses = getInitialTaskStatuses();
+        result.missions.forEach((mission) => {
+          if (mission.key === "BIND_X") {
+            setIsXConnected(mission.state === "claimed");
+            return;
+          }
+          const missionId = MISSION_ID_BY_KEY[mission.key];
+          if (missionId) statuses[missionId] = mission.state;
+        });
+        setTaskStatuses(statuses);
+      })
+      .catch(() => {
+        // Keep controls usable so retryable API errors can be retried by the user.
+      });
     return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
+      active = false;
     };
   }, []);
 
@@ -1086,27 +1095,33 @@ function MissionsContent() {
     setTaskStatuses((current) => ({ ...current, [missionId]: status }));
   };
 
-  const scheduleTaskStatus = (missionId: string, status: TaskStatus, delay: number) => {
-    const timer = window.setTimeout(() => updateTaskStatus(missionId, status), delay);
-    timersRef.current.push(timer);
-  };
-
-  const handleMissionAction = (mission: Mission) => {
+  const handleMissionAction = async (mission: Mission) => {
     const status = taskStatuses[mission.id];
+    const missionKey = MISSION_KEY_BY_ID[mission.id];
+    if (!missionKey) return;
 
     if (status === "not_started") {
       if (mission.id === "nickname-rocky") {
         setSubmitMission(mission);
         return;
       }
-
-      updateTaskStatus(mission.id, "verifying");
+      try {
+        const result = await startMission(missionKey);
+        updateTaskStatus(mission.id, result.state);
+      } catch {
+        updateTaskStatus(mission.id, "retry");
+      }
       return;
     }
 
     if (status === "verifying" || status === "retry") {
       updateTaskStatus(mission.id, "pending");
-      scheduleTaskStatus(mission.id, "claimable", 1200);
+      try {
+        const result = await verifyMission(missionKey);
+        updateTaskStatus(mission.id, result.state);
+      } catch {
+        updateTaskStatus(mission.id, "retry");
+      }
       return;
     }
 
@@ -1115,21 +1130,46 @@ function MissionsContent() {
     }
   };
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
     if (!claimMission) return;
     const missionId = claimMission.id;
+    const missionKey = MISSION_KEY_BY_ID[missionId];
+    if (!missionKey) return;
     setClaimMission(null);
     updateTaskStatus(missionId, "claiming");
-    scheduleTaskStatus(missionId, "claimed", 1000);
+    try {
+      await claimCampaignMission(missionKey);
+      updateTaskStatus(missionId, "claimed");
+    } catch {
+      updateTaskStatus(missionId, "retry");
+    }
   };
 
-  const handleMissionSubmit = (xUrl: string) => {
+  const handleMissionSubmit = async (xUrl: string) => {
     if (!submitMission) return;
     const missionId = submitMission.id;
+    const missionKey = MISSION_KEY_BY_ID[missionId];
+    if (!missionKey) return;
     submittedUrlsRef.current[missionId] = xUrl.trim();
     setSubmitMission(null);
-    updateTaskStatus(missionId, "verifying");
+    try {
+      const result = await startMission(missionKey);
+      updateTaskStatus(missionId, result.state);
+    } catch {
+      updateTaskStatus(missionId, "retry");
+      return;
+    }
     window.open("https://x.com/settings/profile", "_blank", "noopener,noreferrer");
+  };
+
+  const handleXConnect = async () => {
+    if (isXConnected || isXConnecting) return;
+    setIsXConnecting(true);
+    try {
+      window.location.assign(await startXOAuth());
+    } catch {
+      setIsXConnecting(false);
+    }
   };
 
   const completedCount = MISSIONS.filter((mission) =>
@@ -1144,9 +1184,10 @@ function MissionsContent() {
           type="button"
           className={`${styles.xConnectButton} ${isXConnected ? styles.xConnectButtonConnected : ""}`}
           aria-pressed={isXConnected}
-          onClick={() => setIsXConnected((connected) => !connected)}
+          disabled={isXConnecting}
+          onClick={() => void handleXConnect()}
         >
-          <span>{copy(isXConnected ? "X Connected" : "Connect X")}</span>
+          <span>{copy(isXConnected ? "X Connected" : isXConnecting ? "Connecting..." : "Connect X")}</span>
           {!isXConnected ? <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" /> : null}
         </button>
       </div>
@@ -1187,18 +1228,22 @@ function MissionsContent() {
               <DiamondAmount>{mission.reward}</DiamondAmount>
               <small>{copy("R Diamonds")}</small>
             </span>
-            <MissionStatusButton status={taskStatuses[mission.id]} onClick={() => handleMissionAction(mission)} />
+            <MissionStatusButton status={taskStatuses[mission.id]} onClick={() => void handleMissionAction(mission)} />
           </article>
         ))}
       </div>
 
       <OriginalPostsModule />
 
-      <ClaimRewardModal mission={claimMission} onClaim={handleClaim} onClose={() => setClaimMission(null)} />
+      <ClaimRewardModal
+        mission={claimMission}
+        onClaim={() => void handleClaim()}
+        onClose={() => setClaimMission(null)}
+      />
       <MissionSubmitModal
         mission={submitMission}
         onClose={() => setSubmitMission(null)}
-        onContinue={handleMissionSubmit}
+        onContinue={(xUrl) => void handleMissionSubmit(xUrl)}
       />
 
       <aside className={styles.rules}>
@@ -1218,10 +1263,27 @@ function MissionsContent() {
 }
 
 function LeaderboardContent() {
-  const [currentPage, setCurrentPage] = useState(2);
-  const totalPages = Math.ceil(LEADERBOARD.length / LEADERBOARD_PAGE_SIZE);
-  const pageEntries = LEADERBOARD.slice((currentPage - 1) * LEADERBOARD_PAGE_SIZE, currentPage * LEADERBOARD_PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [pageEntries, setPageEntries] = useState<DisplayLeaderboardEntry[]>([]);
+  const totalPages = Math.max(1, Math.ceil(totalEntries / LEADERBOARD_PAGE_SIZE));
   const { copy, isTraditionalChinese } = useCampaignCopy();
+
+  useEffect(() => {
+    let active = true;
+    void getLeaderboard(currentPage)
+      .then((page) => {
+        if (!active) return;
+        setTotalEntries(page.total);
+        setPageEntries(page.entries.map(toDisplayLeaderboardEntry));
+      })
+      .catch(() => {
+        if (active) setPageEntries([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentPage]);
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.min(totalPages, Math.max(1, page)));
@@ -1240,6 +1302,13 @@ function LeaderboardContent() {
         </div>
 
         <div className={styles.leaderboard} role="table" aria-label={copy("Season 0 leaderboard")}>
+          {pageEntries.length === 0 ? (
+            <div className={styles.row} role="row">
+              <span className={styles.userCell} role="cell">
+                {copy("No qualified traders yet.")}
+              </span>
+            </div>
+          ) : null}
           {pageEntries.map((entry) => (
             <div className={`${styles.row} ${entry.rank <= 3 ? styles.podiumRow : ""}`} role="row" key={entry.rank}>
               <div className={styles.rankCell} role="cell">
@@ -1352,6 +1421,39 @@ function LeaderboardContent() {
   );
 }
 
+function toDisplayLeaderboardEntry(entry: ActivityLeaderboardEntry): DisplayLeaderboardEntry {
+  return {
+    rank: entry.rank,
+    name: `Trader #${entry.rank}`,
+    address: entry.wallet,
+    volume: `$${formatDecimal(entry.effectiveVolume)}`,
+    reward: formatInteger(entry.estimatedReward),
+  };
+}
+
+function formatInteger(value: string): string {
+  try {
+    return BigInt(value).toLocaleString("en-US");
+  } catch {
+    return value;
+  }
+}
+
+function subtractRewards(total: string, campaign: string, referral: string): string {
+  try {
+    return (BigInt(total) - BigInt(campaign) - BigInt(referral)).toString();
+  } catch {
+    return "0";
+  }
+}
+
+function formatDecimal(value: string): string {
+  const numeric = Number(value);
+  return Number.isFinite(numeric)
+    ? numeric.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : value;
+}
+
 function ComingSoon() {
   const { copy } = useCampaignCopy();
 
@@ -1384,14 +1486,34 @@ function RewardInfoTooltip({ ariaLabel, content }: { ariaLabel: string; content:
 
 function MyRewardsContent() {
   const [copied, setCopied] = useState(false);
+  const [rewards, setRewards] = useState<RewardSummary | null>(null);
   const referralLink = "Https://xxxxxx.xxxxx.xxx.xxxxxxx";
   const { copy } = useCampaignCopy();
+
+  useEffect(() => {
+    let active = true;
+    void getRewards()
+      .then((summary) => {
+        if (active) setRewards(summary);
+      })
+      .catch(() => {
+        // The zero state remains truthful when the authenticated read is unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(referralLink);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   };
+  const totalRewards = rewards?.totalRewards ?? "0";
+  const campaignRewards = rewards?.campaignRewards ?? "0";
+  const referralRewards = rewards?.referralRewards ?? "0";
+  const taskRewards = subtractRewards(totalRewards, campaignRewards, referralRewards);
+  const claimable = rewards?.claimable ?? "0";
 
   return (
     <section className={`${styles.content} ${styles.rewardsContent}`}>
@@ -1412,14 +1534,14 @@ function MyRewardsContent() {
                 content={copy("Earned from missions and campaign participation.")}
               />
             </div>
-            <strong className={styles.totalRewards}>2,000</strong>
+            <strong className={styles.totalRewards}>{formatInteger(totalRewards)}</strong>
             <div className={styles.rewardBreakdown}>
               <span>
                 <span className={styles.breakdownRewardLabel}>
                   <small>{copy("Task Rewards")}</small>
                   <RewardInfoTooltip ariaLabel={copy("About task rewards")} content={copy("Earned from missions.")} />
                 </span>
-                <strong>900</strong>
+                <strong>{formatInteger(taskRewards)}</strong>
               </span>
               <span>
                 <span className={styles.breakdownRewardLabel}>
@@ -1429,12 +1551,15 @@ function MyRewardsContent() {
                     content={
                       <>
                         <span className={styles.rewardTooltipMuted}>{copy("CLAIMED")}</span>
-                        <span> 750 {copy("R Diamonds")}</span>
+                        <span>
+                          {" "}
+                          {formatInteger(rewards?.ledgerBalance ?? "0")} {copy("R Diamonds")}
+                        </span>
                       </>
                     }
                   />
                 </span>
-                <strong>1,100</strong>
+                <strong>{formatInteger(campaignRewards)}</strong>
               </span>
               <span>
                 <span className={styles.breakdownRewardLabel}>
@@ -1444,13 +1569,13 @@ function MyRewardsContent() {
                     content={copy("Earned from successful referrals.")}
                   />
                 </span>
-                <strong>900</strong>
+                <strong>{formatInteger(referralRewards)}</strong>
               </span>
             </div>
             <div className={styles.claimPanel}>
               <span>
                 <small>{copy("Claimable")}</small>
-                <strong>1,250</strong>
+                <strong>{formatInteger(claimable)}</strong>
               </span>
               <button type="button" className={styles.primaryButton}>
                 {copy("Claim")}
@@ -1466,7 +1591,7 @@ function MyRewardsContent() {
             <img src="/campaign/r-points.png" alt="" aria-hidden="true" />
             <span>
               <small className={styles.metricLabel}>{copy("Total R Points")}</small>
-              <strong>0</strong>
+              <strong>{formatInteger(rewards?.rPoints.total ?? "0")}</strong>
             </span>
           </div>
           <ComingSoon />
@@ -1477,7 +1602,7 @@ function MyRewardsContent() {
           <div className={styles.referralMetrics}>
             <span className={styles.earnedMetric}>
               <strong>
-                0.00
+                {formatInteger(referralRewards)}
                 <img src="/campaign/r-diamond.png" alt={copy("R Diamonds")} />
               </strong>
               <small>{copy("Total Earned --")}</small>
@@ -1551,11 +1676,19 @@ function MyRewardsContent() {
             </span>
             <span className={styles.badgeCopy}>
               <strong>
-                {copy("Eligible")}
-                <img src="/campaign/eligible-check.svg" alt="" aria-hidden="true" />
+                {copy(
+                  rewards?.badge.status === "eligible" || rewards?.badge.status === "approved"
+                    ? "Eligible"
+                    : "Coming Soon"
+                )}
+                {rewards?.badge.status === "eligible" || rewards?.badge.status === "approved" ? (
+                  <img src="/campaign/eligible-check.svg" alt="" aria-hidden="true" />
+                ) : null}
               </strong>
               <p>{copy("Eligible OG users will receive the badge after the activity review.")}</p>
-              <em>{copy("Limited 102/500")}</em>
+              <em>
+                {copy("Limited")} {rewards?.badge.approved ?? 0}/{rewards?.badge.cap ?? 500}
+              </em>
               <small>{copy("Learn More →")}</small>
             </span>
           </div>
