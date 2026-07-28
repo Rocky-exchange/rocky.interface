@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getMissions,
   startMission,
+  submitMission,
   type MissionList,
+  verifyMission,
 } from "@/modules/campaigns/api/campaign.api";
 import { helperToast } from "@/shared/lib/helperToast";
 import SeasonZeroLeaderboardPage from "./SeasonZeroLeaderboardPage";
@@ -25,6 +27,7 @@ vi.mock("@/modules/campaigns/api/campaign.api", () => ({
   getMissions: vi.fn(),
   getRewards: vi.fn(),
   startMission: vi.fn(),
+  submitMission: vi.fn(),
   startWalletBoundXOAuth: vi.fn(),
   verifyMission: vi.fn(),
 }));
@@ -162,5 +165,72 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       );
     });
     openSpy.mockRestore();
+  });
+
+  it("submits a Quote Launch Post URL instead of calling the automatic verifier", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "QUOTE_LAUNCH", state: "retry", title: "Quote the launch post", reward: "150" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(submitMission).mockResolvedValue({ state: "pending" });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Quote Launch Post");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Retry" }));
+
+    fireEvent.change(await screen.findByRole("textbox", { name: "Your X URL" }), {
+      target: { value: "https://x.com/rocky_user/status/2222222222222222222" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(submitMission).toHaveBeenCalledWith(
+        "QUOTE_LAUNCH",
+        "https://x.com/rocky_user/status/2222222222222222222",
+      );
+    });
+    expect(verifyMission).not.toHaveBeenCalled();
+  });
+
+  it("single-flights rapid repeated verification clicks", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "LIKE_LAUNCH", state: "retry", title: "Like the launch post", reward: "50" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(verifyMission).mockReturnValue(new Promise(() => undefined));
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Like Launch Post");
+    const mission = title.closest("article");
+    const retryButton = within(mission as HTMLElement).getByRole("button", { name: "Retry" });
+    fireEvent.click(retryButton);
+    fireEvent.click(retryButton);
+
+    expect(verifyMission).toHaveBeenCalledTimes(1);
   });
 });

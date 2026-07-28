@@ -10,6 +10,7 @@ import {
   getRewards,
   startMission,
   startWalletBoundXOAuth,
+  submitMission as submitCampaignMission,
   verifyMission,
   type LeaderboardEntry as ActivityLeaderboardEntry,
   type MissionKey,
@@ -89,6 +90,9 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Open your X profile": "開啟你的 X 個人檔案",
   "Add 🪨ROCKY to your name": "在名稱中加入 🪨ROCKY",
   "Return and verify": "返回並進行驗證",
+  "Open the quote composer": "開啟引用貼文編輯器",
+  "Publish your quote post": "發佈你的引用貼文",
+  "Paste the published post URL below": "在下方貼上已發佈貼文的連結",
   "Your X URL": "你的 X 連結",
   Cancel: "取消",
   "Open X": "開啟 X",
@@ -619,6 +623,7 @@ function MissionSubmitModal({
 }) {
   const [xUrl, setXUrl] = useState("");
   const reward = mission?.reward ?? "+0";
+  const isQuoteMission = mission?.id === "quote-launch";
   const { copy } = useCampaignCopy();
 
   useEffect(() => {
@@ -648,11 +653,19 @@ function MissionSubmitModal({
 
       <section className={styles.missionSubmitSteps} aria-labelledby="mission-submit-steps-title">
         <h3 id="mission-submit-steps-title">{copy("How to complete")}</h3>
-        <ol>
-          <li>{copy("Open your X profile")}</li>
-          <li>{copy("Add 🪨ROCKY to your name")}</li>
-          <li>{copy("Return and verify")}</li>
-        </ol>
+        {isQuoteMission ? (
+          <ol>
+            <li>{copy("Open the quote composer")}</li>
+            <li>{copy("Publish your quote post")}</li>
+            <li>{copy("Paste the published post URL below")}</li>
+          </ol>
+        ) : (
+          <ol>
+            <li>{copy("Open your X profile")}</li>
+            <li>{copy("Add 🪨ROCKY to your name")}</li>
+            <li>{copy("Return and verify")}</li>
+          </ol>
+        )}
       </section>
 
       <div className={styles.missionSubmitDetails}>
@@ -677,8 +690,13 @@ function MissionSubmitModal({
         <button type="button" className={styles.missionSubmitCancel} onClick={onClose}>
           {copy("Cancel")}
         </button>
-        <button type="button" className={styles.missionSubmitPrimary} onClick={() => onContinue(xUrl)}>
-          <span>{copy("Open X")}</span>
+        <button
+          type="button"
+          className={styles.missionSubmitPrimary}
+          disabled={isQuoteMission && !isValidXPostUrl(xUrl)}
+          onClick={() => onContinue(xUrl)}
+        >
+          <span>{copy(isQuoteMission ? "Submit" : "Open X")}</span>
           <img src="/campaign/submit-open-x.svg" alt="" aria-hidden="true" />
         </button>
       </div>
@@ -1096,6 +1114,7 @@ function MissionsContent() {
   const [isXConnected, setIsXConnected] = useState(false);
   const [isXConnecting, setIsXConnecting] = useState(false);
   const [hasLoadedMissions, setHasLoadedMissions] = useState(false);
+  const inFlightMissionIdsRef = useRef(new Set<string>());
   const submittedUrlsRef = useRef<Record<string, string>>({});
   const { copy, isTraditionalChinese } = useCampaignCopy();
   const { connected, locked } = useCantonSession();
@@ -1134,31 +1153,43 @@ function MissionsContent() {
     const status = taskStatuses[mission.id];
     const missionKey = MISSION_KEY_BY_ID[mission.id];
     if (!missionKey) return;
+    if (inFlightMissionIdsRef.current.has(mission.id)) return;
 
     if (status === "not_started") {
       if (mission.id === "nickname-rocky") {
         setSubmitMission(mission);
         return;
       }
+      inFlightMissionIdsRef.current.add(mission.id);
       try {
         const result = await startMission(missionKey);
         updateTaskStatus(mission.id, result.state);
-        if (mission.id === "like-launch" && result.actionUrls?.[0]) {
+        if ((mission.id === "like-launch" || mission.id === "quote-launch") && result.actionUrls?.[0]) {
           window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
         }
+        if (mission.id === "quote-launch") setSubmitMission(mission);
       } catch (_error) {
         updateTaskStatus(mission.id, "retry");
+      } finally {
+        inFlightMissionIdsRef.current.delete(mission.id);
       }
       return;
     }
 
     if (status === "verifying" || status === "retry") {
+      if (mission.id === "quote-launch") {
+        setSubmitMission(mission);
+        return;
+      }
+      inFlightMissionIdsRef.current.add(mission.id);
       updateTaskStatus(mission.id, "pending");
       try {
         const result = await verifyMission(missionKey);
         updateTaskStatus(mission.id, result.state);
       } catch (_error) {
         updateTaskStatus(mission.id, "retry");
+      } finally {
+        inFlightMissionIdsRef.current.delete(mission.id);
       }
       return;
     }
@@ -1189,6 +1220,21 @@ function MissionsContent() {
     const missionKey = MISSION_KEY_BY_ID[missionId];
     if (!missionKey) return;
     submittedUrlsRef.current[missionId] = xUrl.trim();
+    if (missionId === "quote-launch") {
+      if (!isValidXPostUrl(xUrl) || inFlightMissionIdsRef.current.has(missionId)) return;
+      inFlightMissionIdsRef.current.add(missionId);
+      updateTaskStatus(missionId, "pending");
+      try {
+        const result = await submitCampaignMission(missionKey, xUrl.trim());
+        updateTaskStatus(missionId, result.state);
+        setSubmitMission(null);
+      } catch (_error) {
+        updateTaskStatus(missionId, "retry");
+      } finally {
+        inFlightMissionIdsRef.current.delete(missionId);
+      }
+      return;
+    }
     setSubmitMission(null);
     try {
       const result = await startMission(missionKey);
