@@ -73,6 +73,13 @@ describe("Rocky order request contract", () => {
     });
   });
 
+  it.each(["BTC-USD", "BTC-USDT", "BTC-USDC", "BTC-CUSD", "BTC-PERP"])(
+    "normalizes %s to the Rocky-native perpetual symbol",
+    (symbol) => {
+      expect(buildRequest({ symbol }).symbol).toBe("BTC-PERP");
+    }
+  );
+
   it.each([
     [true, undefined, "100.500000"],
     [false, undefined, "99.500000"],

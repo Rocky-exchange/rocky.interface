@@ -94,7 +94,9 @@ function mapSide(isLong: boolean): "buy" | "sell" {
 // used to produce (correct only for the old api.primit.io-shaped backend).
 function getApiSymbol(symbol: string) {
   const upper = symbol.toUpperCase().trim();
-  const base = upper.includes("-USD") ? upper.replace("-USD", "").replace(/USDT?$/, "") : upper.replace(/USDT?$/, "");
+  const base = upper
+    .replace(/[-/]?PERP$/, "")
+    .replace(/[-/]?(?:CUSD|USDC|USDT|USD)$/, "");
   return `${base}-PERP`;
 }
 

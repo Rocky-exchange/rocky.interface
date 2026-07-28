@@ -268,6 +268,14 @@ export function useOrderPreviewAdapter(input: PreviewInput): PreviewState {
     return { data: null, loading: isValidating, error: null, errorCode: null };
   }
 
+  // rocky-backend currently has no preview endpoint. The custom client
+  // returns this explicit empty sentinel so the form can fall back to its
+  // local calculations. It is not a failed preview and must not surface as
+  // a red "Preview failed" validation error.
+  if (rawRec?.success === false && rawRec.data == null && rawRec.error == null) {
+    return EMPTY;
+  }
+
   const rawErr = rawRec?.error;
   const errStr =
     typeof rawErr === "string"
