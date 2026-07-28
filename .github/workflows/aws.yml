@@ -30,6 +30,7 @@ jobs:
               git reset --hard "$DEPLOY_SHA"
               yarn install --frozen-lockfile
               yarn build
+              sudo mkdir -p /var/html/rocky
               sudo rsync -av --delete build/ /var/html/rocky/
               echo "DEPLOYED_SHA=$(git rev-parse HEAD)"
             else
