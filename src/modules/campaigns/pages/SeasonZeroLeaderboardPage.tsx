@@ -19,6 +19,7 @@ import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useCantonWallet } from "@/shared/lib/canton-wallet/useCantonWallet";
+import { helperToast } from "@/shared/lib/helperToast";
 import { ModalWithPortal, TooltipWithPortal } from "@/shared/ui";
 
 import "@/modules/lighter/styles/global.scss";
@@ -135,6 +136,9 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Connect X": "連接 X",
   "Connect Wallet First": "請先連接錢包",
   "Connecting...": "連接中...",
+  "Loading...": "載入中...",
+  "This wallet is already connected to another X account. Please authorize the previously connected X account.":
+    "此錢包已綁定另一個 X 帳號，請使用原先綁定的 X 帳號授權。",
   "Your Progress": "你的進度",
   Claimable: "可領取",
   "Follow Rocky + Canton On X": "在 X 關注 Rocky + Canton",
@@ -1091,6 +1095,7 @@ function MissionsContent() {
   const [submitMission, setSubmitMission] = useState<Mission | null>(null);
   const [isXConnected, setIsXConnected] = useState(false);
   const [isXConnecting, setIsXConnecting] = useState(false);
+  const [hasLoadedMissions, setHasLoadedMissions] = useState(false);
   const submittedUrlsRef = useRef<Record<string, string>>({});
   const { copy, isTraditionalChinese } = useCampaignCopy();
   const { connected, locked } = useCantonSession();
@@ -1111,6 +1116,7 @@ function MissionsContent() {
           if (missionId) statuses[missionId] = mission.state;
         });
         setTaskStatuses(statuses);
+        setHasLoadedMissions(true);
       })
       .catch(() => {
         // Keep controls usable so retryable API errors can be retried by the user.
@@ -1137,7 +1143,7 @@ function MissionsContent() {
       try {
         const result = await startMission(missionKey);
         updateTaskStatus(mission.id, result.state);
-      } catch {
+      } catch (_error) {
         updateTaskStatus(mission.id, "retry");
       }
       return;
@@ -1148,7 +1154,7 @@ function MissionsContent() {
       try {
         const result = await verifyMission(missionKey);
         updateTaskStatus(mission.id, result.state);
-      } catch {
+      } catch (_error) {
         updateTaskStatus(mission.id, "retry");
       }
       return;
@@ -1169,7 +1175,7 @@ function MissionsContent() {
     try {
       await claimCampaignMission(missionKey);
       updateTaskStatus(missionId, "claimed");
-    } catch {
+    } catch (_error) {
       updateTaskStatus(missionId, "retry");
     }
   };
@@ -1184,7 +1190,7 @@ function MissionsContent() {
     try {
       const result = await startMission(missionKey);
       updateTaskStatus(missionId, result.state);
-    } catch {
+    } catch (_error) {
       updateTaskStatus(missionId, "retry");
       return;
     }
@@ -1192,7 +1198,7 @@ function MissionsContent() {
   };
 
   const handleXConnect = async () => {
-    if (isXConnected || isXConnecting) return;
+    if (isXConnected || isXConnecting || (connected && !hasLoadedMissions)) return;
     if (!connected) {
       openCantonConnect();
       return;
@@ -1201,7 +1207,7 @@ function MissionsContent() {
     try {
       if (locked) await unlock();
       window.location.assign(await startWalletBoundXOAuth());
-    } catch {
+    } catch (_error) {
       setIsXConnecting(false);
     }
   };
@@ -1218,7 +1224,7 @@ function MissionsContent() {
           type="button"
           className={`${styles.xConnectButton} ${isXConnected ? styles.xConnectButtonConnected : ""}`}
           aria-pressed={isXConnected}
-          disabled={isXConnecting}
+          disabled={isXConnecting || (connected && !hasLoadedMissions)}
           onClick={() => void handleXConnect()}
         >
           <span>
@@ -1227,6 +1233,8 @@ function MissionsContent() {
                 ? "X Connected"
                 : isXConnecting
                   ? "Connecting..."
+                  : connected && !hasLoadedMissions
+                    ? "Loading..."
                   : connected
                     ? "Connect X"
                     : "Connect Wallet First"
@@ -1478,7 +1486,7 @@ function toDisplayLeaderboardEntry(entry: ActivityLeaderboardEntry): DisplayLead
 function formatInteger(value: string): string {
   try {
     return BigInt(value).toLocaleString("en-US");
-  } catch {
+  } catch (_error) {
     return value;
   }
 }
@@ -1757,7 +1765,7 @@ export default function SeasonZeroLeaderboardPage() {
   const location = useLocation();
   const activeTab = getCampaignTab(location.search);
   const [campaignEndsAt, setCampaignEndsAt] = useState<string | null>(null);
-  const { copy } = useCampaignCopy();
+  const { copy, isTraditionalChinese } = useCampaignCopy();
 
   useEffect(() => {
     let active = true;
@@ -1781,6 +1789,25 @@ export default function SeasonZeroLeaderboardPage() {
       document.body.classList.remove("lighter-active");
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("x_error") !== "X_IDENTITY_IMMUTABLE") return;
+
+    helperToast.error(
+      isTraditionalChinese
+        ? CAMPAIGN_ZH_TW[
+            "This wallet is already connected to another X account. Please authorize the previously connected X account."
+          ]
+        : "This wallet is already connected to another X account. Please authorize the previously connected X account.",
+    );
+    params.delete("x");
+    params.delete("x_error");
+    history.replace({
+      pathname: location.pathname,
+      search: params.toString(),
+    });
+  }, [history, isTraditionalChinese, location.pathname, location.search]);
 
   const handleTabChange = (tab: CampaignTab) => {
     const search = tab === "missions" ? "" : `?tab=${tab}`;
