@@ -1439,14 +1439,6 @@ function formatInteger(value: string): string {
   }
 }
 
-function subtractRewards(total: string, campaign: string, referral: string): string {
-  try {
-    return (BigInt(total) - BigInt(campaign) - BigInt(referral)).toString();
-  } catch {
-    return "0";
-  }
-}
-
 function formatDecimal(value: string): string {
   const numeric = Number(value);
   return Number.isFinite(numeric)
@@ -1510,9 +1502,9 @@ function MyRewardsContent() {
     window.setTimeout(() => setCopied(false), 1600);
   };
   const totalRewards = rewards?.totalRewards ?? "0";
+  const taskRewards = rewards?.taskRewards ?? "0";
   const campaignRewards = rewards?.campaignRewards ?? "0";
   const referralRewards = rewards?.referralRewards ?? "0";
-  const taskRewards = subtractRewards(totalRewards, campaignRewards, referralRewards);
   const claimable = rewards?.claimable ?? "0";
 
   return (

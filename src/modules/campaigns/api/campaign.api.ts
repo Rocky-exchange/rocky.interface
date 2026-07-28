@@ -57,6 +57,7 @@ export type LeaderboardPage = {
 
 export type RewardSummary = {
   totalRewards: string;
+  taskRewards: string;
   campaignRewards: string;
   referralRewards: string;
   claimable: string;
