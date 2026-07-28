@@ -55,6 +55,14 @@ export type LeaderboardPage = {
   entries: LeaderboardEntry[];
 };
 
+export type CampaignSummary = {
+  campaignId: string;
+  phase: "upcoming" | "active" | "closing" | "review" | "settled" | "archived";
+  serverTime: string;
+  startsAt: string;
+  endsAt: string;
+};
+
 export type RewardSummary = {
   totalRewards: string;
   taskRewards: string;
@@ -165,6 +173,12 @@ export function claimMission(key: MissionKey): Promise<unknown> {
 
 export function getLeaderboard(page: number): Promise<LeaderboardPage> {
   return activityRequest<LeaderboardPage>(`/v1/campaigns/season-0/leaderboard?page=${page}`, {
+    authenticated: false,
+  });
+}
+
+export function getCampaign(): Promise<CampaignSummary> {
+  return activityRequest<CampaignSummary>("/v1/campaigns/season-0", {
     authenticated: false,
   });
 }

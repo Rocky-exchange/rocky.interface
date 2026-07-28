@@ -4,6 +4,7 @@ import { useHistory, useLocation } from "react-router-dom";
 
 import {
   claimMission as claimCampaignMission,
+  getCampaign,
   getLeaderboard,
   getMissions,
   getRewards,
@@ -379,35 +380,57 @@ function RankBadge({ rank }: { rank: number }) {
   return <span className={styles.rankNumber}>{rank}</span>;
 }
 
-function CampaignCountdown() {
+function CampaignCountdown({ endsAt }: { endsAt: string | null }) {
   const { copy, isTraditionalChinese } = useCampaignCopy();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const deadline = endsAt === null ? Number.NaN : Date.parse(endsAt);
+  const remaining = Number.isFinite(deadline) ? Math.max(0, deadline - now) : 0;
+  const days = Math.floor(remaining / 86_400_000);
+  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
+  const pad = (value: number) => String(value).padStart(2, "0");
 
   return (
     <div
       className={styles.countdown}
       aria-label={
         isTraditionalChinese
-          ? "活動倒數：5 天 12 小時 45 分鐘 30 秒"
-          : "Event countdown: 5 days 12 hours 45 minutes 30 seconds"
+          ? `活動倒數：${days} 天 ${hours} 小時 ${minutes} 分鐘 ${seconds} 秒`
+          : `Event countdown: ${days} days ${hours} hours ${minutes} minutes ${seconds} seconds`
       }
     >
       <span className={styles.countdownLabel}>{copy("Ends in")}</span>
-      <span className={styles.countdownValue}>05</span>
+      <span className={styles.countdownValue}>{pad(days)}</span>
       <span>{isTraditionalChinese ? "天" : "D"}</span>
       <span className={styles.countdownColon}>:</span>
-      <span className={styles.countdownValue}>12</span>
+      <span className={styles.countdownValue}>{pad(hours)}</span>
       <span>{isTraditionalChinese ? "時" : "H"}</span>
       <span className={styles.countdownColon}>:</span>
-      <span className={styles.countdownValue}>45</span>
+      <span className={styles.countdownValue}>{pad(minutes)}</span>
       <span>{isTraditionalChinese ? "分" : "M"}</span>
       <span className={styles.countdownColon}>:</span>
-      <span className={styles.countdownValue}>30</span>
+      <span className={styles.countdownValue}>{pad(seconds)}</span>
       <span>{isTraditionalChinese ? "秒" : "S"}</span>
     </div>
   );
 }
 
-function CampaignHero({ activeTab, onTabChange }: { activeTab: CampaignTab; onTabChange: (tab: CampaignTab) => void }) {
+function CampaignHero({
+  activeTab,
+  campaignEndsAt,
+  onTabChange,
+}: {
+  activeTab: CampaignTab;
+  campaignEndsAt: string | null;
+  onTabChange: (tab: CampaignTab) => void;
+}) {
   const history = useHistory();
   const { copy } = useCampaignCopy();
   const isMissions = activeTab === "missions";
@@ -471,7 +494,7 @@ function CampaignHero({ activeTab, onTabChange }: { activeTab: CampaignTab; onTa
         </div>
 
         <div className={styles.heroFooter}>
-          <CampaignCountdown />
+          <CampaignCountdown endsAt={campaignEndsAt} />
           <div className={styles.heroDots} aria-hidden="true">
             {(["missions", "leaderboard", "rewards"] as CampaignTab[]).map((tab) => (
               <span className={tab === activeTab ? styles.activeDot : ""} key={tab} />
@@ -1712,7 +1735,22 @@ export default function SeasonZeroLeaderboardPage() {
   const history = useHistory();
   const location = useLocation();
   const activeTab = getCampaignTab(location.search);
+  const [campaignEndsAt, setCampaignEndsAt] = useState<string | null>(null);
   const { copy } = useCampaignCopy();
+
+  useEffect(() => {
+    let active = true;
+    void getCampaign()
+      .then((campaign) => {
+        if (active) setCampaignEndsAt(campaign.endsAt);
+      })
+      .catch(() => {
+        // Keep the page available if campaign metadata is temporarily unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.add("campaign-active");
@@ -1735,7 +1773,7 @@ export default function SeasonZeroLeaderboardPage() {
       </header>
 
       <main>
-        <CampaignHero activeTab={activeTab} onTabChange={handleTabChange} />
+        <CampaignHero activeTab={activeTab} campaignEndsAt={campaignEndsAt} onTabChange={handleTabChange} />
 
         <nav className={styles.campaignTabs} aria-label={copy("Campaign sections")}>
           {(

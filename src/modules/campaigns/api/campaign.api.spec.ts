@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getLeaderboard, getMissions, startXOAuth } from "./campaign.api";
+import { getCampaign, getLeaderboard, getMissions, startXOAuth } from "./campaign.api";
 
 describe("campaign activity API", () => {
   beforeEach(() => {
@@ -85,6 +85,32 @@ describe("campaign activity API", () => {
       "/external-active/v1/campaigns/season-0/leaderboard?page=2",
       expect.objectContaining({ headers: expect.any(Headers) })
     );
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
+    expect(headers.has("authorization")).toBe(false);
+  });
+
+  it("loads the public campaign schedule without an exchange session", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            campaignId: "season-0",
+            phase: "active",
+            serverTime: "2026-07-28T00:00:00.000Z",
+            startsAt: "2026-07-28T00:00:00.000Z",
+            endsAt: "2026-07-29T00:00:00.000Z",
+          },
+          meta: { requestId: "request-4", serverTime: "2026-07-28T00:00:00.000Z" },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getCampaign()).resolves.toMatchObject({
+      campaignId: "season-0",
+      endsAt: "2026-07-29T00:00:00.000Z",
+    });
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
     expect(headers.has("authorization")).toBe(false);
   });
