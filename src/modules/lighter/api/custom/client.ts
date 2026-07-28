@@ -931,12 +931,123 @@ export interface UnifiedAccountResponse {
   account_status: string;
 }
 
+type RockyPositionRow = {
+  user_id: string;
+  symbol: string;
+  qty: string;
+  entry_price: string;
+  locked_margin: string;
+  realized_pnl: string;
+};
+
+type RockyOrderRow = {
+  order_id: string;
+  symbol: string;
+  side: string;
+  price: string;
+  qty: string;
+  qty_remaining: string;
+  created_at: string;
+};
+
+type RockyTradeRow = {
+  trade_id: string;
+  symbol: string;
+  side: string;
+  price: string;
+  qty: string;
+  fee: string;
+  ts: string;
+};
+
+function normalizePosition(position: Position | RockyPositionRow): Position {
+  if ("position_id" in position) return position;
+
+  const signedQty = Number(position.qty);
+  const amount = Math.abs(Number.isFinite(signedQty) ? signedQty : 0);
+  const entryPrice = Number(position.entry_price);
+
+  return {
+    position_id: `${position.user_id}:${position.symbol}`,
+    symbol: position.symbol,
+    side: signedQty < 0 ? "short" : "long",
+    size: String(amount * (Number.isFinite(entryPrice) ? entryPrice : 0)),
+    amount: String(amount),
+    entry_price: position.entry_price,
+    mark_price: position.entry_price,
+    unrealized_pnl: "0",
+    realized_pnl: position.realized_pnl,
+    collateral_amount: position.locked_margin,
+    leverage: 10,
+    margin_ratio: "0",
+    created_at: 0,
+    updated_at: 0,
+  };
+}
+
+function normalizeOrder(order: Order | RockyOrderRow): Order {
+  if ("id" in order) return order;
+
+  const qty = Number(order.qty);
+  const remaining = Number(order.qty_remaining);
+  const filled = Number.isFinite(qty) && Number.isFinite(remaining) ? Math.max(0, qty - remaining) : 0;
+
+  return {
+    id: order.order_id,
+    symbol: order.symbol,
+    side: order.side.toLowerCase() === "sell" ? "sell" : "buy",
+    order_type: "limit",
+    size: order.qty,
+    price: order.price,
+    filled_size: String(filled),
+    status: filled > 0 ? "partially_filled" : "open",
+    reduce_only: false,
+    time_in_force: "GTC",
+    created_at: order.created_at,
+    updated_at: order.created_at,
+  };
+}
+
+function normalizeTrade(trade: Trade | RockyTradeRow): Trade {
+  if ("id" in trade) return trade;
+
+  return {
+    id: trade.trade_id,
+    symbol: trade.symbol,
+    price: trade.price,
+    amount: trade.qty,
+    size: trade.qty,
+    side: trade.side.toLowerCase() === "sell" ? "sell" : "buy",
+    timestamp: trade.ts,
+    created_at: trade.ts,
+    executed_at: trade.ts,
+    fee: trade.fee,
+  };
+}
+
 export async function getPositions(chainId: number, address?: string | null): Promise<PositionsResponse> {
-  return apiFetch<PositionsResponse>(chainId, "/v1/positions/me", { authMode: "exchange", address });
+  const response = await apiFetch<PositionsResponse | Array<Position | RockyPositionRow>>(
+    chainId,
+    "/v1/positions/me",
+    { authMode: "exchange", address }
+  );
+  const positions = (Array.isArray(response) ? response : response.positions).map(normalizePosition);
+
+  return {
+    positions,
+    total_unrealized_pnl: Array.isArray(response) ? "0" : response.total_unrealized_pnl,
+    total_collateral: Array.isArray(response) ? "0" : response.total_collateral,
+  };
 }
 
 export async function getOrders(chainId: number, address?: string | null): Promise<OrdersResponse> {
-  return apiFetch<OrdersResponse>(chainId, "/v1/orders/me", { authMode: "exchange", address });
+  const response = await apiFetch<OrdersResponse | Array<Order | RockyOrderRow>>(chainId, "/v1/orders/me", {
+    authMode: "exchange",
+    address,
+  });
+  return {
+    orders: (Array.isArray(response) ? response : response.orders).map(normalizeOrder),
+  };
 }
 
 // NOT SUPPORTED by rocky-backend -- conditional/trigger orders are
@@ -1023,7 +1134,13 @@ export interface AccountTradesResponse {
 }
 
 export async function getAccountTrades(chainId: number, address?: string | null): Promise<AccountTradesResponse> {
-  return apiFetch<AccountTradesResponse>(chainId, "/v1/trades/me", { authMode: "exchange", address });
+  const response = await apiFetch<AccountTradesResponse | Array<Trade | RockyTradeRow>>(chainId, "/v1/trades/me", {
+    authMode: "exchange",
+    address,
+  });
+  return {
+    trades: (Array.isArray(response) ? response : response.trades).map(normalizeTrade),
+  };
 }
 
 export interface WithdrawHistoryResponse {
