@@ -11,8 +11,27 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_EVENT: ${{ github.event_name }}
+          DEPLOY_REF: ${{ github.ref_name }}
+          DEPLOY_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: bash ~/inter.sh
+          envs: DEPLOY_EVENT,DEPLOY_REF,DEPLOY_SHA
+          script: |
+            set -euo pipefail
+            if [ "$DEPLOY_EVENT" = "workflow_dispatch" ]; then
+              repo_dir=$(find "$HOME" -maxdepth 3 -type d -name rocky.interface -print -quit)
+              test -n "$repo_dir"
+              cd "$repo_dir"
+              git fetch origin "$DEPLOY_REF"
+              git reset --hard "$DEPLOY_SHA"
+              yarn install --frozen-lockfile
+              yarn build
+              sudo rsync -av --delete build/ /var/html/rocky/
+              echo "DEPLOYED_SHA=$(git rev-parse HEAD)"
+            else
+              bash ~/inter.sh
+            fi
