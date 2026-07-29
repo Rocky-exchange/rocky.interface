@@ -209,6 +209,53 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     openSpy.mockRestore();
   });
 
+  it("opens the Discord invite without replacing the campaign page with OAuth", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        {
+          key: "JOIN_DISCORD",
+          state: "not_started",
+          title: "Join Discord",
+          reward: "100",
+        },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(startMission).mockResolvedValue({
+      state: "verifying",
+      actionUrls: ["https://discord.gg/Wu5VmFfjSn"],
+    });
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Join Community");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Start" }));
+
+    await waitFor(() => {
+      expect(openSpy).toHaveBeenCalledWith(
+        "https://discord.gg/Wu5VmFfjSn",
+        "_blank",
+        "noopener,noreferrer",
+      );
+    });
+    expect(startWalletBoundDiscordOAuth).not.toHaveBeenCalled();
+    expect(
+      within(mission as HTMLElement).getByRole("button", { name: "Verify" }),
+    ).not.toBeNull();
+    openSpy.mockRestore();
+  });
+
   it("renders the first perpetual trade as mission 06 and opens trading when it starts", async () => {
     vi.mocked(getMissions).mockResolvedValue({
       missions: [

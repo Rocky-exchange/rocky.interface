@@ -1415,8 +1415,6 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
           if (result.actionUrls?.[0]) {
             window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
           }
-          if (locked) await unlock();
-          window.location.assign(await startWalletBoundDiscordOAuth());
           return;
         }
         if ((mission.id === "like-launch" || mission.id === "quote-launch") && result.actionUrls?.[0]) {
