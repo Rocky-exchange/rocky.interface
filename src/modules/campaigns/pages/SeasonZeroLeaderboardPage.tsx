@@ -171,6 +171,9 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Add 🪨ROCKY as a suffix to your X display name.": "在你的 X 顯示名稱後加入 🪨ROCKY。",
   "Quote Launch Post": "引用上線貼文",
   "Quote the campaign post and share an original point of view.": "引用活動貼文並分享原創觀點。",
+  "Complete Your First Perpetual Trade": "完成首筆合約交易",
+  "Deposit funds from your wallet, open a perpetual position according to your trading plan, and close it when appropriate to complete the mission.":
+    "將資金從錢包充值至交易所，依照你的交易計畫開立合約倉位，並在合適時機平倉，即可完成此任務。",
   "Important Note": "重要提示",
   "Complete each mission using the connected wallet.": "請使用已連接的錢包完成每項任務。",
   "Social content must relate to Rocky, Canton, or the Beta campaign.": "社群內容必須與 Rocky、Canton 或本活動相關。",
@@ -350,6 +353,14 @@ const MISSIONS: Mission[] = [
     reward: "+150",
     iconText: "•••",
   },
+  {
+    id: "first-trade",
+    title: "Complete Your First Perpetual Trade",
+    description:
+      "Deposit funds from your wallet, open a perpetual position according to your trading plan, and close it when appropriate to complete the mission.",
+    reward: "+100",
+    iconText: "💰",
+  },
 ];
 
 const MISSION_KEY_BY_ID: Record<string, MissionKey> = {
@@ -358,6 +369,7 @@ const MISSION_KEY_BY_ID: Record<string, MissionKey> = {
   "join-discord": "JOIN_DISCORD",
   "nickname-rocky": "NICKNAME_ROCKY",
   "quote-launch": "QUOTE_LAUNCH",
+  "first-trade": "FIRST_TRADE",
 };
 
 const MISSION_ID_BY_KEY: Partial<Record<MissionKey, string>> = Object.fromEntries(
@@ -1164,6 +1176,7 @@ function MissionsContent() {
   const cooldownTimersRef = useRef<Record<string, number>>({});
   const submittedUrlsRef = useRef<Record<string, string>>({});
   const { copy, isTraditionalChinese } = useCampaignCopy();
+  const history = useHistory();
   const { connected, locked } = useCantonSession();
   const { unlock } = useCantonWallet();
 
@@ -1279,6 +1292,7 @@ function MissionsContent() {
           window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
         }
         if (mission.id === "quote-launch") setSubmitMission(mission);
+        if (mission.id === "first-trade") history.push("/trade");
       } catch (_error) {
         updateTaskStatus(mission.id, "retry");
       } finally {
@@ -1442,7 +1456,7 @@ function MissionsContent() {
               : `${completedCount} of ${MISSIONS.length} missions completed`
           }
         >
-          {Array.from({ length: 5 }, (_, index) => (
+          {Array.from({ length: MISSIONS.length }, (_, index) => (
             <span className={index < completedCount ? styles.completedProgressStep : ""} key={index} />
           ))}
         </span>

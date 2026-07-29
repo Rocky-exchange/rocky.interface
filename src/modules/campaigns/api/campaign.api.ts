@@ -9,6 +9,7 @@ export type MissionKey =
   | "NICKNAME_ROCKY"
   | "JOIN_DISCORD"
   | "QUOTE_LAUNCH"
+  | "FIRST_TRADE"
   | "ORIGINAL_TWEET";
 
 export type MissionState = "not_started" | "verifying" | "pending" | "claimable" | "claiming" | "claimed" | "retry";

@@ -169,6 +169,48 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     openSpy.mockRestore();
   });
 
+  it("renders the first perpetual trade as mission 06 and opens trading when it starts", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        {
+          key: "FIRST_TRADE",
+          state: "not_started",
+          title: "Complete Your First Perpetual Trade",
+          reward: "100",
+        },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
+    });
+    vi.mocked(startMission).mockResolvedValue({ state: "verifying" });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+          <Route path="/trade">
+            <div>Trading screen</div>
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Complete Your First Perpetual Trade");
+    const mission = title.closest("article");
+    expect(mission).not.toBeNull();
+    expect(within(mission as HTMLElement).getByText("06")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "0 of 6 missions completed" })).toBeTruthy();
+
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Start" }));
+
+    await waitFor(() => {
+      expect(startMission).toHaveBeenCalledWith("FIRST_TRADE");
+      expect(screen.getByText("Trading screen")).toBeTruthy();
+    });
+  });
+
   it("submits a Quote Launch Post URL instead of calling the automatic verifier", async () => {
     vi.mocked(getMissions).mockResolvedValue({
       missions: [
