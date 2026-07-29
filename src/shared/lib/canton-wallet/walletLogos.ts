@@ -1,7 +1,7 @@
 import consoleWalletLogo from "img/wallets/console-wallet-icon.svg";
 import loopWalletLogo from "img/wallets/loop-wallet.svg";
 import rockyWalletLogo from "img/wallets/rocky-wallet.png";
-import sendWalletLogo from "img/wallets/send-wallet.svg";
+import sendWalletLogo from "img/wallets/send-wallet.png";
 
 import type { WalletProviderId } from "./types";
 
