@@ -1429,6 +1429,20 @@ function MissionsContent() {
       setMissionBusy(mission.id, true);
       updateTaskStatus(mission.id, "pending");
       try {
+        if (mission.id === "join-discord" && status === "retry") {
+          try {
+            const restarted = await startMission(missionKey);
+            updateTaskStatus(mission.id, restarted.state);
+            if (restarted.actionUrls?.[0]) {
+              window.open(restarted.actionUrls[0], "_blank", "noopener,noreferrer");
+            }
+            if (locked) await unlock();
+            window.location.assign(await startWalletBoundDiscordOAuth());
+            return;
+          } catch (error) {
+            if (errorCode(error) !== "MISSION_START_CONFLICT") throw error;
+          }
+        }
         const result = await verifyMission(missionKey);
         updateTaskStatus(mission.id, result.state);
         if (result.state === "claimable") {

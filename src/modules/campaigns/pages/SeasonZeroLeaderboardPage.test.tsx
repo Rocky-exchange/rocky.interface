@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   claimMission,
   getMissions,
+  startWalletBoundDiscordOAuth,
   startMission,
   submitMission,
   type MissionList,
@@ -419,6 +420,43 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     fireEvent.click(retryButton);
 
     expect(verifyMission).toHaveBeenCalledTimes(1);
+  });
+
+  it("restarts a Discord mission before OAuth when a prior local start failed", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "JOIN_DISCORD", state: "retry", title: "Join Discord", reward: "100" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(startMission).mockResolvedValue({
+      state: "verifying",
+      actionUrls: ["https://discord.gg/Wu5VmFfjSn"],
+    });
+    vi.mocked(startWalletBoundDiscordOAuth).mockResolvedValue(
+      "https://discord.com/oauth2/authorize?client_id=test",
+    );
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Join Community");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => {
+      expect(startMission).toHaveBeenCalledWith("JOIN_DISCORD");
+      expect(startWalletBoundDiscordOAuth).toHaveBeenCalledTimes(1);
+    });
+    expect(verifyMission).not.toHaveBeenCalled();
   });
 
   it("shows immediate progress feedback while a Retry verification is running", async () => {
