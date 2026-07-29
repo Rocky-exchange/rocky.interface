@@ -644,12 +644,15 @@
 }
 
 .history {
+  --history-text-min: 1.2rem;
+
   display: grid;
   height: 100%;
   min-height: 0;
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   color: #f7f2ec;
   background: #0d0b09;
+  font-size: var(--history-text-min);
 }
 
 .historyHeader {
@@ -671,7 +674,7 @@
   border: 1px solid rgba(216, 154, 80, 0.34);
   border-radius: 6px;
   font: inherit;
-  font-size: 7px;
+  font-size: var(--history-text-min);
   cursor: pointer;
 
   svg {
@@ -702,7 +705,7 @@
 .historySubtitle {
   margin: 3px 0 0;
   color: #a69d95;
-  font-size: 7px;
+  font-size: var(--history-text-min);
   line-height: 1.35;
 }
 
@@ -731,7 +734,7 @@
     border-radius: 5px;
     outline: 0;
     font: inherit;
-    font-size: 7px;
+    font-size: var(--history-text-min);
     font-variant-numeric: tabular-nums;
 
     &:focus {
@@ -750,7 +753,7 @@
     left: 8px;
     z-index: 1;
     color: #83786e;
-    font-size: 5px;
+    font-size: var(--history-text-min);
     line-height: 1;
   }
 
@@ -777,7 +780,7 @@
   border: 1px solid rgba(216, 154, 80, 0.42);
   border-radius: 5px;
   font: inherit;
-  font-size: 7px;
+  font-size: var(--history-text-min);
   font-weight: 700;
   cursor: pointer;
 
@@ -818,7 +821,7 @@
 
   span {
     color: #a69d95;
-    font-size: 7px;
+    font-size: var(--history-text-min);
   }
 
   strong {
@@ -849,7 +852,7 @@
   border-collapse: collapse;
   table-layout: fixed;
   color: #cec4bb;
-  font-size: 7px;
+  font-size: var(--history-text-min);
   font-variant-numeric: tabular-nums;
 
   th,
@@ -871,7 +874,7 @@
     color: #ddb476;
     background: rgba(216, 154, 80, 0.09);
     border-bottom: 1px solid rgba(216, 154, 80, 0.26);
-    font-size: 6px;
+    font-size: var(--history-text-min);
     font-weight: 700;
     white-space: nowrap;
   }
@@ -919,7 +922,7 @@
   background: rgba(190, 65, 48, 0.12);
   border: 1px solid rgba(224, 99, 70, 0.28);
   border-radius: 3px;
-  font-size: 6px;
+  font-size: var(--history-text-min);
   line-height: 1.25;
 
   &[data-event="funding"] {
@@ -1028,7 +1031,7 @@
   background: rgba(216, 154, 80, 0.04);
   border: 1px solid rgba(216, 154, 80, 0.3);
   border-radius: 5px;
-  font-size: 6px;
+  font-size: var(--history-text-min);
   line-height: 1.35;
 
   svg {
@@ -1080,7 +1083,7 @@
   strong {
     min-width: 33px;
     color: #e8dfd7;
-    font-size: 7px;
+    font-size: var(--history-text-min);
     font-variant-numeric: tabular-nums;
     text-align: center;
   }
@@ -1094,7 +1097,7 @@
   background: rgba(216, 154, 80, 0.05);
   border: 1px solid rgba(216, 154, 80, 0.34);
   border-radius: 5px;
-  font-size: 7px;
+  font-size: var(--history-text-min);
   text-align: center;
   white-space: nowrap;
 }
