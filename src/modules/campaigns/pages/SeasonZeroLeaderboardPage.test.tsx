@@ -5,6 +5,7 @@ import { MemoryRouter, Route } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  claimMission,
   getMissions,
   startMission,
   submitMission,
@@ -247,6 +248,108 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       );
     });
     expect(verifyMission).not.toHaveBeenCalled();
+  });
+
+  it("submits an Original Post URL to the manual review API instead of granting a local claim", async () => {
+    vi.mocked(getMissions)
+      .mockResolvedValueOnce({
+        missions: [
+          { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+          { key: "ORIGINAL_TWEET", state: "not_started", title: "Original post", reward: "200" },
+        ],
+        progress: {
+          completedCount: 1,
+          claimableCount: 0,
+          totalCount: 7,
+          originalTweet: { activityDay: 1, approvedToday: 0, pendingToday: 0, limit: 2 },
+        },
+      })
+      .mockResolvedValue({
+        missions: [
+          { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+          { key: "ORIGINAL_TWEET", state: "pending", title: "Original post", reward: "200" },
+        ],
+        progress: {
+          completedCount: 1,
+          claimableCount: 0,
+          totalCount: 7,
+          originalTweet: { activityDay: 1, approvedToday: 0, pendingToday: 1, limit: 2 },
+        },
+      });
+    vi.mocked(startMission).mockResolvedValue({ state: "verifying" });
+    vi.mocked(submitMission).mockResolvedValue({ state: "pending" });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Submit Post" }));
+    fireEvent.change(screen.getByPlaceholderText("https://x.com/username/status/1234567890"), {
+      target: { value: "https://x.com/leo/status/3333333333333333333" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(startMission).toHaveBeenCalledWith("ORIGINAL_TWEET");
+      expect(submitMission).toHaveBeenCalledWith(
+        "ORIGINAL_TWEET",
+        "https://x.com/leo/status/3333333333333333333",
+      );
+    });
+    expect((await screen.findByRole("button", { name: "Pending" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
+  });
+
+  it("claims an approved Original Post reward through the backend", async () => {
+    vi.mocked(getMissions)
+      .mockResolvedValueOnce({
+        missions: [
+          { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+          { key: "ORIGINAL_TWEET", state: "claimable", title: "Original post", reward: "200" },
+        ],
+        progress: {
+          completedCount: 1,
+          claimableCount: 0,
+          totalCount: 7,
+          originalTweet: { activityDay: 1, approvedToday: 1, pendingToday: 0, limit: 2 },
+        },
+      })
+      .mockResolvedValue({
+        missions: [
+          { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+          { key: "ORIGINAL_TWEET", state: "claimed", title: "Original post", reward: "200" },
+        ],
+        progress: {
+          completedCount: 1,
+          claimableCount: 0,
+          totalCount: 7,
+          originalTweet: { activityDay: 1, approvedToday: 1, pendingToday: 0, limit: 2 },
+        },
+      });
+    vi.mocked(claimMission).mockResolvedValue({});
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Claim" }));
+
+    await waitFor(() => {
+      expect(claimMission).toHaveBeenCalledWith("ORIGINAL_TWEET");
+    });
+    expect(await screen.findByText("Reward Claimed!")).not.toBeNull();
   });
 
   it("single-flights rapid repeated verification clicks", async () => {

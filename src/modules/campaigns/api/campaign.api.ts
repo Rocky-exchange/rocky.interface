@@ -28,7 +28,15 @@ export type MissionList = {
   progress: {
     completedCount: number;
     claimableCount: number;
-    totalCount: number;
+    claimedCount?: number;
+    oneTimeTaskCount?: number;
+    totalCount?: number;
+    originalTweet?: {
+      activityDay: number;
+      approvedToday: number;
+      pendingToday: number;
+      limit: number;
+    };
   };
 };
 

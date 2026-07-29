@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useHistory, useLocation } from "react-router-dom";
 
 import {
@@ -14,6 +14,8 @@ import {
   verifyMission,
   type LeaderboardEntry as ActivityLeaderboardEntry,
   type MissionKey,
+  type MissionList,
+  type MissionState,
   type RewardSummary,
 } from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
@@ -30,6 +32,12 @@ type CampaignTab = "missions" | "leaderboard" | "rewards";
 type TaskStatus = "not_started" | "verifying" | "pending" | "claimable" | "claiming" | "claimed" | "retry";
 type OriginalPostStatus = "idle" | "pending" | "claimable" | "claimed" | "rejected";
 type OriginalPostDialog = "submit" | "claimed" | "rejected" | null;
+type OriginalPostProgress = {
+  activityDay: number;
+  approvedToday: number;
+  pendingToday: number;
+  limit: number;
+};
 
 type DisplayLeaderboardEntry = {
   rank: number;
@@ -771,10 +779,14 @@ function isValidXPostUrl(value: string) {
 }
 
 function OriginalPostSubmitModal({
+  busy,
+  errorMessage,
   isVisible,
   onClose,
   onSubmit,
 }: {
+  busy: boolean;
+  errorMessage: string | null;
   isVisible: boolean;
   onClose: () => void;
   onSubmit: (postUrl: string) => void;
@@ -791,7 +803,7 @@ function OriginalPostSubmitModal({
   }, [isVisible]);
 
   const submitPost = () => {
-    if (!isValidXPostUrl(postUrl)) {
+    if (busy || !isValidXPostUrl(postUrl)) {
       setShowError(true);
       return;
     }
@@ -854,6 +866,7 @@ function OriginalPostSubmitModal({
           }}
         />
         {showError ? <em>{copy("Please enter a valid public X post link.")}</em> : null}
+        {errorMessage ? <em role="alert">{errorMessage}</em> : null}
       </label>
 
       <section className={styles.originalPostRequirements}>
@@ -869,11 +882,11 @@ function OriginalPostSubmitModal({
       </section>
 
       <div className={styles.originalPostSubmitActions}>
-        <button type="button" onClick={onClose}>
+        <button type="button" disabled={busy} onClick={onClose}>
           {copy("Cancel")}
         </button>
-        <button type="button" onClick={submitPost}>
-          <span>{copy("Submit")}</span>
+        <button type="button" disabled={busy} onClick={submitPost}>
+          <span>{copy(busy ? "Submitting..." : "Submit")}</span>
           <img src="/campaign/original-post-arrow.svg" alt="" aria-hidden="true" />
         </button>
       </div>
@@ -962,41 +975,89 @@ function OriginalPostResultModal({
   );
 }
 
-function OriginalPostsModule() {
-  const [status, setStatus] = useState<OriginalPostStatus>("idle");
+function OriginalPostsModule({
+  missionState,
+  onRefresh,
+  progress,
+}: {
+  missionState: MissionState;
+  onRefresh: () => Promise<void>;
+  progress: OriginalPostProgress;
+}) {
   const [dialog, setDialog] = useState<OriginalPostDialog>(null);
-  const [qualifiedCount, setQualifiedCount] = useState(0);
-  const reviewTimerRef = useRef<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [locallyPending, setLocallyPending] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const { copy } = useCampaignCopy();
 
-  useEffect(
-    () => () => {
-      if (reviewTimerRef.current !== null) window.clearTimeout(reviewTimerRef.current);
-    },
-    []
-  );
+  useEffect(() => {
+    if (progress.pendingToday > 0) setLocallyPending(false);
+  }, [progress.pendingToday]);
 
-  const handleSubmit = () => {
-    setDialog(null);
-    setStatus("pending");
+  const dailyLimit = Math.min(progress.limit || ORIGINAL_POST_REWARDS.length, ORIGINAL_POST_REWARDS.length);
+  const qualifiedCount = Math.min(progress.approvedToday, dailyLimit);
+  const isDailyComplete = qualifiedCount >= dailyLimit;
+  let status: OriginalPostStatus = "idle";
+  if (
+    isSubmitting ||
+    isClaiming ||
+    locallyPending ||
+    progress.pendingToday > 0 ||
+    missionState === "pending"
+  ) {
+    status = "pending";
+  } else if (missionState === "claimable") {
+    status = "claimable";
+  } else if (missionState === "retry") {
+    status = "rejected";
+  } else if (isDailyComplete && missionState === "claimed") {
+    status = "claimed";
+  }
 
-    reviewTimerRef.current = window.setTimeout(() => {
-      const shouldReject = new URLSearchParams(window.location.search).get("postReview") === "rejected";
-      setStatus(shouldReject ? "rejected" : "claimable");
-      if (shouldReject) setDialog("rejected");
-    }, 2200);
+  const handleSubmit = async (postUrl: string) => {
+    if (isSubmitting || locallyPending || progress.pendingToday > 0) return;
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    try {
+      await startMission("ORIGINAL_TWEET");
+      await submitCampaignMission("ORIGINAL_TWEET", postUrl);
+      setDialog(null);
+      setLocallyPending(true);
+      helperToast.success(copy("Submission received. Verification is pending."));
+      void onRefresh()
+        .then(() => setLocallyPending(false))
+        .catch(() => {
+          // Keep the safe pending state when the authoritative refresh is unavailable.
+        });
+    } catch (_error) {
+      const message = copy("The request failed. Please try again shortly.");
+      setSubmissionError(message);
+      helperToast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (status === "idle") {
+      setSubmissionError(null);
       setDialog("submit");
       return;
     }
 
     if (status === "claimable") {
-      setQualifiedCount((count) => Math.min(count + 1, ORIGINAL_POST_REWARDS.length));
-      setStatus("claimed");
-      setDialog("claimed");
+      if (isClaiming) return;
+      setIsClaiming(true);
+      try {
+        await claimCampaignMission("ORIGINAL_TWEET");
+        await onRefresh();
+        setDialog("claimed");
+      } catch (_error) {
+        helperToast.error(copy("The request failed. Please try again shortly."));
+      } finally {
+        setIsClaiming(false);
+      }
       return;
     }
 
@@ -1010,13 +1071,14 @@ function OriginalPostsModule() {
     claimed: { label: copy("Claimed"), icon: "/campaign/status-claimed.svg" },
     rejected: { label: copy("Rejected"), icon: "/campaign/status-retry.svg" },
   };
-  const action = statusPresentation[status];
+  const action = isClaiming
+    ? { label: copy("Claiming..."), icon: "/campaign/status-pending.svg" }
+    : statusPresentation[status];
   const displayedRewards = ORIGINAL_POST_REWARDS.slice(0, qualifiedCount).reduce(
     (total, post) => total + post.reward,
     0
   );
   const nextReward = ORIGINAL_POST_REWARDS[qualifiedCount]?.reward ?? 0;
-  const isDailyComplete = qualifiedCount === ORIGINAL_POST_REWARDS.length;
 
   return (
     <section className={styles.originalPostsModule} aria-labelledby="original-posts-title">
@@ -1122,8 +1184,8 @@ function OriginalPostsModule() {
             <button
               type="button"
               className={`${styles.originalPostSubmitButton} ${styles[`originalPostSubmitButton_${status}`]}`}
-              disabled={status === "pending" || status === "claimed"}
-              onClick={handleAction}
+              disabled={status === "pending" || status === "claimed" || (isDailyComplete && status !== "claimable")}
+              onClick={() => void handleAction()}
             >
               <span>{action.label}</span>
               {action.icon ? (
@@ -1140,9 +1202,11 @@ function OriginalPostsModule() {
       </div>
 
       <OriginalPostSubmitModal
+        busy={isSubmitting}
+        errorMessage={submissionError}
         isVisible={dialog === "submit"}
         onClose={() => setDialog(null)}
-        onSubmit={handleSubmit}
+        onSubmit={(postUrl) => void handleSubmit(postUrl)}
       />
       {dialog === "claimed" || dialog === "rejected" ? (
         <OriginalPostResultModal
@@ -1150,10 +1214,8 @@ function OriginalPostsModule() {
           reward={ORIGINAL_POST_REWARDS[Math.max(qualifiedCount - 1, 0)].reward}
           onClose={() => {
             setDialog(null);
-            if (!isDailyComplete) setStatus("idle");
           }}
           onRetry={() => {
-            setStatus("idle");
             setDialog("submit");
           }}
         />
@@ -1172,6 +1234,13 @@ function MissionsContent() {
   const [isXConnected, setIsXConnected] = useState(false);
   const [isXConnecting, setIsXConnecting] = useState(false);
   const [hasLoadedMissions, setHasLoadedMissions] = useState(false);
+  const [originalMissionState, setOriginalMissionState] = useState<MissionState>("not_started");
+  const [originalPostProgress, setOriginalPostProgress] = useState<OriginalPostProgress>({
+    activityDay: 1,
+    approvedToday: 0,
+    pendingToday: 0,
+    limit: ORIGINAL_POST_REWARDS.length,
+  });
   const inFlightMissionIdsRef = useRef(new Set<string>());
   const cooldownTimersRef = useRef<Record<string, number>>({});
   const submittedUrlsRef = useRef<Record<string, string>>({});
@@ -1180,22 +1249,41 @@ function MissionsContent() {
   const { connected, locked } = useCantonSession();
   const { unlock } = useCantonWallet();
 
+  const applyMissionList = useCallback((result: MissionList) => {
+    const statuses = getInitialTaskStatuses();
+    let xConnected = false;
+    let originalState: MissionState = "not_started";
+    result.missions.forEach((mission) => {
+      if (mission.key === "BIND_X") {
+        xConnected = mission.state === "claimed";
+        return;
+      }
+      if (mission.key === "ORIGINAL_TWEET") {
+        originalState = mission.state;
+        return;
+      }
+      const missionId = MISSION_ID_BY_KEY[mission.key];
+      if (missionId) statuses[missionId] = mission.state;
+    });
+    setTaskStatuses(statuses);
+    setIsXConnected(xConnected);
+    setOriginalMissionState(originalState);
+    if (result.progress.originalTweet) {
+      setOriginalPostProgress(result.progress.originalTweet);
+    }
+    setHasLoadedMissions(true);
+  }, []);
+
+  const refreshMissions = useCallback(async () => {
+    applyMissionList(await getMissions());
+  }, [applyMissionList]);
+
   useEffect(() => {
     let active = true;
     void getMissions()
       .then((result) => {
         if (!active) return;
-        const statuses = getInitialTaskStatuses();
-        result.missions.forEach((mission) => {
-          if (mission.key === "BIND_X") {
-            setIsXConnected(mission.state === "claimed");
-            return;
-          }
-          const missionId = MISSION_ID_BY_KEY[mission.key];
-          if (missionId) statuses[missionId] = mission.state;
-        });
-        setTaskStatuses(statuses);
-        setHasLoadedMissions(true);
+        applyMissionList(result);
       })
       .catch(() => {
         // Keep controls usable so retryable API errors can be retried by the user.
@@ -1203,7 +1291,17 @@ function MissionsContent() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyMissionList]);
+
+  useEffect(() => {
+    if (originalPostProgress.pendingToday <= 0 && originalMissionState !== "pending") return;
+    const timer = window.setInterval(() => {
+      void refreshMissions().catch(() => {
+        // Preserve the last authoritative state and retry on the next interval.
+      });
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [originalMissionState, originalPostProgress.pendingToday, refreshMissions]);
 
   useEffect(
     () => () => {
@@ -1491,7 +1589,11 @@ function MissionsContent() {
         ))}
       </div>
 
-      <OriginalPostsModule />
+      <OriginalPostsModule
+        missionState={originalMissionState}
+        onRefresh={refreshMissions}
+        progress={originalPostProgress}
+      />
 
       <ClaimRewardModal
         mission={claimMission}
