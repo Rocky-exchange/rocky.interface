@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  CampaignApiError,
   getCampaign,
   getLeaderboard,
   getMissions,
   startWalletBoundXOAuth,
   startXOAuth,
+  submitMission,
+  verifyMission,
 } from "./campaign.api";
 
 describe("campaign activity API", () => {
@@ -160,6 +163,64 @@ describe("campaign activity API", () => {
     });
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
     expect(headers.has("authorization")).toBe(false);
+  });
+
+  it("submits the X post URL using the activity backend contract", async () => {
+    localStorage.setItem("rocky_exchange_session", "exchange-token");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: { state: "pending" },
+          meta: { requestId: "request-5", serverTime: "2026-07-29T00:00:00.000Z" },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitMission("QUOTE_LAUNCH", "https://x.com/rocky_user/status/2222222222222222222")
+    ).resolves.toEqual({ state: "pending" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/external-active/v1/me/missions/QUOTE_LAUNCH/submissions",
+      expect.objectContaining({
+        body: JSON.stringify({
+          url: "https://x.com/rocky_user/status/2222222222222222222",
+        }),
+        method: "POST",
+      })
+    );
+  });
+
+  it("preserves the backend retry interval for rate-limited verification", async () => {
+    localStorage.setItem("rocky_exchange_session", "exchange-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "REQUEST_RATE_LIMITED",
+              message: "Too many requests",
+              retryable: true,
+            },
+          }),
+          {
+            status: 429,
+            headers: { "content-type": "application/json", "retry-after": "57" },
+          }
+        )
+      )
+    );
+
+    const result = verifyMission("LIKE_LAUNCH");
+
+    await expect(result).rejects.toMatchObject<Partial<CampaignApiError>>({
+      code: "REQUEST_RATE_LIMITED",
+      retryAfterSeconds: 57,
+      status: 429,
+    });
   });
 });
 

@@ -99,13 +99,21 @@ export class CampaignApiError extends Error {
   readonly code: string;
   readonly retryable: boolean;
   readonly status: number;
+  readonly retryAfterSeconds?: number;
 
-  constructor(input: { code: string; message: string; retryable: boolean; status: number }) {
+  constructor(input: {
+    code: string;
+    message: string;
+    retryable: boolean;
+    status: number;
+    retryAfterSeconds?: number;
+  }) {
     super(input.message);
     this.name = "CampaignApiError";
     this.code = input.code;
     this.retryable = input.retryable;
     this.status = input.status;
+    this.retryAfterSeconds = input.retryAfterSeconds;
   }
 }
 
@@ -129,11 +137,15 @@ async function activityRequest<T>(
   const payload = (await response.json()) as ActivityEnvelope<T> | ActivityErrorEnvelope;
   if (!response.ok || !("data" in payload)) {
     const error = "error" in payload ? payload.error : undefined;
+    const retryAfterHeader = Number(response.headers.get("retry-after"));
+    const retryAfterSeconds =
+      Number.isSafeInteger(retryAfterHeader) && retryAfterHeader > 0 ? retryAfterHeader : undefined;
     throw new CampaignApiError({
       code: error?.code ?? "ACTIVITY_REQUEST_FAILED",
       message: error?.message ?? `Activity request failed with status ${response.status}.`,
       retryable: error?.retryable ?? response.status >= 500,
       status: response.status,
+      ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
     });
   }
   return payload.data;
@@ -166,7 +178,7 @@ export function verifyMission(key: MissionKey): Promise<{ state: MissionState; s
 export function submitMission(key: MissionKey, postUrl: string): Promise<{ state: MissionState; status?: string }> {
   return activityRequest(`/v1/me/missions/${key}/submissions`, {
     method: "POST",
-    body: { postUrl },
+    body: { url: postUrl },
   });
 }
 

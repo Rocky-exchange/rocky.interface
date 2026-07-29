@@ -59,6 +59,8 @@ vi.mock("@/shared/lib/canton-wallet/useCantonWallet", () => ({
 vi.mock("@/shared/lib/helperToast", () => ({
   helperToast: {
     error: vi.fn(),
+    info: vi.fn(),
+    success: vi.fn(),
   },
 }));
 
@@ -232,5 +234,149 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     fireEvent.click(retryButton);
 
     expect(verifyMission).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows immediate progress feedback while a Retry verification is running", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "LIKE_LAUNCH", state: "retry", title: "Like the launch post", reward: "50" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(verifyMission).mockReturnValue(new Promise(() => undefined));
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Like Launch Post");
+    const mission = title.closest("article");
+    const retryButton = within(mission as HTMLElement).getByRole("button", { name: "Retry" });
+    fireEvent.click(retryButton);
+
+    const checkingButton = within(mission as HTMLElement).getByRole("button", { name: "Checking..." });
+    expect((checkingButton as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows immediate progress feedback while a Quote URL submission is running", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "QUOTE_LAUNCH", state: "retry", title: "Quote the launch post", reward: "150" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(submitMission).mockReturnValue(new Promise(() => undefined));
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Quote Launch Post");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Retry" }));
+    fireEvent.change(await screen.findByRole("textbox", { name: "Your X URL" }), {
+      target: { value: "https://x.com/rocky_user/status/2222222222222222222" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    const submittingButton = screen.getByRole("button", { name: "Submitting..." });
+    expect((submittingButton as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("explains a failed Retry and blocks immediate repeat requests", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "LIKE_LAUNCH", state: "retry", title: "Like the launch post", reward: "50" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(verifyMission).mockRejectedValue(
+      Object.assign(new Error("dependency unavailable"), { code: "DEPENDENCY_UNAVAILABLE" }),
+    );
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Like Launch Post");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Retry" }));
+
+    const cooldownButton = await within(mission as HTMLElement).findByRole("button", {
+      name: "Retry shortly",
+    });
+    expect((cooldownButton as HTMLButtonElement).disabled).toBe(true);
+    expect(helperToast.error).toHaveBeenCalledWith(
+      "X verification is temporarily unavailable. Please try again shortly.",
+    );
+
+    fireEvent.click(cooldownButton);
+    expect(verifyMission).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a Quote submission error inline and blocks repeated submissions during cooldown", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "QUOTE_LAUNCH", state: "retry", title: "Quote the launch post", reward: "150" },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(submitMission).mockRejectedValue(
+      Object.assign(new Error("invalid submission"), { code: "MISSION_SUBMISSION_INVALID" }),
+    );
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Quote Launch Post");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Retry" }));
+    fireEvent.change(await screen.findByRole("textbox", { name: "Your X URL" }), {
+      target: { value: "https://x.com/rocky_user/status/2222222222222222222" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "This X post link is invalid. Check the URL and try again.",
+    );
+    const urlInput = screen.getByRole("textbox", { name: "Your X URL" });
+    const submitPanel = urlInput.closest('[class*="missionSubmitPanel"]');
+    expect(submitPanel).not.toBeNull();
+    const cooldownButton = within(submitPanel as HTMLElement).getByRole("button", {
+      name: "Retry shortly",
+    });
+    expect((cooldownButton as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(cooldownButton);
+    expect(submitMission).toHaveBeenCalledTimes(1);
   });
 });

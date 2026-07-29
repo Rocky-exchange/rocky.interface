@@ -62,8 +62,10 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   Pending: "審核中",
   Claim: "領取",
   "Claiming...": "領取中...",
+  "Checking...": "驗證中...",
   Claimed: "已領取",
   Retry: "重試",
+  "Retry shortly": "稍後重試",
   Rejected: "未通過",
   "Rocky First Ascent": "ROCKY 初次登頂",
   "Rewards Panel": "獎勵面板",
@@ -112,6 +114,20 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Max 2 posts per day": "每日最多 2 篇貼文",
   "Rewards are distributed after review": "審核通過後發放獎勵",
   Submit: "提交",
+  "Submitting...": "提交中...",
+  "X verification is temporarily unavailable. Please try again shortly.":
+    "X 驗證服務暫時無法使用，請稍後再試。",
+  "Too many attempts. Please wait before trying again.": "嘗試次數過多，請稍候再試。",
+  "This X post link is invalid. Check the URL and try again.": "X 貼文連結無效，請檢查後再試。",
+  "This post belongs to another X account.": "此貼文不屬於目前連接的 X 帳號。",
+  "This post does not quote the Rocky launch post.": "此貼文未引用 Rocky 上線貼文。",
+  "This post could not be found or is not public.": "找不到此貼文，或貼文並非公開。",
+  "X authorization expired. Reconnect X and try again.": "X 授權已失效，請重新連接 X 後再試。",
+  "The requirement was not detected yet. Check it and retry shortly.":
+    "尚未偵測到任務要求，請確認完成後稍候再試。",
+  "Submission received. Verification is pending.": "已收到提交，正在等待驗證。",
+  "Mission verified. Reward is ready to claim.": "任務驗證成功，獎勵已可領取。",
+  "The request failed. Please try again shortly.": "請求失敗，請稍後再試。",
   "Post Not Approved": "貼文未通過審核",
   "Your post did not meet our requirements.": "你的貼文未符合活動要求。",
   "Please check the reason below and try again.": "請查看下方原因後重試。",
@@ -538,13 +554,24 @@ function getInitialTaskStatuses(): Record<string, TaskStatus> {
   return Object.fromEntries(MISSIONS.map((mission) => [mission.id, initialStatus]));
 }
 
-function MissionStatusButton({ status, onClick }: { status: TaskStatus; onClick: () => void }) {
+function MissionStatusButton({
+  status,
+  busy,
+  coolingDown,
+  onClick,
+}: {
+  status: TaskStatus;
+  busy: boolean;
+  coolingDown: boolean;
+  onClick: () => void;
+}) {
   const presentation = TASK_STATUS_PRESENTATION[status];
   const { copy } = useCampaignCopy();
+  const label = busy ? "Checking..." : coolingDown ? "Retry shortly" : presentation.label;
   const icon = (
     <img
-      className={status === "claiming" ? styles.spinningStatusIcon : ""}
-      src={presentation.icon}
+      className={status === "claiming" || busy ? styles.spinningStatusIcon : ""}
+      src={busy ? "/campaign/status-loading.svg" : presentation.icon}
       alt=""
       aria-hidden="true"
     />
@@ -554,11 +581,11 @@ function MissionStatusButton({ status, onClick }: { status: TaskStatus; onClick:
     <button
       type="button"
       className={`${styles.missionStatusButton} ${styles[`missionStatus_${status}`]}`}
-      disabled={presentation.disabled}
+      disabled={presentation.disabled || busy || coolingDown}
       onClick={onClick}
     >
       {presentation.iconFirst ? icon : null}
-      <span>{copy(presentation.label)}</span>
+      <span>{copy(label)}</span>
       {!presentation.iconFirst ? icon : null}
     </button>
   );
@@ -614,10 +641,16 @@ function ClaimRewardModal({
 
 function MissionSubmitModal({
   mission,
+  busy,
+  coolingDown,
+  errorMessage,
   onClose,
   onContinue,
 }: {
   mission: Mission | null;
+  busy: boolean;
+  coolingDown: boolean;
+  errorMessage: string | null;
   onClose: () => void;
   onContinue: (xUrl: string) => void;
 }) {
@@ -674,10 +707,18 @@ function MissionSubmitModal({
           <input
             type="url"
             value={xUrl}
+            disabled={busy}
             onChange={(event) => setXUrl(event.target.value)}
             placeholder="Https://X.Com/Username/Status/."
+            aria-invalid={errorMessage ? "true" : undefined}
+            aria-describedby={errorMessage ? "mission-submit-error" : undefined}
           />
         </label>
+        {errorMessage ? (
+          <p id="mission-submit-error" className={styles.missionSubmitError} role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
 
         <div className={styles.missionSubmitReward}>
           <img src="/campaign/submit-reward-icon.png" alt="" aria-hidden="true" />
@@ -693,10 +734,12 @@ function MissionSubmitModal({
         <button
           type="button"
           className={styles.missionSubmitPrimary}
-          disabled={isQuoteMission && !isValidXPostUrl(xUrl)}
+          disabled={busy || coolingDown || (isQuoteMission && !isValidXPostUrl(xUrl))}
           onClick={() => onContinue(xUrl)}
         >
-          <span>{copy(isQuoteMission ? "Submit" : "Open X")}</span>
+          <span>
+            {copy(busy ? "Submitting..." : coolingDown ? "Retry shortly" : isQuoteMission ? "Submit" : "Open X")}
+          </span>
           <img src="/campaign/submit-open-x.svg" alt="" aria-hidden="true" />
         </button>
       </div>
@@ -1111,10 +1154,14 @@ function MissionsContent() {
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>(getInitialTaskStatuses);
   const [claimMission, setClaimMission] = useState<Mission | null>(null);
   const [submitMission, setSubmitMission] = useState<Mission | null>(null);
+  const [busyMissionIds, setBusyMissionIds] = useState<Set<string>>(() => new Set());
+  const [coolingDownMissionIds, setCoolingDownMissionIds] = useState<Set<string>>(() => new Set());
+  const [missionSubmitError, setMissionSubmitError] = useState<string | null>(null);
   const [isXConnected, setIsXConnected] = useState(false);
   const [isXConnecting, setIsXConnecting] = useState(false);
   const [hasLoadedMissions, setHasLoadedMissions] = useState(false);
   const inFlightMissionIdsRef = useRef(new Set<string>());
+  const cooldownTimersRef = useRef<Record<string, number>>({});
   const submittedUrlsRef = useRef<Record<string, string>>({});
   const { copy, isTraditionalChinese } = useCampaignCopy();
   const { connected, locked } = useCantonSession();
@@ -1145,8 +1192,72 @@ function MissionsContent() {
     };
   }, []);
 
+  useEffect(
+    () => () => {
+      Object.values(cooldownTimersRef.current).forEach((timer) => window.clearTimeout(timer));
+    },
+    [],
+  );
+
   const updateTaskStatus = (missionId: string, status: TaskStatus) => {
     setTaskStatuses((current) => ({ ...current, [missionId]: status }));
+  };
+
+  const setMissionBusy = (missionId: string, busy: boolean) => {
+    setBusyMissionIds((current) => {
+      const next = new Set(current);
+      if (busy) next.add(missionId);
+      else next.delete(missionId);
+      return next;
+    });
+  };
+
+  const beginMissionCooldown = (missionId: string, durationSeconds = 5) => {
+    setCoolingDownMissionIds((current) => new Set(current).add(missionId));
+    const existingTimer = cooldownTimersRef.current[missionId];
+    if (existingTimer) window.clearTimeout(existingTimer);
+    cooldownTimersRef.current[missionId] = window.setTimeout(() => {
+      setCoolingDownMissionIds((current) => {
+        const next = new Set(current);
+        next.delete(missionId);
+        return next;
+      });
+      delete cooldownTimersRef.current[missionId];
+    }, durationSeconds * 1_000);
+  };
+
+  const errorRetryAfterSeconds = (error: unknown) =>
+    typeof error === "object" &&
+    error !== null &&
+    "retryAfterSeconds" in error &&
+    typeof error.retryAfterSeconds === "number"
+      ? error.retryAfterSeconds
+      : undefined;
+
+  const campaignActionError = (error: unknown) => {
+    const code =
+      typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+        ? error.code
+        : "";
+    switch (code) {
+      case "DEPENDENCY_UNAVAILABLE":
+        return copy("X verification is temporarily unavailable. Please try again shortly.");
+      case "REQUEST_RATE_LIMITED":
+      case "X_RATE_LIMITED":
+        return copy("Too many attempts. Please wait before trying again.");
+      case "MISSION_SUBMISSION_INVALID":
+        return copy("This X post link is invalid. Check the URL and try again.");
+      case "SOCIAL_POST_AUTHOR_MISMATCH":
+        return copy("This post belongs to another X account.");
+      case "SOCIAL_QUOTE_RELATION_INVALID":
+        return copy("This post does not quote the Rocky launch post.");
+      case "SOCIAL_POST_NOT_FOUND":
+        return copy("This post could not be found or is not public.");
+      case "SOCIAL_REAUTH_REQUIRED":
+        return copy("X authorization expired. Reconnect X and try again.");
+      default:
+        return copy("The request failed. Please try again shortly.");
+    }
   };
 
   const handleMissionAction = async (mission: Mission) => {
@@ -1182,13 +1293,25 @@ function MissionsContent() {
         return;
       }
       inFlightMissionIdsRef.current.add(mission.id);
+      setMissionBusy(mission.id, true);
       updateTaskStatus(mission.id, "pending");
       try {
         const result = await verifyMission(missionKey);
         updateTaskStatus(mission.id, result.state);
-      } catch (_error) {
+        if (result.state === "claimable") {
+          helperToast.success(copy("Mission verified. Reward is ready to claim."));
+        } else if (result.state === "retry") {
+          helperToast.info(copy("The requirement was not detected yet. Check it and retry shortly."));
+          beginMissionCooldown(mission.id, 60);
+        } else if (result.state === "pending") {
+          helperToast.info(copy("Submission received. Verification is pending."));
+        }
+      } catch (error) {
         updateTaskStatus(mission.id, "retry");
+        helperToast.error(campaignActionError(error));
+        beginMissionCooldown(mission.id, Math.max(60, errorRetryAfterSeconds(error) ?? 0));
       } finally {
+        setMissionBusy(mission.id, false);
         inFlightMissionIdsRef.current.delete(mission.id);
       }
       return;
@@ -1223,14 +1346,29 @@ function MissionsContent() {
     if (missionId === "quote-launch") {
       if (!isValidXPostUrl(xUrl) || inFlightMissionIdsRef.current.has(missionId)) return;
       inFlightMissionIdsRef.current.add(missionId);
+      setMissionBusy(missionId, true);
+      setMissionSubmitError(null);
       updateTaskStatus(missionId, "pending");
       try {
         const result = await submitCampaignMission(missionKey, xUrl.trim());
         updateTaskStatus(missionId, result.state);
-        setSubmitMission(null);
-      } catch (_error) {
+        if (result.state === "retry") {
+          const message = copy("The requirement was not detected yet. Check it and retry shortly.");
+          setMissionSubmitError(message);
+          helperToast.info(message);
+          beginMissionCooldown(missionId);
+        } else {
+          setSubmitMission(null);
+          helperToast.success(copy("Submission received. Verification is pending."));
+        }
+      } catch (error) {
         updateTaskStatus(missionId, "retry");
+        const message = campaignActionError(error);
+        setMissionSubmitError(message);
+        helperToast.error(message);
+        beginMissionCooldown(missionId, errorRetryAfterSeconds(error) ?? 5);
       } finally {
+        setMissionBusy(missionId, false);
         inFlightMissionIdsRef.current.delete(missionId);
       }
       return;
@@ -1329,7 +1467,12 @@ function MissionsContent() {
               <DiamondAmount>{mission.reward}</DiamondAmount>
               <small>{copy("R Diamonds")}</small>
             </span>
-            <MissionStatusButton status={taskStatuses[mission.id]} onClick={() => void handleMissionAction(mission)} />
+            <MissionStatusButton
+              status={taskStatuses[mission.id]}
+              busy={busyMissionIds.has(mission.id)}
+              coolingDown={coolingDownMissionIds.has(mission.id)}
+              onClick={() => void handleMissionAction(mission)}
+            />
           </article>
         ))}
       </div>
@@ -1343,7 +1486,13 @@ function MissionsContent() {
       />
       <MissionSubmitModal
         mission={submitMission}
-        onClose={() => setSubmitMission(null)}
+        busy={submitMission ? busyMissionIds.has(submitMission.id) : false}
+        coolingDown={submitMission ? coolingDownMissionIds.has(submitMission.id) : false}
+        errorMessage={missionSubmitError}
+        onClose={() => {
+          setMissionSubmitError(null);
+          setSubmitMission(null);
+        }}
         onContinue={(xUrl) => void handleMissionSubmit(xUrl)}
       />
 

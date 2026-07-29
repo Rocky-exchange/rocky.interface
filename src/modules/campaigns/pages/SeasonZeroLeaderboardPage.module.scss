@@ -2328,6 +2328,18 @@
   border-color: #b0d6ea;
 }
 
+.missionSubmitDetails input[aria-invalid="true"] {
+  border-color: #ed665a;
+}
+
+.missionSubmitError {
+  margin: -16px 0 0;
+  color: #ed665a;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .missionSubmitReward {
   display: flex;
   align-items: center;
@@ -2393,6 +2405,11 @@
 .missionSubmitPrimary img {
   width: 12px;
   height: 12px;
+}
+
+.missionSubmitActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .rewardsContent {
