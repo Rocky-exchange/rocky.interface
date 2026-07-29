@@ -712,9 +712,9 @@
 
 .historyToolbar {
   display: grid;
-  grid-template-columns: 142px 104px minmax(0, 1fr) 58px;
-  gap: 6px;
-  padding: 0 20px 7px;
+  grid-template-columns: 146px 136px minmax(0, 1fr) 72px;
+  gap: 8px;
+  padding: 0 20px 8px;
 }
 
 .historyDate,
@@ -727,8 +727,8 @@
   select {
     box-sizing: border-box;
     width: 100%;
-    height: 29px;
-    padding: 0 8px;
+    height: 40px;
+    padding: 0 12px;
     color: #ddd3ca;
     background: #15110d;
     border: 1px solid rgba(216, 154, 80, 0.34);
@@ -746,25 +746,63 @@
 }
 
 .historyDate {
-  position: relative;
+  display: flex;
+  height: 40px;
+  box-sizing: border-box;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 12px;
+  background: #15110d;
+  border: 1px solid rgba(216, 154, 80, 0.34);
+  border-radius: 5px;
 
   > span {
-    position: absolute;
-    top: 4px;
-    left: 8px;
-    z-index: 1;
     color: #83786e;
     font-size: var(--history-text-min);
-    line-height: 1;
+    line-height: 1.05;
   }
 
   input {
-    padding-top: 7px;
+    height: auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    line-height: 1.05;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  &:focus-within {
+    border-color: var(--bonus-gold-bright);
+    box-shadow: 0 0 0 2px rgba(240, 189, 122, 0.1);
   }
 }
 
-.historySelect select {
-  cursor: pointer;
+.historySelect {
+  position: relative;
+
+  select {
+    padding-right: 32px;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  &::after {
+    position: absolute;
+    top: 50%;
+    right: 13px;
+    width: 7px;
+    height: 7px;
+    border-right: 1px solid #d8cec5;
+    border-bottom: 1px solid #d8cec5;
+    content: "";
+    pointer-events: none;
+    transform: translateY(-65%) rotate(45deg);
+  }
 }
 
 .historySearch input {
@@ -774,8 +812,8 @@
 }
 
 .historyExport {
-  height: 29px;
-  padding: 0 8px;
+  height: 40px;
+  padding: 0 12px;
   color: var(--bonus-gold-bright);
   background: rgba(216, 154, 80, 0.08);
   border: 1px solid rgba(216, 154, 80, 0.42);
@@ -849,7 +887,7 @@
 
 .historyTable {
   width: 100%;
-  min-width: 590px;
+  min-width: 610px;
   border-collapse: collapse;
   table-layout: fixed;
   color: #cec4bb;
@@ -859,7 +897,7 @@
   th,
   td {
     box-sizing: border-box;
-    padding: 4px 8px;
+    padding: 5px 6px;
     text-align: right;
   }
 
@@ -871,17 +909,18 @@
   }
 
   th {
-    height: 24px;
+    height: 34px;
     color: #ddb476;
     background: rgba(216, 154, 80, 0.09);
     border-bottom: 1px solid rgba(216, 154, 80, 0.26);
     font-size: var(--history-text-min);
     font-weight: 700;
-    white-space: nowrap;
+    line-height: 1.15;
+    white-space: normal;
   }
 
   tbody tr {
-    height: 38px;
+    height: 42px;
     border-bottom: 1px solid rgba(216, 154, 80, 0.13);
     transition: background-color 120ms ease;
 
@@ -892,15 +931,15 @@
 }
 
 .historyTimeColumn {
-  width: 86px;
+  width: 88px;
 }
 
 .historyEventColumn {
-  width: 148px;
+  width: 136px;
 }
 
 .historyDetailsColumn {
-  width: 43px;
+  width: 54px;
 }
 
 .historyTime {
