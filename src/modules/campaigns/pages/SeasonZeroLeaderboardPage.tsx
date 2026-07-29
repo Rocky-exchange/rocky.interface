@@ -136,6 +136,8 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "X authorization expired. Reconnect X and try again.": "X 授權已失效，請重新連接 X 後再試。",
   "The requirement was not detected yet. Check it and retry shortly.":
     "尚未偵測到任務要求，請確認完成後稍候再試。",
+  "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.":
+    "尚未偵測到合約成交。請完成一筆合約下單並等待成交，再重新驗證。",
   "Submission received. Verification is pending.": "已收到提交，正在等待驗證。",
   "Mission verified. Reward is ready to claim.": "任務驗證成功，獎勵已可領取。",
   "The request failed. Please try again shortly.": "請求失敗，請稍後再試。",
@@ -304,6 +306,9 @@ function campaignActionError(copy: (text: string) => string, error: unknown) {
       return copy("The request failed. Please try again shortly.");
   }
 }
+
+const FIRST_TRADE_INCOMPLETE_MESSAGE =
+  "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.";
 
 const TASK_STATUS_PRESENTATION: Record<TaskStatus, TaskStatusPresentation> = {
   not_started: {
@@ -1440,6 +1445,9 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
         updateTaskStatus(mission.id, result.state);
         if (result.state === "claimable") {
           helperToast.success(copy("Mission verified. Reward is ready to claim."));
+        } else if (mission.id === "first-trade" && result.state === "verifying") {
+          helperToast.info(copy(FIRST_TRADE_INCOMPLETE_MESSAGE));
+          beginMissionCooldown(mission.id, 60);
         } else if (result.state === "retry") {
           helperToast.info(copy("The requirement was not detected yet. Check it and retry shortly."));
           beginMissionCooldown(mission.id, 60);
@@ -1460,6 +1468,12 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
           } catch (_oauthError) {
             // Fall through to the standard retry feedback.
           }
+        }
+        if (mission.id === "first-trade" && errorCode(error) === "MISSION_NOT_FOUND") {
+          updateTaskStatus(mission.id, "verifying");
+          helperToast.info(copy(FIRST_TRADE_INCOMPLETE_MESSAGE));
+          beginMissionCooldown(mission.id, 60);
+          return;
         }
         updateTaskStatus(mission.id, "retry");
         helperToast.error(campaignActionError(copy, error));

@@ -251,6 +251,81 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     });
   });
 
+  it("explains that a perpetual fill is required instead of showing a request failure", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        {
+          key: "FIRST_TRADE",
+          state: "verifying",
+          title: "Complete Your First Perpetual Trade",
+          reward: "100",
+        },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
+    });
+    vi.mocked(verifyMission).mockResolvedValue({ state: "verifying" });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Complete Your First Perpetual Trade");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => {
+      expect(verifyMission).toHaveBeenCalledWith("FIRST_TRADE");
+      expect(helperToast.info).toHaveBeenCalledWith(
+        "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.",
+      );
+    });
+    expect(helperToast.error).not.toHaveBeenCalled();
+  });
+
+  it("maps the legacy missing first-trade verifier response to the incomplete-trade guidance", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        {
+          key: "FIRST_TRADE",
+          state: "verifying",
+          title: "Complete Your First Perpetual Trade",
+          reward: "100",
+        },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
+    });
+    vi.mocked(verifyMission).mockRejectedValue({ code: "MISSION_NOT_FOUND" });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Complete Your First Perpetual Trade");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => {
+      expect(helperToast.info).toHaveBeenCalledWith(
+        "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.",
+      );
+    });
+    expect(helperToast.error).not.toHaveBeenCalled();
+  });
+
   it("submits a Quote Launch Post URL instead of calling the automatic verifier", async () => {
     vi.mocked(getMissions).mockResolvedValue({
       missions: [
