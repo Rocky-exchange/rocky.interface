@@ -29,6 +29,7 @@ vi.mock("@/modules/campaigns/api/campaign.api", () => ({
   getRewards: vi.fn(),
   startMission: vi.fn(),
   submitMission: vi.fn(),
+  startWalletBoundDiscordOAuth: vi.fn(),
   startWalletBoundXOAuth: vi.fn(),
   verifyMission: vi.fn(),
 }));

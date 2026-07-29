@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  CampaignApiError,
   getCampaign,
   getLeaderboard,
   getMissions,
+  startWalletBoundDiscordOAuth,
   startWalletBoundXOAuth,
   startXOAuth,
   submitMission,
@@ -106,6 +106,42 @@ describe("campaign activity API", () => {
     for (const [, init] of fetchMock.mock.calls) {
       expect((init?.headers as Headers).get("authorization")).toBe("Bearer exchange-token");
     }
+  });
+
+  it("synchronizes the signed wallet identity before starting Discord authorization", async () => {
+    localStorage.setItem("rocky_exchange_session", "exchange-token");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: { userId: "user-1", phase: "active" },
+            meta: { requestId: "sync-request", serverTime: "2026-07-29T00:00:00.000Z" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: {
+              authorizationUrl:
+                "https://discord.com/oauth2/authorize?state=wallet-bound-discord",
+            },
+            meta: { requestId: "oauth-request", serverTime: "2026-07-29T00:00:01.000Z" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(startWalletBoundDiscordOAuth()).resolves.toContain(
+      "state=wallet-bound-discord"
+    );
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/external-active/v1/me/campaign",
+      "/external-active/v1/social/discord/oauth/start",
+    ]);
   });
 
   it("keeps the public leaderboard unauthenticated and pinned to its requested page", async () => {
@@ -216,7 +252,7 @@ describe("campaign activity API", () => {
 
     const result = verifyMission("LIKE_LAUNCH");
 
-    await expect(result).rejects.toMatchObject<Partial<CampaignApiError>>({
+    await expect(result).rejects.toMatchObject({
       code: "REQUEST_RATE_LIMITED",
       retryAfterSeconds: 57,
       status: 429,

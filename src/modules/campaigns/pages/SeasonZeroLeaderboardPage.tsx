@@ -9,6 +9,7 @@ import {
   getMissions,
   getRewards,
   startMission,
+  startWalletBoundDiscordOAuth,
   startWalletBoundXOAuth,
   submitMission as submitCampaignMission,
   verifyMission,
@@ -1375,6 +1376,13 @@ function MissionsContent() {
     typeof error.retryAfterSeconds === "number"
       ? error.retryAfterSeconds
       : undefined;
+  const errorCode = (error: unknown) =>
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code
+      : undefined;
 
   const handleMissionAction = async (mission: Mission) => {
     const status = taskStatuses[mission.id];
@@ -1391,6 +1399,14 @@ function MissionsContent() {
       try {
         const result = await startMission(missionKey);
         updateTaskStatus(mission.id, result.state);
+        if (mission.id === "join-discord") {
+          if (result.actionUrls?.[0]) {
+            window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
+          }
+          if (locked) await unlock();
+          window.location.assign(await startWalletBoundDiscordOAuth());
+          return;
+        }
         if ((mission.id === "like-launch" || mission.id === "quote-launch") && result.actionUrls?.[0]) {
           window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
         }
@@ -1424,6 +1440,20 @@ function MissionsContent() {
           helperToast.info(copy("Submission received. Verification is pending."));
         }
       } catch (error) {
+        if (
+          mission.id === "join-discord" &&
+          ["DISCORD_IDENTITY_REQUIRED", "DISCORD_REAUTH_REQUIRED"].includes(
+            errorCode(error) ?? ""
+          )
+        ) {
+          try {
+            if (locked) await unlock();
+            window.location.assign(await startWalletBoundDiscordOAuth());
+            return;
+          } catch (_oauthError) {
+            // Fall through to the standard retry feedback.
+          }
+        }
         updateTaskStatus(mission.id, "retry");
         helperToast.error(campaignActionError(copy, error));
         beginMissionCooldown(mission.id, Math.max(60, errorRetryAfterSeconds(error) ?? 0));
@@ -2122,6 +2152,31 @@ export default function SeasonZeroLeaderboardPage() {
     );
     params.delete("x");
     params.delete("x_error");
+    history.replace({
+      pathname: location.pathname,
+      search: params.toString(),
+    });
+  }, [history, isTraditionalChinese, location.pathname, location.search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const discord = params.get("discord");
+    if (!discord) return;
+    if (discord === "connected") {
+      helperToast.success(
+        isTraditionalChinese
+          ? "Discord 已連接。加入 Rocky 社群後即可驗證任務。"
+          : "Discord connected. Join the Rocky community, then verify the mission."
+      );
+    } else if (params.get("discord_error") === "DISCORD_IDENTITY_IMMUTABLE") {
+      helperToast.error(
+        isTraditionalChinese
+          ? "此錢包已綁定另一個 Discord 帳號，請授權原先綁定的帳號。"
+          : "This wallet is already connected to another Discord account."
+      );
+    }
+    params.delete("discord");
+    params.delete("discord_error");
     history.replace({
       pathname: location.pathname,
       search: params.toString(),

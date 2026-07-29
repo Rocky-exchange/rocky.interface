@@ -174,6 +174,18 @@ export async function startWalletBoundXOAuth(): Promise<string> {
   return startXOAuth();
 }
 
+export async function startDiscordOAuth(): Promise<string> {
+  const result = await activityRequest<{ authorizationUrl: string }>(
+    "/v1/social/discord/oauth/start"
+  );
+  return result.authorizationUrl;
+}
+
+export async function startWalletBoundDiscordOAuth(): Promise<string> {
+  await activityRequest("/v1/me/campaign");
+  return startDiscordOAuth();
+}
+
 export function startMission(
   key: MissionKey
 ): Promise<{ state: MissionState; status?: string; actionUrls?: string[] }> {
