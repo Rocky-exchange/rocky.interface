@@ -1256,7 +1256,7 @@ function OriginalPostsModule({
   );
 }
 
-function MissionsContent() {
+function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>(getInitialTaskStatuses);
   const [claimMission, setClaimMission] = useState<Mission | null>(null);
   const [submitMission, setSubmitMission] = useState<Mission | null>(null);
@@ -1324,6 +1324,13 @@ function MissionsContent() {
       active = false;
     };
   }, [applyMissionList]);
+
+  useEffect(() => {
+    if (refreshNonce === 0) return;
+    void refreshMissions().catch(() => {
+      // The durable verification job remains authoritative if this refresh is unavailable.
+    });
+  }, [refreshMissions, refreshNonce]);
 
   useEffect(() => {
     if (originalPostProgress.pendingToday <= 0 && originalMissionState !== "pending") return;
@@ -1429,20 +1436,6 @@ function MissionsContent() {
       setMissionBusy(mission.id, true);
       updateTaskStatus(mission.id, "pending");
       try {
-        if (mission.id === "join-discord" && status === "retry") {
-          try {
-            const restarted = await startMission(missionKey);
-            updateTaskStatus(mission.id, restarted.state);
-            if (restarted.actionUrls?.[0]) {
-              window.open(restarted.actionUrls[0], "_blank", "noopener,noreferrer");
-            }
-            if (locked) await unlock();
-            window.location.assign(await startWalletBoundDiscordOAuth());
-            return;
-          } catch (error) {
-            if (errorCode(error) !== "MISSION_START_CONFLICT") throw error;
-          }
-        }
         const result = await verifyMission(missionKey);
         updateTaskStatus(mission.id, result.state);
         if (result.state === "claimable") {
@@ -2128,6 +2121,7 @@ export default function SeasonZeroLeaderboardPage() {
   const location = useLocation();
   const activeTab = getCampaignTab(location.search);
   const [campaignEndsAt, setCampaignEndsAt] = useState<string | null>(null);
+  const [missionRefreshNonce, setMissionRefreshNonce] = useState(0);
   const { copy, isTraditionalChinese } = useCampaignCopy();
 
   useEffect(() => {
@@ -2182,6 +2176,7 @@ export default function SeasonZeroLeaderboardPage() {
           ? "Discord 已連接。加入 Rocky 社群後即可驗證任務。"
           : "Discord connected. Join the Rocky community, then verify the mission."
       );
+      setMissionRefreshNonce((current) => current + 1);
     } else if (params.get("discord_error") === "DISCORD_IDENTITY_IMMUTABLE") {
       helperToast.error(
         isTraditionalChinese
@@ -2235,7 +2230,7 @@ export default function SeasonZeroLeaderboardPage() {
         </nav>
 
         {activeTab === "missions" ? (
-          <MissionsContent />
+          <MissionsContent refreshNonce={missionRefreshNonce} />
         ) : activeTab === "leaderboard" ? (
           <LeaderboardContent />
         ) : (
