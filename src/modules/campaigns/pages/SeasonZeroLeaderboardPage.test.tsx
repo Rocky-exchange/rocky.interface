@@ -306,6 +306,45 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
   });
 
+  it("explains when an Original Post was published outside the campaign period", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        { key: "ORIGINAL_TWEET", state: "not_started", title: "Original post", reward: "200" },
+      ],
+      progress: {
+        completedCount: 1,
+        claimableCount: 0,
+        totalCount: 7,
+        originalTweet: { activityDay: 1, approvedToday: 0, pendingToday: 0, limit: 2 },
+      },
+    });
+    vi.mocked(startMission).mockResolvedValue({ state: "verifying" });
+    vi.mocked(submitMission).mockRejectedValue(
+      Object.assign(new Error("outside campaign"), { code: "SOCIAL_POST_OUTSIDE_CAMPAIGN" }),
+    );
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Submit Post" }));
+    fireEvent.change(screen.getByPlaceholderText("https://x.com/username/status/1234567890"), {
+      target: { value: "https://x.com/Le0_Simons/status/1881227213087068296" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Only posts published during this campaign can be submitted.",
+    );
+  });
+
   it("claims an approved Original Post reward through the backend", async () => {
     vi.mocked(getMissions)
       .mockResolvedValueOnce({

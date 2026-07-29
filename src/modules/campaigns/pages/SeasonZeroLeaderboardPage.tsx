@@ -119,6 +119,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Must be related to Rocky or Canton": "內容必須與 Rocky 或 Canton 相關",
   "Public post visible to everyone": "貼文必須公開且所有人可見",
   "No edited or deleted posts": "不得編輯或刪除貼文",
+  "Published during the campaign period": "必須在活動期間內發佈",
   "Max 2 posts per day": "每日最多 2 篇貼文",
   "Rewards are distributed after review": "審核通過後發放獎勵",
   Submit: "提交",
@@ -130,6 +131,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "This post belongs to another X account.": "此貼文不屬於目前連接的 X 帳號。",
   "This post does not quote the Rocky launch post.": "此貼文未引用 Rocky 上線貼文。",
   "This post could not be found or is not public.": "找不到此貼文，或貼文並非公開。",
+  "Only posts published during this campaign can be submitted.": "只能提交在本次活動期間內發佈的貼文。",
   "X authorization expired. Reconnect X and try again.": "X 授權已失效，請重新連接 X 後再試。",
   "The requirement was not detected yet. Check it and retry shortly.":
     "尚未偵測到任務要求，請確認完成後稍候再試。",
@@ -274,6 +276,34 @@ function useCampaignCopy() {
   return { copy, isTraditionalChinese };
 }
 
+function campaignActionError(copy: (text: string) => string, error: unknown) {
+  const code =
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+      ? error.code
+      : "";
+  switch (code) {
+    case "DEPENDENCY_UNAVAILABLE":
+      return copy("X verification is temporarily unavailable. Please try again shortly.");
+    case "REQUEST_RATE_LIMITED":
+    case "X_RATE_LIMITED":
+      return copy("Too many attempts. Please wait before trying again.");
+    case "MISSION_SUBMISSION_INVALID":
+      return copy("This X post link is invalid. Check the URL and try again.");
+    case "SOCIAL_POST_AUTHOR_MISMATCH":
+      return copy("This post belongs to another X account.");
+    case "SOCIAL_QUOTE_RELATION_INVALID":
+      return copy("This post does not quote the Rocky launch post.");
+    case "SOCIAL_POST_NOT_FOUND":
+      return copy("This post could not be found or is not public.");
+    case "SOCIAL_POST_OUTSIDE_CAMPAIGN":
+      return copy("Only posts published during this campaign can be submitted.");
+    case "SOCIAL_REAUTH_REQUIRED":
+      return copy("X authorization expired. Reconnect X and try again.");
+    default:
+      return copy("The request failed. Please try again shortly.");
+  }
+}
+
 const TASK_STATUS_PRESENTATION: Record<TaskStatus, TaskStatusPresentation> = {
   not_started: {
     label: "Start",
@@ -394,6 +424,7 @@ const ORIGINAL_POST_REQUIREMENTS = [
   "Must be related to Rocky or Canton",
   "Public post visible to everyone",
   "No edited or deleted posts",
+  "Published during the campaign period",
   "Max 2 posts per day",
   "Rewards are distributed after review",
 ] as const;
@@ -1030,8 +1061,8 @@ function OriginalPostsModule({
         .catch(() => {
           // Keep the safe pending state when the authoritative refresh is unavailable.
         });
-    } catch (_error) {
-      const message = copy("The request failed. Please try again shortly.");
+    } catch (error) {
+      const message = campaignActionError(copy, error);
       setSubmissionError(message);
       helperToast.error(message);
     } finally {
@@ -1345,32 +1376,6 @@ function MissionsContent() {
       ? error.retryAfterSeconds
       : undefined;
 
-  const campaignActionError = (error: unknown) => {
-    const code =
-      typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
-        ? error.code
-        : "";
-    switch (code) {
-      case "DEPENDENCY_UNAVAILABLE":
-        return copy("X verification is temporarily unavailable. Please try again shortly.");
-      case "REQUEST_RATE_LIMITED":
-      case "X_RATE_LIMITED":
-        return copy("Too many attempts. Please wait before trying again.");
-      case "MISSION_SUBMISSION_INVALID":
-        return copy("This X post link is invalid. Check the URL and try again.");
-      case "SOCIAL_POST_AUTHOR_MISMATCH":
-        return copy("This post belongs to another X account.");
-      case "SOCIAL_QUOTE_RELATION_INVALID":
-        return copy("This post does not quote the Rocky launch post.");
-      case "SOCIAL_POST_NOT_FOUND":
-        return copy("This post could not be found or is not public.");
-      case "SOCIAL_REAUTH_REQUIRED":
-        return copy("X authorization expired. Reconnect X and try again.");
-      default:
-        return copy("The request failed. Please try again shortly.");
-    }
-  };
-
   const handleMissionAction = async (mission: Mission) => {
     const status = taskStatuses[mission.id];
     const missionKey = MISSION_KEY_BY_ID[mission.id];
@@ -1420,7 +1425,7 @@ function MissionsContent() {
         }
       } catch (error) {
         updateTaskStatus(mission.id, "retry");
-        helperToast.error(campaignActionError(error));
+        helperToast.error(campaignActionError(copy, error));
         beginMissionCooldown(mission.id, Math.max(60, errorRetryAfterSeconds(error) ?? 0));
       } finally {
         setMissionBusy(mission.id, false);
@@ -1475,7 +1480,7 @@ function MissionsContent() {
         }
       } catch (error) {
         updateTaskStatus(missionId, "retry");
-        const message = campaignActionError(error);
+        const message = campaignActionError(copy, error);
         setMissionSubmitError(message);
         helperToast.error(message);
         beginMissionCooldown(missionId, errorRetryAfterSeconds(error) ?? 5);
