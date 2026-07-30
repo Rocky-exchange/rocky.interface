@@ -1807,7 +1807,7 @@
 
 .fieldHeading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   color: var(--text-secondary);
@@ -1817,6 +1817,18 @@
     color: var(--text-tertiary);
     font-size: 11px;
   }
+}
+
+.fieldMeta {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.depositFeeHint {
+  color: var(--brand-warm-muted);
+  font-weight: 600;
 }
 
 .amountInput {

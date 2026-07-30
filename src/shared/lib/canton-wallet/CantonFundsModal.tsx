@@ -1038,16 +1038,21 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 <label className={styles.field}>
                   <span className={styles.fieldHeading}>
                     <span>{i18n._(t`Amount`)}</span>
-                    <small>
-                      {i18n._(t`Available`)}:{" "}
+                    <small className={styles.fieldMeta}>
+                      <span>
+                        {i18n._(t`Available`)}:{" "}
+                        {activeView === "deposit" ? (
+                          <CompactAssetAmount value={selectedWalletBalance} asset={selectedAsset} />
+                        ) : withdrawAvailable === null ? (
+                          "-"
+                        ) : (
+                          <CompactAssetAmount value={withdrawAvailable} asset={selectedAsset} />
+                        )}{" "}
+                        {selectedAsset}
+                      </span>
                       {activeView === "deposit" ? (
-                        <CompactAssetAmount value={selectedWalletBalance} asset={selectedAsset} />
-                      ) : withdrawAvailable === null ? (
-                        "-"
-                      ) : (
-                        <CompactAssetAmount value={withdrawAvailable} asset={selectedAsset} />
-                      )}{" "}
-                      {selectedAsset}
+                        <span className={styles.depositFeeHint}>{i18n._(t`Fee`)}: 5 CC</span>
+                      ) : null}
                     </small>
                   </span>
                   <span className={styles.amountInput}>

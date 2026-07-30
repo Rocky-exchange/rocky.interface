@@ -279,6 +279,17 @@ describe("CantonFundsModal", () => {
     expect(document.activeElement).toBe(assetButton);
   });
 
+  it("shows the fixed CC fee hint only on Deposit", () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Deposit" }));
+    expect(screen.getByText("Fee: 5 CC")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to assets" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Withdraw" }));
+    expect(screen.queryByText("Fee: 5 CC")).toBeNull();
+  });
+
   it("shows a direct disconnect action instead of the profile overflow menu", async () => {
     const onClose = vi.fn();
     render(<CantonFundsModal open onClose={onClose} />);
