@@ -124,12 +124,15 @@ describe("OrderBottomSheet preview wiring", () => {
     expect(view.getByText(/Taker: 0\.036% \| Maker: 0%/)).toBeTruthy();
   });
 
-  it("renders the mobile-native advanced form (not the desktop ltr-form) when an advanced mode is picked", () => {
+  // rocky-backend has no trigger-order / position TP-SL endpoints yet, so the
+  // Advanced order types and the TP/SL inputs are gated off (TPSL_ENABLED).
+  // When the backend ships conditional orders and the flag flips, restore the
+  // "renders the mobile-native advanced form" test this replaced.
+  it("hides Advanced order types and the TP/SL section while TPSL_ENABLED is off", () => {
     const { container } = renderSheet();
     const view = within(container);
-    fireEvent.click(view.getByText("Advanced"));
-    fireEvent.click(view.getByText("S/L Market"));
-    expect(view.getByTestId("mobile-advanced-form")).toBeTruthy();
-    expect(container.querySelector(".ltr-form")).toBeNull();
+    expect(view.queryByText("Advanced")).toBeNull();
+    expect(view.queryByText("Take Profit / Stop Loss")).toBeNull();
+    expect(view.queryByTestId("mobile-advanced-form")).toBeNull();
   });
 });

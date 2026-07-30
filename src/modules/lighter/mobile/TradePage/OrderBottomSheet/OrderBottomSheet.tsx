@@ -1,18 +1,21 @@
 // src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
-import { useEffect, useState } from "react";
 import { Trans, t } from "@lingui/macro";
-import { BottomSheet } from "@/modules/lighter/mobile/shared/BottomSheet";
-import { useOrderFormState } from "@/modules/lighter/features/orderForm/useOrderFormState";
-import { Side, AdvancedMode } from "@/modules/lighter/features/orderForm/types";
-import { isAdvancedMode } from "@/modules/lighter/features/orderForm/advancedModes";
-import { MobileAdvancedForm } from "./MobileAdvancedForm";
+import { useEffect, useState } from "react";
+
 import { usePlaceOrderAdapter } from "@/modules/lighter/adapters/usePlaceOrderAdapter";
+import { TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
+import { isAdvancedMode } from "@/modules/lighter/features/orderForm/advancedModes";
+import { Side, AdvancedMode } from "@/modules/lighter/features/orderForm/types";
 import { useOrderAmountPreview } from "@/modules/lighter/features/orderForm/useOrderAmountPreview";
+import { useOrderFormState } from "@/modules/lighter/features/orderForm/useOrderFormState";
 import { useOrderInfoRows } from "@/modules/lighter/features/orderForm/useOrderInfoRows";
+import { BottomSheet } from "@/modules/lighter/mobile/shared/BottomSheet";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
-import { OrderInfoRows } from "./OrderInfoRows";
+
 import { LeverageSlider } from "./LeverageSlider";
+import { MobileAdvancedForm } from "./MobileAdvancedForm";
 import styles from "./OrderBottomSheet.module.scss";
+import { OrderInfoRows } from "./OrderInfoRows";
 import { OrderTypeTabs } from "./OrderTypeTabs";
 import { SizeInput } from "./SizeInput";
 import { TPSLSection } from "./TPSLSection";
@@ -142,7 +145,9 @@ export function OrderBottomSheet({ open, side, baseSymbol, onOpenChange, maxLeve
               </div>
             )}
 
-            <TPSLSection tp={form.tp} sl={form.sl} onTpChange={form.setTp} onSlChange={form.setSl} />
+            {TPSL_ENABLED && (
+              <TPSLSection tp={form.tp} sl={form.sl} onTpChange={form.setTp} onSlChange={form.setSl} />
+            )}
 
             <OrderInfoRows
               availableToTrade={info.availableToTrade}

@@ -2,6 +2,7 @@ import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
 import { formatAvailableToTrade } from "./availableBalanceFormat";
@@ -251,7 +252,7 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
           }}
           label={i18n._(t`Reduce Only`)}
         />
-        {!reduceOnly && (
+        {TPSL_ENABLED && !reduceOnly && (
           <Checkbox
             checked={tpsl}
             onChange={(checked) => {

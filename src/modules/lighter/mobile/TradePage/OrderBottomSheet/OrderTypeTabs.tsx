@@ -1,10 +1,13 @@
 // src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderTypeTabs.tsx
-import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
 import { Trans } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
-import { BasicMode, Mode, AdvancedMode } from "@/modules/lighter/features/orderForm/types";
+import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
+
+import { TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
 import { ADVANCED_MODES, isAdvancedMode, pickAdvancedLabel } from "@/modules/lighter/features/orderForm/advancedModes";
+import { BasicMode, Mode, AdvancedMode } from "@/modules/lighter/features/orderForm/types";
+
 import styles from "./OrderTypeTabs.module.scss";
 
 const BASIC_TABS: BasicMode[] = ["Market", "Limit"];
@@ -57,6 +60,7 @@ export function OrderTypeTabs({ mode, onChange, advancedOpen, onAdvancedToggle, 
         );
       })}
 
+      {TPSL_ENABLED && (
       <div ref={wrapRef} className={styles.advancedWrap}>
         <button
           role="tab"
@@ -96,6 +100,7 @@ export function OrderTypeTabs({ mode, onChange, advancedOpen, onAdvancedToggle, 
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
