@@ -5,7 +5,7 @@ import { useSWRConfig } from "swr";
 
 import { useClosePositionHandler } from "@/modules/lighter/api";
 import type { ClosePositionRequest } from "@/modules/lighter/api/types";
-import { TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
+import { POSITION_TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
@@ -254,7 +254,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
           <col className={styles.colPnl} />
           <col className={styles.colMargin} />
           <col className={styles.colFunding} />
-          {TPSL_ENABLED && <col className={styles.colTpSl} />}
+          {POSITION_TPSL_ENABLED && <col className={styles.colTpSl} />}
           <col className={styles.colCloseAll} />
         </colgroup>
         <thead>
@@ -286,7 +286,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
             <th>
               <Trans>Funding</Trans>
             </th>
-            {TPSL_ENABLED && (
+            {POSITION_TPSL_ENABLED && (
               <th>
                 <Trans>TP / SL</Trans>
               </th>
@@ -351,7 +351,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                 <td className={`${styles.mono} ${styles.numeric} ${row.funding === "--" ? styles.placeholder : ""}`}>
                   {row.funding}
                 </td>
-                {TPSL_ENABLED && (
+                {POSITION_TPSL_ENABLED && (
                   <td>
                     <span className={styles.tpSl}>
                       <span className={row.tpSl === "-- / --" ? styles.placeholder : ""}>{row.tpSl}</span>
@@ -383,7 +383,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
         </tbody>
       </table>
 
-      {TPSL_ENABLED && (
+      {POSITION_TPSL_ENABLED && (
         <TpSlPositionModal position={editingPosition} onClose={() => setEditingTpSlPositionKey(undefined)} />
       )}
     </div>

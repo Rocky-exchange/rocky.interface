@@ -124,11 +124,13 @@ describe("OrderBottomSheet preview wiring", () => {
     expect(view.getByText(/Taker: 0\.036% \| Maker: 0%/)).toBeTruthy();
   });
 
-  // rocky-backend has no trigger-order / position TP-SL endpoints yet, so the
-  // Advanced order types and the TP/SL inputs are gated off (TPSL_ENABLED).
-  // When the backend ships conditional orders and the flag flips, restore the
-  // "renders the mobile-native advanced form" test this replaced.
-  it("hides Advanced order types and the TP/SL section while TPSL_ENABLED is off", () => {
+  // rocky-backend has no standalone trigger-order endpoint (/v1/trigger-orders),
+  // so the Advanced order types and the order-form TP/SL inputs are gated off
+  // (TRIGGER_ORDERS_ENABLED). Position-level TP/SL (POSITION_TPSL_ENABLED) is
+  // live but lives on the positions table, not this sheet. When trigger orders
+  // ship and the flag flips, restore the "renders the mobile-native advanced
+  // form" test this replaced.
+  it("hides Advanced order types and the TP/SL section while TRIGGER_ORDERS_ENABLED is off", () => {
     const { container } = renderSheet();
     const view = within(container);
     expect(view.queryByText("Advanced")).toBeNull();

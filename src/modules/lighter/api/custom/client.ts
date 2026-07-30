@@ -938,6 +938,10 @@ type RockyPositionRow = {
   entry_price: string;
   locked_margin: string;
   realized_pnl: string;
+  // Armed TP/SL trigger prices joined from ledger.position_tpsl (null when
+  // unset or already fired).
+  take_profit_price?: string | null;
+  stop_loss_price?: string | null;
 };
 
 type RockyOrderRow = {
@@ -989,6 +993,8 @@ function normalizePosition(position: Position | RockyPositionRow, liveMarkPrice?
     collateral_amount: position.locked_margin,
     leverage: 10,
     margin_ratio: "0",
+    take_profit_price: position.take_profit_price ?? null,
+    stop_loss_price: position.stop_loss_price ?? null,
     created_at: 0,
     updated_at: 0,
   };
@@ -1546,8 +1552,10 @@ export async function updatePositionCollateral(
  * Set Take Profit and Stop Loss for a position
  * POST /v1/positions/:position_id/tp-sl
  *
- * NOT SUPPORTED by rocky-backend -- there is no TP/SL endpoint (docs mark
- * conditional orders as not yet implemented). Left calling the old shape.
+ * Backed by rocky-backend since 2026-07-30 (api-gateway positions_tpsl.rs +
+ * risk-monitor trigger engine). positionId is the `{user_uuid}:{symbol}`
+ * composite; auth is the exchange session token (require_session), NOT the
+ * legacy stored token.
  */
 export async function setPositionTpSl(
   chainId: number,
@@ -1558,7 +1566,7 @@ export async function setPositionTpSl(
   const response = await apiFetch<{ success: boolean; data: TpSlResponse }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
     method: "POST",
     body: JSON.stringify(request),
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
   return response.data;
@@ -1568,7 +1576,7 @@ export async function setPositionTpSl(
  * Get Take Profit and Stop Loss for a position
  * GET /v1/positions/:position_id/tp-sl
  *
- * NOT SUPPORTED by rocky-backend -- see setPositionTpSl above.
+ * Returns `data: null` when no config exists for the position.
  */
 export async function getPositionTpSl(
   chainId: number,
@@ -1576,7 +1584,7 @@ export async function getPositionTpSl(
   address?: string | null
 ): Promise<TpSlResponse> {
   const response = await apiFetch<{ success: boolean; data: TpSlResponse }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
-    requireAuth: true,
+    authMode: "exchange",
     address,
   });
   return response.data;
@@ -1585,8 +1593,6 @@ export async function getPositionTpSl(
 /**
  * Delete Take Profit and Stop Loss for a position
  * DELETE /v1/positions/:position_id/tp-sl
- *
- * NOT SUPPORTED by rocky-backend -- see setPositionTpSl above.
  */
 export async function deletePositionTpSl(
   chainId: number,
@@ -1594,7 +1600,7 @@ export async function deletePositionTpSl(
 ): Promise<{ success: boolean; data: string; error: string | null }> {
   return apiFetch<{ success: boolean; data: string; error: string | null }>(chainId, `/v1/positions/${positionId}/tp-sl`, {
     method: "DELETE",
-    requireAuth: true,
+    authMode: "exchange",
   });
 }
 

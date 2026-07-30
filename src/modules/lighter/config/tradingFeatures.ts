@@ -1,9 +1,15 @@
-// rocky-backend has no TP/SL or conditional/trigger-order support yet:
-//  - POST/GET/DELETE /v1/positions/:id/tp-sl do not exist (POST happens to
-//    collide with GET /v1/positions/{user_id}/{symbol} in api-gateway
-//    routes/account.rs, so the browser sees a 405 instead of a 404)
-//  - POST /v1/trigger-orders does not exist
-// Until the backend ships conditional orders, every TP/SL entry point in the
-// futures UI is gated behind this flag so users cannot reach dead endpoints.
-// Flip to true once the backend implements the routes above.
-export const TPSL_ENABLED = false;
+// TP/SL & trigger-order feature gates, split by what rocky-backend supports.
+//
+// POSITION_TPSL_ENABLED — position-level take-profit/stop-loss. Backed by
+// POST/GET/DELETE /v1/positions/{user_uuid}:{symbol}/tp-sl + the risk-monitor
+// trigger engine (shipped 2026-07-30, see rocky-backend
+// docs/superpowers/specs/2026-07-30-position-tpsl-design.md). Gates the
+// positions-table TP/SL column and the TP/SL edit modal.
+//
+// TRIGGER_ORDERS_ENABLED — standalone conditional orders: the desktop
+// Advanced (S/L / T/P) order-type menu, the order-form TP/SL checkbox
+// (tp_price/sl_price attached to POST /v1/orders, which the backend drops
+// silently), and the mobile equivalents. These need POST /v1/trigger-orders,
+// which rocky-backend still does not implement — keep off until it ships.
+export const POSITION_TPSL_ENABLED = true;
+export const TRIGGER_ORDERS_ENABLED = false;

@@ -2,7 +2,7 @@ import { Trans } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { useEffect, useRef } from "react";
 
-import { TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
+import { TRIGGER_ORDERS_ENABLED } from "@/modules/lighter/config/tradingFeatures";
 import { useOrderFormState } from "@/modules/lighter/features/orderForm/useOrderFormState";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
@@ -150,7 +150,7 @@ export function OrderFormPanel() {
         <button onClick={() => setMode("Limit")} className={mode === "Limit" ? styles.modeActive : styles.mode}>
           <Trans>Limit</Trans>
         </button>
-        {TPSL_ENABLED && (
+        {TRIGGER_ORDERS_ENABLED && (
         <div ref={advancedRef} className={styles.advancedWrap}>
           <button
             type="button"

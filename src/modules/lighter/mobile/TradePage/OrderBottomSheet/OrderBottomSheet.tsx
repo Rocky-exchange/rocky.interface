@@ -3,7 +3,7 @@ import { Trans, t } from "@lingui/macro";
 import { useEffect, useState } from "react";
 
 import { usePlaceOrderAdapter } from "@/modules/lighter/adapters/usePlaceOrderAdapter";
-import { TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
+import { TRIGGER_ORDERS_ENABLED } from "@/modules/lighter/config/tradingFeatures";
 import { isAdvancedMode } from "@/modules/lighter/features/orderForm/advancedModes";
 import { Side, AdvancedMode } from "@/modules/lighter/features/orderForm/types";
 import { useOrderAmountPreview } from "@/modules/lighter/features/orderForm/useOrderAmountPreview";
@@ -145,7 +145,7 @@ export function OrderBottomSheet({ open, side, baseSymbol, onOpenChange, maxLeve
               </div>
             )}
 
-            {TPSL_ENABLED && (
+            {TRIGGER_ORDERS_ENABLED && (
               <TPSLSection tp={form.tp} sl={form.sl} onTpChange={form.setTp} onSlChange={form.setSl} />
             )}
 
