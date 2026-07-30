@@ -40,6 +40,8 @@ export type PlaceOrderParams = {
   positionSide?: PositionModeSide;
   /** 是否全平(仅触发单) */
   closePosition?: boolean;
+  /** 移动止损回调幅度(百分比,仅 trailing_stop) */
+  trailingDelta?: number;
   /** 自定义客户端订单 ID */
   newClientOrderId?: string;
 };
@@ -139,6 +141,7 @@ export function usePlaceOrderAdapter() {
           slPrice: toDecimalString(p.slPrice ?? NaN),
           maxSlippage: toDecimalString(p.maxSlippage ?? NaN, 4),
           stopPrice: toDecimalString(p.triggerPrice ?? NaN),
+          trailingDelta: toDecimalString(p.trailingDelta ?? NaN, 4),
           timeInForce: p.timeInForce,
           workingType: p.workingType,
           positionSide: p.positionSide,

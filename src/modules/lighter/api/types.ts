@@ -146,7 +146,14 @@ export interface BalancesResponse {
 // Order Types
 // ============================================
 export type OrderSide = "buy" | "sell"; // API uses "buy"/"sell" for orders (matching actual backend implementation)
-export type OrderType = "market" | "limit" | "stop_market" | "stop_limit" | "take_profit" | "take_profit_limit";
+export type OrderType =
+  | "market"
+  | "limit"
+  | "stop_market"
+  | "stop_limit"
+  | "take_profit"
+  | "take_profit_limit"
+  | "trailing_stop";
 export type OrderStatus = "pending" | "open" | "partially_filled" | "filled" | "cancelled" | "rejected" | "expired";
 export type TimeInForce = "GTC" | "IOC" | "FOK" | "GTX";
 export type WorkingType = "MARK_PRICE" | "CONTRACT_PRICE";
@@ -471,12 +478,17 @@ export interface CreateTriggerOrderRequest {
   market_symbol: string;
   side: OrderSide;
   trigger_type: TriggerType;
+  /** Ignored for TrailingStop — the backend derives the stop from the live
+   * mark and trailing_delta, and re-derives it as the peak moves. */
   trigger_price: string;
   size: string;
   limit_price?: string;
   position_id?: string;
   reduce_only?: boolean;
   close_position?: boolean;
+  /** TrailingStop only: callback distance from the peak. */
+  trailing_delta?: string;
+  trailing_delta_type?: "absolute" | "percentage";
 }
 
 export interface TriggerOrderResponse {

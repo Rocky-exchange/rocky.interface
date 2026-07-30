@@ -38,22 +38,41 @@ export function MobileAdvancedForm({ type, side, isConnected, leverage, marginMo
     reduceOnly: adv.reduceOnly,
   });
 
-  const triggerLabel = adv.isTakeProfit ? t`TP Trigger Price` : t`Trigger Price`;
+  const triggerLabel = adv.isTrailing
+    ? t`Callback Rate`
+    : adv.isTakeProfit
+      ? t`TP Trigger Price`
+      : t`Trigger Price`;
   const submitLabel = adv.canSubmit ? t`Submit Order` : t`Enter ${triggerLabel}`;
 
   return (
     <div className={styles.body}>
-      <div className={styles.priceRow}>
-        <label className={styles.priceLabel}>{triggerLabel}</label>
-        <input
-          type="text"
-          inputMode="decimal"
-          value={adv.triggerPrice}
-          onChange={(e) => adv.setTriggerPrice(e.target.value.replace(/[^\d.]/g, ""))}
-          className={styles.priceInput}
-          placeholder="0.000000"
-        />
-      </div>
+      {adv.isTrailing ? (
+        <div className={styles.priceRow}>
+          <label className={styles.priceLabel}>{triggerLabel}</label>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={adv.callbackRate}
+            onChange={(e) => adv.setCallbackRate(e.target.value.replace(/[^\d.]/g, ""))}
+            className={styles.priceInput}
+            placeholder="1.0"
+          />
+          <span className={styles.priceLabel}>%</span>
+        </div>
+      ) : (
+        <div className={styles.priceRow}>
+          <label className={styles.priceLabel}>{triggerLabel}</label>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={adv.triggerPrice}
+            onChange={(e) => adv.setTriggerPrice(e.target.value.replace(/[^\d.]/g, ""))}
+            className={styles.priceInput}
+            placeholder="0.000000"
+          />
+        </div>
+      )}
 
       {adv.hasLimitPrice && (
         <div className={styles.priceRow}>

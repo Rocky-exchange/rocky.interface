@@ -14,7 +14,7 @@ import { usePositionsAdapter } from "../../adapters/usePositionsAdapter";
 import { getCurrentOrderFormPosition } from "./desktop/orderFormPosition";
 import type { AdvancedMode, Side, SizeUnit } from "./types";
 
-type RequestType = "stop_market" | "stop_limit" | "take_profit" | "take_profit_limit";
+type RequestType = "stop_market" | "stop_limit" | "take_profit" | "take_profit_limit" | "trailing_stop";
 
 export type UseMobileAdvancedOrderArgs = {
   type: AdvancedMode;
@@ -26,10 +26,13 @@ export type UseMobileAdvancedOrderArgs = {
 export type UseMobileAdvancedOrderReturn = {
   triggerPrice: string;
   setTriggerPrice: (v: string) => void;
+  callbackRate: string;
+  setCallbackRate: (v: string) => void;
   limitPrice: string;
   setLimitPrice: (v: string) => void;
   hasLimitPrice: boolean;
   isTakeProfit: boolean;
+  isTrailing: boolean;
   amount: string;
   onAmountInput: (v: string) => void;
   amountUnit: SizeUnit;
@@ -55,6 +58,7 @@ const REQUEST_TYPE: Record<AdvancedMode, RequestType> = {
   "Stop Limit": "stop_limit",
   "Take Profit Market": "take_profit",
   "Take Profit Limit": "take_profit_limit",
+  "Trailing Stop": "trailing_stop",
 };
 
 function fmtUsd(value?: string | null): string {
@@ -81,6 +85,7 @@ export function useMobileAdvancedOrder({
   marginMode,
 }: UseMobileAdvancedOrderArgs): UseMobileAdvancedOrderReturn {
   const [triggerPrice, setTriggerPrice] = useState("");
+  const [callbackRate, setCallbackRate] = useState("");
   const [limitPrice, setLimitPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [amountUnit, setAmountUnit] = useState<SizeUnit>("USD");
@@ -96,10 +101,12 @@ export function useMobileAdvancedOrder({
 
   const hasLimitPrice = type === "Stop Limit" || type === "Take Profit Limit";
   const isTakeProfit = type === "Take Profit Market" || type === "Take Profit Limit";
+  const isTrailing = type === "Trailing Stop";
   const previewOrderType: "market" | "limit" = hasLimitPrice ? "limit" : "market";
 
   const rawAmount = Number(amount) || 0;
   const triggerPriceNum = Number(triggerPrice) || 0;
+  const callbackRateNum = Number(callbackRate) || 0;
   const limitPriceNum = Number(limitPrice) || 0;
 
   const [conversionPrice, setConversionPrice] = useState<number | null>(null);
@@ -112,7 +119,8 @@ export function useMobileAdvancedOrder({
     if (market.markPrice != null && market.markPrice > 0) setConversionPrice(market.markPrice);
   };
 
-  const refPrice = (hasLimitPrice ? limitPriceNum : triggerPriceNum) || conversionPrice || 0;
+  // Trailing stops have no user-entered price — conversion uses the mark snapshot.
+  const refPrice = (hasLimitPrice ? limitPriceNum : isTrailing ? 0 : triggerPriceNum) || conversionPrice || 0;
   const amountNum = amountUnit === "USD" ? (refPrice > 0 ? rawAmount / refPrice : 0) : rawAmount;
 
   const preview = useOrderPreviewAdapter({
@@ -177,7 +185,7 @@ export function useMobileAdvancedOrder({
     setAmountUnit(nextUnit);
   };
 
-  const canSubmit = triggerPriceNum > 0 && amountNum > 0;
+  const canSubmit = (isTrailing ? callbackRateNum > 0 && callbackRateNum < 100 : triggerPriceNum > 0) && amountNum > 0;
 
   const submit = async (): Promise<void> => {
     await placeOrder({
@@ -185,7 +193,10 @@ export function useMobileAdvancedOrder({
       type: REQUEST_TYPE[type],
       amount: amountNum,
       price: hasLimitPrice ? limitPriceNum || undefined : undefined,
-      triggerPrice: triggerPriceNum || undefined,
+      // Trailing: the backend derives the stop; pass the mark snapshot only
+      // for consistent USD sizing.
+      triggerPrice: isTrailing ? conversionPrice ?? undefined : triggerPriceNum || undefined,
+      trailingDelta: isTrailing ? callbackRateNum : undefined,
       leverage,
       marginMode,
       reduceOnly,
@@ -197,6 +208,9 @@ export function useMobileAdvancedOrder({
   return {
     triggerPrice,
     setTriggerPrice,
+    callbackRate,
+    setCallbackRate,
+    isTrailing,
     limitPrice,
     setLimitPrice,
     hasLimitPrice,

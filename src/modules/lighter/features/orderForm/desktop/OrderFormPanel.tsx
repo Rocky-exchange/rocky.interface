@@ -14,9 +14,15 @@ import { LimitOrderForm } from "./LimitOrderForm";
 import { MarketOrderForm } from "./MarketOrderForm";
 import styles from "./OrderFormPanel.module.scss";
 
-type AdvancedMode = "Stop Market" | "Stop Limit" | "Take Profit Market" | "Take Profit Limit";
+type AdvancedMode = "Stop Market" | "Stop Limit" | "Take Profit Market" | "Take Profit Limit" | "Trailing Stop";
 
-const ADVANCED_MODES: AdvancedMode[] = ["Stop Market", "Stop Limit", "Take Profit Market", "Take Profit Limit"];
+const ADVANCED_MODES: AdvancedMode[] = [
+  "Stop Market",
+  "Stop Limit",
+  "Take Profit Market",
+  "Take Profit Limit",
+  "Trailing Stop",
+];
 
 // 高级下拉标签同样走静态映射避开 Lingui catalog 短词冲突;zh 跟随项目繁体,
 // 对齐 Lighter 用全称(止損/止盈 + 市價/限價 + 單)而不是 S/L / T/P 缩写。
@@ -25,6 +31,7 @@ const ADVANCED_MODE_LABELS: Record<AdvancedMode, { en: string; zh: string }> = {
   "Stop Limit": { en: "S/L Limit", zh: "止損限價單" },
   "Take Profit Market": { en: "T/P Market", zh: "止盈市價單" },
   "Take Profit Limit": { en: "T/P Limit", zh: "止盈限價單" },
+  "Trailing Stop": { en: "Trailing Stop", zh: "移動止損單" },
 };
 
 function pickAdvancedLabel(mode: AdvancedMode, locale: string): string {
