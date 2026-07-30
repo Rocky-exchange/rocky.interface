@@ -8,8 +8,9 @@
 //
 // TRIGGER_ORDERS_ENABLED — standalone conditional orders: the desktop
 // Advanced (S/L / T/P) order-type menu, the order-form TP/SL checkbox
-// (tp_price/sl_price attached to POST /v1/orders, which the backend drops
-// silently), and the mobile equivalents. These need POST /v1/trigger-orders,
-// which rocky-backend still does not implement — keep off until it ships.
+// (tp_price/sl_price attached to POST /v1/orders → position_tpsl upsert),
+// and the mobile equivalents. Backed by ledger.trigger_orders +
+// POST/GET/DELETE /v1/trigger-orders + the risk-monitor engine since
+// 2026-07-30 (second wave of the TP/SL design doc).
 export const POSITION_TPSL_ENABLED = true;
-export const TRIGGER_ORDERS_ENABLED = false;
+export const TRIGGER_ORDERS_ENABLED = true;

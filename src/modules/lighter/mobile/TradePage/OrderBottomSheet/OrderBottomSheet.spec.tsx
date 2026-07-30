@@ -124,17 +124,15 @@ describe("OrderBottomSheet preview wiring", () => {
     expect(view.getByText(/Taker: 0\.036% \| Maker: 0%/)).toBeTruthy();
   });
 
-  // rocky-backend has no standalone trigger-order endpoint (/v1/trigger-orders),
-  // so the Advanced order types and the order-form TP/SL inputs are gated off
-  // (TRIGGER_ORDERS_ENABLED). Position-level TP/SL (POSITION_TPSL_ENABLED) is
-  // live but lives on the positions table, not this sheet. When trigger orders
-  // ship and the flag flips, restore the "renders the mobile-native advanced
-  // form" test this replaced.
-  it("hides Advanced order types and the TP/SL section while TRIGGER_ORDERS_ENABLED is off", () => {
+  // TRIGGER_ORDERS_ENABLED is on (backed by /v1/trigger-orders since
+  // 2026-07-30) — the Advanced order types and mobile-native advanced form
+  // are live again.
+  it("renders the mobile-native advanced form (not the desktop ltr-form) when an advanced mode is picked", () => {
     const { container } = renderSheet();
     const view = within(container);
-    expect(view.queryByText("Advanced")).toBeNull();
-    expect(view.queryByText("Take Profit / Stop Loss")).toBeNull();
-    expect(view.queryByTestId("mobile-advanced-form")).toBeNull();
+    fireEvent.click(view.getByText("Advanced"));
+    fireEvent.click(view.getByText("S/L Market"));
+    expect(view.getByTestId("mobile-advanced-form")).toBeTruthy();
+    expect(container.querySelector(".ltr-form")).toBeNull();
   });
 });

@@ -173,6 +173,10 @@ export function buildCreateOrderRequest(params: PrimitOrderParams): {
       qty: sizeStr,
       leverage: params.leverage ? Math.round(params.leverage) : 1,
       idempotency_key: resolveIdempotencyKey(params.clientOrderId),
+      // Attached TP/SL: the backend upserts a full-position-close
+      // ledger.position_tpsl config on successful placement.
+      tp_price: params.tpPrice || undefined,
+      sl_price: params.slPrice || undefined,
     };
   }
 

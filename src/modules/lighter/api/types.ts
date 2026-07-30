@@ -162,6 +162,10 @@ export interface CreateOrderRequest {
   qty: string;
   leverage: number;
   idempotency_key: string;
+  /** Optional attached TP/SL trigger prices — the backend upserts a
+   * full-position-close ledger.position_tpsl config on success. */
+  tp_price?: string;
+  sl_price?: string;
 }
 
 /** 订单预估请求(不需要签名) */

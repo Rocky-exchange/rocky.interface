@@ -1096,11 +1096,13 @@ export async function getOrders(chainId: number, address?: string | null): Promi
 
 // NOT SUPPORTED by rocky-backend -- conditional/trigger orders are
 // documented as not yet implemented (no /trigger-orders route exists).
-// Left calling the old shape; expect this to 404 until the backend ships it.
-// rocky-backend has no trigger/TP-SL order support (no /v1/trigger-orders
-// route). Return empty rather than 400-spamming the console.
-export async function getTriggerOrders(_chainId: number, _address?: string | null): Promise<TriggerOrdersResponse> {
-  return { success: true, data: [], error: null };
+// Backed by rocky-backend since 2026-07-30: GET /v1/trigger-orders returns the
+// session user's Active conditional orders as {success, data: TriggerOrder[]}.
+export async function getTriggerOrders(chainId: number, address?: string | null): Promise<TriggerOrdersResponse> {
+  return apiFetch<TriggerOrdersResponse>(chainId, "/v1/trigger-orders", {
+    authMode: "exchange",
+    address,
+  });
 }
 
 export async function createTriggerOrder(
@@ -1110,7 +1112,6 @@ export async function createTriggerOrder(
 ): Promise<TriggerOrderResponse> {
   // 后端实际返回 `{success, data:{id,...}, error}` envelope,这里拆包成扁平 TriggerOrderResponse
   // (历史上曾直接返回扁平对象,发现有包裹后再剥一层;两种格式都兼容)。
-  // NOT SUPPORTED by rocky-backend -- see getTriggerOrders above.
   const raw = await apiFetch<TriggerOrderResponse | { success: boolean; data: TriggerOrderResponse; error: unknown }>(
     chainId,
     "/v1/trigger-orders",
