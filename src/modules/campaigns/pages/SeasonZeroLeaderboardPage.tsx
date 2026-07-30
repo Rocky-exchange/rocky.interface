@@ -1421,7 +1421,9 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
           window.open(result.actionUrls[0], "_blank", "noopener,noreferrer");
         }
         if (mission.id === "quote-launch") setSubmitMission(mission);
-        if (mission.id === "first-trade") history.push("/trade");
+        if (mission.id === "first-trade" && result.state !== "claimable") {
+          history.push("/trade");
+        }
       } catch (_error) {
         updateTaskStatus(mission.id, "retry");
       } finally {

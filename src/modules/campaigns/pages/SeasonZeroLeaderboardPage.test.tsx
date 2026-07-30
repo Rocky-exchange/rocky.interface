@@ -298,6 +298,45 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     });
   });
 
+  it("keeps a completed first trade on the campaign page so its reward can be claimed", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [
+        { key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" },
+        {
+          key: "FIRST_TRADE",
+          state: "not_started",
+          title: "Complete Your First Perpetual Trade",
+          reward: "100",
+        },
+      ],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
+    });
+    vi.mocked(startMission).mockResolvedValue({ state: "claimable" });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+          <Route path="/trade">
+            <div>Trading screen</div>
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const title = await screen.findByText("Complete Your First Perpetual Trade");
+    const mission = title.closest("article");
+    fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Start" }));
+
+    await waitFor(() => {
+      expect(startMission).toHaveBeenCalledWith("FIRST_TRADE");
+      expect(within(mission as HTMLElement).getByRole("button", { name: "Claim" })).toBeTruthy();
+    });
+    expect(screen.queryByText("Trading screen")).toBeNull();
+  });
+
   it("explains that a perpetual fill is required instead of showing a request failure", async () => {
     vi.mocked(getMissions).mockResolvedValue({
       missions: [
