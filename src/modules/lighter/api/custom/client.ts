@@ -7,6 +7,7 @@
 
 // 使用统一的后端 URL 配置
 import { i18n } from "@lingui/core";
+import BigNumber from "bignumber.js";
 
 import { exchangeSessionHeaders, getMtcAuthToken } from "@/shared/lib/canton-wallet/session";
 import { getTradingBackendUrl } from "config/backend";
@@ -665,6 +666,7 @@ function convertSymbolToApiFormat(symbol: string): string {
 // function does, then appends "-PERP" instead of normalizing to "...USDT".
 function convertSymbolToRockySymbol(symbol: string): string {
   const upper = symbol.toUpperCase().trim();
+  if (upper.endsWith("-PERP")) return upper;
   const base = upper.includes("-USD") || upper.includes("/USD")
     ? (upper.split(/-|\//)[0] ?? "")
     : upper.replace(/[/-]/g, "").replace(/USDT?$/, "");
@@ -960,22 +962,31 @@ type RockyTradeRow = {
   ts: string;
 };
 
-function normalizePosition(position: Position | RockyPositionRow): Position {
+function normalizePosition(position: Position | RockyPositionRow, liveMarkPrice?: string): Position {
   if ("position_id" in position) return position;
 
-  const signedQty = Number(position.qty);
-  const amount = Math.abs(Number.isFinite(signedQty) ? signedQty : 0);
-  const entryPrice = Number(position.entry_price);
+  const signedQty = new BigNumber(position.qty);
+  const entryPrice = new BigNumber(position.entry_price);
+  const markPrice = new BigNumber(liveMarkPrice ?? position.entry_price);
+  const lockedMargin = new BigNumber(position.locked_margin);
+  const hasValidNumbers = signedQty.isFinite() && entryPrice.isFinite() && markPrice.isFinite();
+  const amount = signedQty.isFinite() ? signedQty.abs() : new BigNumber(0);
+  const unrealizedPnl = hasValidNumbers
+    ? markPrice.minus(entryPrice).multipliedBy(signedQty)
+    : new BigNumber(0);
+  const unrealizedPnlPercent =
+    lockedMargin.isFinite() && lockedMargin.gt(0) ? unrealizedPnl.dividedBy(lockedMargin) : new BigNumber(0);
 
   return {
     position_id: `${position.user_id}:${position.symbol}`,
     symbol: position.symbol,
-    side: signedQty < 0 ? "short" : "long",
-    size: String(amount * (Number.isFinite(entryPrice) ? entryPrice : 0)),
-    amount: String(amount),
+    side: signedQty.isNegative() ? "short" : "long",
+    size: hasValidNumbers ? amount.multipliedBy(markPrice).toFixed() : "0",
+    amount: amount.toFixed(),
     entry_price: position.entry_price,
-    mark_price: position.entry_price,
-    unrealized_pnl: "0",
+    mark_price: liveMarkPrice ?? position.entry_price,
+    unrealized_pnl: unrealizedPnl.toFixed(),
+    unrealized_pnl_percent: unrealizedPnlPercent.toFixed(),
     realized_pnl: position.realized_pnl,
     collateral_amount: position.locked_margin,
     leverage: 10,
@@ -1031,12 +1042,41 @@ export async function getPositions(chainId: number, address?: string | null): Pr
     "/v1/positions/me",
     { authMode: "exchange", address }
   );
-  const positions = (Array.isArray(response) ? response : response.positions).map(normalizePosition);
+  const rawPositions = Array.isArray(response) ? response : response.positions;
+  const nativeSymbols = Array.from(
+    new Set(
+      rawPositions
+        .filter((position): position is RockyPositionRow => !("position_id" in position))
+        .map((position) => position.symbol)
+    )
+  );
+  const markPrices = new Map<string, string>();
+
+  await Promise.all(
+    nativeSymbols.map(async (symbol) => {
+      const ticker = await getTicker(chainId, symbol).catch(() => null);
+      const markPrice = ticker?.mark_price ?? ticker?.last_price;
+      const parsedMarkPrice = new BigNumber(markPrice ?? Number.NaN);
+      if (markPrice && parsedMarkPrice.isFinite() && parsedMarkPrice.gt(0)) {
+        markPrices.set(symbol, markPrice);
+      }
+    })
+  );
+
+  const positions = rawPositions.map((position) =>
+    normalizePosition(position, "position_id" in position ? undefined : markPrices.get(position.symbol))
+  );
+  const totalUnrealizedPnl = positions
+    .reduce((total, position) => total.plus(position.unrealized_pnl), new BigNumber(0))
+    .toFixed();
+  const totalCollateral = positions
+    .reduce((total, position) => total.plus(position.collateral_amount), new BigNumber(0))
+    .toFixed();
 
   return {
     positions,
-    total_unrealized_pnl: Array.isArray(response) ? "0" : response.total_unrealized_pnl,
-    total_collateral: Array.isArray(response) ? "0" : response.total_collateral,
+    total_unrealized_pnl: Array.isArray(response) ? totalUnrealizedPnl : response.total_unrealized_pnl,
+    total_collateral: Array.isArray(response) ? totalCollateral : response.total_collateral,
   };
 }
 

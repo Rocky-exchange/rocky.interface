@@ -535,6 +535,45 @@ describe("Rocky order request contract", () => {
     expect(orders).toEqual({ orders: [] });
   });
 
+  it("calculates live unrealized PnL for a native short position", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input), "https://rocky.test").pathname;
+      if (path === "/v1/positions/me") {
+        return jsonResponse([
+          {
+            user_id: "user-short",
+            symbol: "BTC-PERP",
+            qty: "-0.0001",
+            entry_price: "64376.83",
+            locked_margin: "0.50",
+            realized_pnl: "0",
+          },
+        ]);
+      }
+      if (path === "/v1/markets/BTC-PERP/ticker") {
+        return jsonResponse({
+          symbol: "BTC-PERP",
+          last_price: "64473.30",
+          mark_price: "64473.30",
+        });
+      }
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await getPositions(1, "party-1");
+
+    expect(response.positions).toEqual([
+      expect.objectContaining({
+        side: "short",
+        entry_price: "64376.83",
+        mark_price: "64473.30",
+        unrealized_pnl: "-0.009647",
+        unrealized_pnl_percent: "-0.019294",
+      }),
+    ]);
+  });
+
   it("fails safely before fetch when the exchange session is missing", async () => {
     localStorage.removeItem("rocky_exchange_session");
     localStorage.setItem("primit_jwt_token_1_party-1", "legacy-user-token");
