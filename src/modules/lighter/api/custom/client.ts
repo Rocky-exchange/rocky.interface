@@ -942,6 +942,10 @@ type RockyPositionRow = {
   // unset or already fired).
   take_profit_price?: string | null;
   stop_loss_price?: string | null;
+  /** Isolated-margin liquidation-price estimate from the backend. */
+  liquidation_price?: string | null;
+  /** Cumulative funding received on this symbol (negative = paid). */
+  funding?: string | null;
 };
 
 type RockyOrderRow = {
@@ -993,6 +997,8 @@ function normalizePosition(position: Position | RockyPositionRow, liveMarkPrice?
     collateral_amount: position.locked_margin,
     leverage: 10,
     margin_ratio: "0",
+    liquidation_price: position.liquidation_price ?? undefined,
+    funding: position.funding ?? undefined,
     take_profit_price: position.take_profit_price ?? null,
     stop_loss_price: position.stop_loss_price ?? null,
     created_at: 0,
