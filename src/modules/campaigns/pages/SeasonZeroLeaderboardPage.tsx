@@ -7,6 +7,7 @@ import {
   getCampaign,
   getLeaderboard,
   getMissions,
+  getOgBenefits,
   getRewards,
   startMission,
   startWalletBoundDiscordOAuth,
@@ -17,6 +18,7 @@ import {
   type MissionKey,
   type MissionList,
   type MissionState,
+  type OgBenefits,
   type RewardSummary,
 } from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
@@ -510,10 +512,12 @@ function CampaignCountdown({ endsAt }: { endsAt: string | null }) {
 function CampaignHero({
   activeTab,
   campaignEndsAt,
+  invitationCodes,
   onTabChange,
 }: {
   activeTab: CampaignTab;
   campaignEndsAt: string | null;
+  invitationCodes: OgBenefits["invitationCodes"];
   onTabChange: (tab: CampaignTab) => void;
 }) {
   const history = useHistory();
@@ -579,6 +583,26 @@ function CampaignHero({
         </div>
 
         <div className={styles.heroFooter}>
+          {invitationCodes.length > 0 ? (
+            <div className={styles.ogInviteCodes} aria-label="OG invitation codes">
+              <span>OG INVITE CODE</span>
+              <div>
+                {invitationCodes.map(({ slot, code }) => (
+                  <button
+                    type="button"
+                    key={slot}
+                    onClick={() => {
+                      void navigator.clipboard.writeText(code);
+                      helperToast.success("Copied");
+                    }}
+                  >
+                    <strong>{code.toUpperCase()}</strong>
+                    <small>COPY</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <CampaignCountdown endsAt={campaignEndsAt} />
           <div className={styles.heroDots} aria-hidden="true">
             {(["missions", "leaderboard", "rewards"] as CampaignTab[]).map((tab) => (
@@ -2136,7 +2160,9 @@ export default function SeasonZeroLeaderboardPage() {
   const activeTab = getCampaignTab(location.search);
   const [campaignEndsAt, setCampaignEndsAt] = useState<string | null>(null);
   const [missionRefreshNonce, setMissionRefreshNonce] = useState(0);
+  const [invitationCodes, setInvitationCodes] = useState<OgBenefits["invitationCodes"]>([]);
   const { copy, isTraditionalChinese } = useCampaignCopy();
+  const { connected } = useCantonSession();
 
   useEffect(() => {
     let active = true;
@@ -2151,6 +2177,26 @@ export default function SeasonZeroLeaderboardPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!connected) {
+      setInvitationCodes([]);
+      return () => {
+        active = false;
+      };
+    }
+    void getOgBenefits()
+      .then((benefits) => {
+        if (active) setInvitationCodes(benefits.eligible ? benefits.invitationCodes : []);
+      })
+      .catch(() => {
+        if (active) setInvitationCodes([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [connected]);
 
   useEffect(() => {
     document.documentElement.classList.add("campaign-active");
@@ -2218,7 +2264,12 @@ export default function SeasonZeroLeaderboardPage() {
       </header>
 
       <main>
-        <CampaignHero activeTab={activeTab} campaignEndsAt={campaignEndsAt} onTabChange={handleTabChange} />
+        <CampaignHero
+          activeTab={activeTab}
+          campaignEndsAt={campaignEndsAt}
+          invitationCodes={invitationCodes}
+          onTabChange={handleTabChange}
+        />
 
         <nav className={styles.campaignTabs} aria-label={copy("Campaign sections")}>
           {(

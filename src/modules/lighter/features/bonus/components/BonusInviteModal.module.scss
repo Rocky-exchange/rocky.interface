@@ -126,6 +126,34 @@
   flex-direction: column;
 }
 
+.claimAmount {
+  display: grid;
+  min-height: 96px;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  color: #f7f1ea;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(240, 189, 122, 0.18), transparent 62%),
+    var(--bonus-panel-raised);
+  border: 1px solid rgba(216, 154, 80, 0.76);
+  border-radius: 7px;
+}
+
+.claimAmount span,
+.claimAmount small {
+  color: #a69d95;
+  font-size: var(--invite-text-min);
+  font-weight: 650;
+  letter-spacing: 0.16em;
+}
+
+.claimAmount strong {
+  color: var(--bonus-gold-bright);
+  font-size: 30px;
+  line-height: 1;
+}
+
 .label {
   margin-bottom: 4px;
   color: #eee7e0;

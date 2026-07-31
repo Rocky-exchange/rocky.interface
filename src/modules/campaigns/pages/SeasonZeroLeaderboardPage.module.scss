@@ -138,6 +138,54 @@
   margin-bottom: clamp(18px, 1.455vw, 22px);
 }
 
+.ogInviteCodes {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  color: rgba(247, 229, 207, 0.72);
+  font-family: "Chakra Petch", Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+}
+
+.ogInviteCodes > div {
+  display: flex;
+  gap: 8px;
+}
+
+.ogInviteCodes button {
+  display: flex;
+  min-width: 190px;
+  height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 11px;
+  color: #f5c58e;
+  background: rgba(15, 12, 9, 0.66);
+  border: 1px solid rgba(235, 173, 106, 0.5);
+  border-radius: 2px;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: 0.1em;
+}
+
+.ogInviteCodes button:hover {
+  background: rgba(235, 173, 106, 0.12);
+  border-color: #efb46f;
+}
+
+.ogInviteCodes strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ogInviteCodes small {
+  color: rgba(247, 229, 207, 0.58);
+  font-size: 8px;
+}
+
 .beta {
   display: flex;
   align-items: center;
@@ -3217,6 +3265,10 @@
 
   .heroFooter {
     margin-bottom: 18px;
+  }
+
+  .ogInviteCodes > div {
+    flex-direction: column;
   }
 
   .rewardsHero .heroCopy {

@@ -88,6 +88,22 @@ export type RewardSummary = {
   ccRewards: { status: "coming_soon" };
 };
 
+export type OgBenefits = {
+  role: "NORMAL" | "OG" | "L1" | "L2";
+  eligible: boolean;
+  invitationCodes: Array<{
+    slot: number;
+    code: string;
+    status: "ACTIVE" | "DISABLED";
+  }>;
+  trialFund: {
+    status: "AVAILABLE" | "NOT_ELIGIBLE" | "CLAIMING" | "CLAIMED" | "RETRYABLE";
+    amount: string;
+    bonusAccountId: string | null;
+    claimedAt: string | null;
+  };
+};
+
 type ActivityEnvelope<T> = {
   data: T;
   meta: {
@@ -225,4 +241,16 @@ export function getCampaign(): Promise<CampaignSummary> {
 
 export function getRewards(): Promise<RewardSummary> {
   return activityRequest<RewardSummary>("/v1/me/rewards");
+}
+
+export function getOgBenefits(): Promise<OgBenefits> {
+  return activityRequest<OgBenefits>("/v1/me/og-benefits");
+}
+
+export function claimOgTrialFund(): Promise<OgBenefits["trialFund"]> {
+  return activityRequest<OgBenefits["trialFund"]>("/v1/me/og-benefits/trial-fund/claim", {
+    method: "POST",
+    body: {},
+    idempotencyKey: crypto.randomUUID(),
+  });
 }

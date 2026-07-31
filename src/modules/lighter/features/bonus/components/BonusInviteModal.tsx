@@ -1,6 +1,11 @@
 import { t, Trans } from "@lingui/macro";
-import { FormEvent, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import {
+  claimOgTrialFund,
+  getOgBenefits,
+  type OgBenefits,
+} from "@/modules/campaigns/api/campaign.api";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { ModalWithPortal } from "@/shared/ui";
@@ -11,16 +16,13 @@ import LockIcon from "img/ic_lock.svg?react";
 
 import { BonusCountdown } from "./BonusCountdown";
 import styles from "./BonusInviteModal.module.scss";
-import { redeemBonusCode } from "../api/bonus.api";
 import {
-  BonusApiError,
   type BonusBalanceInfoResponse,
   type BonusHistoryRow,
   type BonusRedeemResponse,
   type BonusStatusResponse,
 } from "../api/bonus.types";
 import { notifyBonusDataChanged, useBonusBalance, useBonusHistory, useBonusStatus } from "../api/useBonus";
-import { acquireRedeemRequestId, settleRedeemIntent, shouldRetainRedeemIntent } from "../pages/redeemIntentRegistry";
 
 type Props = {
   open: boolean;
@@ -29,31 +31,22 @@ type Props = {
 
 type ModalView = "invite" | "overview" | "history";
 type AttributionFilter = "all" | "tradingFee" | "funding" | "realizedLoss";
-type RedeemFeedback =
-  | { type: "connect" }
-  | { type: "minimum" }
-  | { type: "api"; message: string }
-  | { type: "generic" }
-  | null;
-
-const MIN_CODE_LENGTH = 4;
-const MAX_CODE_LENGTH = 32;
 const HISTORY_PAGE_SIZE = 6;
 const HISTORY_FETCH_SIZE = 20;
 
 export function BonusInviteModal({ open, onClose }: Props) {
   const titleId = useId();
-  const inputId = useId();
   const session = useCantonSession();
   const status = useBonusStatus();
   const openRef = useRef(open);
   const pendingRef = useRef(false);
   const attemptRef = useRef(0);
-  const [code, setCode] = useState("");
   const [viewOverride, setViewOverride] = useState<ModalView | null>(null);
   const [rulesExpanded, setRulesExpanded] = useState(true);
   const [pending, setPending] = useState(false);
-  const [feedback, setFeedback] = useState<RedeemFeedback>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [benefits, setBenefits] = useState<OgBenefits | null>(null);
+  const [benefitsLoading, setBenefitsLoading] = useState(false);
   const [redeemResult, setRedeemResult] = useState<BonusRedeemResponse | null>(null);
 
   const view: ModalView = viewOverride ?? (status.data?.has_bonus ? "overview" : "invite");
@@ -63,24 +56,45 @@ export function BonusInviteModal({ open, onClose }: Props) {
     if (!open) {
       attemptRef.current += 1;
       pendingRef.current = false;
-      setCode("");
       setViewOverride(null);
       setRulesExpanded(true);
       setPending(false);
       setFeedback(null);
+      setBenefits(null);
+      setBenefitsLoading(false);
       setRedeemResult(null);
     }
   }, [open]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  useEffect(() => {
+    let active = true;
+    if (!open || !session.connected || status.data?.has_bonus) return () => {
+      active = false;
+    };
+    setBenefitsLoading(true);
+    void getOgBenefits()
+      .then((result) => {
+        if (active) setBenefits(result);
+      })
+      .catch(() => {
+        if (active) setFeedback("Unable to check eligibility. Please try again.");
+      })
+      .finally(() => {
+        if (active) setBenefitsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, session.connected, status.data?.has_bonus]);
+
+  const handleClaim = async () => {
     if (pendingRef.current) return;
     if (!session.connected) {
-      setFeedback({ type: "connect" });
+      setFeedback("Connect your wallet to continue.");
       return;
     }
-    if (code.length < MIN_CODE_LENGTH) {
-      setFeedback({ type: "minimum" });
+    if (!benefits?.eligible) {
+      setFeedback("暂无资格");
       return;
     }
 
@@ -88,22 +102,15 @@ export function BonusInviteModal({ open, onClose }: Props) {
     const attempt = ++attemptRef.current;
     setPending(true);
     setFeedback(null);
-    const scope = { party: session.party, provider: session.provider };
-    const requestId = acquireRedeemRequestId(scope, code);
 
     try {
-      const result = await redeemBonusCode({ code, request_id: requestId });
-      settleRedeemIntent(scope, code, requestId, "complete");
-      setRedeemResult(result);
+      await claimOgTrialFund();
       notifyBonusDataChanged();
       await status.mutate().catch(() => undefined);
       if (openRef.current && attemptRef.current === attempt) setViewOverride("overview");
     } catch (error) {
-      const ambiguous = shouldRetainRedeemIntent(error);
-      settleRedeemIntent(scope, code, requestId, ambiguous ? "ambiguous" : "complete");
-      if (ambiguous) notifyBonusDataChanged();
       if (openRef.current && attemptRef.current === attempt) {
-        setFeedback(error instanceof BonusApiError ? { type: "api", message: error.message } : { type: "generic" });
+        setFeedback(error instanceof Error ? error.message : "Claim failed. Please try again.");
       }
     } finally {
       if (attemptRef.current === attempt) {
@@ -111,11 +118,6 @@ export function BonusInviteModal({ open, onClose }: Props) {
         if (openRef.current) setPending(false);
       }
     }
-  };
-
-  const handleCodeChange = (value: string) => {
-    setCode(normalizeRedeemCode(value));
-    setFeedback(null);
   };
 
   return (
@@ -131,7 +133,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
           ) : view === "overview" ? (
             <Trans>Trial funds overview</Trans>
           ) : (
-            <Trans>Bind trial funds invitation code</Trans>
+            <Trans>Claim trial funds</Trans>
           )}
         </span>
       }
@@ -161,38 +163,22 @@ export function BonusInviteModal({ open, onClose }: Props) {
               RX BONUS
             </div>
             <h2 id={`${titleId}-visible`} className={styles.title}>
-              <Trans>Bind trial funds invitation code</Trans>
+              <Trans>Claim trial funds</Trans>
             </h2>
             <p className={styles.subtitle}>
-              <Trans>Enter an invitation code to claim your trial funds.</Trans>
+              <Trans>Eligible OG users can actively claim 20U in trial funds.</Trans>
             </p>
 
             <div className={styles.divider} aria-hidden="true" />
 
-            <form className={styles.form} onSubmit={handleSubmit} noValidate>
-              <label className={styles.label} htmlFor={inputId}>
-                <Trans>Invitation code</Trans>
-              </label>
-              <div className={styles.inputWrap}>
-                <input
-                  id={inputId}
-                  className={styles.input}
-                  value={code}
-                  onChange={(event) => handleCodeChange(event.target.value)}
-                  placeholder="ABCD2345EFGH"
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  maxLength={MAX_CODE_LENGTH}
-                  disabled={pending}
-                  aria-describedby={`${inputId}-feedback`}
-                  aria-invalid={feedback !== null}
-                />
-                <span className={styles.counter} aria-hidden="true">
-                  {code.length}/{MAX_CODE_LENGTH}
-                </span>
+            <div className={styles.form}>
+              <div className={styles.claimAmount}>
+                <span><Trans>TRIAL FUNDS</Trans></span>
+                <strong>20U</strong>
+                <small>
+                  {benefits?.eligible ? <Trans>OG ELIGIBLE</Trans> : <Trans>暂无资格</Trans>}
+                </small>
               </div>
-
               {!session.connected ? (
                 <button type="button" className={styles.connectBonus} onClick={openCantonConnect}>
                   <Trans>Connect wallet</Trans>
@@ -200,16 +186,17 @@ export function BonusInviteModal({ open, onClose }: Props) {
               ) : null}
               <button
                 className={styles.submit}
-                type="submit"
-                disabled={!session.connected || pending || code.length < MIN_CODE_LENGTH}
+                type="button"
+                onClick={() => void handleClaim()}
+                disabled={!session.connected || pending || benefitsLoading || !benefits?.eligible}
               >
-                {pending ? <Trans>Binding…</Trans> : <Trans>Bind now</Trans>}
+                {pending ? <Trans>Claiming…</Trans> : benefits?.eligible ? <Trans>Claim 20U</Trans> : <Trans>暂无资格</Trans>}
                 <ArrowRightIcon className={styles.submitIcon} aria-hidden="true" />
               </button>
-              <div id={`${inputId}-feedback`} className={styles.feedback} aria-live="polite">
-                <RedeemFeedbackMessage feedback={feedback} />
+              <div className={styles.feedback} aria-live="polite">
+                {feedback}
               </div>
-            </form>
+            </div>
 
             <button
               type="button"
@@ -229,7 +216,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
                 <InfoIcon className={styles.infoIcon} aria-hidden="true" />
                 <ul>
                   <li>
-                    <Trans>Each invitation code can only be bound once. Trial funds are valid for seven days.</Trans>
+                    <Trans>Each eligible OG user can claim trial funds once. Trial funds are valid for seven days.</Trans>
                   </li>
                   <li>
                     <Trans>Trial funds can be used as perpetual contract margin and cannot be withdrawn.</Trans>
@@ -685,14 +672,6 @@ function BonusAttributionHistory({
   );
 }
 
-function RedeemFeedbackMessage({ feedback }: { feedback: RedeemFeedback }) {
-  if (!feedback) return null;
-  if (feedback.type === "connect") return <Trans>Connect your wallet before redeeming.</Trans>;
-  if (feedback.type === "minimum") return <Trans>Enter at least 4 characters.</Trans>;
-  if (feedback.type === "api") return <>{feedback.message}</>;
-  return <Trans>Redemption failed. Please try again.</Trans>;
-}
-
 function HistoryStat({ label, value, kind }: { label: ReactNode; value: string; kind: "trial" | "principal" }) {
   return (
     <div className={styles.historyStat} data-kind={kind}>
@@ -744,13 +723,6 @@ function BalanceRow({ label, value, locked = false }: { label: ReactNode; value:
       <dd>{value}</dd>
     </div>
   );
-}
-
-function normalizeRedeemCode(value: string): string {
-  return value
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, "")
-    .slice(0, MAX_CODE_LENGTH);
 }
 
 function formatUsd(value?: string, fractionDigits = 2): string {
