@@ -3119,75 +3119,6 @@
   margin-bottom: 16px;
 }
 
-.rewardInviteCodeList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.copyRow {
-  display: grid;
-  min-height: 44px;
-  grid-template-columns: minmax(0, 1fr) 44px;
-  align-items: center;
-  gap: 12px;
-}
-
-.copyRow > span {
-  display: flex;
-  height: 44px;
-  align-items: center;
-  overflow: hidden;
-  padding: 0 12px;
-  color: var(--campaign-primary);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--campaign-border);
-  font-size: 14px;
-  letter-spacing: 0.7px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.copyRow .rewardInviteCodeValue {
-  gap: 12px;
-  padding: 0 16px;
-}
-
-.rewardInviteCodeValue > img {
-  width: 24px;
-  height: 24px;
-  flex: 0 0 auto;
-  object-fit: contain;
-}
-
-.rewardInviteCodeValue strong {
-  overflow: hidden;
-  font-size: 15px;
-  letter-spacing: 1.2px;
-  text-overflow: ellipsis;
-}
-
-.copyRow button {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  padding: 0;
-  color: var(--campaign-primary);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--campaign-border);
-}
-
-.copyRow button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.copyRow button img {
-  width: 20px;
-  height: 20px;
-}
-
 .noInvitationCodes {
   display: flex;
   min-height: 100px;
@@ -3357,22 +3288,6 @@
   letter-spacing: 1px;
   line-height: 20px;
   text-transform: uppercase;
-}
-
-.badgeLearnMore {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--campaign-muted);
-  font-size: 13px;
-  letter-spacing: 1.4px;
-  line-height: 18px;
-  text-transform: uppercase;
-}
-
-.badgeLearnMore img {
-  width: 12px;
-  height: 12px;
 }
 
 .ccCard {

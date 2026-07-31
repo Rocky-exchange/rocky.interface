@@ -262,7 +262,6 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   Ineligible: "不符合資格",
   "Eligible OG users will receive the badge after the activity review.": "符合資格的 OG 用戶將在活動審核後獲得徽章。",
   "Limited 500": "限量 500",
-  "Learn More": "了解更多",
   "CC Rewards": "CC 獎勵",
   "Specific ratios, schedules, and conditions are subject to the final announcement.":
     "具體比例、時程與條件以最終公告為準。",
@@ -2224,39 +2223,45 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
         >
           <h3>{copy("OG Invite Codes")}</h3>
           {invitationCodes.length > 0 ? (
-            <div className={styles.rewardInviteCodeList}>
-              {invitationCodes.map(({ slot, code, status }, index) => (
-                <div className={styles.copyRow} key={slot}>
-                  <span className={styles.rewardInviteCodeValue}>
+            <div className={styles.ogInviteCodeList}>
+              {invitationCodes.map(({ slot, code, status }, index) => {
+                const isAmber = index === 0;
+                return (
+                  <div
+                    className={`${styles.ogInviteCodeRow} ${isAmber ? styles.ogInviteCodeAmber : styles.ogInviteCodeBlue}`}
+                    key={slot}
+                  >
                     <img
+                      className={styles.ogInviteCrystal}
                       src={
-                        index === 0
+                        isAmber
                           ? "/campaign/og-invite/crystal-amber.png"
                           : "/campaign/og-invite/crystal-blue.png"
                       }
                       alt=""
                       aria-hidden="true"
                     />
+                    <span className={styles.ogInviteDivider} aria-hidden="true" />
                     <strong>{code.toUpperCase()}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    disabled={status !== "ACTIVE"}
-                    aria-label={
-                      status === "ACTIVE"
-                        ? `Copy invitation code ${slot}`
-                        : `Invitation code ${slot} ${status.toLowerCase()}`
-                    }
-                    onClick={() => {
-                      if (status !== "ACTIVE") return;
-                      void navigator.clipboard.writeText(code);
-                      helperToast.success("Copied");
-                    }}
-                  >
-                    <img src="/campaign/copy.svg" alt="" aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      disabled={status !== "ACTIVE"}
+                      aria-label={
+                        status === "ACTIVE"
+                          ? `Copy invitation code ${slot}`
+                          : `Invitation code ${slot} ${status.toLowerCase()}`
+                      }
+                      onClick={() => {
+                        if (status !== "ACTIVE") return;
+                        void navigator.clipboard.writeText(code);
+                        helperToast.success("Copied");
+                      }}
+                    >
+                      {status === "ACTIVE" ? "COPY" : status}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className={styles.noInvitationCodes} role="status">
@@ -2311,10 +2316,6 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
               </strong>
               <p>{copy("Eligible OG users will receive the badge after the activity review.")}</p>
               <em>{copy("Limited 500")}</em>
-              <span className={styles.badgeLearnMore}>
-                <span>{copy("Learn More")}</span>
-                <img src="/campaign/learn-more-arrow.svg" alt="" aria-hidden="true" />
-              </span>
             </span>
           </div>
         </article>
