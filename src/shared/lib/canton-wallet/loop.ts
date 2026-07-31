@@ -1,5 +1,5 @@
-import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
+import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 type LoopProvider = {
   party_id: string;
@@ -17,7 +17,25 @@ type LoopProvider = {
     instrument?: LoopInstrumentSpec,
     options?: LoopTransferOptions,
   ): Promise<unknown>;
+  submitAndWaitForTransaction(
+    payload: CantonTransactionRequest,
+    options?: {
+      requestTimeout?: number;
+      message?: string;
+      estimateTraffic?: boolean;
+      deduplicationPeriod?: { seconds: number; nanos?: number } | { empty: true };
+    },
+  ): Promise<unknown>;
   signMessage(message: string): Promise<unknown>;
+};
+
+export type CantonTransactionRequest = {
+  commands: unknown[];
+  disclosedContracts: unknown[];
+  packageIdSelectionPreference?: string[];
+  actAs?: string[];
+  readAs?: string[];
+  synchronizerId?: string;
 };
 
 type LoopInstrumentId = {
@@ -167,6 +185,18 @@ export async function submitLoopWalletTransfer(input: LoopWalletTransferInput): 
     await delay(LOOP_STALE_HOLDING_RETRY_DELAY_MS);
     return submit();
   }
+}
+
+export async function submitLoopWalletTransaction(
+  input: CantonTransactionRequest,
+): Promise<unknown> {
+  const provider = await getConnectedLoopProvider();
+  return provider.submitAndWaitForTransaction(input, {
+    message: "Authorize Rocky spot settlement",
+    requestTimeout: LOOP_TRANSFER_REQUEST_TIMEOUT_MS,
+    estimateTraffic: true,
+    deduplicationPeriod: { seconds: 60 },
+  });
 }
 
 function stringifyProof(value: unknown): string {

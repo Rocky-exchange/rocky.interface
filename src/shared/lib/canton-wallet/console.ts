@@ -1,5 +1,7 @@
-import type { ConnectedWallet, WalletProviderAdapter } from "./types";
+import type { ExecuteAndWaitRequest } from "@console-wallet/dapp-sdk";
+
 import type { CantonFundsAsset } from "./assets";
+import type { ConnectedWallet, WalletProviderAdapter } from "./types";
 
 type ConsoleWalletTarget = "local" | "remote" | "combined";
 type ConsoleWalletTransferInput = {
@@ -44,6 +46,8 @@ type ConsoleWalletSdk = {
     }): Promise<{ status?: boolean } | undefined>;
   };
 };
+
+export type ConsoleCantonTransactionRequest = ExecuteAndWaitRequest;
 
 const CONSOLE_MAINNET_NETWORK_ID = "CANTON_NETWORK";
 
@@ -139,6 +143,20 @@ export async function submitConsoleWalletTransfer(input: ConsoleWalletTransferIn
     throw new Error("console_wallet_transfer_failed");
   }
   return result;
+}
+
+export async function submitConsoleWalletTransaction(
+  input: ConsoleCantonTransactionRequest,
+): Promise<unknown> {
+  const { consoleWallet } = await import("@console-wallet/dapp-sdk");
+  const account = await consoleWallet.getPrimaryAccount();
+  if (!account?.partyId) {
+    throw new Error("Console wallet did not return an active account");
+  }
+  if (input.actAs?.length && !input.actAs.includes(account.partyId)) {
+    throw new Error("Console Wallet active account does not match the authorization party");
+  }
+  return consoleWallet.prepareExecuteAndWait(input);
 }
 
 export async function acceptConsoleWalletUsdaOffers(

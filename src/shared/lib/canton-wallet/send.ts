@@ -3,6 +3,7 @@ import {
   SendNotInstalledError,
   SendProvider,
   type SendDisclosedContract,
+  type SendPrepareSubmissionRequest,
 } from "@partylayer/adapter-send";
 
 import { getCantonFundingAsset, type CantonFundsAsset } from "./assets";
@@ -29,6 +30,8 @@ export type SendWalletHolding = {
   };
   total_unlocked_coin: string;
 };
+
+export type SendCantonTransactionRequest = SendPrepareSubmissionRequest;
 
 type SendTransferInput = {
   from: string;
@@ -362,6 +365,19 @@ export async function submitSendWalletTransfer(input: SendTransferInput) {
     updateId,
     transferKind: factory.transferKind || "direct",
   };
+}
+
+export async function submitSendWalletTransaction(
+  input: SendCantonTransactionRequest,
+): Promise<unknown> {
+  const account = await sendProvider.getPrimaryAccount();
+  if (!account.partyId) {
+    throw new Error("Send Wallet did not return an active account");
+  }
+  if (input.actAs?.length && !input.actAs.includes(account.partyId)) {
+    throw new Error("Send Wallet active account does not match the authorization party");
+  }
+  return sendProvider.prepareExecuteAndWait(input);
 }
 
 function readLedgerApiPayload(result: unknown): unknown {

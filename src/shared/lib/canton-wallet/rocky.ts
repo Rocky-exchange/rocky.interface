@@ -19,6 +19,15 @@ type RockyWalletTransferInput = {
   waitForFinalization?: number;
 };
 
+type RockyPreparedHashProvider = {
+  getPrimaryAccount(): Promise<{ partyId?: string } | undefined>;
+  signPreparedTransactionHash?(request: {
+    preparedTransactionHash: string;
+    partyId: string;
+    purpose: string;
+  }): Promise<{ signature?: string } | string | undefined>;
+};
+
 export type RockyWalletBalanceResult = {
   party: string;
   network: string;
@@ -96,6 +105,35 @@ export async function submitRockyWalletTransfer(input: RockyWalletTransferInput)
     throw new Error("rocky_wallet_transfer_failed");
   }
   return result;
+}
+
+export async function signRockyPreparedTransactionHash(
+  preparedTransactionHash: string,
+  partyId: string,
+): Promise<string> {
+  const provider = (typeof window !== "undefined"
+    ? (window as Window & { rockyWallet?: RockyPreparedHashProvider }).rockyWallet
+    : undefined);
+  if (!provider?.signPreparedTransactionHash) {
+    throw new Error(
+      "Rocky Wallet must be updated before it can authorize spot settlement",
+    );
+  }
+  const account = await provider.getPrimaryAccount();
+  if (account?.partyId !== partyId) {
+    throw new Error("Rocky Wallet active account does not match the authorization party");
+  }
+  const response = await provider.signPreparedTransactionHash({
+    preparedTransactionHash,
+    partyId,
+    purpose: "Authorize Rocky spot settlement",
+  });
+  const signature =
+    typeof response === "string" ? response : response?.signature;
+  if (!signature) {
+    throw new Error("Rocky Wallet did not return a prepared transaction signature");
+  }
+  return signature;
 }
 
 function findRockyAssetDescriptor(
