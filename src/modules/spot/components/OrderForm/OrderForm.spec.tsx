@@ -101,13 +101,14 @@ describe("SpotOrderForm", () => {
     expect(orderTypes.compareDocumentPosition(orderSide) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
-  it("keeps both backend-supported Market and Limit tabs interactive", () => {
+  it("shows Market, Limit, and the isolated Swap product tabs", () => {
     const { getByRole, queryByRole } = render(<SpotOrderForm market={market} />);
 
     const typeTabs = within(getByRole("tablist", { name: "Order type" })).getAllByRole("tab");
     const limit = getByRole("tab", { name: "Limit" }) as HTMLButtonElement;
     const marketType = getByRole("tab", { name: "Market" }) as HTMLButtonElement;
-    expect(typeTabs.map((tab) => tab.textContent)).toEqual(["Market", "Limit"]);
+    const swap = getByRole("tab", { name: "Swap" }) as HTMLButtonElement;
+    expect(typeTabs.map((tab) => tab.textContent)).toEqual(["Market", "Limit", "Swap"]);
     expect(queryByRole("tab", { name: "Advanced" })).toBeNull();
     expect(limit.getAttribute("aria-selected")).toBe("true");
     expect(limit.tabIndex).toBe(0);
@@ -118,6 +119,25 @@ describe("SpotOrderForm", () => {
     expect(marketType.getAttribute("aria-selected")).toBe("true");
     expect(marketType.tabIndex).toBe(0);
     expect(limit.getAttribute("aria-selected")).toBe("false");
+
+    fireEvent.click(swap);
+    expect(swap.getAttribute("aria-selected")).toBe("true");
+    expect(swap.tabIndex).toBe(0);
+    expect(marketType.getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("keeps Swap isolated from spot order submission until its API is available", () => {
+    const view = render(<SpotOrderForm market={market} />);
+
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+
+    expect(view.queryByRole("tablist", { name: "Order side" })).toBeNull();
+    expect(view.getByText("Swap directly from your wallet")).toBeTruthy();
+    expect(view.getByText("CUSD")).toBeTruthy();
+    expect(view.getByText("CBTC")).toBeTruthy();
+    expect(view.getByText("Swap does not use your Exchange spot balance or create a spot order.")).toBeTruthy();
+    expect((view.getByRole("button", { name: "Swap service unavailable" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(mPlace).not.toHaveBeenCalled();
   });
 
   it("uses roving focus and arrow keys across the Buy and Sell tabs", () => {
