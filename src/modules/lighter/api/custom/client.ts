@@ -946,6 +946,8 @@ type RockyPositionRow = {
   liquidation_price?: string | null;
   /** Cumulative funding received on this symbol (negative = paid). */
   funding?: string | null;
+  /** Leverage the position is actually margined at. */
+  leverage?: number | null;
 };
 
 type RockyOrderRow = {
@@ -997,7 +999,8 @@ function normalizePosition(position: Position | RockyPositionRow, liveMarkPrice?
     unrealized_pnl_percent: unrealizedPnlPercent.toFixed(),
     realized_pnl: position.realized_pnl,
     collateral_amount: position.locked_margin,
-    leverage: 10,
+    // Was hardcoded to 10, so a 100x position rendered a "10x" badge.
+    leverage: position.leverage ?? 10,
     margin_ratio: "0",
     liquidation_price: position.liquidation_price ?? undefined,
     funding: position.funding ?? undefined,
