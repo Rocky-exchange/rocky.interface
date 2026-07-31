@@ -66,7 +66,7 @@
 }
 
 .rewardsHero.hasOgInviteCodes .heroContent {
-  grid-template-rows: clamp(230px, 18vw, 260px) auto clamp(32px, 3vw, 46px) auto;
+  grid-template-rows: clamp(390px, 31vw, 480px) auto clamp(32px, 3vw, 46px) auto;
   align-content: start;
 }
 
@@ -3638,7 +3638,7 @@
   }
 
   .rewardsHero.hasOgInviteCodes .heroContent {
-    grid-template-rows: clamp(170px, 46vw, 210px) auto 24px auto;
+    grid-template-rows: clamp(320px, 90vw, 420px) auto 24px auto;
   }
 
   .heroContent {
