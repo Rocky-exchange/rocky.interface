@@ -965,6 +965,8 @@ type RockyTradeRow = {
   price: string;
   qty: string;
   fee: string;
+  /** Realized PnL for reducing/flipping fills (null/absent = pure open). */
+  realized_pnl?: string | null;
   ts: string;
 };
 
@@ -1043,6 +1045,7 @@ function normalizeTrade(trade: Trade | RockyTradeRow): Trade {
     created_at: trade.ts,
     executed_at: trade.ts,
     fee: trade.fee,
+    realized_pnl: trade.realized_pnl ?? undefined,
   };
 }
 
