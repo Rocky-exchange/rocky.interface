@@ -91,11 +91,7 @@ export async function connectConsoleWallet(): Promise<ConnectedWallet> {
     },
     signMessage: async (message: string) => {
       const signature = await consoleWallet.signMessage({
-        message: { hex: utf8ToHex(message) },
-        metaData: {
-          purpose: "authentication",
-          app: "Rocky Exchange",
-        },
+        message: { base64: utf8ToBase64(message) },
       });
       if (!signature) throw new Error("Console wallet did not return a signature");
       return signature;
@@ -225,8 +221,9 @@ function getConsoleWalletTarget(): ConsoleWalletTarget {
     : "combined";
 }
 
-function utf8ToHex(value: string): string {
-  return `0x${Array.from(new TextEncoder().encode(value), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("")}`;
+function utf8ToBase64(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
