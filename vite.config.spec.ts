@@ -14,6 +14,17 @@ async function resolveConfig(): Promise<UserConfig> {
 }
 
 describe("Vite development proxy", () => {
+  it("forwards the same-origin activity API path instead of serving the SPA shell", async () => {
+    const config = await resolveConfig();
+    const activityProxy = config.server?.proxy?.["/external-active"];
+
+    expect(activityProxy).toMatchObject({
+      target: "https://app.rockytest.xyz",
+      changeOrigin: true,
+      secure: true,
+    });
+  });
+
   it("caps the Rocky API upstream at TLS 1.2 for stable local proxying", async () => {
     const config = await resolveConfig();
     const spotProxy = config.server?.proxy?.["/api/v3"];

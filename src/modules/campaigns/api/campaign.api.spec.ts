@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { disconnectCantonWalletSession } from "@/shared/lib/canton-wallet/sessionLogout";
+
 import {
   getCampaign,
   getLeaderboard,
@@ -11,8 +13,13 @@ import {
   verifyMission,
 } from "./campaign.api";
 
+vi.mock("@/shared/lib/canton-wallet/sessionLogout", () => ({
+  disconnectCantonWalletSession: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("campaign activity API", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.stubGlobal("localStorage", createMemoryStorage());
   });
 
@@ -47,6 +54,31 @@ describe("campaign activity API", () => {
     );
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
     expect(headers.get("authorization")).toBe("Bearer exchange-token");
+  });
+
+  it("disconnects a stale wallet session when an authenticated request is rejected", async () => {
+    localStorage.setItem("rocky_exchange_session", "expired-exchange-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "AUTH_REQUIRED",
+              message: "Authentication required.",
+              retryable: false,
+            },
+          }),
+          { status: 401, headers: { "content-type": "application/json" } }
+        )
+      )
+    );
+
+    await expect(getMissions()).rejects.toMatchObject({
+      code: "AUTH_REQUIRED",
+      status: 401,
+    });
+    expect(disconnectCantonWalletSession).toHaveBeenCalledTimes(1);
   });
 
   it("returns the real X authorization URL without exposing credentials to the browser", async () => {

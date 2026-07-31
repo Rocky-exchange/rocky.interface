@@ -1,4 +1,5 @@
 import { exchangeSessionHeaders } from "@/shared/lib/canton-wallet/session";
+import { disconnectCantonWalletSession } from "@/shared/lib/canton-wallet/sessionLogout";
 
 const ACTIVITY_API_BASE = "/external-active";
 
@@ -161,6 +162,9 @@ async function activityRequest<T>(
   });
   const payload = (await response.json()) as ActivityEnvelope<T> | ActivityErrorEnvelope;
   if (!response.ok || !("data" in payload)) {
+    if (response.status === 401 && input.authenticated !== false) {
+      await disconnectCantonWalletSession();
+    }
     const error = "error" in payload ? payload.error : undefined;
     const retryAfterHeader = Number(response.headers.get("retry-after"));
     const retryAfterSeconds =

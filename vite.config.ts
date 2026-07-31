@@ -66,6 +66,14 @@ export default defineConfig(({ mode }) => {
           secure: true,
           agent: upstreamAgent,
         },
+        // Season 0 activity backend. Keep /external-active in the forwarded
+        // path so local development matches the production nginx route.
+        "/external-active": {
+          target: env.VITE_PROXY_ACTIVITY_URL || "https://app.rockytest.xyz",
+          changeOrigin: true,
+          secure: true,
+          agent: upstreamAgent,
+        },
       },
     },
     plugins: [

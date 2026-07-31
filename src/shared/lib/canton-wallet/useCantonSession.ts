@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { subscribeRockyWalletAccountChanges } from "./rocky";
-import { getMtcAuthToken } from "./session";
+import { getExchangeSessionToken } from "./session";
 import { classifyRockyAccountChange, disconnectCantonWalletSession } from "./sessionLogout";
 import {
   getCantonWalletLocked,
@@ -16,7 +16,7 @@ export { notifyCantonSessionChange } from "./sessionStore";
 export function useCantonSession() {
   const token = useSyncExternalStore(
     subscribeCantonSession,
-    () => (typeof window !== "undefined" ? getMtcAuthToken() : ""),
+    () => (typeof window !== "undefined" ? getExchangeSessionToken() : ""),
     () => "",
   );
   const party = typeof window !== "undefined" ? localStorage.getItem("mtc_party") || "" : "";
