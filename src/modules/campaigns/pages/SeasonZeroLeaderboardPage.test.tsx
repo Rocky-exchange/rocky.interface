@@ -222,11 +222,43 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     expect(within(card).queryAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(0);
   });
 
-  it("lets a connected non-OG wallet bind an invitation code and shows the immutable result", async () => {
+  it("refreshes OG benefits after binding and immediately shows both second-level invitation codes", async () => {
     vi.mocked(getMissions).mockResolvedValue({
       missions: [{ key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" }],
       progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
     });
+    vi.mocked(getOgBenefits)
+      .mockResolvedValueOnce({
+        role: "NORMAL",
+        eligible: false,
+        invitationCodes: [],
+        invitationBinding: null,
+        trialFund: {
+          status: "NOT_ELIGIBLE",
+          amount: "20",
+          bonusAccountId: null,
+          claimedAt: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        role: "L1",
+        eligible: false,
+        invitationCodes: [
+          { slot: 1, code: "secondcode234567", status: "ACTIVE" },
+          { slot: 2, code: "anothercode23456", status: "ACTIVE" },
+        ],
+        invitationBinding: {
+          status: "BOUND",
+          inviterUserId: "og-user",
+          boundAt: "2026-07-31T04:00:00.000Z",
+        },
+        trialFund: {
+          status: "NOT_ELIGIBLE",
+          amount: "20",
+          bonusAccountId: null,
+          claimedAt: null,
+        },
+      });
     vi.mocked(bindOgInvitationCode).mockResolvedValue({
       status: "BOUND",
       inviterUserId: "og-user",
@@ -252,8 +284,12 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     await waitFor(() => {
       expect(bindOgInvitationCode).toHaveBeenCalledWith("abcde2345fgh6789");
     });
-    expect(await within(panel).findByText("RELATION RECORDED")).not.toBeNull();
-    expect(within(panel).getByText(/No OG status or trial funds are granted/i)).not.toBeNull();
+    await waitFor(() => {
+      expect(getOgBenefits).toHaveBeenCalledTimes(2);
+    });
+    const codes = await screen.findByLabelText("OG invitation codes");
+    expect(within(codes).getByText("SECONDCODE234567")).not.toBeNull();
+    expect(within(codes).getByText("ANOTHERCODE23456")).not.toBeNull();
   });
 
   it("keeps X authorization disabled until the authoritative mission state is loaded", async () => {

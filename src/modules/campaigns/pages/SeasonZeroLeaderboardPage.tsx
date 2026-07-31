@@ -541,7 +541,9 @@ function CampaignHero({
   campaignEndsAt: string | null;
   connected: boolean;
   ogBenefits: OgBenefits | null;
-  onInvitationBound: (binding: NonNullable<OgBenefits["invitationBinding"]>) => void;
+  onInvitationBound: (
+    binding: NonNullable<OgBenefits["invitationBinding"]>
+  ) => Promise<void>;
   onTabChange: (tab: CampaignTab) => void;
 }) {
   const history = useHistory();
@@ -571,8 +573,8 @@ function CampaignHero({
     try {
       const binding = await bindOgInvitationCode(normalized);
       setInvitationCode("");
+      await onInvitationBound(binding);
       helperToast.success("Invitation relation recorded");
-      onInvitationBound(binding);
     } catch (error) {
       setInvitationError(ogInvitationError(error));
     } finally {
@@ -2440,6 +2442,19 @@ export default function SeasonZeroLeaderboardPage() {
     history.push({ pathname: location.pathname, search });
   };
 
+  const handleInvitationBound = async (
+    binding: NonNullable<OgBenefits["invitationBinding"]>
+  ) => {
+    setOgBenefits((current) =>
+      current ? { ...current, invitationBinding: binding } : current
+    );
+    try {
+      setOgBenefits(await getOgBenefits());
+    } catch {
+      // The binding succeeded; retain the confirmed binding if the refresh is temporarily unavailable.
+    }
+  };
+
   return (
     <div className={`lighter-root ${styles.page}`}>
       <header className={styles.topnav}>
@@ -2452,11 +2467,7 @@ export default function SeasonZeroLeaderboardPage() {
           campaignEndsAt={campaignEndsAt}
           connected={connected}
           ogBenefits={ogBenefits}
-          onInvitationBound={(binding) => {
-            setOgBenefits((current) =>
-              current ? { ...current, invitationBinding: binding } : current
-            );
-          }}
+          onInvitationBound={handleInvitationBound}
           onTabChange={handleTabChange}
         />
 
