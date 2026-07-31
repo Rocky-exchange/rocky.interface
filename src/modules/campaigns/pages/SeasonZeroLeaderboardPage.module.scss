@@ -65,10 +65,15 @@
   --hero-main-start: 61.176%;
 }
 
+.rewardsHero.hasOgInviteCodes .heroContent {
+  grid-template-rows: clamp(230px, 18vw, 260px) auto clamp(32px, 3vw, 46px) auto;
+  align-content: start;
+}
+
 .rewardsHero.hasOgInviteCodes .heroFooter {
   width: 100%;
   justify-self: stretch;
-  transform: translateY(clamp(-96px, -6vw, -72px));
+  margin-bottom: 0;
 }
 
 .rewardsHero.hasOgInviteCodes .ogInviteCodes {
@@ -3632,8 +3637,8 @@
     --hero-main-start: 43%;
   }
 
-  .rewardsHero.hasOgInviteCodes .heroFooter {
-    transform: translateY(-40px);
+  .rewardsHero.hasOgInviteCodes .heroContent {
+    grid-template-rows: clamp(170px, 46vw, 210px) auto 24px auto;
   }
 
   .heroContent {
