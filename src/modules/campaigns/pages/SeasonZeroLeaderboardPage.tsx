@@ -528,7 +528,7 @@ function CampaignHero({
 
   return (
     <section
-      className={`${styles.hero} ${isMissions ? styles.missionsHero : ""} ${isLeaderboard ? styles.leaderboardHero : ""} ${isRewards ? styles.rewardsHero : ""}`}
+      className={`${styles.hero} ${isMissions ? styles.missionsHero : ""} ${isLeaderboard ? styles.leaderboardHero : ""} ${isRewards ? styles.rewardsHero : ""} ${invitationCodes.length > 0 ? styles.hasOgInviteCodes : ""}`}
     >
       {isMissions ? (
         <video
