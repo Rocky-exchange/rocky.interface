@@ -57,3 +57,43 @@ export function calculateOrderSummary(side: Side, price: string, quantity: strin
     fee: format((side === "BUY" ? parsedQuantity : total).times(FEE_CAP), BigNumber.ROUND_HALF_UP),
   };
 }
+
+/// Volume-weighted price of consuming `amount` from one side of the book —
+/// what a MARKET order should actually fill around.
+///
+/// Displaying the protective limit instead made "Est. Price" read a full 5%
+/// off the market (66,963 against a 63,776 touch), which looks like a broken
+/// quote. With no amount entered yet this is just the touch; if the book is
+/// too thin to cover the amount, the remainder is priced at the last level so
+/// the estimate degrades gracefully instead of vanishing.
+export function estimatedFillPrice(levels: [string, string][] | undefined, amount: string): string {
+  const first = levels?.[0]?.[0];
+  if (!first) return "";
+  const want = positiveNumber(amount);
+  if (want === null) return first;
+
+  let remaining = want;
+  let cost = new Decimal(0);
+  let taken = new Decimal(0);
+  let lastPrice = new Decimal(first);
+
+  for (const [levelPrice, levelQty] of levels ?? []) {
+    const price = positiveNumber(levelPrice);
+    const qty = positiveNumber(levelQty);
+    if (price === null || qty === null) continue;
+    lastPrice = price;
+    const fill = BigNumber.min(remaining, qty) as BigNumber;
+    cost = cost.plus(fill.times(price));
+    taken = taken.plus(fill);
+    remaining = remaining.minus(fill);
+    if (remaining.lte(0)) break;
+  }
+
+  // Book exhausted before the amount was covered: price the rest at the
+  // deepest level we saw.
+  if (remaining.gt(0)) {
+    cost = cost.plus(remaining.times(lastPrice));
+    taken = taken.plus(remaining);
+  }
+  return taken.gt(0) ? cost.div(taken).toFixed() : first;
+}

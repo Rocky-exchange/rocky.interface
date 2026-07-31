@@ -6,7 +6,7 @@ import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, use
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 
 import styles from "./OrderForm.module.scss";
-import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
+import { calculateOrderSummary, estimatedFillPrice, quantityForPercent } from "./orderFormMath";
 import { spotApi, SpotApiError, type DepthResp } from "../../api/spotClient";
 import { usePolling } from "../../hooks/usePolling";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
@@ -61,6 +61,10 @@ function isWithinAvailableBalance(
   return balance.isFinite() && parsedPrice.times(parsedAmount).lte(balance);
 }
 
+/// The protective limit a MARKET order is submitted with: the touch pushed 5%
+/// through the book so the order always crosses. It is the WORST price the
+/// order may accept, not the price it is expected to get — see
+/// [`estimatedFillPrice`] for what the user is shown.
 function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | undefined): string {
   const source = positiveDecimal(side === "BUY" ? (bestAsk ?? "") : (bestBid ?? ""));
   if (source === null) return "";
@@ -87,17 +91,28 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const balances = account?.balances ?? [];
   const baseFree = balanceFree(market.apiBase, balances);
   const quoteFree = balanceFree(market.apiQuote, balances);
+  // 20 levels: enough to volume-weight a realistic market order. One level
+  // only gives the touch, which is why Est. Price used to fall back to the
+  // protective limit.
   const { data: depth } = usePolling<DepthResp>(
-    () => spotApi.depth(market.apiSymbol, 1),
+    () => spotApi.depth(market.apiSymbol, 20),
     5000,
     [market.apiSymbol],
     { enabled: orderType === "MARKET" }
   );
+  // Submission price: the protective limit (5% through the book). Balance
+  // checks and percent sizing use it too, because that is what the backend
+  // locks against.
   const effectivePrice =
     orderType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
+  // Displayed price: what the order is expected to fill at.
+  const displayPrice =
+    orderType === "LIMIT"
+      ? price
+      : estimatedFillPrice(side === "BUY" ? depth?.asks : depth?.bids, amount);
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
-  const summary = useMemo(() => calculateOrderSummary(side, effectivePrice, amount), [amount, effectivePrice, side]);
+  const summary = useMemo(() => calculateOrderSummary(side, displayPrice, amount), [amount, displayPrice, side]);
 
   const selectSide = (nextSide: Side) => {
     const nextEffectivePrice =
@@ -338,7 +353,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             id="spot-order-price"
             aria-label={`Price (${quote})`}
             className={styles.input}
-            value={orderType === "MARKET" && effectivePrice ? effectivePrice : price}
+            value={orderType === "MARKET" && displayPrice ? displayPrice : price}
             onChange={(event) => updatePrice(event.target.value)}
             disabled={busy}
             placeholder={orderType === "MARKET" ? "—" : "500"}

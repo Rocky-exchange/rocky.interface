@@ -1,7 +1,7 @@
 import BigNumber from "bignumber.js";
 import { describe, expect, it } from "vitest";
 
-import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
+import { calculateOrderSummary, quantityForPercent, estimatedFillPrice } from "./orderFormMath";
 
 describe("quantityForPercent", () => {
   it("sizes a BUY from the quote balance", () => {
@@ -100,5 +100,40 @@ describe("calculateOrderSummary", () => {
       fee: "0.00012346",
     });
     expect(calculateOrderSummary("BUY", "1", "1.000000001")).toEqual({ total: "1", fee: "0.001" });
+  });
+});
+
+describe("estimatedFillPrice", () => {
+  const asks: [string, string][] = [
+    ["100", "1"],
+    ["101", "2"],
+    ["105", "10"],
+  ];
+
+  it("shows the touch when no amount is entered yet", () => {
+    expect(estimatedFillPrice(asks, "")).toBe("100");
+    expect(estimatedFillPrice(asks, "0")).toBe("100");
+  });
+
+  it("stays at the touch while the amount fits the first level", () => {
+    expect(estimatedFillPrice(asks, "0.5")).toBe("100");
+  });
+
+  it("volume-weights across the levels it has to consume", () => {
+    // 1@100 + 1@101 = 201 / 2
+    expect(estimatedFillPrice(asks, "2")).toBe("100.5");
+    // 1@100 + 2@101 + 1@105 = 407 / 4
+    expect(estimatedFillPrice(asks, "4")).toBe("101.75");
+  });
+
+  it("prices the uncovered remainder at the deepest level instead of giving up", () => {
+    // book holds 13; asking for 14 prices the extra 1 at 105
+    // (100 + 202 + 1050 + 105) / 14 = 1457 / 14
+    expect(estimatedFillPrice(asks, "14")).toBe("104.07142857");
+  });
+
+  it("returns empty for an empty or missing book", () => {
+    expect(estimatedFillPrice([], "1")).toBe("");
+    expect(estimatedFillPrice(undefined, "1")).toBe("");
   });
 });
