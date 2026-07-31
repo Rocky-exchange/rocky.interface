@@ -5,6 +5,7 @@ import { useSWRConfig } from "swr";
 
 import { useClosePositionHandler } from "@/modules/lighter/api";
 import type { ClosePositionRequest } from "@/modules/lighter/api/types";
+import { POSITION_TPSL_ENABLED } from "@/modules/lighter/config/tradingFeatures";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
@@ -253,7 +254,7 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
           <col className={styles.colPnl} />
           <col className={styles.colMargin} />
           <col className={styles.colFunding} />
-          <col className={styles.colTpSl} />
+          {POSITION_TPSL_ENABLED && <col className={styles.colTpSl} />}
           <col className={styles.colCloseAll} />
         </colgroup>
         <thead>
@@ -285,9 +286,11 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
             <th>
               <Trans>Funding</Trans>
             </th>
-            <th>
-              <Trans>TP / SL</Trans>
-            </th>
+            {POSITION_TPSL_ENABLED && (
+              <th>
+                <Trans>TP / SL</Trans>
+              </th>
+            )}
             <th>
               <Trans>Close All</Trans>
             </th>
@@ -348,19 +351,21 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
                 <td className={`${styles.mono} ${styles.numeric} ${row.funding === "--" ? styles.placeholder : ""}`}>
                   {row.funding}
                 </td>
-                <td>
-                  <span className={styles.tpSl}>
-                    <span className={row.tpSl === "-- / --" ? styles.placeholder : ""}>{row.tpSl}</span>
-                    <button
-                      type="button"
-                      className={styles.editBadge}
-                      aria-label={i18n._(t`Edit take profit / stop loss for ${row.market}`)}
-                      onClick={() => setEditingTpSlPositionKey(rowKey)}
-                    >
-                      <EditTpSlIcon />
-                    </button>
-                  </span>
-                </td>
+                {POSITION_TPSL_ENABLED && (
+                  <td>
+                    <span className={styles.tpSl}>
+                      <span className={row.tpSl === "-- / --" ? styles.placeholder : ""}>{row.tpSl}</span>
+                      <button
+                        type="button"
+                        className={styles.editBadge}
+                        aria-label={i18n._(t`Edit take profit / stop loss for ${row.market}`)}
+                        onClick={() => setEditingTpSlPositionKey(rowKey)}
+                      >
+                        <EditTpSlIcon />
+                      </button>
+                    </span>
+                  </td>
+                )}
                 <td className={styles.closeActionCell}>
                   <button
                     type="button"
@@ -378,7 +383,9 @@ export function PositionsTab({ mode = "all" }: { mode?: BottomTabFilterMode }) {
         </tbody>
       </table>
 
-      <TpSlPositionModal position={editingPosition} onClose={() => setEditingTpSlPositionKey(undefined)} />
+      {POSITION_TPSL_ENABLED && (
+        <TpSlPositionModal position={editingPosition} onClose={() => setEditingTpSlPositionKey(undefined)} />
+      )}
     </div>
   );
 }

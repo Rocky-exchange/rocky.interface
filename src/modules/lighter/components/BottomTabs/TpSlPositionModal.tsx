@@ -235,6 +235,8 @@ export function TpSlPositionModal({ position, onClose }: Props) {
     const loadTpSl = async () => {
       try {
         const data = await getPositionTpSl(chainId, position.positionId, accountKey);
+        // Backend returns data:null when the position has no TP/SL config yet.
+        if (!data) return;
         applyTpSl(data);
       } catch (error) {
         if (cancelled) return;

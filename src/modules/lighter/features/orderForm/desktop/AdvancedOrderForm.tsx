@@ -16,7 +16,12 @@ import { Checkbox } from "../../../components/Checkbox/Checkbox";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
 import { getLatestLimitPrice, subscribeLimitPrice } from "../../../state/limitPriceBus";
 
-export type AdvancedType = "Stop Market" | "Stop Limit" | "Take Profit Market" | "Take Profit Limit";
+export type AdvancedType =
+  | "Stop Market"
+  | "Stop Limit"
+  | "Take Profit Market"
+  | "Take Profit Limit"
+  | "Trailing Stop";
 
 type Props = {
   side: "buy" | "sell";
@@ -39,6 +44,7 @@ function formatTrimmed(value: number, maxDecimals = 6) {
 export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, leverage, marginMode }: Props) {
   const { i18n } = useLingui();
   const [triggerPrice, setTriggerPrice] = useState("");
+  const [callbackRate, setCallbackRate] = useState("");
   const [limitPrice, setLimitPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [amountUnit, setAmountUnit] = useState<"SYMBOL" | "USD">("USD");
@@ -58,19 +64,26 @@ export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, lev
     "Stop Limit": "S/L Limit",
     "Take Profit Market": "T/P Market",
     "Take Profit Limit": "T/P Limit",
+    "Trailing Stop": "Trailing Stop",
   };
   const hasLimitPrice = type === "Stop Limit" || type === "Take Profit Limit";
-  const requestTypeMap: Record<AdvancedType, "stop_market" | "stop_limit" | "take_profit" | "take_profit_limit"> = {
+  const isTrailing = type === "Trailing Stop";
+  const requestTypeMap: Record<
+    AdvancedType,
+    "stop_market" | "stop_limit" | "take_profit" | "take_profit_limit" | "trailing_stop"
+  > = {
     "Stop Market": "stop_market",
     "Stop Limit": "stop_limit",
     "Take Profit Market": "take_profit",
     "Take Profit Limit": "take_profit_limit",
+    "Trailing Stop": "trailing_stop",
   };
   const previewOrderType = hasLimitPrice ? "limit" : "market";
   const amountUnitOptions = useMemo(() => [baseSymbol, "USD"], [baseSymbol]);
 
   const rawAmount = Number(amount) || 0;
   const triggerPriceNum = Number(triggerPrice) || 0;
+  const callbackRateNum = Number(callbackRate) || 0;
   const limitPriceNum = Number(limitPrice) || 0;
 
   // market.markPrice 来自 ticker 轮询,每 2s 会微动。当用户还没填 trigger/limit 价格时,
@@ -88,7 +101,9 @@ export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, lev
     if (market.markPrice != null && market.markPrice > 0) setConversionPrice(market.markPrice);
   };
 
-  const refPrice = (hasLimitPrice ? limitPriceNum : triggerPriceNum) || conversionPrice || 0;
+  // Trailing stops have no user-entered price at all — USD↔token conversion
+  // always uses the mark snapshot.
+  const refPrice = (hasLimitPrice ? limitPriceNum : isTrailing ? 0 : triggerPriceNum) || conversionPrice || 0;
   const amountNum = amountUnit === "USD" ? (refPrice > 0 ? rawAmount / refPrice : 0) : rawAmount;
   const preview = useOrderPreviewAdapter({
     side,
@@ -167,7 +182,7 @@ export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, lev
     setAmountUnit(nextUnit);
   };
 
-  const canSubmit = triggerPriceNum > 0 && amountNum > 0;
+  const canSubmit = (isTrailing ? callbackRateNum > 0 && callbackRateNum < 100 : triggerPriceNum > 0) && amountNum > 0;
   const orderValueText =
     amountNum > 0 && refPrice > 0
       ? `$${(amountNum * refPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -189,7 +204,10 @@ export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, lev
         type: requestTypeMap[type],
         amount: amountNum,
         price: hasLimitPrice ? limitPriceNum || undefined : undefined,
-        triggerPrice: triggerPriceNum || undefined,
+        // For trailing stops the backend derives the stop level itself; the
+        // mark snapshot is passed only so the USD size converts consistently.
+        triggerPrice: isTrailing ? conversionPrice ?? undefined : triggerPriceNum || undefined,
+        trailingDelta: isTrailing ? callbackRateNum : undefined,
         leverage,
         marginMode,
         reduceOnly,
@@ -209,16 +227,32 @@ export function AdvancedOrderForm({ side, type = "Stop Market", isConnected, lev
       </div>
 
       <div className="ltr-form__section">
-        <div className="ltr-form__field">
-          <label className="ltr-form__label">{triggerLabel}</label>
-          <input
-            className="ltr-form__input"
-            value={triggerPrice}
-            onChange={(e) => setTriggerPrice(e.target.value)}
-            placeholder="0.000000"
-            inputMode="decimal"
-          />
-        </div>
+        {isTrailing ? (
+          <div className="ltr-form__field">
+            <label className="ltr-form__label">
+              <Trans>Callback Rate</Trans>
+            </label>
+            <input
+              className="ltr-form__input"
+              value={callbackRate}
+              onChange={(e) => setCallbackRate(e.target.value)}
+              placeholder="1.0"
+              inputMode="decimal"
+            />
+            <span className="ltr-form__trailing">%</span>
+          </div>
+        ) : (
+          <div className="ltr-form__field">
+            <label className="ltr-form__label">{triggerLabel}</label>
+            <input
+              className="ltr-form__input"
+              value={triggerPrice}
+              onChange={(e) => setTriggerPrice(e.target.value)}
+              placeholder="0.000000"
+              inputMode="decimal"
+            />
+          </div>
+        )}
 
         {hasLimitPrice && (
           <div className="ltr-form__field">

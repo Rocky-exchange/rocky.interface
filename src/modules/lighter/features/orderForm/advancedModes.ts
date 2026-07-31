@@ -7,6 +7,7 @@ export const ADVANCED_MODES: AdvancedMode[] = [
   "Stop Limit",
   "Take Profit Market",
   "Take Profit Limit",
+  "Trailing Stop",
 ];
 
 const ADVANCED_MODE_LABELS: Record<AdvancedMode, { en: string; zh: string }> = {
@@ -14,6 +15,7 @@ const ADVANCED_MODE_LABELS: Record<AdvancedMode, { en: string; zh: string }> = {
   "Stop Limit": { en: "S/L Limit", zh: "止損限價單" },
   "Take Profit Market": { en: "T/P Market", zh: "止盈市價單" },
   "Take Profit Limit": { en: "T/P Limit", zh: "止盈限價單" },
+  "Trailing Stop": { en: "Trailing Stop", zh: "移動止損單" },
 };
 
 export function isAdvancedMode(mode: string): mode is AdvancedMode {

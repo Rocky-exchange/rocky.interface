@@ -1,6 +1,11 @@
 // src/modules/lighter/features/orderForm/types.ts
 export type BasicMode = "Market" | "Limit";
-export type AdvancedMode = "Stop Market" | "Stop Limit" | "Take Profit Market" | "Take Profit Limit";
+export type AdvancedMode =
+  | "Stop Market"
+  | "Stop Limit"
+  | "Take Profit Market"
+  | "Take Profit Limit"
+  | "Trailing Stop";
 export type Mode = BasicMode | AdvancedMode;
 export type Side = "buy" | "sell";
 export type MarginTab = "Cross" | "Isolated";

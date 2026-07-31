@@ -940,6 +940,10 @@ type RockyPositionRow = {
   entry_price: string;
   locked_margin: string;
   realized_pnl: string;
+  // Armed TP/SL trigger prices joined from ledger.position_tpsl (null when
+  // unset or already fired).
+  take_profit_price?: string | null;
+  stop_loss_price?: string | null;
 };
 
 type RockyOrderRow = {
@@ -991,6 +995,8 @@ function normalizePosition(position: Position | RockyPositionRow, liveMarkPrice?
     collateral_amount: position.locked_margin,
     leverage: 10,
     margin_ratio: "0",
+    take_profit_price: position.take_profit_price ?? null,
+    stop_loss_price: position.stop_loss_price ?? null,
     created_at: 0,
     updated_at: 0,
   };
@@ -1092,11 +1098,13 @@ export async function getOrders(chainId: number, address?: string | null): Promi
 
 // NOT SUPPORTED by rocky-backend -- conditional/trigger orders are
 // documented as not yet implemented (no /trigger-orders route exists).
-// Left calling the old shape; expect this to 404 until the backend ships it.
-// rocky-backend has no trigger/TP-SL order support (no /v1/trigger-orders
-// route). Return empty rather than 400-spamming the console.
-export async function getTriggerOrders(_chainId: number, _address?: string | null): Promise<TriggerOrdersResponse> {
-  return { success: true, data: [], error: null };
+// Backed by rocky-backend since 2026-07-30: GET /v1/trigger-orders returns the
+// session user's Active conditional orders as {success, data: TriggerOrder[]}.
+export async function getTriggerOrders(chainId: number, address?: string | null): Promise<TriggerOrdersResponse> {
+  return apiFetch<TriggerOrdersResponse>(chainId, "/v1/trigger-orders", {
+    authMode: "exchange",
+    address,
+  });
 }
 
 export async function createTriggerOrder(
@@ -1106,7 +1114,6 @@ export async function createTriggerOrder(
 ): Promise<TriggerOrderResponse> {
   // 后端实际返回 `{success, data:{id,...}, error}` envelope,这里拆包成扁平 TriggerOrderResponse
   // (历史上曾直接返回扁平对象,发现有包裹后再剥一层;两种格式都兼容)。
-  // NOT SUPPORTED by rocky-backend -- see getTriggerOrders above.
   const raw = await apiFetch<TriggerOrderResponse | { success: boolean; data: TriggerOrderResponse; error: unknown }>(
     chainId,
     "/v1/trigger-orders",
@@ -1552,8 +1559,10 @@ export async function updatePositionCollateral(
  * Set Take Profit and Stop Loss for a position
  * POST /v1/positions/:position_id/tp-sl
  *
- * NOT SUPPORTED by rocky-backend -- there is no TP/SL endpoint (docs mark
- * conditional orders as not yet implemented). Left calling the old shape.
+ * Backed by rocky-backend since 2026-07-30 (api-gateway positions_tpsl.rs +
+ * risk-monitor trigger engine). positionId is the `{user_uuid}:{symbol}`
+ * composite; auth is the exchange session token (require_session), NOT the
+ * legacy stored token.
  */
 export async function setPositionTpSl(
   chainId: number,
@@ -1574,7 +1583,7 @@ export async function setPositionTpSl(
  * Get Take Profit and Stop Loss for a position
  * GET /v1/positions/:position_id/tp-sl
  *
- * NOT SUPPORTED by rocky-backend -- see setPositionTpSl above.
+ * Returns `data: null` when no config exists for the position.
  */
 export async function getPositionTpSl(
   chainId: number,
@@ -1591,8 +1600,6 @@ export async function getPositionTpSl(
 /**
  * Delete Take Profit and Stop Loss for a position
  * DELETE /v1/positions/:position_id/tp-sl
- *
- * NOT SUPPORTED by rocky-backend -- see setPositionTpSl above.
  */
 export async function deletePositionTpSl(
   chainId: number,

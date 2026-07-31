@@ -347,14 +347,19 @@ export function OpenOrdersTab({
                 */}
                 <td className={row.tpSl === "-" ? styles.placeholder : ""}>{row.tpSl}</td>
                 <td className={styles.cancelActions}>
-                  <button
-                    type="button"
-                    className={styles.editAction}
-                    disabled={isClosing}
-                    onClick={() => setEditingOrderId(order.id)}
-                  >
-                    <EditOrderIcon />
-                  </button>
+                  {/* Standalone trigger orders can't be modified in place —
+                      the backend has no PATCH /v1/trigger-orders; cancel and
+                      recreate instead. */}
+                  {order.triggerType == null && (
+                    <button
+                      type="button"
+                      className={styles.editAction}
+                      disabled={isClosing}
+                      onClick={() => setEditingOrderId(order.id)}
+                    >
+                      <EditOrderIcon />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.cancelAction}

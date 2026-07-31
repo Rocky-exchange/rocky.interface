@@ -97,6 +97,7 @@ const TRIGGER_TYPE_MAP: Partial<Record<ApiOrderType, CreateTriggerOrderRequest["
   stop_limit: "StopLimit",
   take_profit: "TakeProfit",
   take_profit_limit: "TakeProfitLimit",
+  trailing_stop: "TrailingStop",
 };
 
 export function formatOrderSubmitError(error: any): string {
@@ -173,6 +174,11 @@ export function buildCreateOrderRequest(
       price: executablePrice,
       qty: sizeStr,
       leverage: params.leverage ? Math.round(params.leverage) : 1,
+      // Attached TP/SL: the backend upserts a full-position-close
+      // ledger.position_tpsl config on successful placement. Part of the
+      // intent so the idempotency key distinguishes configs.
+      tp_price: params.tpPrice || undefined,
+      sl_price: params.slPrice || undefined,
     };
     if (!Number.isFinite(Number(intent.price)) || Number(intent.price) <= 0) {
       throw new Error("Executable order price must be positive");
@@ -204,8 +210,12 @@ function buildTriggerOrderRequest(
     throw new Error(`Unsupported trigger order type: ${apiOrderType}`);
   }
 
+  // For TrailingStop, stopPrice carries the caller's mark-price snapshot —
+  // used only for base→USD size conversion; the backend derives the actual
+  // stop level from the live mark and trailing_delta.
   const triggerPrice = params.stopPrice || params.tpPrice || params.slPrice || priceStr || "0";
   const triggerSizeUsd = parseFloat(sizeStr) * (parseFloat(triggerPrice) || 0);
+  const isTrailing = triggerType === "TrailingStop";
 
   return {
     market_symbol: apiSymbol,
@@ -219,6 +229,8 @@ function buildTriggerOrderRequest(
         : undefined,
     reduce_only: params.reduceOnly || false,
     close_position: params.closePosition || false,
+    trailing_delta: isTrailing ? params.trailingDelta : undefined,
+    trailing_delta_type: isTrailing && params.trailingDelta ? "percentage" : undefined,
   };
 }
 
@@ -251,6 +263,8 @@ export interface PrimitOrderParams {
   slPrice?: string;
   maxSlippage?: string;
   stopPrice?: string;
+  /** 移动止损回调幅度(百分比,trailing_stop 专用) */
+  trailingDelta?: string;
   timeInForce?: TimeInForce;
   workingType?: WorkingType;
   positionSide?: PositionModeSide;

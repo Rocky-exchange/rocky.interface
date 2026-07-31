@@ -133,6 +133,9 @@ describe("OrderBottomSheet preview wiring", () => {
     expect(view.getByText(/Attached Take Profit \/ Stop Loss is not supported yet/i)).toBeTruthy();
   });
 
+  // Standalone trigger orders are live (/v1/trigger-orders) — the Advanced
+  // order types and the mobile-native advanced form remain available even
+  // though attached TP/SL on basic orders is hidden above.
   it("renders the mobile-native advanced form (not the desktop ltr-form) when an advanced mode is picked", () => {
     const { container } = renderSheet();
     const view = within(container);
