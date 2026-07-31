@@ -5,6 +5,7 @@ import { MemoryRouter, Route } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  bindOgInvitationCode,
   claimMission,
   getOgBenefits,
   getMissions,
@@ -18,6 +19,7 @@ import { helperToast } from "@/shared/lib/helperToast";
 import SeasonZeroLeaderboardPage from "./SeasonZeroLeaderboardPage";
 
 vi.mock("@/modules/campaigns/api/campaign.api", () => ({
+  bindOgInvitationCode: vi.fn(),
   claimMission: vi.fn(),
   getCampaign: vi.fn().mockResolvedValue({
     campaignId: "season-0",
@@ -31,6 +33,7 @@ vi.mock("@/modules/campaigns/api/campaign.api", () => ({
     role: "NORMAL",
     eligible: false,
     invitationCodes: [],
+    invitationBinding: null,
     trialFund: {
       status: "NOT_ELIGIBLE",
       amount: "20",
@@ -102,6 +105,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
         { slot: 1, code: "AMBER-CODE", status: "ACTIVE" },
         { slot: 2, code: "BLUE-CODE", status: "ACTIVE" },
       ],
+      invitationBinding: null,
       trialFund: {
         status: "AVAILABLE",
         amount: "20",
@@ -129,6 +133,40 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       "/campaign/og-invite/crystal-amber.png",
       "/campaign/og-invite/crystal-blue.png",
     ]);
+  });
+
+  it("lets a connected non-OG wallet bind an invitation code and shows the immutable result", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [{ key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" }],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(bindOgInvitationCode).mockResolvedValue({
+      status: "BOUND",
+      inviterUserId: "og-user",
+      boundAt: "2026-07-31T04:00:00.000Z",
+    });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const panel = await screen.findByLabelText("Bind OG invitation code");
+    fireEvent.change(within(panel).getByLabelText("Enter the invitation code shared by a Rocky OG"), {
+      target: { value: "abcde2345fgh6789" },
+    });
+    fireEvent.click(within(panel).getByRole("button", { name: "BIND" }));
+
+    await waitFor(() => {
+      expect(bindOgInvitationCode).toHaveBeenCalledWith("abcde2345fgh6789");
+    });
+    expect(await within(panel).findByText("RELATION RECORDED")).not.toBeNull();
+    expect(within(panel).getByText(/No OG status or trial funds are granted/i)).not.toBeNull();
   });
 
   it("keeps X authorization disabled until the authoritative mission state is loaded", async () => {

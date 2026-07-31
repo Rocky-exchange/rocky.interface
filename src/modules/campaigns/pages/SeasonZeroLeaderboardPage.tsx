@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { useHistory, useLocation } from "react-router-dom";
 
 import {
+  bindOgInvitationCode,
   claimMission as claimCampaignMission,
   getCampaign,
   getLeaderboard,
@@ -309,6 +310,29 @@ function campaignActionError(copy: (text: string) => string, error: unknown) {
   }
 }
 
+function ogInvitationError(error: unknown): string {
+  const code =
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+      ? error.code
+      : "";
+  switch (code) {
+    case "OG_INVITATION_CODE_NOT_FOUND":
+      return "Invitation code not found.";
+    case "OG_INVITATION_CODE_UNAVAILABLE":
+      return "This invitation code has already been used or disabled.";
+    case "OG_INVITATION_ALREADY_BOUND":
+      return "This wallet has already bound an invitation code.";
+    case "OG_INVITATION_SELF_BIND":
+      return "You cannot bind your own invitation code.";
+    case "OG_INVITATION_NOT_ELIGIBLE":
+      return "This campaign account cannot bind an invitation code.";
+    case "OG_INVITATION_BIND_INVALID":
+      return "Enter a valid 16-character invitation code.";
+    default:
+      return "Unable to bind the invitation code. Please try again.";
+  }
+}
+
 const FIRST_TRADE_INCOMPLETE_MESSAGE =
   "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.";
 
@@ -512,23 +536,57 @@ function CampaignCountdown({ endsAt }: { endsAt: string | null }) {
 function CampaignHero({
   activeTab,
   campaignEndsAt,
-  invitationCodes,
+  connected,
+  ogBenefits,
+  onInvitationBound,
   onTabChange,
 }: {
   activeTab: CampaignTab;
   campaignEndsAt: string | null;
-  invitationCodes: OgBenefits["invitationCodes"];
+  connected: boolean;
+  ogBenefits: OgBenefits | null;
+  onInvitationBound: (binding: NonNullable<OgBenefits["invitationBinding"]>) => void;
   onTabChange: (tab: CampaignTab) => void;
 }) {
   const history = useHistory();
   const { copy } = useCampaignCopy();
+  const [invitationCode, setInvitationCode] = useState("");
+  const [invitationError, setInvitationError] = useState<string | null>(null);
+  const [isBindingInvitation, setIsBindingInvitation] = useState(false);
   const isMissions = activeTab === "missions";
   const isLeaderboard = activeTab === "leaderboard";
   const isRewards = activeTab === "rewards";
+  const invitationCodes = ogBenefits?.invitationCodes ?? [];
+  const showOgInvitePanel =
+    connected &&
+    ogBenefits !== null &&
+    (ogBenefits.role === "NORMAL" ||
+      invitationCodes.length > 0 ||
+      ogBenefits.invitationBinding !== null);
+
+  const handleInvitationBind = async () => {
+    const normalized = invitationCode.trim().toLowerCase();
+    if (!/^[abcdefghijkmnopqrstuvwxyz23456789]{16}$/u.test(normalized)) {
+      setInvitationError("Enter a valid 16-character invitation code.");
+      return;
+    }
+    setInvitationError(null);
+    setIsBindingInvitation(true);
+    try {
+      const binding = await bindOgInvitationCode(normalized);
+      setInvitationCode("");
+      helperToast.success("Invitation relation recorded");
+      onInvitationBound(binding);
+    } catch (error) {
+      setInvitationError(ogInvitationError(error));
+    } finally {
+      setIsBindingInvitation(false);
+    }
+  };
 
   return (
     <section
-      className={`${styles.hero} ${isMissions ? styles.missionsHero : ""} ${isLeaderboard ? styles.leaderboardHero : ""} ${isRewards ? styles.rewardsHero : ""} ${invitationCodes.length > 0 ? styles.hasOgInviteCodes : ""}`}
+      className={`${styles.hero} ${isMissions ? styles.missionsHero : ""} ${isLeaderboard ? styles.leaderboardHero : ""} ${isRewards ? styles.rewardsHero : ""} ${showOgInvitePanel ? styles.hasOgInviteCodes : ""}`}
     >
       {isMissions ? (
         <video
@@ -594,7 +652,7 @@ function CampaignHero({
                 <span>OG INVITE CODE</span>
               </div>
               <div className={styles.ogInviteCodeList}>
-                {invitationCodes.map(({ slot, code }, index) => {
+                {invitationCodes.map(({ slot, code, status }, index) => {
                   const isAmber = index === 0;
                   return (
                     <div
@@ -615,18 +673,102 @@ function CampaignHero({
                       <strong>{code.toUpperCase()}</strong>
                       <button
                         type="button"
-                        aria-label={`Copy invitation code ${slot}`}
+                        aria-label={
+                          status === "ACTIVE"
+                            ? `Copy invitation code ${slot}`
+                            : `Invitation code ${slot} ${status.toLowerCase()}`
+                        }
+                        disabled={status !== "ACTIVE"}
                         onClick={() => {
+                          if (status !== "ACTIVE") return;
                           void navigator.clipboard.writeText(code);
                           helperToast.success("Copied");
                         }}
                       >
-                        COPY
+                        {status === "ACTIVE" ? "COPY" : status}
                       </button>
                     </div>
                   );
                 })}
               </div>
+            </div>
+          ) : showOgInvitePanel ? (
+            <div className={styles.ogInviteCodes} aria-label="Bind OG invitation code">
+              <div className={styles.ogInviteHeading}>
+                <img
+                  src="/campaign/og-invite/header-ornament-v2.png"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span>
+                  {ogBenefits?.invitationBinding ? "INVITE CODE BOUND" : "BIND OG INVITE CODE"}
+                </span>
+              </div>
+              {ogBenefits?.invitationBinding ? (
+                <div className={styles.ogInviteBound}>
+                  <img
+                    src="/campaign/og-invite/crystal-blue.png"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <strong>RELATION RECORDED</strong>
+                    <small>Relation recorded only. No OG status or trial funds are granted.</small>
+                  </span>
+                  <span className={styles.ogInviteBoundCheck} aria-label="Bound">
+                    ✓
+                  </span>
+                </div>
+              ) : (
+                <form
+                  className={styles.ogInviteBindForm}
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleInvitationBind();
+                  }}
+                >
+                  <label htmlFor="og-invitation-code">
+                    Enter the invitation code shared by a Rocky OG
+                  </label>
+                  <div className={styles.ogInviteInputRow}>
+                    <img
+                      src="/campaign/og-invite/crystal-amber.png"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="og-invitation-code"
+                      aria-describedby={invitationError ? "og-invitation-error" : undefined}
+                      autoComplete="off"
+                      inputMode="text"
+                      maxLength={16}
+                      placeholder="ENTER 16-DIGIT CODE"
+                      spellCheck={false}
+                      value={invitationCode}
+                      onChange={(event) => {
+                        setInvitationCode(
+                          event.target.value.replace(/[^a-zA-Z0-9]/gu, "").toUpperCase()
+                        );
+                        setInvitationError(null);
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isBindingInvitation || invitationCode.length !== 16}
+                    >
+                      {isBindingInvitation ? "BINDING..." : "BIND"}
+                    </button>
+                  </div>
+                  <small
+                    className={invitationError ? styles.ogInviteBindError : ""}
+                    id={invitationError ? "og-invitation-error" : undefined}
+                    role={invitationError ? "alert" : undefined}
+                  >
+                    {invitationError ??
+                      "Binding only records the invitation relation. It does not grant OG status or trial funds."}
+                  </small>
+                </form>
+              )}
             </div>
           ) : null}
           <CampaignCountdown endsAt={campaignEndsAt} />
@@ -2186,7 +2328,7 @@ export default function SeasonZeroLeaderboardPage() {
   const activeTab = getCampaignTab(location.search);
   const [campaignEndsAt, setCampaignEndsAt] = useState<string | null>(null);
   const [missionRefreshNonce, setMissionRefreshNonce] = useState(0);
-  const [invitationCodes, setInvitationCodes] = useState<OgBenefits["invitationCodes"]>([]);
+  const [ogBenefits, setOgBenefits] = useState<OgBenefits | null>(null);
   const { copy, isTraditionalChinese } = useCampaignCopy();
   const { connected } = useCantonSession();
 
@@ -2207,17 +2349,17 @@ export default function SeasonZeroLeaderboardPage() {
   useEffect(() => {
     let active = true;
     if (!connected) {
-      setInvitationCodes([]);
+      setOgBenefits(null);
       return () => {
         active = false;
       };
     }
     void getOgBenefits()
       .then((benefits) => {
-        if (active) setInvitationCodes(benefits.eligible ? benefits.invitationCodes : []);
+        if (active) setOgBenefits(benefits);
       })
       .catch(() => {
-        if (active) setInvitationCodes([]);
+        if (active) setOgBenefits(null);
       });
     return () => {
       active = false;
@@ -2293,7 +2435,13 @@ export default function SeasonZeroLeaderboardPage() {
         <CampaignHero
           activeTab={activeTab}
           campaignEndsAt={campaignEndsAt}
-          invitationCodes={invitationCodes}
+          connected={connected}
+          ogBenefits={ogBenefits}
+          onInvitationBound={(binding) => {
+            setOgBenefits((current) =>
+              current ? { ...current, invitationBinding: binding } : current
+            );
+          }}
           onTabChange={handleTabChange}
         />
 

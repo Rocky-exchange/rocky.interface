@@ -95,8 +95,13 @@ export type OgBenefits = {
   invitationCodes: Array<{
     slot: number;
     code: string;
-    status: "ACTIVE" | "DISABLED";
+    status: "ACTIVE" | "USED" | "DISABLED";
   }>;
+  invitationBinding: {
+    status: "BOUND";
+    inviterUserId: string;
+    boundAt: string;
+  } | null;
   trialFund: {
     status: "AVAILABLE" | "NOT_ELIGIBLE" | "CLAIMING" | "CLAIMED" | "RETRYABLE";
     amount: string;
@@ -249,6 +254,18 @@ export function getRewards(): Promise<RewardSummary> {
 
 export function getOgBenefits(): Promise<OgBenefits> {
   return activityRequest<OgBenefits>("/v1/me/og-benefits");
+}
+
+export function bindOgInvitationCode(
+  code: string
+): Promise<NonNullable<OgBenefits["invitationBinding"]>> {
+  return activityRequest<NonNullable<OgBenefits["invitationBinding"]>>(
+    "/v1/me/og-benefits/invitation/bind",
+    {
+      method: "POST",
+      body: { code },
+    }
+  );
 }
 
 export function claimOgTrialFund(): Promise<OgBenefits["trialFund"]> {
