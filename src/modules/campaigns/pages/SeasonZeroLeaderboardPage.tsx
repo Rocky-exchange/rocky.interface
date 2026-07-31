@@ -246,12 +246,8 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Total Earned --": "累計獲得 --",
   "Total Referred Users": "推薦用戶總數",
   "Reward Rate": "獎勵比例",
-  "Your Referral Link": "你的推薦連結",
-  "Copy referral link": "複製推薦連結",
-  "Code:": "代碼：",
-  "Copy referral code": "複製推薦代碼",
-  Copied: "已複製",
-  "Copy Link": "複製連結",
+  "OG Invite Codes": "OG 邀請碼",
+  "No invitation codes": "暫無邀請碼",
   "How It Works": "運作方式",
   "Share Your Link": "分享你的連結",
   "Copy and share your unique referral link.": "複製並分享你的專屬推薦連結。",
@@ -2090,11 +2086,10 @@ function RewardInfoTooltip({ ariaLabel, content }: { ariaLabel: string; content:
   );
 }
 
-function MyRewardsContent() {
-  const [copied, setCopied] = useState(false);
+function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
   const [rewards, setRewards] = useState<RewardSummary | null>(null);
-  const referralLink = "Https://xxxxxx.xxxxx.xxx.xxxxxxx";
   const { copy } = useCampaignCopy();
+  const invitationCodes = (ogBenefits?.invitationCodes ?? []).slice(0, 2);
 
   useEffect(() => {
     let active = true;
@@ -2110,11 +2105,6 @@ function MyRewardsContent() {
     };
   }, []);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
-  };
   const totalRewards = rewards?.totalRewards ?? "0";
   const taskRewards = rewards?.taskRewards ?? "0";
   const campaignRewards = rewards?.campaignRewards ?? "0";
@@ -2224,26 +2214,51 @@ function MyRewardsContent() {
           </div>
         </article>
 
-        <article className={`${styles.dashboardCard} ${styles.referralLinkCard}`}>
-          <h3>{copy("Your Referral Link")}</h3>
-          <div className={styles.copyRow}>
-            <span>{referralLink}</span>
-            <button type="button" onClick={handleCopy} aria-label={copy("Copy referral link")}>
-              <img src="/campaign/copy.svg" alt="" aria-hidden="true" />
-            </button>
-          </div>
-          <div className={styles.copyRow}>
-            <span>
-              {copy("Code:")} <strong>GLZ885</strong>
-            </span>
-            <button type="button" onClick={handleCopy} aria-label={copy("Copy referral code")}>
-              <img src="/campaign/copy.svg" alt="" aria-hidden="true" />
-            </button>
-          </div>
-          <button type="button" className={styles.copyButton} onClick={handleCopy}>
-            <img src="/campaign/share.svg" alt="" aria-hidden="true" />
-            {copy(copied ? "Copied" : "Copy Link")}
-          </button>
+        <article
+          className={`${styles.dashboardCard} ${styles.referralLinkCard}`}
+          aria-label="Rewards invitation codes"
+        >
+          <h3>{copy("OG Invite Codes")}</h3>
+          {invitationCodes.length > 0 ? (
+            <div className={styles.rewardInviteCodeList}>
+              {invitationCodes.map(({ slot, code, status }, index) => (
+                <div className={styles.copyRow} key={slot}>
+                  <span className={styles.rewardInviteCodeValue}>
+                    <img
+                      src={
+                        index === 0
+                          ? "/campaign/og-invite/crystal-amber.png"
+                          : "/campaign/og-invite/crystal-blue.png"
+                      }
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    <strong>{code.toUpperCase()}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={status !== "ACTIVE"}
+                    aria-label={
+                      status === "ACTIVE"
+                        ? `Copy invitation code ${slot}`
+                        : `Invitation code ${slot} ${status.toLowerCase()}`
+                    }
+                    onClick={() => {
+                      if (status !== "ACTIVE") return;
+                      void navigator.clipboard.writeText(code);
+                      helperToast.success("Copied");
+                    }}
+                  >
+                    <img src="/campaign/copy.svg" alt="" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.noInvitationCodes} role="status">
+              {copy("No invitation codes")}
+            </div>
+          )}
         </article>
 
         <article className={`${styles.dashboardCard} ${styles.howItWorksCard}`}>
@@ -2473,7 +2488,7 @@ export default function SeasonZeroLeaderboardPage() {
         ) : activeTab === "leaderboard" ? (
           <LeaderboardContent />
         ) : (
-          <MyRewardsContent />
+          <MyRewardsContent ogBenefits={ogBenefits} />
         )}
       </main>
     </div>

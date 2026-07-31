@@ -9,6 +9,7 @@ import {
   claimMission,
   getOgBenefits,
   getMissions,
+  getRewards,
   startWalletBoundDiscordOAuth,
   startMission,
   submitMission,
@@ -133,6 +134,92 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       "/campaign/og-invite/crystal-amber.png",
       "/campaign/og-invite/crystal-blue.png",
     ]);
+  });
+
+  it("shows both authoritative OG invitation codes in the rewards card", async () => {
+    vi.mocked(getRewards).mockResolvedValue({
+      totalRewards: "0",
+      taskRewards: "0",
+      campaignRewards: "0",
+      referralRewards: "0",
+      claimable: "0",
+      ledgerBalance: "0",
+      badge: { status: "eligible", approved: 0, cap: 500 },
+      rPoints: { status: "coming_soon", total: "0" },
+      ccRewards: { status: "coming_soon" },
+    });
+    vi.mocked(getOgBenefits).mockResolvedValueOnce({
+      role: "OG",
+      eligible: true,
+      invitationCodes: [
+        { slot: 1, code: "ambercode2345678", status: "ACTIVE" },
+        { slot: 2, code: "bluecode23456789", status: "ACTIVE" },
+      ],
+      invitationBinding: null,
+      trialFund: {
+        status: "AVAILABLE",
+        amount: "20",
+        bonusAccountId: null,
+        claimedAt: null,
+      },
+    });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0?tab=rewards"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const card = await screen.findByLabelText("Rewards invitation codes");
+    expect(within(card).getByText("AMBERCODE2345678")).not.toBeNull();
+    expect(within(card).getByText("BLUECODE23456789")).not.toBeNull();
+    expect(within(card).getAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(2);
+    expect(within(card).queryByText("Https://xxxxxx.xxxxx.xxx.xxxxxxx")).toBeNull();
+    expect(within(card).queryByText("GLZ885")).toBeNull();
+  });
+
+  it("shows an explicit empty state when the wallet has no invitation codes", async () => {
+    vi.mocked(getRewards).mockResolvedValue({
+      totalRewards: "0",
+      taskRewards: "0",
+      campaignRewards: "0",
+      referralRewards: "0",
+      claimable: "0",
+      ledgerBalance: "0",
+      badge: { status: "not_eligible", approved: 0, cap: 500 },
+      rPoints: { status: "coming_soon", total: "0" },
+      ccRewards: { status: "coming_soon" },
+    });
+    vi.mocked(getOgBenefits).mockResolvedValueOnce({
+      role: "NORMAL",
+      eligible: false,
+      invitationCodes: [],
+      invitationBinding: null,
+      trialFund: {
+        status: "NOT_ELIGIBLE",
+        amount: "20",
+        bonusAccountId: null,
+        claimedAt: null,
+      },
+    });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0?tab=rewards"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const card = await screen.findByLabelText("Rewards invitation codes");
+    expect(within(card).getByText("No invitation codes")).not.toBeNull();
+    expect(within(card).queryAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(0);
   });
 
   it("lets a connected non-OG wallet bind an invitation code and shows the immutable result", async () => {
