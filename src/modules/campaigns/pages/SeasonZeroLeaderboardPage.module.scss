@@ -57,8 +57,8 @@
 }
 
 .hasOgInviteCodes {
-  --campaign-hero-height: clamp(1080px, 78vw, 1160px);
-  --hero-footer-gap: clamp(24px, 2vw, 32px);
+  --campaign-hero-height: clamp(920px, 68vw, 1000px);
+  --hero-footer-gap: clamp(18px, 1.5vw, 24px);
 }
 
 .rewardsHero {
@@ -146,21 +146,21 @@
 .ogInviteCodes {
   position: relative;
   display: grid;
-  width: min(800px, calc(100vw - 48px));
+  width: min(534px, calc(100vw - 40px));
   justify-items: center;
-  padding: 20px 30px 24px;
+  padding: 13px 20px 16px;
   overflow: hidden;
   color: rgba(247, 229, 207, 0.92);
   background:
     linear-gradient(145deg, rgba(32, 23, 16, 0.94), rgba(10, 10, 10, 0.92)) padding-box,
     linear-gradient(105deg, #f6a44f 0%, rgba(242, 190, 127, 0.56) 44%, rgba(154, 215, 250, 0.76) 100%) border-box;
   border: 1px solid transparent;
-  border-radius: 18px;
+  border-radius: 12px;
   box-shadow:
-    -6px 0 20px rgba(246, 164, 79, 0.2),
-    6px 0 20px rgba(154, 215, 250, 0.16),
-    inset 0 0 32px rgba(255, 255, 255, 0.025),
-    0 18px 44px rgba(0, 0, 0, 0.34);
+    -4px 0 14px rgba(246, 164, 79, 0.2),
+    4px 0 14px rgba(154, 215, 250, 0.16),
+    inset 0 0 22px rgba(255, 255, 255, 0.025),
+    0 12px 30px rgba(0, 0, 0, 0.34);
   font-family: "Chakra Petch", Inter, sans-serif;
 }
 
@@ -168,9 +168,9 @@
   position: relative;
   display: grid;
   width: 100%;
-  height: 72px;
+  height: 48px;
   place-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
 }
 
 .ogInviteHeading img {
@@ -188,8 +188,8 @@
   z-index: 0;
   bottom: 0;
   left: 50%;
-  width: min(420px, 62%);
-  height: 34px;
+  width: min(280px, 62%);
+  height: 23px;
   background: radial-gradient(ellipse at center, rgba(21, 17, 14, 0.98) 62%, transparent 76%);
   content: "";
   transform: translateX(-50%);
@@ -198,14 +198,14 @@
 .ogInviteHeading span {
   position: relative;
   z-index: 1;
-  margin-top: 28px;
-  padding: 0 24px;
+  margin-top: 19px;
+  padding: 0 16px;
   color: transparent;
   background: linear-gradient(90deg, #f5bd7d 0%, #eee4d7 48%, #b9ddf2 100%);
   background-clip: text;
-  font-size: clamp(16px, 1.55vw, 21px);
+  font-size: clamp(12px, 1.1vw, 14px);
   font-weight: 600;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.26em;
   white-space: nowrap;
   -webkit-background-clip: text;
 }
@@ -213,20 +213,20 @@
 .ogInviteCodeList {
   display: grid;
   width: 100%;
-  gap: 10px;
+  gap: 7px;
 }
 
 .ogInviteCodeRow {
   display: grid;
   width: 100%;
-  height: 90px;
-  grid-template-columns: 52px 1px minmax(0, 1fr) 112px;
+  height: 60px;
+  grid-template-columns: 35px 1px minmax(0, 1fr) 75px;
   align-items: center;
-  gap: 20px;
-  padding: 0 22px;
+  gap: 13px;
+  padding: 0 15px;
   background: rgba(10, 9, 8, 0.62);
   border: 1px solid;
-  border-radius: 14px;
+  border-radius: 9px;
   transition:
     background 180ms ease,
     border-color 180ms ease,
@@ -254,16 +254,16 @@
 }
 
 .ogInviteCrystal {
-  width: 34px;
-  height: 48px;
+  width: 23px;
+  height: 32px;
   justify-self: center;
   object-fit: contain;
-  filter: drop-shadow(0 0 7px currentColor);
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
 .ogInviteDivider {
   width: 1px;
-  height: 50px;
+  height: 34px;
   background: linear-gradient(180deg, transparent, rgba(241, 222, 197, 0.72), transparent);
 }
 
@@ -271,9 +271,9 @@
   min-width: 0;
   overflow: hidden;
   color: #f7f3ed;
-  font-size: clamp(18px, 1.72vw, 28px);
+  font-size: clamp(13px, 1.15vw, 19px);
   font-weight: 500;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.075em;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -281,18 +281,18 @@
 
 .ogInviteCodeRow button {
   display: grid;
-  width: 112px;
-  height: 52px;
+  width: 75px;
+  height: 35px;
   place-items: center;
   padding: 0;
   background: rgba(13, 12, 11, 0.76);
   border: 1px solid;
-  border-radius: 10px;
+  border-radius: 7px;
   cursor: pointer;
   font-family: "Chakra Petch", Inter, sans-serif;
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -3388,8 +3388,8 @@
   }
 
   .hasOgInviteCodes {
-    --campaign-hero-height: clamp(1040px, 250vw, 1180px);
-    --hero-footer-gap: 18px;
+    --campaign-hero-height: clamp(860px, 220vw, 980px);
+    --hero-footer-gap: 14px;
   }
 
   .leaderboardHero {
@@ -3409,50 +3409,50 @@
   }
 
   .ogInviteCodes {
-    width: min(390px, calc(100vw - 28px));
-    padding: 14px 12px 16px;
-    border-radius: 14px;
-  }
-
-  .ogInviteHeading {
-    height: 58px;
-    margin-bottom: 8px;
-  }
-
-  .ogInviteHeading span {
-    margin-top: 20px;
-    padding-inline: 12px;
-    font-size: 14px;
-    letter-spacing: 0.22em;
-  }
-
-  .ogInviteCodeRow {
-    height: 70px;
-    grid-template-columns: 34px 1px minmax(0, 1fr) 72px;
-    gap: 10px;
-    padding: 0 10px;
+    width: min(356px, calc(100vw - 24px));
+    padding: 10px 9px 11px;
     border-radius: 10px;
   }
 
+  .ogInviteHeading {
+    height: 42px;
+    margin-bottom: 6px;
+  }
+
+  .ogInviteHeading span {
+    margin-top: 14px;
+    padding-inline: 8px;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+  }
+
+  .ogInviteCodeRow {
+    height: 56px;
+    grid-template-columns: 28px 1px minmax(0, 1fr) 64px;
+    gap: 8px;
+    padding: 0 8px;
+    border-radius: 8px;
+  }
+
   .ogInviteCrystal {
-    width: 25px;
-    height: 38px;
+    width: 20px;
+    height: 30px;
   }
 
   .ogInviteDivider {
-    height: 38px;
+    height: 30px;
   }
 
   .ogInviteCodeRow strong {
-    font-size: clamp(12px, 3.8vw, 16px);
-    letter-spacing: 0.055em;
+    font-size: clamp(11px, 3.4vw, 14px);
+    letter-spacing: 0.045em;
   }
 
   .ogInviteCodeRow button {
-    width: 72px;
-    height: 40px;
-    border-radius: 8px;
-    font-size: 12px;
+    width: 64px;
+    height: 34px;
+    border-radius: 6px;
+    font-size: 10px;
   }
 
   .rewardsHero .heroCopy {
