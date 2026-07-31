@@ -259,9 +259,10 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Rocky OG badge": "Rocky OG 徽章",
   "OG Badges · Rare": "OG 徽章 · 稀有",
   Eligible: "符合資格",
+  Ineligible: "不符合資格",
   "Eligible OG users will receive the badge after the activity review.": "符合資格的 OG 用戶將在活動審核後獲得徽章。",
-  "Limited 102/500": "限量 102/500",
-  "Learn More →": "了解更多 →",
+  "Limited 500": "限量 500",
+  "Learn More": "了解更多",
   "CC Rewards": "CC 獎勵",
   "Specific ratios, schedules, and conditions are subject to the final announcement.":
     "具體比例、時程與條件以最終公告為準。",
@@ -611,15 +612,15 @@ function CampaignHero({
         <div className={styles.heroMain}>
           <div className={styles.heroCopy}>
             <h1>{copy(isMissions ? "Rocky First Ascent" : isRewards ? "Rewards Panel" : "Rocky Trading Challenge")}</h1>
-            <p>
-              {copy(
-                isMissions
-                  ? "Earn free R Diamonds · Unlock CC rewards"
-                  : isRewards
-                    ? "Track your R Diamonds, future rewards, and exclusive benefits. More rewards coming soon."
+            {!isRewards ? (
+              <p>
+                {copy(
+                  isMissions
+                    ? "Earn free R Diamonds · Unlock CC rewards"
                     : "Top 50 Traders. Highest Volume. R Diamonds Rewards."
-              )}
-            </p>
+                )}
+              </p>
+            ) : null}
           </div>
 
           {!isRewards ? (
@@ -2112,6 +2113,7 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
   const campaignRewards = rewards?.campaignRewards ?? "0";
   const referralRewards = rewards?.referralRewards ?? "0";
   const claimable = rewards?.claimable ?? "0";
+  const isBadgeEligible = rewards?.badge.status === "eligible" || rewards?.badge.status === "approved";
 
   return (
     <section className={`${styles.content} ${styles.rewardsContent}`}>
@@ -2293,26 +2295,26 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
         <article className={`${styles.dashboardCard} ${styles.badgeCard}`}>
           <h3>{copy("Badges")}</h3>
           <div className={styles.badgeBody}>
-            <span className={styles.badgeArtwork}>
-              <img src="/campaign/og-badge.png" alt={copy("Rocky OG badge")} />
+            <span className={`${styles.badgeArtwork} ${isBadgeEligible ? styles.badgeArtworkEligible : ""}`}>
+              <img
+                src={isBadgeEligible ? "/campaign/og-badge.png" : "/campaign/og-badge-ineligible.png"}
+                alt={copy("Rocky OG badge")}
+              />
               <small>{copy("OG Badges · Rare")}</small>
             </span>
-            <span className={styles.badgeCopy}>
+            <span className={`${styles.badgeCopy} ${isBadgeEligible ? styles.badgeCopyEligible : ""}`}>
               <strong>
-                {copy(
-                  rewards?.badge.status === "eligible" || rewards?.badge.status === "approved"
-                    ? "Eligible"
-                    : "Coming Soon"
-                )}
-                {rewards?.badge.status === "eligible" || rewards?.badge.status === "approved" ? (
+                {copy(isBadgeEligible ? "Eligible" : "Ineligible")}
+                {isBadgeEligible ? (
                   <img src="/campaign/eligible-check.svg" alt="" aria-hidden="true" />
                 ) : null}
               </strong>
               <p>{copy("Eligible OG users will receive the badge after the activity review.")}</p>
-              <em>
-                {copy("Limited")} {rewards?.badge.approved ?? 0}/{rewards?.badge.cap ?? 500}
-              </em>
-              <small>{copy("Learn More →")}</small>
+              <em>{copy("Limited 500")}</em>
+              <span className={styles.badgeLearnMore}>
+                <span>{copy("Learn More")}</span>
+                <img src="/campaign/learn-more-arrow.svg" alt="" aria-hidden="true" />
+              </span>
             </span>
           </div>
         </article>

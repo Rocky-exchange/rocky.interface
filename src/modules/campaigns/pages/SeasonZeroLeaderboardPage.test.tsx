@@ -220,6 +220,11 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     const card = await screen.findByLabelText("Rewards invitation codes");
     expect(within(card).getByText("No invitation codes")).not.toBeNull();
     expect(within(card).queryAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(0);
+    expect(await screen.findByText("Ineligible")).not.toBeNull();
+    expect(screen.getByText("Limited 500")).not.toBeNull();
+    expect(screen.getByAltText("Rocky OG badge").getAttribute("src")).toBe(
+      "/campaign/og-badge-ineligible.png"
+    );
   });
 
   it("refreshes OG benefits after binding and immediately shows both second-level invitation codes", async () => {

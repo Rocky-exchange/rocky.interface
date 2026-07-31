@@ -65,6 +65,16 @@
   --hero-main-start: 61.176%;
 }
 
+.rewardsHero.hasOgInviteCodes .heroFooter {
+  width: 100%;
+  justify-self: stretch;
+  transform: translateY(clamp(-96px, -6vw, -72px));
+}
+
+.rewardsHero.hasOgInviteCodes .ogInviteCodes {
+  justify-self: center;
+}
+
 .heroImage {
   position: absolute;
   display: block;
@@ -2970,6 +2980,7 @@
 
 .pointsCard {
   display: flex;
+  height: 371px;
   min-height: 371px;
   flex: 0 1 460px;
   flex-direction: column;
@@ -2983,27 +2994,31 @@
 .pointsBody {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(0, 1.2fr) minmax(100px, 0.8fr);
-  align-items: center;
-  padding: 6px 24px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  align-items: start;
+  gap: 48px;
+  padding: 14px 24px 0 13px;
 }
 
 .pointsBody > img {
-  width: 100%;
-  height: 230px;
+  width: 190px;
+  height: 190px;
+  mix-blend-mode: lighten;
   object-fit: contain;
 }
 
 .pointsBody > span {
   display: grid;
-  gap: 16px;
+  gap: 24px;
+  margin-top: 47px;
 }
 
 .pointsBody strong {
   color: var(--campaign-primary);
-  font-family: "Chakra Petch", Inter, sans-serif;
+  font-family: Aldrich, "Chakra Petch", Inter, sans-serif;
   font-size: 40px;
   font-weight: 400;
+  line-height: 1;
 }
 
 .comingSoon {
@@ -3015,9 +3030,10 @@
   color: var(--campaign-primary);
   background: rgba(255, 255, 255, 0.04);
   border-top: 1px solid var(--campaign-border);
-  font-family: "Chakra Petch", Inter, sans-serif;
-  font-size: 13px;
+  font-family: Aldrich, "Chakra Petch", Inter, sans-serif;
+  font-size: 14px;
   letter-spacing: 1px;
+  line-height: 22.5px;
   text-transform: uppercase;
 }
 
@@ -3246,38 +3262,47 @@
   height: 320px;
   min-height: 320px;
   flex: 0 1 480px;
-  padding: 20px 24px;
+  padding: 19px;
 }
 
 .badgeBody {
   display: grid;
-  height: 246px;
-  grid-template-columns: 190px 1fr;
-  align-items: center;
-  gap: 20px;
+  grid-template-columns: 180px minmax(0, 240px);
+  align-items: start;
+  gap: 24px;
+  margin-top: 38px;
 }
 
 .badgeArtwork {
   display: grid;
+  width: 180px;
   justify-items: center;
 }
 
 .badgeArtwork img {
-  width: 164px;
-  height: 164px;
+  width: 157px;
+  height: 157px;
   object-fit: contain;
 }
 
 .badgeArtwork small {
-  color: #f5a64a;
-  font-family: "Chakra Petch", Inter, sans-serif;
+  padding: 8px 10px;
+  color: var(--campaign-muted);
+  font-family: Aldrich, "Chakra Petch", Inter, sans-serif;
   font-size: 12px;
   letter-spacing: 1px;
+  line-height: 20px;
   text-transform: uppercase;
+}
+
+.badgeArtworkEligible small {
+  color: #f5a64a;
 }
 
 .badgeCopy {
   display: grid;
+  width: 240px;
+  align-content: start;
   gap: 12px;
 }
 
@@ -3285,14 +3310,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: transparent;
-  background: var(--campaign-gradient);
-  background-clip: text;
-  font-family: "Chakra Petch", Inter, sans-serif;
+  color: var(--campaign-muted);
+  font-family: Aldrich, "Chakra Petch", Inter, sans-serif;
   font-size: 24px;
   font-weight: 400;
   letter-spacing: 1.4px;
+  line-height: 30px;
   text-transform: uppercase;
+}
+
+.badgeCopyEligible > strong {
+  color: transparent;
+  background: var(--campaign-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .badgeCopy > strong img {
@@ -3304,27 +3336,38 @@
   margin: 0;
   color: var(--campaign-muted);
   font-size: 13px;
-  letter-spacing: 1px;
+  letter-spacing: 1.4px;
   line-height: 18px;
 }
 
 .badgeCopy em {
   width: fit-content;
-  padding: 8px 10px;
+  padding: 10px;
   color: #f5a85f;
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid #f5a85f;
-  font-family: "Chakra Petch", Inter, sans-serif;
+  font-family: Aldrich, "Chakra Petch", Inter, sans-serif;
   font-size: 12px;
   font-style: normal;
   letter-spacing: 1px;
+  line-height: 20px;
   text-transform: uppercase;
 }
 
-.badgeCopy small {
+.badgeLearnMore {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--campaign-muted);
-  font-size: 12px;
-  letter-spacing: 1px;
+  font-size: 13px;
+  letter-spacing: 1.4px;
+  line-height: 18px;
   text-transform: uppercase;
+}
+
+.badgeLearnMore img {
+  width: 12px;
+  height: 12px;
 }
 
 .ccCard {
@@ -3344,21 +3387,27 @@
 
 .ccBody {
   display: grid;
-  height: 240px;
-  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1fr);
+  height: 220px;
+  grid-template-columns: 220px 256px;
   align-items: center;
-  gap: 16px;
+  gap: 40px;
+  margin-top: 22px;
+  margin-left: -5px;
 }
 
 .ccBody > img {
-  width: 100%;
-  height: 210px;
+  width: 220px;
+  height: 220px;
+  mix-blend-mode: lighten;
   object-fit: contain;
 }
 
 .ccBody > span {
   display: grid;
+  width: 256px;
+  box-sizing: border-box;
   gap: 12px;
+  padding-inline: 8px;
 }
 
 .ccLine {
@@ -3368,7 +3417,8 @@
   gap: 8px;
   color: var(--campaign-primary);
   font-size: 13px;
-  letter-spacing: 1px;
+  letter-spacing: 1.4px;
+  line-height: 18px;
 }
 
 .ccLine > img {
@@ -3382,7 +3432,7 @@
 }
 
 .ccBody .comingSoon {
-  margin-top: 8px;
+  margin-top: 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -3580,6 +3630,10 @@
 
   .rewardsHero {
     --hero-main-start: 43%;
+  }
+
+  .rewardsHero.hasOgInviteCodes .heroFooter {
+    transform: translateY(-40px);
   }
 
   .heroContent {
@@ -4060,6 +4114,17 @@
 
   .pointsBody {
     grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 6px 24px;
+  }
+
+  .pointsBody > img {
+    width: 100%;
+    height: 230px;
+  }
+
+  .pointsBody > span {
+    margin-top: 0;
   }
 
   .referralsCard,
@@ -4077,10 +4142,27 @@
   }
 
   .badgeBody {
-    padding-top: 20px;
+    margin-top: 20px;
+  }
+
+  .badgeCopy {
+    width: 100%;
   }
 
   .ccBody {
+    gap: 16px;
+    margin-top: 0;
+    margin-left: 0;
     padding-top: 12px;
+  }
+
+  .ccBody > img {
+    width: 100%;
+    height: 210px;
+  }
+
+  .ccBody > span {
+    width: 100%;
+    padding-inline: 0;
   }
 }
