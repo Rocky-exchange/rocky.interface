@@ -1,10 +1,7 @@
 import { submitConsoleWalletTransaction } from "./console";
 import { submitLoopWalletTransaction } from "./loop";
 import { signRockyPreparedTransactionHash } from "./rocky";
-import {
-  submitSendWalletTransaction,
-  type SendCantonTransactionRequest,
-} from "./send";
+import { submitSendWalletTransaction, type SendCantonTransactionRequest } from "./send";
 import { exchangeSessionHeaders } from "./session";
 import type { WalletProviderId } from "./types";
 
@@ -35,14 +32,14 @@ type PreparedMemberAuth = {
 };
 
 const authorizedParties = new Set<string>();
-const inFlight = new Map<string, Promise<void>>();
+const inFlight = new Map<string, Promise<boolean>>();
 const STATUS_RETRIES = 6;
 const STATUS_RETRY_DELAY_MS = 400;
 
 export async function ensureSpotMemberAuth(input: {
   provider: WalletProviderId | "";
   party: string;
-}): Promise<void> {
+}): Promise<boolean> {
   if (
     input.provider !== "rocky" &&
     input.provider !== "loop" &&
@@ -54,13 +51,14 @@ export async function ensureSpotMemberAuth(input: {
   const party = input.party.trim();
   if (!party) throw new Error("Connected wallet did not provide a Canton party");
   const cacheKey = `${input.provider}:${party}`;
-  if (authorizedParties.has(cacheKey)) return;
+  if (authorizedParties.has(cacheKey)) return false;
 
   const existing = inFlight.get(cacheKey);
   if (existing) return existing;
   const request = authorize(input.provider, party)
-    .then(() => {
+    .then((newlyAuthorized) => {
       authorizedParties.add(cacheKey);
+      return newlyAuthorized;
     })
     .finally(() => {
       inFlight.delete(cacheKey);
@@ -69,20 +67,14 @@ export async function ensureSpotMemberAuth(input: {
   return request;
 }
 
-async function authorize(
-  provider: "rocky" | "loop" | "console" | "send",
-  party: string,
-): Promise<void> {
+async function authorize(provider: "rocky" | "loop" | "console" | "send", party: string): Promise<boolean> {
   const current = await request<MemberAuthState>("/v1/spot-chain/member-auth");
   assertParty(current, party);
-  if (current.authorized) return;
+  if (current.authorized) return false;
 
-  const proposal = await request<MemberAuthProposal>(
-    "/v1/spot-chain/member-auth/proposal",
-    { method: "POST" },
-  );
+  const proposal = await request<MemberAuthProposal>("/v1/spot-chain/member-auth/proposal", { method: "POST" });
   assertParty(proposal, party);
-  if (proposal.authorized) return;
+  if (proposal.authorized) return false;
 
   if (provider === "rocky") {
     await authorizeRocky(party);
@@ -103,28 +95,19 @@ async function authorize(
   for (let attempt = 0; attempt < STATUS_RETRIES; attempt += 1) {
     const status = await request<MemberAuthState>("/v1/spot-chain/member-auth");
     assertParty(status, party);
-    if (status.authorized) return;
+    if (status.authorized) return true;
     await delay(STATUS_RETRY_DELAY_MS);
   }
   throw new Error("Spot settlement authorization was signed but is not active yet");
 }
 
 async function authorizeRocky(party: string): Promise<void> {
-  const prepared = await request<PreparedMemberAuth>(
-    "/v1/spot-chain/member-auth/prepare",
-    { method: "POST" },
-  );
-  const signature = await signRockyPreparedTransactionHash(
-    prepared.preparedTransactionHash,
-    party,
-  );
-  const status = await request<MemberAuthState>(
-    "/v1/spot-chain/member-auth/execute",
-    {
-      method: "POST",
-      body: JSON.stringify({ signature }),
-    },
-  );
+  const prepared = await request<PreparedMemberAuth>("/v1/spot-chain/member-auth/prepare", { method: "POST" });
+  const signature = await signRockyPreparedTransactionHash(prepared.preparedTransactionHash, party);
+  const status = await request<MemberAuthState>("/v1/spot-chain/member-auth/execute", {
+    method: "POST",
+    body: JSON.stringify({ signature }),
+  });
   assertParty(status, party);
   if (!status.authorized) {
     throw new Error("Rocky Wallet authorization did not create MemberAuth");

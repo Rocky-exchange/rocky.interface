@@ -3,9 +3,12 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { SpotOrderForm } from "./OrderForm";
 import { spotApi, type Account, type SpotOrder, SpotApiError } from "../../api/spotClient";
+import { swapApi, type SwapOrder } from "../../api/swapClient";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
 import { renderWithI18n as render } from "../../test/renderWithI18n";
@@ -13,6 +16,8 @@ import { renderWithI18n as render } from "../../test/renderWithI18n";
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
   openCantonConnect: vi.fn(),
 }));
+vi.mock("@/shared/lib/canton-wallet/memberAuth", () => ({ ensureSpotMemberAuth: vi.fn() }));
+vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({ useCantonSession: vi.fn() }));
 vi.mock("../../hooks/useSpotAccount", () => ({
   useSpotAccount: vi.fn(),
 }));
@@ -25,10 +30,18 @@ vi.mock("../../api/spotClient", async () => {
     },
   };
 });
+vi.mock("../../api/swapClient", async () => {
+  const actual = await vi.importActual<typeof import("../../api/swapClient")>("../../api/swapClient");
+  return { ...actual, swapApi: { create: vi.fn(), get: vi.fn() } };
+});
 
 const mUseSpotAccount = vi.mocked(useSpotAccount);
 const mPlace = vi.mocked(spotApi.placeOrder);
 const mConnect = vi.mocked(openCantonConnect);
+const mEnsureMemberAuth = vi.mocked(ensureSpotMemberAuth);
+const mUseCantonSession = vi.mocked(useCantonSession);
+const mCreateSwap = vi.mocked(swapApi.create);
+const mGetSwap = vi.mocked(swapApi.get);
 const market = resolveSpotMarket("CBTC-CUSD");
 const cethMarket = resolveSpotMarket("CETH-CUSD");
 const refetch = vi.fn();
@@ -89,6 +102,30 @@ afterEach(() => {
 
 beforeEach(() => {
   readyAccount();
+  mUseCantonSession.mockReturnValue({
+    connected: true,
+    locked: false,
+    token: "token",
+    party: "party-alice",
+    username: "Alice",
+    avatar: "",
+    provider: "rocky",
+  });
+  mEnsureMemberAuth.mockResolvedValue(false);
+  const swap: SwapOrder = {
+    swapId: "019fswap1234567890",
+    clientSwapId: "client-swap",
+    symbol: market.apiSymbol,
+    side: "BUY",
+    requestedBase: "0.1",
+    acceptedBase: "0.1",
+    slippageBps: 100,
+    referencePrice: "65000",
+    protectionPrice: "65650",
+    status: "MATCHING",
+  };
+  mCreateSwap.mockResolvedValue(swap);
+  mGetSwap.mockResolvedValue(swap);
 });
 
 describe("SpotOrderForm", () => {
@@ -126,18 +163,39 @@ describe("SpotOrderForm", () => {
     expect(marketType.getAttribute("aria-selected")).toBe("false");
   });
 
-  it("keeps Swap isolated from spot order submission until its API is available", () => {
+  it("renders Swap as a wallet product that consumes live spot depth", () => {
     const view = render(<SpotOrderForm market={market} />);
 
     fireEvent.click(view.getByRole("tab", { name: "Swap" }));
 
-    expect(view.queryByRole("tablist", { name: "Order side" })).toBeNull();
+    expect(view.getByRole("tablist", { name: "Swap side" })).toBeTruthy();
     expect(view.getByText("Swap directly from your wallet")).toBeTruthy();
     expect(view.getByText("CUSD")).toBeTruthy();
-    expect(view.getByText("CBTC")).toBeTruthy();
-    expect(view.getByText("Swap does not use your Exchange spot balance or create a spot order.")).toBeTruthy();
-    expect((view.getByRole("button", { name: "Swap service unavailable" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(view.getAllByText("CBTC").length).toBeGreaterThan(0);
+    expect(view.getByText(/actual fills update trades, volume, and candles/)).toBeTruthy();
+    expect((view.getByRole("button", { name: /Swap to buy CBTC/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(mPlace).not.toHaveBeenCalled();
+  });
+
+  it("requires a second confirmation after first-use wallet authorization", async () => {
+    mEnsureMemberAuth.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.1" } });
+
+    fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
+    await waitFor(() => expect(mEnsureMemberAuth).toHaveBeenCalledTimes(1));
+    expect(mCreateSwap).not.toHaveBeenCalled();
+    expect(view.getByText(/Review the refreshed market and confirm Swap again/)).toBeTruthy();
+
+    fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
+    await waitFor(() => expect(mCreateSwap).toHaveBeenCalledTimes(1));
+    expect(mCreateSwap.mock.calls[0][0]).toMatchObject({
+      symbol: market.apiSymbol,
+      side: "BUY",
+      amount: "0.1",
+      slippageBps: 100,
+    });
   });
 
   it("uses roving focus and arrow keys across the Buy and Sell tabs", () => {

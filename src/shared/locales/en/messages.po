@@ -166,6 +166,10 @@ msgstr "The mark price has changed, consider increasing your allowed slippage by
 msgid "Letters, numbers, and hyphens only. Minimum 4 characters."
 msgstr "Letters, numbers, and hyphens only. Minimum 4 characters."
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap to sell"
+msgstr "Swap to sell"
+
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
 msgid "@username"
 msgstr "@username"
@@ -623,6 +627,10 @@ msgstr "⚠️ {0}"
 msgid "This withdraw request has already been processed."
 msgstr "This withdraw request has already been processed."
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "You receive"
+msgstr "You receive"
+
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
@@ -899,6 +907,10 @@ msgstr "Selected leverage exceeds the market cap. Lower leverage and retry."
 msgid "No open position, order cannot be executed unless a position is opened"
 msgstr "No open position, order cannot be executed unless a position is opened"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap failed"
+msgstr "Swap failed"
+
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
@@ -928,6 +940,7 @@ msgstr "View All History"
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
@@ -1115,6 +1128,10 @@ msgstr "Max number of parts: {MAX_TWAP_NUMBER_OF_PARTS}"
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 msgstr "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update."
+msgstr "Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update."
 
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "01 / CLAIM"
@@ -1509,6 +1526,10 @@ msgstr "Could not save name. Try again."
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Withdraw authorization expired. Please request a new one."
 msgstr "Withdraw authorization expired. Please request a new one."
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap submitted"
+msgstr "Swap submitted"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Expired"
@@ -1920,6 +1941,10 @@ msgstr "Cross Margin Ratio"
 msgid "Insufficient {0} balance to pay for gas"
 msgstr "Insufficient {0} balance to pay for gas"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap processing"
+msgstr "Swap processing"
+
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Withdrawing will first recall unlocked trial funds."
 msgstr "Withdrawing will first recall unlocked trial funds."
@@ -1936,6 +1961,11 @@ msgstr "Total available"
 msgid "PnL Analysis"
 msgstr "PnL Analysis"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Max slippage"
+msgstr "Max slippage"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sending…"
 msgstr "Sending…"
@@ -2102,6 +2132,10 @@ msgstr "SL - Long Dec."
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Unlock"
 msgstr "Unlock"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "You pay"
+msgstr "You pay"
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
@@ -2825,6 +2859,7 @@ msgstr "Copy"
 #: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -3151,6 +3186,10 @@ msgstr "Date"
 msgid "Trigger Price"
 msgstr "Trigger Price"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap directly from your wallet"
+msgstr "Swap directly from your wallet"
+
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 msgid "Showing saved attribution history while the latest refresh is unavailable."
 msgstr "Showing saved attribution history while the latest refresh is unavailable."
@@ -3177,6 +3216,10 @@ msgstr "Transfer amount"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Page outdated, please refresh"
 msgstr "Page outdated, please refresh"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Onchain atomic swap"
+msgstr "Onchain atomic swap"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Withdraw"
@@ -3252,6 +3295,10 @@ msgstr "Qty"
 #: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Raw Prices"
 msgstr "Raw Prices"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap to buy"
+msgstr "Swap to buy"
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Place Limit Short"
@@ -3379,6 +3426,7 @@ msgstr "Yearly Funding Rate"
 msgid "Order size is bigger than position, will only be executable if position increases"
 msgstr "Order size is bigger than position, will only be executable if position increases"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Buy"
 msgstr "Buy"
@@ -3518,6 +3566,10 @@ msgstr "Entry Price"
 msgid "Show Fewer Deposits"
 msgstr "Show Fewer Deposits"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap confirmed"
+msgstr "Swap confirmed"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Loss"
 msgstr "Cancel Stop Loss"
@@ -3562,6 +3614,10 @@ msgstr "Save"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Stop Loss"
 msgstr "Failed Stop Loss"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Wallet authorization completed. Review the refreshed market and confirm Swap again."
+msgstr "Wallet authorization completed. Review the refreshed market and confirm Swap again."
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Balance unavailable."
@@ -3625,6 +3681,10 @@ msgstr "Limit - Long Inc."
 msgid "Chain transfer submitted. Exchange balance is still confirming."
 msgstr "Chain transfer submitted. Exchange balance is still confirming."
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "To your wallet"
+msgstr "To your wallet"
+
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
@@ -3636,6 +3696,10 @@ msgstr "Order Book"
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Weekly Funding Rate"
 msgstr "Weekly Funding Rate"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap"
+msgstr "Swap"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "long"
@@ -3778,6 +3842,7 @@ msgid "24H VOL."
 msgstr "24H VOL."
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sell"
 msgstr "Sell"
 
@@ -3834,6 +3899,10 @@ msgstr "Maintenance Margin"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Deposit"
 msgstr "Request Deposit"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Your wallet"
+msgstr "Your wallet"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/spot/components/Chart/SpotChart.tsx
@@ -3941,6 +4010,10 @@ msgstr "You have already bound a referral code."
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"
 msgstr "Filled"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances; actual fills update trades, volume, and candles."
+msgstr "Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances; actual fills update trades, volume, and candles."
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sell order submitted"
