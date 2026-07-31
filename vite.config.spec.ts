@@ -1,5 +1,5 @@
 import type { ConfigEnv, UserConfig } from "vite";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import configExport from "./vite.config";
 
@@ -34,6 +34,24 @@ describe("Vite development proxy", () => {
     expect(agent).toBeDefined();
     expect((agent as { options?: { maxVersion?: string } }).options?.maxVersion).toBe("TLSv1.2");
     expect((agent as { options?: { keepAlive?: boolean } }).options?.keepAlive).toBe(true);
+  });
+
+  it("does not forward the localhost Origin header to the activity backend", async () => {
+    const config = await resolveConfig();
+    const activityProxy = config.server?.proxy?.["/external-active"];
+    const removeHeader = vi.fn();
+    const proxy = {
+      on: vi.fn((event: string, listener: (request: { removeHeader: (name: string) => void }) => void) => {
+        if (event === "proxyReq") listener({ removeHeader });
+      }),
+    };
+
+    expect(typeof activityProxy).toBe("object");
+    if (typeof activityProxy === "object") {
+      activityProxy.configure?.(proxy as never, {} as never);
+    }
+
+    expect(removeHeader).toHaveBeenCalledWith("origin");
   });
 });
 

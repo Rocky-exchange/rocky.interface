@@ -73,6 +73,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: true,
           agent: upstreamAgent,
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyRequest) => {
+              // The browser request is same-origin with Vite. Forwarding its
+              // localhost Origin makes the production activity backend treat
+              // the server-side proxy hop as a disallowed cross-origin call.
+              proxyRequest.removeHeader("origin");
+            });
+          },
         },
       },
     },
