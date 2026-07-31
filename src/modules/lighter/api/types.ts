@@ -282,6 +282,8 @@ export interface Position {
   entry_price: string;
   mark_price: string;
   liquidation_price?: string;
+  /** Cumulative funding received on this symbol (negative = paid). */
+  funding?: string;
   unrealized_pnl: string;
   unrealized_pnl_percent?: string; // API may return this
   realized_pnl?: string;

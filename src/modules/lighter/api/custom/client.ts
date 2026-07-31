@@ -944,6 +944,12 @@ type RockyPositionRow = {
   // unset or already fired).
   take_profit_price?: string | null;
   stop_loss_price?: string | null;
+  /** Isolated-margin liquidation-price estimate from the backend. */
+  liquidation_price?: string | null;
+  /** Cumulative funding received on this symbol (negative = paid). */
+  funding?: string | null;
+  /** Leverage the position is actually margined at. */
+  leverage?: number | null;
 };
 
 type RockyOrderRow = {
@@ -963,6 +969,8 @@ type RockyTradeRow = {
   price: string;
   qty: string;
   fee: string;
+  /** Realized PnL for reducing/flipping fills (null/absent = pure open). */
+  realized_pnl?: string | null;
   ts: string;
 };
 
@@ -993,8 +1001,11 @@ function normalizePosition(position: Position | RockyPositionRow, liveMarkPrice?
     unrealized_pnl_percent: unrealizedPnlPercent.toFixed(),
     realized_pnl: position.realized_pnl,
     collateral_amount: position.locked_margin,
-    leverage: 10,
+    // Was hardcoded to 10, so a 100x position rendered a "10x" badge.
+    leverage: position.leverage ?? 10,
     margin_ratio: "0",
+    liquidation_price: position.liquidation_price ?? undefined,
+    funding: position.funding ?? undefined,
     take_profit_price: position.take_profit_price ?? null,
     stop_loss_price: position.stop_loss_price ?? null,
     created_at: 0,
@@ -1039,6 +1050,7 @@ function normalizeTrade(trade: Trade | RockyTradeRow): Trade {
     created_at: trade.ts,
     executed_at: trade.ts,
     fee: trade.fee,
+    realized_pnl: trade.realized_pnl ?? undefined,
   };
 }
 

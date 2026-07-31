@@ -56,7 +56,7 @@ function toPosition(position: Position): LighterPosition {
     unrealizedPnl: parseNumber(position.unrealized_pnl),
     unrealizedPnlPct: Number.isFinite(pnlPercent) ? pnlPercent * 100 : null,
     margin: parseNumber(position.collateral_amount || position.margin),
-    funding: null,
+    funding: position.funding != null ? parseNumber(position.funding) : null,
     takeProfit: position.take_profit_price ? parseNumber(position.take_profit_price) : null,
     stopLoss: position.stop_loss_price ? parseNumber(position.stop_loss_price) : null,
   };
