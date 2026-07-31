@@ -966,10 +966,6 @@
   width: 136px;
 }
 
-.historyDetailsColumn {
-  width: 54px;
-}
-
 .historyTime {
   span {
     display: block;
@@ -1025,39 +1021,6 @@
 
 .historyPositive {
   color: #74c79e;
-}
-
-.historyRowSelected {
-  background: rgba(216, 154, 80, 0.08);
-}
-
-.historyDetailsButton {
-  display: inline-flex;
-  width: 18px;
-  height: 18px;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  color: var(--bonus-gold-bright);
-  background: rgba(216, 154, 80, 0.05);
-  border: 1px solid rgba(216, 154, 80, 0.44);
-  border-radius: 50%;
-  cursor: pointer;
-
-  svg {
-    width: 9px;
-    height: 9px;
-  }
-
-  &:hover,
-  &[aria-pressed="true"] {
-    background: rgba(216, 154, 80, 0.16);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #b0d6ea;
-    outline-offset: 1px;
-  }
 }
 
 .historyEmpty {

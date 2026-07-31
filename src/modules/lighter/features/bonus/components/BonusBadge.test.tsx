@@ -336,6 +336,8 @@ describe("TopNav bonus placement", () => {
     expect(screen.getByText("$1.2345")).not.toBeNull();
     expect(screen.getByText("-$13.5801")).not.toBeNull();
     expect(screen.getByRole("table", { name: "Trial funds usage history records" })).not.toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Details" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "View attribution record details" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Back to overview" }));
     expect(screen.getByRole("dialog", { name: "Trial funds overview" })).not.toBeNull();

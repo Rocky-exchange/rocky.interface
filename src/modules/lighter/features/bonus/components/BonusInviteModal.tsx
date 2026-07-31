@@ -397,7 +397,6 @@ function BonusAttributionHistory({
   const history = useBonusHistory(HISTORY_FETCH_SIZE);
   const [eventType, setEventType] = useState<AttributionFilter>("all");
   const [search, setSearch] = useState("");
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [exportReady, setExportReady] = useState(false);
 
@@ -424,7 +423,6 @@ function BonusAttributionHistory({
   const hasActiveFilter = eventType !== "all" || Boolean(normalizedSearch);
   const canLoadRemotePage = !hasActiveFilter && history.hasMore;
   const canGoNext = page < localPageCount || canLoadRemotePage;
-  const selectedRecord = history.rows.find((row) => row.id === selectedRecordId);
   const dateRange = formatHistoryDateRange(history.rows);
   const principalAttributed = sumHistoryValue(history.rows, "principal_share");
   const trialAttributed = status?.bonus_consumed_total ?? sumHistoryValue(history.rows, "bonus_share");
@@ -483,7 +481,6 @@ function BonusAttributionHistory({
             aria-label={t`Event type`}
             onChange={(event) => {
               setEventType(event.target.value as AttributionFilter);
-              setSelectedRecordId(null);
               setPage(1);
             }}
           >
@@ -503,7 +500,6 @@ function BonusAttributionHistory({
             placeholder={t`Search event, source, or rule`}
             onChange={(event) => {
               setSearch(event.target.value);
-              setSelectedRecordId(null);
               setPage(1);
             }}
           />
@@ -537,7 +533,6 @@ function BonusAttributionHistory({
             <col />
             <col />
             <col />
-            <col className={styles.historyDetailsColumn} />
           </colgroup>
           <thead>
             <tr>
@@ -556,9 +551,6 @@ function BonusAttributionHistory({
               <th scope="col">
                 <Trans>Trial funds (USD)</Trans>
               </th>
-              <th scope="col">
-                <Trans>Details</Trans>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -571,7 +563,7 @@ function BonusAttributionHistory({
                   ? styles.historyPositive
                   : styles.historyNegative;
               return (
-                <tr key={record.id} className={selectedRecordId === record.id ? styles.historyRowSelected : undefined}>
+                <tr key={record.id}>
                   <td className={styles.historyTime}>
                     <span>{timestamp.date}</span>
                     <span>{timestamp.time}</span>
@@ -585,29 +577,18 @@ function BonusAttributionHistory({
                   <td className={amountClass}>{formatHistoryAmount(record.total_cost, record.event_type)}</td>
                   <td>{formatHistoryAmount(record.principal_share, record.event_type)}</td>
                   <td className={amountClass}>{formatHistoryAmount(record.bonus_share, record.event_type)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className={styles.historyDetailsButton}
-                      aria-label={t`View attribution record details`}
-                      aria-pressed={selectedRecordId === record.id}
-                      onClick={() => setSelectedRecordId((currentId) => (currentId === record.id ? null : record.id))}
-                    >
-                      <InfoIcon aria-hidden="true" />
-                    </button>
-                  </td>
                 </tr>
               );
             })}
             {history.isLoading && visibleRecords.length === 0 ? (
               <tr>
-                <td className={styles.historyEmpty} colSpan={6} role="status">
+                <td className={styles.historyEmpty} colSpan={5} role="status">
                   <Trans>Loading attribution history…</Trans>
                 </td>
               </tr>
             ) : history.error && history.rows.length === 0 ? (
               <tr>
-                <td className={styles.historyEmpty} colSpan={6} role="alert">
+                <td className={styles.historyEmpty} colSpan={5} role="alert">
                   <Trans>Unable to load attribution history.</Trans>{" "}
                   <button type="button" className={styles.inlineRetry} onClick={() => void history.refresh()}>
                     <Trans>Retry</Trans>
@@ -616,7 +597,7 @@ function BonusAttributionHistory({
               </tr>
             ) : visibleRecords.length === 0 ? (
               <tr>
-                <td className={styles.historyEmpty} colSpan={6}>
+                <td className={styles.historyEmpty} colSpan={5}>
                   {history.rows.length ? (
                     <Trans>No matching records.</Trans>
                   ) : (
@@ -635,11 +616,6 @@ function BonusAttributionHistory({
           <span>
             {exportReady ? (
               <Trans>Exported the currently loaded attribution records.</Trans>
-            ) : selectedRecord ? (
-              <>
-                <Trans>Attribution rule: {selectedRecord.attribution_rule}</Trans>
-                {getHistorySourceDetails(selectedRecord) ? ` · ${getHistorySourceDetails(selectedRecord)}` : ""}
-              </>
             ) : history.error && history.rows.length > 0 ? (
               <Trans>Showing loaded records while the latest history request is unavailable.</Trans>
             ) : (
@@ -788,12 +764,6 @@ function getHistorySource(row: BonusHistoryRow): string {
   if (row.source_trade_id) return shortId(row.source_trade_id);
   if (row.source_funding_id) return shortId(row.source_funding_id);
   return row.attribution_rule || "—";
-}
-
-function getHistorySourceDetails(row: BonusHistoryRow): string {
-  if (row.source_trade_id) return row.source_trade_id;
-  if (row.source_funding_id) return row.source_funding_id;
-  return "";
 }
 
 function shortId(value: string): string {
