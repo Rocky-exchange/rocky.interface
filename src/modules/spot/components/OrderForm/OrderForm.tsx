@@ -4,8 +4,6 @@ import BigNumber from "bignumber.js";
 import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
-import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
-import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./OrderForm.module.scss";
 import { calculateOrderSummary, quantityForPercent } from "./orderFormMath";
@@ -73,7 +71,6 @@ function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | 
 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { i18n } = useLingui();
-  const { party, provider } = useCantonSession();
   const { ready, account, err: accountError, refetch } = useSpotAccount();
   const precisions = useSpotAssetPrecisions();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
@@ -214,8 +211,6 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setBusy(true);
     setMsg(null);
     try {
-      await ensureSpotMemberAuth({ party, provider });
-      if (!isCurrentSession()) return;
       const response = await spotApi.placeOrder({
         symbol: market.apiSymbol,
         side,
