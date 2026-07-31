@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   claimMission,
+  getOgBenefits,
   getMissions,
   startWalletBoundDiscordOAuth,
   startMission,
@@ -87,6 +88,47 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     vi.clearAllMocks();
     i18n.load("en", {});
     i18n.activate("en");
+  });
+
+  it("renders OG invitation codes with generated ornament and crystal artwork", async () => {
+    vi.mocked(getMissions).mockResolvedValue({
+      missions: [{ key: "BIND_X", state: "claimed", title: "Bind X", reward: "0" }],
+      progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
+    });
+    vi.mocked(getOgBenefits).mockResolvedValueOnce({
+      role: "OG",
+      eligible: true,
+      invitationCodes: [
+        { slot: 1, code: "AMBER-CODE", status: "ACTIVE" },
+        { slot: 2, code: "BLUE-CODE", status: "ACTIVE" },
+      ],
+      trialFund: {
+        status: "AVAILABLE",
+        amount: "20",
+        bonusAccountId: null,
+        claimedAt: null,
+      },
+    });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const region = await screen.findByLabelText("OG invitation codes");
+    expect(within(region).getAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(2);
+    expect(
+      Array.from(region.querySelectorAll("img")).map((image) => image.getAttribute("src")),
+    ).toEqual([
+      "/campaign/og-invite/header-ornament-v2.png",
+      "/campaign/og-invite/crystal-amber.png",
+      "/campaign/og-invite/crystal-blue.png",
+    ]);
   });
 
   it("keeps X authorization disabled until the authoritative mission state is loaded", async () => {

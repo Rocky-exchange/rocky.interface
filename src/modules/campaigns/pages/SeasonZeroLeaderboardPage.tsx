@@ -585,21 +585,47 @@ function CampaignHero({
         <div className={styles.heroFooter}>
           {invitationCodes.length > 0 ? (
             <div className={styles.ogInviteCodes} aria-label="OG invitation codes">
-              <span>OG INVITE CODE</span>
-              <div>
-                {invitationCodes.map(({ slot, code }) => (
-                  <button
-                    type="button"
-                    key={slot}
-                    onClick={() => {
-                      void navigator.clipboard.writeText(code);
-                      helperToast.success("Copied");
-                    }}
-                  >
-                    <strong>{code.toUpperCase()}</strong>
-                    <small>COPY</small>
-                  </button>
-                ))}
+              <div className={styles.ogInviteHeading}>
+                <img
+                  src="/campaign/og-invite/header-ornament-v2.png"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span>OG INVITE CODE</span>
+              </div>
+              <div className={styles.ogInviteCodeList}>
+                {invitationCodes.map(({ slot, code }, index) => {
+                  const isAmber = index === 0;
+                  return (
+                    <div
+                      className={`${styles.ogInviteCodeRow} ${isAmber ? styles.ogInviteCodeAmber : styles.ogInviteCodeBlue}`}
+                      key={slot}
+                    >
+                      <img
+                        className={styles.ogInviteCrystal}
+                        src={
+                          isAmber
+                            ? "/campaign/og-invite/crystal-amber.png"
+                            : "/campaign/og-invite/crystal-blue.png"
+                        }
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      <span className={styles.ogInviteDivider} aria-hidden="true" />
+                      <strong>{code.toUpperCase()}</strong>
+                      <button
+                        type="button"
+                        aria-label={`Copy invitation code ${slot}`}
+                        onClick={() => {
+                          void navigator.clipboard.writeText(code);
+                          helperToast.success("Copied");
+                        }}
+                      >
+                        COPY
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : null}
