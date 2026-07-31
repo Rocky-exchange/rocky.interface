@@ -77,7 +77,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
         if (active) setBenefits(result);
       })
       .catch(() => {
-        if (active) setFeedback("Unable to check eligibility. Please try again.");
+        if (active) setFeedback(t`Unable to check eligibility. Please try again.`);
       })
       .finally(() => {
         if (active) setBenefitsLoading(false);
@@ -90,11 +90,11 @@ export function BonusInviteModal({ open, onClose }: Props) {
   const handleClaim = async () => {
     if (pendingRef.current) return;
     if (!session.connected) {
-      setFeedback("Connect your wallet to continue.");
+      setFeedback(t`Connect your wallet to continue.`);
       return;
     }
     if (!benefits?.eligible) {
-      setFeedback("暂无资格");
+      setFeedback(t`Not eligible`);
       return;
     }
 
@@ -110,7 +110,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
       if (openRef.current && attemptRef.current === attempt) setViewOverride("overview");
     } catch (error) {
       if (openRef.current && attemptRef.current === attempt) {
-        setFeedback(error instanceof Error ? error.message : "Claim failed. Please try again.");
+        setFeedback(error instanceof Error ? error.message : t`Claim failed. Please try again.`);
       }
     } finally {
       if (attemptRef.current === attempt) {
@@ -176,7 +176,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
                 <span><Trans>TRIAL FUNDS</Trans></span>
                 <strong>20U</strong>
                 <small>
-                  {benefits?.eligible ? <Trans>OG ELIGIBLE</Trans> : <Trans>暂无资格</Trans>}
+                  {benefits?.eligible ? <Trans>OG ELIGIBLE</Trans> : <Trans>Not eligible</Trans>}
                 </small>
               </div>
               {!session.connected ? (
@@ -190,7 +190,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
                 onClick={() => void handleClaim()}
                 disabled={!session.connected || pending || benefitsLoading || !benefits?.eligible}
               >
-                {pending ? <Trans>Claiming…</Trans> : benefits?.eligible ? <Trans>Claim 20U</Trans> : <Trans>暂无资格</Trans>}
+                {pending ? <Trans>Claiming…</Trans> : benefits?.eligible ? <Trans>Claim 20U</Trans> : <Trans>Not eligible</Trans>}
                 <ArrowRightIcon className={styles.submitIcon} aria-hidden="true" />
               </button>
               <div className={styles.feedback} aria-live="polite">

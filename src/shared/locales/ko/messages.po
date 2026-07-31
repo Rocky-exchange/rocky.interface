@@ -539,10 +539,6 @@ msgstr ""
 msgid "Technically, net price impact breaks down into stored price impact (for increase orders) and close price impact (for decrease orders). This setting shows both in the net value tooltip and close modal execution details, plus the stored price impact for increase orders."
 msgstr ""
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Bind now"
-msgstr ""
-
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
@@ -631,6 +627,10 @@ msgstr ""
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 msgid "Gain"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Connect your wallet to continue."
 msgstr ""
 
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
@@ -740,10 +740,6 @@ msgstr "마켓 감소 실패"
 msgid "Mark price for the order."
 msgstr "주문을 위한 마크 가격"
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Attribution rule: {0}"
-msgstr ""
-
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 msgid "Max Slippage (%)"
@@ -850,6 +846,10 @@ msgstr ""
 msgid "Price Steps:"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "TRIAL FUNDS"
+msgstr ""
+
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Place Short"
 msgstr ""
@@ -950,7 +950,6 @@ msgstr ""
 msgid "Close All"
 msgstr ""
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "Connect your wallet before redeeming."
 msgstr ""
@@ -1159,13 +1158,13 @@ msgstr "TWAP 부분 실행"
 msgid "Export"
 msgstr ""
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Each invitation code can only be bound once. Trial funds are valid for seven days."
-msgstr ""
-
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Close wallet dashboard"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Unable to check eligibility. Please try again."
 msgstr ""
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/swap.ts
@@ -1317,7 +1316,6 @@ msgstr ""
 msgid "Trigger price above highest limit price"
 msgstr "트리거 가격이 최고 지정가 가격 초과"
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "Enter at least 4 characters."
 msgstr ""
@@ -1721,6 +1719,10 @@ msgstr ""
 msgid "Withdraw"
 msgstr "인출"
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Each eligible OG user can claim trial funds once. Trial funds are valid for seven days."
+msgstr ""
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Update Stop Market"
 msgstr "스탑 마켓 업데이트"
@@ -1734,12 +1736,13 @@ msgid "Canton"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "View attribution record details"
+msgid "Claim failed. Please try again."
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TradeHistoryTab.tsx
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Fee"
 msgstr "수수료"
@@ -1810,6 +1813,12 @@ msgstr ""
 msgid "No resting orders"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Not eligible"
+msgstr ""
+
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Monthly Funding Rate"
 msgstr ""
@@ -1844,10 +1853,6 @@ msgstr ""
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/position.ts
 msgid "Trigger price for the order."
 msgstr "주문의 트리거 가격입니다."
-
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Invitation code"
-msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
@@ -2052,7 +2057,6 @@ msgid "Net Price Impact"
 msgstr "순 가격 영향"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
 #: src/modules/spot/pages/SpotTradePage.tsx
 msgid "Details"
@@ -2102,6 +2106,10 @@ msgstr ""
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 msgid "Redeem"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Claiming…"
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -2172,10 +2180,6 @@ msgstr ""
 msgid "Reason: {0}"
 msgstr "이유: {0}"
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Binding…"
-msgstr ""
-
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Position envelope"
 msgstr ""
@@ -2194,6 +2198,11 @@ msgstr ""
 #: src/shared/components/DateRangeSelect/DateRangeSelect.tsx
 msgid "All time"
 msgstr "모든 시간"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Claim trial funds"
+msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/DetailsPanel.tsx
 msgid "Market Cap:"
@@ -2506,6 +2515,10 @@ msgstr ""
 msgid "Available"
 msgstr ""
 
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "OG ELIGIBLE"
+msgstr ""
+
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdrawal request timed out. Please retry."
 msgstr ""
@@ -2699,11 +2712,6 @@ msgstr "충분한 유동성을 가진 스왑 경로를 찾을 수 없음"
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Bind trial funds invitation code"
-msgstr ""
-
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Failed to update TP/SL"
 msgstr ""
@@ -2755,6 +2763,10 @@ msgstr "최소 포지션 크기: {0}"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Trigger price below mark price"
 msgstr "트리거 가격이 마크 가격 미만"
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Eligible OG users can actively claim 20U in trial funds."
+msgstr ""
 
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
@@ -2862,6 +2874,11 @@ msgstr ""
 msgid "The network fees are high currently, which may be due to a temporary increase in transactions on the {chainName} network."
 msgstr "현재 네트워크 수수료가 높습니다. 이는 {chainName} 네트워크의 일시적인 거래량 증가로 인한 것일 수 있습니다."
 
+#: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
+#: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
+msgid "Callback Rate"
+msgstr ""
+
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Trial funds (available)"
 msgstr ""
@@ -2929,7 +2946,6 @@ msgstr ""
 msgid "Fees exceed amount"
 msgstr "수수료가 금액 초과"
 
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "Redemption failed. Please try again."
 msgstr ""
@@ -3220,6 +3236,10 @@ msgstr "지불 토큰 선택"
 
 #: src/modules/lighter/components/TopNav/TopNav.tsx
 msgid "Campaigns"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Claim 20U"
 msgstr ""
 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
@@ -3637,10 +3657,6 @@ msgstr ""
 #: src/shared/components/SideNav/LanguageNavItem.tsx
 msgid "Language"
 msgstr "언어"
-
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Enter an invitation code to claim your trial funds."
-msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx

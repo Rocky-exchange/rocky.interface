@@ -7,16 +7,18 @@ import type { PropsWithChildren } from "react";
 import { MemoryRouter, Router } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  claimOgTrialFund,
+  getOgBenefits,
+} from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { BonusBadge } from "./BonusBadge";
-import { redeemBonusCode } from "../api/bonus.api";
 import {
   BonusApiError,
   type BonusBalanceInfoResponse,
   type BonusHistoryRow,
-  type BonusRedeemResponse,
   type BonusStatusResponse,
 } from "../api/bonus.types";
 import { notifyBonusDataChanged, useBonusBalance, useBonusHistory, useBonusStatus } from "../api/useBonus";
@@ -37,15 +39,16 @@ vi.mock("@/shared/lib/i18n", () => ({
   dynamicActivate: vi.fn(),
 }));
 
+vi.mock("@/modules/campaigns/api/campaign.api", () => ({
+  claimOgTrialFund: vi.fn(),
+  getOgBenefits: vi.fn(),
+}));
+
 vi.mock("../api/useBonus", () => ({
   notifyBonusDataChanged: vi.fn(),
   useBonusBalance: vi.fn(),
   useBonusHistory: vi.fn(),
   useBonusStatus: vi.fn(),
-}));
-
-vi.mock("../api/bonus.api", () => ({
-  redeemBonusCode: vi.fn(),
 }));
 
 const ACTIVE_STATUS: BonusStatusResponse = {
@@ -99,19 +102,12 @@ const MODAL_HISTORY: BonusHistoryRow[] = [
   },
 ];
 
-const REDEEM_RESPONSE: BonusRedeemResponse = {
-  bonus_account_id: "bonus-1",
-  amount: "200",
-  granted_at: "2026-07-27T00:00:00Z",
-  expires_at: "2099-07-28T00:00:00Z",
-  replayed: false,
-};
-
 const mUseBonusStatus = vi.mocked(useBonusStatus);
 const mUseBonusBalance = vi.mocked(useBonusBalance);
 const mUseBonusHistory = vi.mocked(useBonusHistory);
 const mUseCantonSession = vi.mocked(useCantonSession);
-const mRedeemBonusCode = vi.mocked(redeemBonusCode);
+const mClaimOgTrialFund = vi.mocked(claimOgTrialFund);
+const mGetOgBenefits = vi.mocked(getOgBenefits);
 const mNotifyBonusDataChanged = vi.mocked(notifyBonusDataChanged);
 
 i18n.load("en", {});
@@ -175,7 +171,12 @@ beforeEach(() => {
     loadMore: vi.fn(),
     refresh: vi.fn(),
   });
-  mRedeemBonusCode.mockResolvedValue(REDEEM_RESPONSE);
+  mClaimOgTrialFund.mockResolvedValue({
+    status: "CLAIMED",
+    amount: "20",
+    bonusAccountId: "bonus-1",
+    claimedAt: "2026-07-31T08:00:00Z",
+  });
 });
 
 afterEach(cleanup);
@@ -424,11 +425,23 @@ describe("TopNav bonus placement", () => {
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
 
-  it("redeems an invitation code through the backend before showing the overview", async () => {
+  it("claims trial funds for an eligible OG before showing the overview", async () => {
     const mutate = vi.fn().mockResolvedValue(MODAL_STATUS);
     mockStatus({
       data: { ...MODAL_STATUS, has_bonus: false, bonus_account_id: "", status: "" },
       mutate,
+    });
+    mGetOgBenefits.mockResolvedValue({
+      role: "OG",
+      eligible: true,
+      invitationCodes: [],
+      invitationBinding: null,
+      trialFund: {
+        status: "AVAILABLE",
+        amount: "20",
+        bonusAccountId: null,
+        claimedAt: null,
+      },
     });
     mUseCantonSession.mockReturnValue({
       connected: true,
@@ -443,18 +456,11 @@ describe("TopNav bonus placement", () => {
     render(<TopNav />, { wrapper: TestShell });
 
     fireEvent.click(screen.getByRole("button", { name: "Redeem" }));
-    expect(screen.getByRole("dialog", { name: "Bind trial funds invitation code" })).not.toBeNull();
+    expect(screen.getByRole("dialog", { name: "Claim trial funds" })).not.toBeNull();
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Invitation code" }), {
-      target: { value: "rocky-live-1" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Bind now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Claim 20U" }));
 
-    await waitFor(() => expect(mRedeemBonusCode).toHaveBeenCalledTimes(1));
-    expect(mRedeemBonusCode.mock.calls[0]?.[0]).toEqual({
-      code: "ROCKY-LIVE-1",
-      request_id: expect.stringMatching(/^bonus-redeem-/),
-    });
+    await waitFor(() => expect(mClaimOgTrialFund).toHaveBeenCalledTimes(1));
     expect(mNotifyBonusDataChanged).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("dialog", { name: "Trial funds overview" })).not.toBeNull();
