@@ -225,6 +225,32 @@
   line-height: 1.45;
 }
 
+.swapMaximum {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--ltr-border);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ltr-bg-panel-2, #0e0e14) 72%, transparent);
+
+  span,
+  small {
+    color: var(--ltr-text-muted);
+    font-size: 10px;
+  }
+
+  strong {
+    color: var(--ltr-text-primary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    grid-column: 1 / -1;
+  }
+}
+
 .swapFees {
   display: grid;
   padding: 2px 9px;

@@ -2,17 +2,14 @@ import { act, cleanup, fireEvent, waitFor, within } from "@testing-library/react
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  fetchWalletBalanceSnapshot,
-  type WalletBalanceSnapshot,
-} from "@/shared/lib/canton-wallet/balances";
+import { fetchWalletBalanceSnapshot, type WalletBalanceSnapshot } from "@/shared/lib/canton-wallet/balances";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { SpotOrderForm } from "./OrderForm";
 import { spotApi, type Account, type SpotOrder, SpotApiError } from "../../api/spotClient";
-import { swapApi, type SwapOrder } from "../../api/swapClient";
+import { swapApi, type SwapCapacity, type SwapOrder } from "../../api/swapClient";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
 import { renderWithI18n as render } from "../../test/renderWithI18n";
@@ -38,7 +35,7 @@ vi.mock("../../api/spotClient", async () => {
 });
 vi.mock("../../api/swapClient", async () => {
   const actual = await vi.importActual<typeof import("../../api/swapClient")>("../../api/swapClient");
-  return { ...actual, swapApi: { create: vi.fn(), get: vi.fn() } };
+  return { ...actual, swapApi: { capacity: vi.fn(), create: vi.fn(), get: vi.fn() } };
 });
 
 const mUseSpotAccount = vi.mocked(useSpotAccount);
@@ -50,6 +47,7 @@ const mEnsureMemberAuth = vi.mocked(ensureSpotMemberAuth);
 const mUseCantonSession = vi.mocked(useCantonSession);
 const mCreateSwap = vi.mocked(swapApi.create);
 const mGetSwap = vi.mocked(swapApi.get);
+const mSwapCapacity = vi.mocked(swapApi.capacity);
 const market = resolveSpotMarket("CBTC-CUSD");
 const cethMarket = resolveSpotMarket("CETH-CUSD");
 const refetch = vi.fn();
@@ -138,6 +136,15 @@ beforeEach(() => {
     asks: [["65000", "10"]],
     bids: [["64000", "10"]],
   });
+  const capacity: SwapCapacity = {
+    symbol: market.apiSymbol,
+    side: "BUY",
+    outputAsset: "CBTC",
+    custodyBalance: "10",
+    custodyUsableBalance: "8",
+    maxBase: "8",
+  };
+  mSwapCapacity.mockResolvedValue(capacity);
   const swap: SwapOrder = {
     swapId: "019fswap1234567890",
     clientSwapId: "client-swap",
@@ -198,7 +205,7 @@ describe("SpotOrderForm", () => {
     expect(view.getByText("Swap directly from your wallet")).toBeTruthy();
     expect(view.getByText("CUSD")).toBeTruthy();
     expect(view.getAllByText("CBTC").length).toBeGreaterThan(0);
-    expect(view.getByText(/actual fills update trades, volume, and candles/)).toBeTruthy();
+    expect(view.getByText(/Actual fills update trades, volume, and candles/)).toBeTruthy();
     expect(view.getByRole("slider", { name: "Swap percentage" })).toBeTruthy();
     expect((view.getByLabelText("Swap slippage") as HTMLInputElement).value).toBe("0.5");
     const fees = view.getByLabelText("Swap fees");
@@ -230,11 +237,69 @@ describe("SpotOrderForm", () => {
   it("sizes Swap amount from the connected wallet balance", async () => {
     const view = render(<SpotOrderForm market={market} />);
     fireEvent.click(view.getByRole("tab", { name: "Swap" }));
-    await waitFor(() => expect((view.getByRole("slider", { name: "Swap percentage" }) as HTMLInputElement).disabled).toBe(false));
+    await waitFor(() =>
+      expect((view.getByRole("slider", { name: "Swap percentage" }) as HTMLInputElement).disabled).toBe(false)
+    );
 
     fireEvent.change(view.getByRole("slider", { name: "Swap percentage" }), { target: { value: "50" } });
     expect((view.getByLabelText("Swap amount (CBTC)") as HTMLInputElement).value).toBe("0.76923076");
     expect((view.getByLabelText("Swap percentage input") as HTMLInputElement).value).toBe("50");
+  });
+
+  it("blocks amounts above the backend custody-backed single Swap maximum", async () => {
+    mSwapCapacity.mockResolvedValue({
+      symbol: market.apiSymbol,
+      side: "BUY",
+      outputAsset: "CBTC",
+      custodyBalance: "0.5",
+      custodyUsableBalance: "0.4",
+      maxBase: "0.4",
+    });
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect(view.getByText("0.4 CBTC")).toBeTruthy());
+
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.40000001" } });
+    const submit = view.getByRole("button", { name: /Exceeds single Swap limit/ }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    expect(mCreateSwap).not.toHaveBeenCalled();
+  });
+
+  it("shows a zero maximum and disables Swap when custody has no usable balance", async () => {
+    mSwapCapacity.mockResolvedValue({
+      symbol: market.apiSymbol,
+      side: "BUY",
+      outputAsset: "CBTC",
+      custodyBalance: "0",
+      custodyUsableBalance: "0",
+      maxBase: "0",
+    });
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect(view.getByText("0 CBTC")).toBeTruthy());
+
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.00001" } });
+    expect((view.getByRole("button", { name: /Exceeds single Swap limit/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("refreshes the custody-backed maximum on click before creating a Swap", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect(mSwapCapacity).toHaveBeenCalled());
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.1" } });
+    mSwapCapacity.mockResolvedValueOnce({
+      symbol: market.apiSymbol,
+      side: "BUY",
+      outputAsset: "CBTC",
+      custodyBalance: "0.1",
+      custodyUsableBalance: "0.08",
+      maxBase: "0.08",
+    });
+
+    fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
+    await waitFor(() => expect(view.getByText("Amount exceeds the single Swap maximum")).toBeTruthy());
+    expect(mEnsureMemberAuth).not.toHaveBeenCalled();
+    expect(mCreateSwap).not.toHaveBeenCalled();
   });
 
   it("refreshes wallet balance on click and blocks a Swap that became unaffordable", async () => {
@@ -245,7 +310,7 @@ describe("SpotOrderForm", () => {
     mFetchWalletBalances.mockResolvedValueOnce({
       ...walletBalances,
       balances: walletBalances.balances.map((balance) =>
-        balance.symbol === "CUSD" ? { ...balance, amount: "1" } : balance,
+        balance.symbol === "CUSD" ? { ...balance, amount: "1" } : balance
       ),
     });
 
@@ -260,6 +325,9 @@ describe("SpotOrderForm", () => {
     const view = render(<SpotOrderForm market={market} />);
     fireEvent.click(view.getByRole("tab", { name: "Swap" }));
     fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.1" } });
+    await waitFor(() =>
+      expect((view.getByRole("button", { name: /Swap to buy CBTC/ }) as HTMLButtonElement).disabled).toBe(false)
+    );
 
     fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
     await waitFor(() => expect(mEnsureMemberAuth).toHaveBeenCalledTimes(1));

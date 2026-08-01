@@ -448,6 +448,10 @@ msgstr "The 60% net-direction limit can restrict opposite opening orders; reduce
 msgid "Unable to load attribution history."
 msgstr "Unable to load attribution history."
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Limited to 80% of current custody liquidity"
+msgstr "Limited to 80% of current custody liquidity"
+
 #: src/modules/lighter/domain/synthetics/userFeedback/utils.ts
 msgid "How can we address your concerns and improve your experience?"
 msgstr "How can we address your concerns and improve your experience?"
@@ -548,6 +552,7 @@ msgstr "Technically, net price impact breaks down into stored price impact (for 
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Total"
 msgstr "Total"
 
@@ -576,6 +581,11 @@ msgstr "Market - Long Inc."
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
 msgid "Margin Mode"
 msgstr "Margin Mode"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Insufficient {swapInputAsset} balance"
+msgstr "Insufficient {swapInputAsset} balance"
 
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Min order: {0}"
@@ -1070,6 +1080,10 @@ msgstr "Clear selection"
 msgid "The order will not be executed as its trigger price is beyond the position's liquidation price."
 msgstr "The order will not be executed as its trigger price is beyond the position's liquidation price."
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Single Swap maximum"
+msgstr "Single Swap maximum"
+
 #: src/shared/components/SettingsModal/ThemeSelector.tsx
 #: src/shared/components/SettingsModal/ThemeSelector.tsx
 msgid "Theme"
@@ -1433,6 +1447,7 @@ msgstr "Loading trial funds"
 msgid "Loading attribution history…"
 msgstr "Loading attribution history…"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Network Fee"
 msgstr "Network Fee"
@@ -1982,6 +1997,10 @@ msgstr "Referral code created successfully!"
 msgid "Secure redemption"
 msgstr "Secure redemption"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Amount exceeds the single Swap maximum"
+msgstr "Amount exceeds the single Swap maximum"
+
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
@@ -2294,6 +2313,10 @@ msgstr "TP price"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Loading..."
 msgstr "Loading..."
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Amount is the maximum base asset quantity. Available depth may reduce the fill; insufficient wallet or custody balance is rejected. Actual fills update trades, volume, and candles."
+msgstr "Amount is the maximum base asset quantity. Available depth may reduce the fill; insufficient wallet or custody balance is rejected. Actual fills update trades, volume, and candles."
 
 #: src/shared/components/TradeHistory/TradeHistoryRow/utils/shared.ts
 msgid "Execute"
@@ -3309,6 +3332,10 @@ msgstr "Place Limit Short"
 msgid "Area"
 msgstr "Area"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Exceeds single Swap limit"
+msgstr "Exceeds single Swap limit"
+
 #: src/modules/lighter/components/BottomTabs/OpenOrdersTab.tsx
 #: src/modules/lighter/components/BottomTabs/OrderHistoryTab.tsx
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
@@ -3620,6 +3647,7 @@ msgid "Wallet authorization completed. Review the refreshed market and confirm S
 msgstr "Wallet authorization completed. Review the refreshed market and confirm Swap again."
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Balance unavailable."
 msgstr "Balance unavailable."
 
@@ -3755,6 +3783,7 @@ msgstr "Enter a new size or price"
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Trading fee"
 msgstr "Trading fee"
 
@@ -4010,10 +4039,6 @@ msgstr "You have already bound a referral code."
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"
 msgstr "Filled"
-
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances; actual fills update trades, volume, and candles."
-msgstr "Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances; actual fills update trades, volume, and candles."
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sell order submitted"

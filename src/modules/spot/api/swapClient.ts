@@ -23,6 +23,15 @@ export type SwapOrder = {
   lastError?: string | null;
 };
 
+export type SwapCapacity = {
+  symbol: string;
+  side: "BUY" | "SELL";
+  outputAsset: string;
+  custodyBalance: string;
+  custodyUsableBalance: string;
+  maxBase: string;
+};
+
 export class SwapApiError extends Error {
   constructor(
     public readonly status: number,
@@ -54,6 +63,12 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 export const swapApi = {
+  capacity(symbol: string, side: "BUY" | "SELL", slippageBps: number) {
+    const query = new URLSearchParams({ slippageBps: String(slippageBps) });
+    return request<SwapCapacity>(`/v1/swaps/capacity/${encodeURIComponent(symbol)}/${side}?${query.toString()}`, {
+      method: "GET",
+    });
+  },
   create(input: { clientSwapId: string; symbol: string; side: "BUY" | "SELL"; amount: string; slippageBps: number }) {
     return request<SwapOrder>("/v1/swaps", { method: "POST", body: JSON.stringify(input) });
   },
