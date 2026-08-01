@@ -166,6 +166,10 @@ msgstr "標記價格已更改，請考慮透過點選地址旁邊的“...”圖
 msgid "Letters, numbers, and hyphens only. Minimum 4 characters."
 msgstr ""
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap to sell"
+msgstr "兌換並賣出"
+
 #: src/shared/components/UserFeedbackModal/UserFeedbackModal.tsx
 msgid "@username"
 msgstr "@使用者名稱"
@@ -623,6 +627,10 @@ msgstr "⚠️ {0}"
 msgid "This withdraw request has already been processed."
 msgstr "此提現請求已處理。"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "You receive"
+msgstr "您收到"
+
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 #: src/modules/lighter/components/OrderFormPanel/LimitOrderForm.tsx
 #: src/modules/lighter/components/OrderFormPanel/MarketOrderForm.tsx
@@ -899,6 +907,10 @@ msgstr "所選槓桿超過市場上限。請降低槓桿後重試。"
 msgid "No open position, order cannot be executed unless a position is opened"
 msgstr "沒有開倉，訂單無法執行，除非開倉"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap failed"
+msgstr "兌換失敗"
+
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/components/OrderFormPanel/OrderFormPanel.tsx
 #: src/modules/lighter/features/orderForm/desktop/OrderFormPanel.tsx
@@ -928,6 +940,7 @@ msgstr "查看全部歷史"
 #: src/modules/lighter/features/orderForm/desktop/LimitOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
 #: src/modules/lighter/mobile/shared/MobileTopNav.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/cantonConnect.tsx
 msgid "Connect Wallet"
@@ -1115,6 +1128,10 @@ msgstr "最大部分數量：{MAX_TWAP_NUMBER_OF_PARTS}"
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 msgstr "AVAX 不足以支付 gas（約需 0.001 AVAX）。"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update."
+msgstr "兌換會消耗現貨即時訂單簿，隨後兩種錢包資產會在同一筆更新中原子結算。"
 
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "01 / CLAIM"
@@ -1509,6 +1526,10 @@ msgstr ""
 #: src/shared/lib/errors/mapAvaxError.ts
 msgid "Withdraw authorization expired. Please request a new one."
 msgstr "提現授權已過期。請重新申請。"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap submitted"
+msgstr "兌換已提交"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Expired"
@@ -1920,6 +1941,10 @@ msgstr "全倉保證金率"
 msgid "Insufficient {0} balance to pay for gas"
 msgstr "{0} 餘額不足以支付 gas"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap processing"
+msgstr "兌換處理中"
+
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Withdrawing will first recall unlocked trial funds."
 msgstr "發起提領後，將優先回收已解鎖體驗金。"
@@ -1936,6 +1961,11 @@ msgstr "總可用"
 msgid "PnL Analysis"
 msgstr "PnL 分析"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Max slippage"
+msgstr "最大滑點"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sending…"
 msgstr ""
@@ -2102,6 +2132,10 @@ msgstr "SL - 做多減少"
 #: src/shared/lib/canton-wallet/CantonWalletButton.tsx
 msgid "Unlock"
 msgstr "解鎖"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "You pay"
+msgstr "您支付"
 
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
 #: src/modules/lighter/features/bonus/components/BonusBadge.tsx
@@ -2825,6 +2859,7 @@ msgstr "複製"
 #: src/modules/spot/components/Accounts/Accounts.tsx
 #: src/modules/spot/components/OrderBook/OrderBook.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
@@ -3151,6 +3186,10 @@ msgstr "日期"
 msgid "Trigger Price"
 msgstr "觸發價格"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap directly from your wallet"
+msgstr "直接從錢包兌換"
+
 #: src/modules/lighter/features/bonus/components/BonusHistoryList.tsx
 msgid "Showing saved attribution history while the latest refresh is unavailable."
 msgstr ""
@@ -3177,6 +3216,10 @@ msgstr "劃轉金額"
 #: src/modules/lighter/domain/synthetics/trade/utils/validation.ts
 msgid "Page outdated, please refresh"
 msgstr "頁面已過期，請重新整理"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Onchain atomic swap"
+msgstr "鏈上原子兌換"
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Withdraw"
@@ -3252,6 +3295,10 @@ msgstr ""
 #: src/modules/spot/components/Chart/SpotChart.tsx
 msgid "Raw Prices"
 msgstr "原始價格"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap to buy"
+msgstr "兌換並買入"
 
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/OrderBottomSheet.tsx
 msgid "Place Limit Short"
@@ -3379,6 +3426,7 @@ msgstr "年度資金費率"
 msgid "Order size is bigger than position, will only be executable if position increases"
 msgstr "訂單規模大於倉位，只有在倉位增加時才可執行"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Buy"
 msgstr ""
@@ -3518,6 +3566,10 @@ msgstr "入場價格"
 msgid "Show Fewer Deposits"
 msgstr "收起存入"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap confirmed"
+msgstr "兌換已確認"
+
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Cancel Stop Loss"
 msgstr "取消止損"
@@ -3562,6 +3614,10 @@ msgstr ""
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Stop Loss"
 msgstr "止損失敗"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Wallet authorization completed. Review the refreshed market and confirm Swap again."
+msgstr "錢包授權已完成。請查看重新整理後的市場，並再次確認兌換。"
 
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Balance unavailable."
@@ -3625,6 +3681,10 @@ msgstr "限價 - 多頭增加"
 msgid "Chain transfer submitted. Exchange balance is still confirming."
 msgstr "鏈上轉帳已提交，交易所餘額仍在確認中。"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "To your wallet"
+msgstr "轉入您的錢包"
+
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/components/OrderBookPanel/OrderBookPanel.tsx
 #: src/modules/lighter/mobile/TradePage/MobileTradeTabs.tsx
@@ -3636,6 +3696,10 @@ msgstr "訂單簿"
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
 msgid "Weekly Funding Rate"
 msgstr "週度資金費率"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Swap"
+msgstr "兌換"
 
 #: src/modules/lighter/domain/synthetics/orders/utils.tsx
 msgid "long"
@@ -3778,6 +3842,7 @@ msgid "24H VOL."
 msgstr "24 小時交易量"
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sell"
 msgstr ""
 
@@ -3834,6 +3899,10 @@ msgstr "維持保證金"
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Request Deposit"
 msgstr "請求存款"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Your wallet"
+msgstr "您的錢包"
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx
 #: src/modules/spot/components/Chart/SpotChart.tsx
@@ -3941,6 +4010,10 @@ msgstr "您已綁定推薦碼。"
 #: src/modules/spot/components/BottomTabs/BottomTabs.tsx
 msgid "Filled"
 msgstr "已成交"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances; actual fills update trades, volume, and candles."
+msgstr "數量是基礎資產的最大數量。後端可能會依可用深度與餘額縮小數量；實際成交會更新成交、交易量與 K 線。"
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Sell order submitted"

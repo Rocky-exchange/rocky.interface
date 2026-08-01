@@ -4,10 +4,13 @@ import BigNumber from "bignumber.js";
 import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
+import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./OrderForm.module.scss";
 import { calculateOrderSummary, estimatedFillPrice, quantityForPercent } from "./orderFormMath";
 import { spotApi, SpotApiError, type DepthResp } from "../../api/spotClient";
+import { swapApi, SwapApiError } from "../../api/swapClient";
 import { usePolling } from "../../hooks/usePolling";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { useSpotAssetPrecisions } from "../../hooks/useSpotAssetPrecisions";
@@ -15,7 +18,7 @@ import { formatSpotAssetAmount } from "../../model/assetPrecision";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
-type OrderType = "LIMIT" | "MARKET";
+type OrderType = "LIMIT" | "MARKET" | "SWAP";
 
 const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 const MARKET_BAND = new Decimal("1.05");
@@ -66,7 +69,7 @@ function isWithinAvailableBalance(
 /// order may accept, not the price it is expected to get — see
 /// [`estimatedFillPrice`] for what the user is shown.
 function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | undefined): string {
-  const source = positiveDecimal(side === "BUY" ? (bestAsk ?? "") : (bestBid ?? ""));
+  const source = positiveDecimal(side === "BUY" ? bestAsk ?? "" : bestBid ?? "");
   if (source === null) return "";
   return side === "BUY"
     ? source.times(MARKET_BAND).toFixed()
@@ -76,14 +79,18 @@ function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | 
 export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { i18n } = useLingui();
   const { ready, account, err: accountError, refetch } = useSpotAccount();
+  const wallet = useCantonSession();
   const precisions = useSpotAssetPrecisions();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
+  const swapIntent = useRef<{ key: string; clientSwapId: string } | null>(null);
   const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
   const [orderType, setOrderType] = useState<OrderType>("LIMIT");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [percent, setPercent] = useState(0);
+  const [swapSlippageBps, setSwapSlippageBps] = useState(100);
+  const [activeSwapId, setActiveSwapId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
@@ -94,24 +101,31 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   // 20 levels: enough to volume-weight a realistic market order. One level
   // only gives the touch, which is why Est. Price used to fall back to the
   // protective limit.
-  const { data: depth } = usePolling<DepthResp>(
-    () => spotApi.depth(market.apiSymbol, 20),
-    5000,
-    [market.apiSymbol],
-    { enabled: orderType === "MARKET" }
-  );
+  const { data: depth } = usePolling<DepthResp>(() => spotApi.depth(market.apiSymbol, 20), 5000, [market.apiSymbol], {
+    enabled: orderType === "MARKET" || orderType === "SWAP",
+  });
+  const { data: activeSwap } = usePolling(() => swapApi.get(activeSwapId as string), 1000, [activeSwapId], {
+    enabled: activeSwapId !== null,
+  });
   // Submission price: the protective limit (5% through the book). Balance
   // checks and percent sizing use it too, because that is what the backend
   // locks against.
   const effectivePrice =
-    orderType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
+    orderType === "LIMIT"
+      ? price
+      : orderType === "MARKET"
+        ? marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0])
+        : "";
   // Displayed price: what the order is expected to fill at.
   const displayPrice =
     orderType === "LIMIT"
       ? price
-      : estimatedFillPrice(side === "BUY" ? depth?.asks : depth?.bids, amount);
+      : orderType === "MARKET"
+        ? estimatedFillPrice(side === "BUY" ? depth?.asks : depth?.bids, amount)
+        : "";
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
+  const swapOutputAsset = side === "BUY" ? base : quote;
   const summary = useMemo(() => calculateOrderSummary(side, displayPrice, amount), [amount, displayPrice, side]);
 
   const selectSide = (nextSide: Side) => {
@@ -133,13 +147,18 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   };
 
   const selectOrderType = (nextType: OrderType) => {
+    if (nextType === "SWAP") {
+      setOrderType(nextType);
+      setAmount("");
+      setPercent(0);
+      setMsg(null);
+      return;
+    }
     const nextEffectivePrice =
       nextType === "LIMIT" ? price : marketPrice(side, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
     setOrderType(nextType);
     setAmount(
-      percent === 0
-        ? ""
-        : quantityForOrderPercent({ side, percent, price: nextEffectivePrice, baseFree, quoteFree })
+      percent === 0 ? "" : quantityForOrderPercent({ side, percent, price: nextEffectivePrice, baseFree, quoteFree })
     );
     setMsg(null);
   };
@@ -209,16 +228,47 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setPercent(0);
     setMsg(null);
     setBusy(false);
+    setActiveSwapId(null);
+    swapIntent.current = null;
   }, [market.apiSymbol]);
+
+  useEffect(() => {
+    if (!activeSwap || activeSwap.swapId !== activeSwapId) return;
+    if (activeSwap.status === "CONFIRMED") {
+      setMsg({
+        kind: "ok",
+        text: `${i18n._(t`Swap confirmed`)} · ${activeSwap.cantonUpdateId?.slice(0, 12) ?? activeSwap.swapId.slice(0, 12)}…`,
+      });
+      setActiveSwapId(null);
+      return;
+    }
+    if (["CANCELLED", "FAILED_NO_FILL", "FAILED_CHAIN"].includes(activeSwap.status)) {
+      setMsg({
+        kind: "err",
+        text: activeSwap.lastError || `${i18n._(t`Swap failed`)} · ${activeSwap.status}`,
+      });
+      setActiveSwapId(null);
+      return;
+    }
+    setMsg({ kind: "ok", text: `${i18n._(t`Swap processing`)} · ${activeSwap.status}` });
+  }, [activeSwap, activeSwapId, i18n]);
 
   const canSubmit =
     ready &&
     account?.canTrade === true &&
     !busy &&
     isWithinAvailableBalance(side, effectivePrice, amount, baseFree, quoteFree);
+  const canSubmitSwap =
+    wallet.connected &&
+    !wallet.locked &&
+    !busy &&
+    activeSwapId === null &&
+    positiveDecimal(amount) !== null &&
+    swapSlippageBps >= 10 &&
+    swapSlippageBps <= 500;
 
   const submit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || orderType === "SWAP") return;
     const submittedSession = marketSession.current;
     const isCurrentSession = () =>
       marketSession.current.symbol === submittedSession.symbol &&
@@ -244,6 +294,54 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       if (!isCurrentSession()) return;
       const text =
         error instanceof SpotApiError
+          ? `[${error.code}] ${error.message}`
+          : error instanceof Error
+            ? error.message
+            : String(error);
+      setMsg({ kind: "err", text });
+    } finally {
+      if (isCurrentSession()) setBusy(false);
+    }
+  };
+
+  const submitSwap = async () => {
+    if (!canSubmitSwap) return;
+    const submittedSession = marketSession.current;
+    const isCurrentSession = () =>
+      marketSession.current.symbol === submittedSession.symbol &&
+      marketSession.current.generation === submittedSession.generation;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const newlyAuthorized = await ensureSpotMemberAuth({ provider: wallet.provider, party: wallet.party });
+      if (!isCurrentSession()) return;
+      if (newlyAuthorized) {
+        setMsg({
+          kind: "ok",
+          text: i18n._(t`Wallet authorization completed. Review the refreshed market and confirm Swap again.`),
+        });
+        return;
+      }
+      const intentKey = `${market.apiSymbol}:${side}:${amount}:${swapSlippageBps}`;
+      if (swapIntent.current?.key !== intentKey) {
+        swapIntent.current = { key: intentKey, clientSwapId: crypto.randomUUID() };
+      }
+      const response = await swapApi.create({
+        clientSwapId: swapIntent.current.clientSwapId,
+        symbol: market.apiSymbol,
+        side,
+        amount,
+        slippageBps: swapSlippageBps,
+      });
+      if (!isCurrentSession()) return;
+      setMsg({ kind: "ok", text: `${i18n._(t`Swap submitted`)} · ${response.swapId.slice(0, 12)}…` });
+      setActiveSwapId(response.swapId);
+      setAmount("");
+      swapIntent.current = null;
+    } catch (error: unknown) {
+      if (!isCurrentSession()) return;
+      const text =
+        error instanceof SwapApiError
           ? `[${error.code}] ${error.message}`
           : error instanceof Error
             ? error.message
@@ -285,187 +383,362 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         >
           <Trans>Limit</Trans>
         </button>
-      </div>
-
-      <div className={styles.sideTabs} role="tablist" aria-label="Order side">
         <button
           type="button"
-          id="spot-buy-tab"
+          id="spot-swap-tab"
           role="tab"
-          aria-selected={side === "BUY"}
-          aria-controls="spot-order-form-panel"
-          tabIndex={side === "BUY" && !busy ? 0 : -1}
+          aria-selected={orderType === "SWAP"}
+          aria-controls="spot-swap-panel"
+          tabIndex={orderType === "SWAP" && !busy ? 0 : -1}
           disabled={busy}
-          className={styles.sideTab}
-          onClick={() => selectSide("BUY")}
-          onKeyDown={(event) => activateSideFromKeyboard(event, "BUY")}
-          ref={(node) => {
-            sideTabRefs.current.BUY = node;
-          }}
+          className={orderType === "SWAP" ? styles.orderTypeActive : undefined}
+          onClick={() => selectOrderType("SWAP")}
         >
-          <Trans>Buy</Trans> {base}
+          <Trans>Swap</Trans>
         </button>
-        <button
-          type="button"
-          id="spot-sell-tab"
-          role="tab"
-          aria-selected={side === "SELL"}
-          aria-controls="spot-order-form-panel"
-          tabIndex={side === "SELL" && !busy ? 0 : -1}
-          disabled={busy}
-          className={styles.sideTab}
-          onClick={() => selectSide("SELL")}
-          onKeyDown={(event) => activateSideFromKeyboard(event, "SELL")}
-          ref={(node) => {
-            sideTabRefs.current.SELL = node;
-          }}
-        >
-          <Trans>Sell</Trans> {base}
-        </button>
-        <div
-          aria-hidden="true"
-          data-testid="spot-side-indicator"
-          className={`${styles.sideIndicator} ${side === "BUY" ? styles.indicatorBuy : styles.indicatorSell}`}
-        />
       </div>
 
-      <div
-        id="spot-order-form-panel"
-        role="tabpanel"
-        aria-labelledby={`spot-${side.toLowerCase()}-tab spot-${orderType.toLowerCase()}-tab`}
-        className={styles.body}
-      >
-        <div className={styles.available}>
-          <span>
-            <Trans>Available</Trans>
-          </span>
-          <strong>
-            {account ? formatSpotAssetAmount(availableValue, availableAsset, precisions) : "—"} {availableAsset}
-          </strong>
-        </div>
-        {accountError && <div className={styles.accountHint}>{accountError}</div>}
-
-        <div className={`${styles.field} ${orderType === "MARKET" ? styles.readOnlyShell : ""}`}>
-          <label htmlFor="spot-order-price" className={styles.fieldLabel}>
-            {orderType === "MARKET" ? <Trans>Est. Price</Trans> : <Trans>Price</Trans>}
-          </label>
-          <input
-            id="spot-order-price"
-            aria-label={`Price (${quote})`}
-            className={styles.input}
-            value={orderType === "MARKET" && displayPrice ? displayPrice : price}
-            onChange={(event) => updatePrice(event.target.value)}
-            disabled={busy}
-            placeholder={orderType === "MARKET" ? "—" : "500"}
-            inputMode="decimal"
-            autoComplete="off"
-            readOnly={orderType === "MARKET"}
-            tabIndex={orderType === "MARKET" ? -1 : undefined}
-          />
-          <span className={styles.unit}>{quote}</span>
-        </div>
-
-        <div className={styles.field}>
-          <label htmlFor="spot-order-amount" className={styles.fieldLabel}>
-            <Trans>Amount</Trans>
-          </label>
-          <input
-            id="spot-order-amount"
-            aria-label={`Amount (${base})`}
-            className={styles.input}
-            value={amount}
-            onChange={(event) => updateAmount(event.target.value)}
-            disabled={busy}
-            placeholder="0.1"
-            inputMode="decimal"
-            autoComplete="off"
-          />
-          <span className={styles.unit}>{base}</span>
-        </div>
-
-        <div className={styles.sliderBlock}>
-          <input
-            aria-label="Order percentage"
-            className={`${styles.slider} ${side === "BUY" ? styles.sliderBuy : styles.sliderSell}`}
-            style={sliderStyle}
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={percent}
-            onChange={(event) => updatePercent(Number(event.target.value))}
-            disabled={busy}
-          />
-          <div className={styles.percentInput}>
-            <input
-              aria-label="Order percentage input"
-              className={styles.percentInputValue}
-              value={percent}
-              inputMode="numeric"
-              onChange={(event) => {
-                const next = Number(event.target.value.replace(/[^0-9]/g, ""));
-                if (!Number.isNaN(next)) updatePercent(Math.max(0, Math.min(100, next)));
-              }}
-              disabled={busy}
+      {orderType === "SWAP" ? (
+        <>
+          <div className={styles.sideTabs} role="tablist" aria-label="Swap side">
+            <button
+              type="button"
+              className={styles.sideTab}
+              aria-selected={side === "BUY"}
+              onClick={() => selectSide("BUY")}
+            >
+              <Trans>Buy</Trans> {base}
+            </button>
+            <button
+              type="button"
+              className={styles.sideTab}
+              aria-selected={side === "SELL"}
+              onClick={() => selectSide("SELL")}
+            >
+              <Trans>Sell</Trans> {base}
+            </button>
+            <div
+              aria-hidden="true"
+              className={`${styles.sideIndicator} ${side === "BUY" ? styles.indicatorBuy : styles.indicatorSell}`}
             />
-            <span aria-hidden="true">%</span>
           </div>
-        </div>
-
-        <div className={`${styles.field} ${styles.readOnlyShell}`}>
-          <label htmlFor="spot-order-total" className={styles.fieldLabel}>
-            <Trans>Total</Trans>
-          </label>
-          <input
-            id="spot-order-total"
-            aria-label={`Total (${quote})`}
-            className={styles.input}
-            value={summary.total}
-            placeholder="0.00"
-            readOnly
-            tabIndex={-1}
-          />
-          <span className={styles.unit}>{quote}</span>
-        </div>
-
-        {ready ? (
-          <button
-            type="button"
-            className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
-            aria-label={busy ? "Sending…" : `${side} ${base}`}
-            onClick={submit}
-            disabled={!canSubmit}
+          <div
+            id="spot-swap-panel"
+            role="tabpanel"
+            aria-labelledby="spot-swap-tab"
+            className={`${styles.body} ${styles.swapBody}`}
           >
-            {busy ? (
-              <Trans>Sending…</Trans>
+            <div className={styles.swapIntro}>
+              <span className={styles.swapKicker}>
+                <Trans>Onchain atomic swap</Trans>
+              </span>
+              <strong>
+                <Trans>Swap directly from your wallet</Trans>
+              </strong>
+              <p>
+                <Trans>
+                  Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update.
+                </Trans>
+              </p>
+            </div>
+
+            <div className={styles.swapRoute} aria-label="Swap route preview">
+              <div className={styles.swapLeg}>
+                <span>
+                  <Trans>You pay</Trans>
+                </span>
+                <strong>{side === "BUY" ? quote : base}</strong>
+                <small>
+                  <Trans>Your wallet</Trans>
+                </small>
+              </div>
+              <div className={styles.swapArrow} aria-hidden="true">
+                ↓
+              </div>
+              <div className={styles.swapLeg}>
+                <span>
+                  <Trans>You receive</Trans>
+                </span>
+                <strong>{side === "BUY" ? base : quote}</strong>
+                <small>
+                  <Trans>To your wallet</Trans>
+                </small>
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="spot-swap-amount" className={styles.fieldLabel}>
+                <Trans>Amount</Trans>
+              </label>
+              <input
+                id="spot-swap-amount"
+                aria-label={`Swap amount (${base})`}
+                className={styles.input}
+                value={amount}
+                onChange={(event) => updateAmount(event.target.value)}
+                disabled={busy}
+                placeholder="0.1"
+                inputMode="decimal"
+                autoComplete="off"
+              />
+              <span className={styles.unit}>{base}</span>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="spot-swap-slippage" className={styles.fieldLabel}>
+                <Trans>Max slippage</Trans>
+              </label>
+              <input
+                id="spot-swap-slippage"
+                aria-label="Swap slippage"
+                className={styles.input}
+                value={(swapSlippageBps / 100).toString()}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  if (Number.isFinite(value)) setSwapSlippageBps(Math.round(value * 100));
+                }}
+                disabled={busy}
+                inputMode="decimal"
+              />
+              <span className={styles.unit}>%</span>
+            </div>
+
+            <div className={styles.swapNotice}>
+              <Trans>
+                Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances;
+                actual fills update trades, volume, and candles.
+              </Trans>
+            </div>
+
+            <div className={styles.swapFee} aria-label="Swap gas fee">
+              <span>
+                <Trans>Network execution cost</Trans>
+              </span>
+              <strong>
+                <Trans>1 USDT equivalent</Trans>
+              </strong>
+              <small>
+                <Trans>Deducted from {swapOutputAsset} received</Trans>
+                {activeSwap?.gasFeeAmount && activeSwap.gasFeeAsset
+                  ? ` · ≈ ${activeSwap.gasFeeAmount} ${activeSwap.gasFeeAsset}`
+                  : ""}
+              </small>
+              <small>
+                <Trans>No CC balance required</Trans>
+              </small>
+            </div>
+
+            {wallet.connected ? (
+              <button
+                type="button"
+                className={`${styles.submit} ${styles.swapSubmit}`}
+                disabled={!canSubmitSwap}
+                onClick={submitSwap}
+              >
+                {busy ? (
+                  <Trans>Sending…</Trans>
+                ) : side === "BUY" ? (
+                  <Trans>Swap to buy</Trans>
+                ) : (
+                  <Trans>Swap to sell</Trans>
+                )}{" "}
+                {base}
+              </button>
             ) : (
-              <>
-                {side === "BUY" ? <Trans>BUY</Trans> : <Trans>SELL</Trans>} {base} ·{" "}
-                {orderType === "MARKET" ? <Trans>Market</Trans> : <Trans>Limit</Trans>}
-              </>
+              <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
+                <Trans>Connect Wallet</Trans>
+              </button>
             )}
-          </button>
-        ) : (
-          <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
-            <Trans>Connect Wallet</Trans>
-          </button>
-        )}
-
-        <div className={styles.feeRow}>
-          <span>
-            <Trans>Fee</Trans> (0.1%)
-          </span>
-          <strong>
-            {summary.fee ? `${summary.fee} ${side === "BUY" ? base : quote}` : `— ${side === "BUY" ? base : quote}`}
-          </strong>
-        </div>
-
-        {msg && (
-          <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`} role="status">
-            {msg.text}
+            {msg && (
+              <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`} role="status">
+                {msg.text}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <>
+          <div className={styles.sideTabs} role="tablist" aria-label="Order side">
+            <button
+              type="button"
+              id="spot-buy-tab"
+              role="tab"
+              aria-selected={side === "BUY"}
+              aria-controls="spot-order-form-panel"
+              tabIndex={side === "BUY" && !busy ? 0 : -1}
+              disabled={busy}
+              className={styles.sideTab}
+              onClick={() => selectSide("BUY")}
+              onKeyDown={(event) => activateSideFromKeyboard(event, "BUY")}
+              ref={(node) => {
+                sideTabRefs.current.BUY = node;
+              }}
+            >
+              <Trans>Buy</Trans> {base}
+            </button>
+            <button
+              type="button"
+              id="spot-sell-tab"
+              role="tab"
+              aria-selected={side === "SELL"}
+              aria-controls="spot-order-form-panel"
+              tabIndex={side === "SELL" && !busy ? 0 : -1}
+              disabled={busy}
+              className={styles.sideTab}
+              onClick={() => selectSide("SELL")}
+              onKeyDown={(event) => activateSideFromKeyboard(event, "SELL")}
+              ref={(node) => {
+                sideTabRefs.current.SELL = node;
+              }}
+            >
+              <Trans>Sell</Trans> {base}
+            </button>
+            <div
+              aria-hidden="true"
+              data-testid="spot-side-indicator"
+              className={`${styles.sideIndicator} ${side === "BUY" ? styles.indicatorBuy : styles.indicatorSell}`}
+            />
+          </div>
+
+          <div
+            id="spot-order-form-panel"
+            role="tabpanel"
+            aria-labelledby={`spot-${side.toLowerCase()}-tab spot-${orderType.toLowerCase()}-tab`}
+            className={styles.body}
+          >
+            <div className={styles.available}>
+              <span>
+                <Trans>Available</Trans>
+              </span>
+              <strong>
+                {account ? formatSpotAssetAmount(availableValue, availableAsset, precisions) : "—"} {availableAsset}
+              </strong>
+            </div>
+            {accountError && <div className={styles.accountHint}>{accountError}</div>}
+
+            <div className={`${styles.field} ${orderType === "MARKET" ? styles.readOnlyShell : ""}`}>
+              <label htmlFor="spot-order-price" className={styles.fieldLabel}>
+                {orderType === "MARKET" ? <Trans>Est. Price</Trans> : <Trans>Price</Trans>}
+              </label>
+              <input
+                id="spot-order-price"
+                aria-label={`Price (${quote})`}
+                className={styles.input}
+                value={orderType === "MARKET" && displayPrice ? displayPrice : price}
+                onChange={(event) => updatePrice(event.target.value)}
+                disabled={busy}
+                placeholder={orderType === "MARKET" ? "—" : "500"}
+                inputMode="decimal"
+                autoComplete="off"
+                readOnly={orderType === "MARKET"}
+                tabIndex={orderType === "MARKET" ? -1 : undefined}
+              />
+              <span className={styles.unit}>{quote}</span>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="spot-order-amount" className={styles.fieldLabel}>
+                <Trans>Amount</Trans>
+              </label>
+              <input
+                id="spot-order-amount"
+                aria-label={`Amount (${base})`}
+                className={styles.input}
+                value={amount}
+                onChange={(event) => updateAmount(event.target.value)}
+                disabled={busy}
+                placeholder="0.1"
+                inputMode="decimal"
+                autoComplete="off"
+              />
+              <span className={styles.unit}>{base}</span>
+            </div>
+
+            <div className={styles.sliderBlock}>
+              <input
+                aria-label="Order percentage"
+                className={`${styles.slider} ${side === "BUY" ? styles.sliderBuy : styles.sliderSell}`}
+                style={sliderStyle}
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={percent}
+                onChange={(event) => updatePercent(Number(event.target.value))}
+                disabled={busy}
+              />
+              <div className={styles.percentInput}>
+                <input
+                  aria-label="Order percentage input"
+                  className={styles.percentInputValue}
+                  value={percent}
+                  inputMode="numeric"
+                  onChange={(event) => {
+                    const next = Number(event.target.value.replace(/[^0-9]/g, ""));
+                    if (!Number.isNaN(next)) updatePercent(Math.max(0, Math.min(100, next)));
+                  }}
+                  disabled={busy}
+                />
+                <span aria-hidden="true">%</span>
+              </div>
+            </div>
+
+            <div className={`${styles.field} ${styles.readOnlyShell}`}>
+              <label htmlFor="spot-order-total" className={styles.fieldLabel}>
+                <Trans>Total</Trans>
+              </label>
+              <input
+                id="spot-order-total"
+                aria-label={`Total (${quote})`}
+                className={styles.input}
+                value={summary.total}
+                placeholder="0.00"
+                readOnly
+                tabIndex={-1}
+              />
+              <span className={styles.unit}>{quote}</span>
+            </div>
+
+            {ready ? (
+              <button
+                type="button"
+                className={`${styles.submit} ${side === "BUY" ? styles.submitBuy : styles.submitSell}`}
+                aria-label={busy ? "Sending…" : `${side} ${base}`}
+                onClick={submit}
+                disabled={!canSubmit}
+              >
+                {busy ? (
+                  <Trans>Sending…</Trans>
+                ) : (
+                  <>
+                    {side === "BUY" ? <Trans>BUY</Trans> : <Trans>SELL</Trans>} {base} ·{" "}
+                    {orderType === "MARKET" ? <Trans>Market</Trans> : <Trans>Limit</Trans>}
+                  </>
+                )}
+              </button>
+            ) : (
+              <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
+                <Trans>Connect Wallet</Trans>
+              </button>
+            )}
+
+            <div className={styles.feeRow}>
+              <span>
+                <Trans>Fee</Trans> (0.1%)
+              </span>
+              <strong>
+                {summary.fee ? `${summary.fee} ${side === "BUY" ? base : quote}` : `— ${side === "BUY" ? base : quote}`}
+              </strong>
+            </div>
+
+            {msg && (
+              <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`} role="status">
+                {msg.text}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
