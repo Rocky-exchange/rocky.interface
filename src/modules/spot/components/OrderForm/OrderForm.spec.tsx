@@ -9,7 +9,7 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { SpotOrderForm } from "./OrderForm";
 import { spotApi, type Account, type SpotOrder, SpotApiError } from "../../api/spotClient";
-import { swapApi, type SwapCapacity, type SwapOrder } from "../../api/swapClient";
+import { swapApi, type SwapOrder } from "../../api/swapClient";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
 import { renderWithI18n as render } from "../../test/renderWithI18n";
@@ -136,15 +136,14 @@ beforeEach(() => {
     asks: [["65000", "10"]],
     bids: [["64000", "10"]],
   });
-  const capacity: SwapCapacity = {
-    symbol: market.apiSymbol,
-    side: "BUY",
-    outputAsset: "CBTC",
+  mSwapCapacity.mockImplementation(async (symbol, side) => ({
+    symbol,
+    side,
+    outputAsset: side === "BUY" ? "CBTC" : "CUSD",
     custodyBalance: "10",
     custodyUsableBalance: "8",
     maxBase: "8",
-  };
-  mSwapCapacity.mockResolvedValue(capacity);
+  }));
   const swap: SwapOrder = {
     swapId: "019fswap1234567890",
     clientSwapId: "client-swap",
@@ -263,6 +262,40 @@ describe("SpotOrderForm", () => {
     const submit = view.getByRole("button", { name: /Exceeds single Swap limit/ }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     expect(mCreateSwap).not.toHaveBeenCalled();
+  });
+
+  it("checks CBTC custody for BUY and CUSD custody for SELL", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+
+    await waitFor(() => expect(view.getByText("Limited to 80% of current custody liquidity · CBTC")).toBeTruthy());
+    expect(mSwapCapacity).toHaveBeenCalledWith(market.apiSymbol, "BUY", 50);
+
+    fireEvent.click(view.getByRole("button", { name: "Sell CBTC" }));
+    await waitFor(() => expect(view.getByText("Limited to 80% of current custody liquidity · CUSD")).toBeTruthy());
+    expect(mSwapCapacity).toHaveBeenCalledWith(market.apiSymbol, "SELL", 50);
+  });
+
+  it("does not present the user wallet balance as the custody single Swap maximum", async () => {
+    mFetchWalletBalances.mockResolvedValue({
+      ...walletBalances,
+      balances: walletBalances.balances.map((balance) =>
+        balance.symbol === "CUSD" ? { ...balance, amount: "1" } : balance
+      ),
+    });
+    mSwapCapacity.mockResolvedValue({
+      symbol: market.apiSymbol,
+      side: "BUY",
+      outputAsset: "CBTC",
+      custodyBalance: "0.5",
+      custodyUsableBalance: "0.4",
+      maxBase: "0.4",
+    });
+
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+
+    await waitFor(() => expect(view.getByText("0.4 CBTC")).toBeTruthy());
   });
 
   it("shows a zero maximum and disables Swap when custody has no usable balance", async () => {

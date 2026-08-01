@@ -234,9 +234,13 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     [depth?.asks, depth?.bids, side, swapSlippageBps, walletAvailable]
   );
   const matchingSwapCapacity =
-    swapCapacity?.symbol === market.apiSymbol && swapCapacity.side === side ? swapCapacity : null;
+    swapCapacity?.symbol === market.apiSymbol &&
+    swapCapacity.side === side &&
+    swapCapacity.outputAsset.toUpperCase() === swapOutputAsset.toUpperCase()
+      ? swapCapacity
+      : null;
   const custodyMaximumSwapBase = nonNegativeDecimal(matchingSwapCapacity?.maxBase ?? "");
-  const swapMaximumBase = useMemo(
+  const swapSizingMaximumBase = useMemo(
     () => minimumDecimal(walletMaximumSwapBase, custodyMaximumSwapBase),
     [custodyMaximumSwapBase, walletMaximumSwapBase]
   );
@@ -245,7 +249,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const swapBalanceInsufficient =
     walletAvailable !== null && requiredInput !== null && requiredInput.gt(walletAvailable);
   const swapMaximumExceeded =
-    parsedSwapAmount !== null && swapMaximumBase !== null && parsedSwapAmount.gt(swapMaximumBase);
+    parsedSwapAmount !== null && custodyMaximumSwapBase !== null && parsedSwapAmount.gt(custodyMaximumSwapBase);
   const summary = useMemo(() => calculateOrderSummary(side, displayPrice, amount), [amount, displayPrice, side]);
 
   const selectSide = (nextSide: Side) => {
@@ -299,13 +303,13 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
   const updateAmount = (value: string) => {
     setAmount(value);
-    if (orderType !== "SWAP" || !swapMaximumBase?.gt(0)) {
+    if (orderType !== "SWAP" || !swapSizingMaximumBase?.gt(0)) {
       setPercent(0);
       return;
     }
     const parsed = positiveDecimal(value);
     const nextPercent = parsed
-      ? parsed.div(swapMaximumBase).times(100).integerValue(BigNumber.ROUND_DOWN).toNumber()
+      ? parsed.div(swapSizingMaximumBase).times(100).integerValue(BigNumber.ROUND_DOWN).toNumber()
       : 0;
     setPercent(Math.max(0, Math.min(100, nextPercent)));
   };
@@ -340,12 +344,12 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const updateSwapPercent = (value: number) => {
     const nextPercent = Math.max(0, Math.min(100, value));
     setPercent(nextPercent);
-    if (!swapMaximumBase?.gt(0) || nextPercent === 0) {
+    if (!swapSizingMaximumBase?.gt(0) || nextPercent === 0) {
       setAmount("");
       return;
     }
     setAmount(
-      swapMaximumBase
+      swapSizingMaximumBase
         .times(nextPercent)
         .div(100)
         .decimalPlaces(spotAssetPrecision(base, precisions), BigNumber.ROUND_DOWN)
@@ -424,7 +428,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     !busy &&
     activeSwapId === null &&
     positiveDecimal(amount) !== null &&
-    swapMaximumBase !== null &&
+    custodyMaximumSwapBase !== null &&
     swapSlippageBps >= 10 &&
     swapSlippageBps <= 500 &&
     !swapBalanceInsufficient &&
@@ -494,16 +498,16 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         setMsg({ kind: "err", text: i18n._(t`Insufficient ${swapInputAsset} balance`) });
         return;
       }
-      const freshWalletMaximum = maximumSwapBase(
-        side,
-        freshAvailable,
-        side === "BUY" ? freshDepth.asks : freshDepth.bids,
-        swapSlippageBps
-      );
       const freshCustodyMaximum = nonNegativeDecimal(freshCapacity.maxBase);
-      const freshMaximum = minimumDecimal(freshWalletMaximum, freshCustodyMaximum);
       const submittedAmount = positiveDecimal(amount);
-      if (freshMaximum === null || submittedAmount === null || submittedAmount.gt(freshMaximum)) {
+      if (
+        freshCapacity.symbol !== market.apiSymbol ||
+        freshCapacity.side !== side ||
+        freshCapacity.outputAsset.toUpperCase() !== swapOutputAsset.toUpperCase() ||
+        freshCustodyMaximum === null ||
+        submittedAmount === null ||
+        submittedAmount.gt(freshCustodyMaximum)
+      ) {
         setMsg({ kind: "err", text: i18n._(t`Amount exceeds the single Swap maximum`) });
         return;
       }
@@ -689,7 +693,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                 step="1"
                 value={percent}
                 onChange={(event) => updateSwapPercent(Number(event.target.value))}
-                disabled={busy || !swapMaximumBase?.gt(0)}
+                disabled={busy || !swapSizingMaximumBase?.gt(0)}
               />
               <div className={styles.percentInput}>
                 <input
@@ -701,7 +705,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                     const next = Number(event.target.value.replace(/[^0-9]/g, ""));
                     if (!Number.isNaN(next)) updateSwapPercent(next);
                   }}
-                  disabled={busy || !swapMaximumBase?.gt(0)}
+                  disabled={busy || !swapSizingMaximumBase?.gt(0)}
                 />
                 <span aria-hidden="true">%</span>
               </div>
@@ -712,10 +716,14 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                 <Trans>Single Swap maximum</Trans>
               </span>
               <strong>
-                {swapMaximumBase ? formatSpotAssetAmount(swapMaximumBase.toFixed(), base, precisions) : "—"} {base}
+                {custodyMaximumSwapBase
+                  ? formatSpotAssetAmount(custodyMaximumSwapBase.toFixed(), base, precisions)
+                  : "—"}{" "}
+                {base}
               </strong>
               <small>
-                <Trans>Limited to 80% of current custody liquidity</Trans>
+                <Trans>Limited to 80% of current custody liquidity</Trans> ·{" "}
+                {matchingSwapCapacity?.outputAsset || swapOutputAsset}
               </small>
             </div>
 
