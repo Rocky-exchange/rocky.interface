@@ -3,6 +3,10 @@ import { useLingui } from "@lingui/react";
 import BigNumber from "bignumber.js";
 import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import {
+  fetchWalletBalanceSnapshot,
+  type WalletBalanceSnapshot,
+} from "@/shared/lib/canton-wallet/balances";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
@@ -14,7 +18,7 @@ import { swapApi, SwapApiError } from "../../api/swapClient";
 import { usePolling } from "../../hooks/usePolling";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { useSpotAssetPrecisions } from "../../hooks/useSpotAssetPrecisions";
-import { formatSpotAssetAmount } from "../../model/assetPrecision";
+import { formatSpotAssetAmount, spotAssetPrecision } from "../../model/assetPrecision";
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
@@ -65,6 +69,55 @@ function isWithinAvailableBalance(
   return balance.isFinite() && parsedPrice.times(parsedAmount).lte(balance);
 }
 
+function walletAssetBalance(snapshot: WalletBalanceSnapshot | null, asset: string): BigNumber | null {
+  if (snapshot?.status !== "ready") return null;
+  const value = snapshot.balances.find((balance) => balance.symbol.toUpperCase() === asset.toUpperCase())?.amount;
+  if (value === null || value === undefined) return null;
+  const parsed = new Decimal(value);
+  return parsed.isFinite() && parsed.gte(0) ? parsed : null;
+}
+
+function maximumSwapBase(
+  side: Side,
+  walletAvailable: BigNumber | null,
+  levels: [string, string][] | undefined,
+  slippageBps: number,
+): BigNumber | null {
+  if (walletAvailable === null) return null;
+  const touch = positiveDecimal(levels?.[0]?.[0] ?? "");
+  if (touch === null) return null;
+  const slippage = new Decimal(slippageBps).div(10_000);
+  const boundary = side === "BUY" ? touch.times(new Decimal(1).plus(slippage)) : touch.times(new Decimal(1).minus(slippage));
+
+  let quoteRemaining = walletAvailable;
+  let baseAmount = new Decimal(0);
+  for (const [levelPrice, levelQuantity] of levels ?? []) {
+    const price = positiveDecimal(levelPrice);
+    const quantity = positiveDecimal(levelQuantity);
+    if (price === null || quantity === null) continue;
+    if ((side === "BUY" && price.gt(boundary)) || (side === "SELL" && price.lt(boundary))) break;
+    if (side === "SELL") {
+      baseAmount = baseAmount.plus(quantity);
+      if (baseAmount.gte(walletAvailable)) return walletAvailable;
+      continue;
+    }
+    const levelCost = price.times(quantity);
+    const fill = quoteRemaining.gte(levelCost) ? quantity : quoteRemaining.div(price);
+    baseAmount = baseAmount.plus(fill);
+    quoteRemaining = quoteRemaining.minus(fill.times(price));
+    if (quoteRemaining.lte(0)) break;
+  }
+  return baseAmount;
+}
+
+function requiredSwapInput(side: Side, amount: string, fillPrice: string): BigNumber | null {
+  const parsedAmount = positiveDecimal(amount);
+  if (parsedAmount === null) return null;
+  if (side === "SELL") return parsedAmount;
+  const parsedPrice = positiveDecimal(fillPrice);
+  return parsedPrice === null ? null : parsedAmount.times(parsedPrice);
+}
+
 /// The protective limit a MARKET order is submitted with: the touch pushed 5%
 /// through the book so the order always crosses. It is the WORST price the
 /// order may accept, not the price it is expected to get — see
@@ -90,7 +143,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [percent, setPercent] = useState(0);
-  const [swapSlippageBps, setSwapSlippageBps] = useState(100);
+  const [swapSlippageBps, setSwapSlippageBps] = useState(50);
+  const [walletBalances, setWalletBalances] = useState<WalletBalanceSnapshot | null>(null);
   const [activeSwapId, setActiveSwapId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -126,6 +180,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         : "";
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
+  const swapInputAsset = side === "BUY" ? quote : base;
   const swapOutputAsset = side === "BUY" ? base : quote;
   const swapEstimatedPrice = useMemo(
     () => estimatedFillPrice(side === "BUY" ? depth?.asks : depth?.bids, amount),
@@ -154,6 +209,20 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const tradingFeeAmount = matchingActiveSwap?.fee || swapFeePreview.tradingFee;
   const gasFeeAsset = matchingActiveSwap?.gasFeeAsset || swapOutputAsset;
   const gasFeeAmount = matchingActiveSwap?.gasFeeAmount || swapFeePreview.gasFee;
+  const totalFeeAmount = useMemo(() => {
+    if (!tradingFeeAmount || !gasFeeAmount || tradingFeeAsset.toUpperCase() !== gasFeeAsset.toUpperCase()) return null;
+    const trading = positiveDecimal(tradingFeeAmount);
+    const gas = positiveDecimal(gasFeeAmount);
+    return trading && gas ? trading.plus(gas).toFixed() : null;
+  }, [gasFeeAmount, gasFeeAsset, tradingFeeAmount, tradingFeeAsset]);
+  const walletAvailable = walletAssetBalance(walletBalances, swapInputAsset);
+  const swapMaximumBase = useMemo(
+    () => maximumSwapBase(side, walletAvailable, side === "BUY" ? depth?.asks : depth?.bids, swapSlippageBps),
+    [depth?.asks, depth?.bids, side, swapSlippageBps, walletAvailable],
+  );
+  const requiredInput = requiredSwapInput(side, amount, swapEstimatedPrice);
+  const swapBalanceInsufficient =
+    walletAvailable !== null && requiredInput !== null && requiredInput.gt(walletAvailable);
   const summary = useMemo(() => calculateOrderSummary(side, displayPrice, amount), [amount, displayPrice, side]);
 
   const selectSide = (nextSide: Side) => {
@@ -207,7 +276,13 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
 
   const updateAmount = (value: string) => {
     setAmount(value);
-    setPercent(0);
+    if (orderType !== "SWAP" || !swapMaximumBase?.gt(0)) {
+      setPercent(0);
+      return;
+    }
+    const parsed = positiveDecimal(value);
+    const nextPercent = parsed ? parsed.div(swapMaximumBase).times(100).integerValue(BigNumber.ROUND_DOWN).toNumber() : 0;
+    setPercent(Math.max(0, Math.min(100, nextPercent)));
   };
 
   const updatePrice = (value: string) => {
@@ -237,11 +312,41 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     );
   };
 
+  const updateSwapPercent = (value: number) => {
+    const nextPercent = Math.max(0, Math.min(100, value));
+    setPercent(nextPercent);
+    if (!swapMaximumBase?.gt(0) || nextPercent === 0) {
+      setAmount("");
+      return;
+    }
+    setAmount(
+      swapMaximumBase
+        .times(nextPercent)
+        .div(100)
+        .decimalPlaces(spotAssetPrecision(base, precisions), BigNumber.ROUND_DOWN)
+        .toFixed(),
+    );
+  };
+
   useEffect(() => {
-    if (percent === 0 || busy) return;
+    if (orderType !== "SWAP" || !wallet.connected) {
+      setWalletBalances(null);
+      return;
+    }
+    let alive = true;
+    void fetchWalletBalanceSnapshot().then((snapshot) => {
+      if (alive) setWalletBalances(snapshot);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [market.apiSymbol, orderType, wallet.connected, wallet.party, wallet.provider]);
+
+  useEffect(() => {
+    if (orderType === "SWAP" || percent === 0 || busy) return;
     const nextAmount = quantityForOrderPercent({ side, percent, price: effectivePrice, baseFree, quoteFree });
     setAmount((currentAmount) => (currentAmount === nextAmount ? currentAmount : nextAmount));
-  }, [baseFree, busy, effectivePrice, percent, quoteFree, side]);
+  }, [baseFree, busy, effectivePrice, orderType, percent, quoteFree, side]);
 
   useLayoutEffect(() => {
     if (marketSession.current.symbol === market.apiSymbol) return;
@@ -254,6 +359,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setPrice("");
     setAmount("");
     setPercent(0);
+    setSwapSlippageBps(50);
+    setWalletBalances(null);
     setMsg(null);
     setBusy(false);
     setActiveSwapId(null);
@@ -293,7 +400,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     activeSwapId === null &&
     positiveDecimal(amount) !== null &&
     swapSlippageBps >= 10 &&
-    swapSlippageBps <= 500;
+    swapSlippageBps <= 500 &&
+    !swapBalanceInsufficient;
 
   const submit = async () => {
     if (!canSubmit || orderType === "SWAP") return;
@@ -341,6 +449,23 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setBusy(true);
     setMsg(null);
     try {
+      const [freshBalances, freshDepth] = await Promise.all([
+        fetchWalletBalanceSnapshot(),
+        spotApi.depth(market.apiSymbol, 20),
+      ]);
+      if (!isCurrentSession()) return;
+      setWalletBalances(freshBalances);
+      const freshAvailable = walletAssetBalance(freshBalances, swapInputAsset);
+      const freshFillPrice = estimatedFillPrice(side === "BUY" ? freshDepth.asks : freshDepth.bids, amount);
+      const freshRequired = requiredSwapInput(side, amount, freshFillPrice);
+      if (freshAvailable === null || freshRequired === null) {
+        setMsg({ kind: "err", text: i18n._(t`Balance unavailable.`) });
+        return;
+      }
+      if (freshRequired.gt(freshAvailable)) {
+        setMsg({ kind: "err", text: i18n._(t`Insufficient ${swapInputAsset} balance`) });
+        return;
+      }
       const newlyAuthorized = await ensureSpotMemberAuth({ provider: wallet.provider, party: wallet.party });
       if (!isCurrentSession()) return;
       if (newlyAuthorized) {
@@ -512,6 +637,35 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               <span className={styles.unit}>{base}</span>
             </div>
 
+            <div className={styles.sliderBlock}>
+              <input
+                aria-label="Swap percentage"
+                className={`${styles.slider} ${side === "BUY" ? styles.sliderBuy : styles.sliderSell}`}
+                style={sliderStyle}
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={percent}
+                onChange={(event) => updateSwapPercent(Number(event.target.value))}
+                disabled={busy || !swapMaximumBase?.gt(0)}
+              />
+              <div className={styles.percentInput}>
+                <input
+                  aria-label="Swap percentage input"
+                  className={styles.percentInputValue}
+                  value={percent}
+                  inputMode="numeric"
+                  onChange={(event) => {
+                    const next = Number(event.target.value.replace(/[^0-9]/g, ""));
+                    if (!Number.isNaN(next)) updateSwapPercent(next);
+                  }}
+                  disabled={busy || !swapMaximumBase?.gt(0)}
+                />
+                <span aria-hidden="true">%</span>
+              </div>
+            </div>
+
             <div className={styles.field}>
               <label htmlFor="spot-swap-slippage" className={styles.fieldLabel}>
                 <Trans>Max slippage</Trans>
@@ -539,7 +693,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             </div>
 
             <div className={styles.swapFees} aria-label="Swap fees">
-              <div className={styles.swapFee} aria-label="Swap trading fee">
+              <div className={styles.swapFeeRow} aria-label="Swap trading fee">
                 <span>
                   <Trans>Trading fee</Trans>
                 </span>
@@ -549,7 +703,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                 </strong>
                 <small>0.1%</small>
               </div>
-              <div className={styles.swapFee} aria-label="Swap gas fee">
+              <div className={styles.swapFeeRow} aria-label="Swap gas fee">
                 <span>
                   <Trans>Network Fee</Trans>
                 </span>
@@ -557,12 +711,15 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                   {gasFeeAmount ? `≈ ${formatSpotAssetAmount(gasFeeAmount, gasFeeAsset, precisions)}` : "—"}{" "}
                   {gasFeeAsset}
                 </strong>
-                <small>
-                  <Trans>Deducted from {swapOutputAsset} received</Trans>
-                </small>
-                <small>
-                  <Trans>No CC balance required</Trans>
-                </small>
+              </div>
+              <div className={`${styles.swapFeeRow} ${styles.swapFeeTotal}`} aria-label="Swap total fees">
+                <span>
+                  <Trans>Total</Trans>
+                </span>
+                <strong>
+                  {totalFeeAmount ? `≈ ${formatSpotAssetAmount(totalFeeAmount, gasFeeAsset, precisions)}` : "—"}{" "}
+                  {gasFeeAsset}
+                </strong>
               </div>
             </div>
 
@@ -575,6 +732,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               >
                 {busy ? (
                   <Trans>Sending…</Trans>
+                ) : swapBalanceInsufficient ? (
+                  <Trans>Insufficient {swapInputAsset} balance</Trans>
                 ) : side === "BUY" ? (
                   <Trans>Swap to buy</Trans>
                 ) : (

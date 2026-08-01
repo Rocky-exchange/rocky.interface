@@ -227,17 +227,18 @@
 
 .swapFees {
   display: grid;
-  gap: 7px;
-}
-
-.swapFee {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 3px 8px;
-  padding: 9px;
+  padding: 2px 9px;
   border: 1px solid var(--ltr-border);
   border-radius: 5px;
   background: color-mix(in srgb, var(--ltr-bg-panel-2, #0e0e14) 72%, transparent);
+}
+
+.swapFeeRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  min-height: 38px;
+  padding: 7px 0;
 
   span,
   small {
@@ -255,7 +256,19 @@
   }
 
   small {
-    grid-column: 1 / -1;
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+
+.swapFeeTotal {
+  min-height: 36px;
+  border-top: 1px solid var(--ltr-border);
+
+  span,
+  strong {
+    align-self: center;
+    color: var(--ltr-text-primary);
   }
 }
 

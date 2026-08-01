@@ -2,6 +2,10 @@ import { act, cleanup, fireEvent, waitFor, within } from "@testing-library/react
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  fetchWalletBalanceSnapshot,
+  type WalletBalanceSnapshot,
+} from "@/shared/lib/canton-wallet/balances";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
@@ -16,6 +20,7 @@ import { renderWithI18n as render } from "../../test/renderWithI18n";
 vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
   openCantonConnect: vi.fn(),
 }));
+vi.mock("@/shared/lib/canton-wallet/balances", () => ({ fetchWalletBalanceSnapshot: vi.fn() }));
 vi.mock("@/shared/lib/canton-wallet/memberAuth", () => ({ ensureSpotMemberAuth: vi.fn() }));
 vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({ useCantonSession: vi.fn() }));
 vi.mock("../../hooks/useSpotAccount", () => ({
@@ -27,6 +32,7 @@ vi.mock("../../api/spotClient", async () => {
     ...actual,
     spotApi: {
       placeOrder: vi.fn(),
+      depth: vi.fn(),
     },
   };
 });
@@ -37,7 +43,9 @@ vi.mock("../../api/swapClient", async () => {
 
 const mUseSpotAccount = vi.mocked(useSpotAccount);
 const mPlace = vi.mocked(spotApi.placeOrder);
+const mDepth = vi.mocked(spotApi.depth);
 const mConnect = vi.mocked(openCantonConnect);
+const mFetchWalletBalances = vi.mocked(fetchWalletBalanceSnapshot);
 const mEnsureMemberAuth = vi.mocked(ensureSpotMemberAuth);
 const mUseCantonSession = vi.mocked(useCantonSession);
 const mCreateSwap = vi.mocked(swapApi.create);
@@ -45,6 +53,18 @@ const mGetSwap = vi.mocked(swapApi.get);
 const market = resolveSpotMarket("CBTC-CUSD");
 const cethMarket = resolveSpotMarket("CETH-CUSD");
 const refetch = vi.fn();
+const walletBalances: WalletBalanceSnapshot = {
+  provider: "rocky",
+  label: "Rocky Wallet",
+  party: "party-alice",
+  status: "ready",
+  balances: [
+    { symbol: "CUSD", amount: "100000" },
+    { symbol: "CBTC", amount: "2.5" },
+    { symbol: "cETH", amount: "0" },
+    { symbol: "CC", amount: "0" },
+  ],
+};
 
 const account: Account = {
   accountType: "SPOT",
@@ -112,6 +132,12 @@ beforeEach(() => {
     provider: "rocky",
   });
   mEnsureMemberAuth.mockResolvedValue(false);
+  mFetchWalletBalances.mockResolvedValue(walletBalances);
+  mDepth.mockResolvedValue({
+    lastUpdateId: 1,
+    asks: [["65000", "10"]],
+    bids: [["64000", "10"]],
+  });
   const swap: SwapOrder = {
     swapId: "019fswap1234567890",
     clientSwapId: "client-swap",
@@ -119,7 +145,7 @@ beforeEach(() => {
     side: "BUY",
     requestedBase: "0.1",
     acceptedBase: "0.1",
-    slippageBps: 100,
+    slippageBps: 50,
     referencePrice: "65000",
     protectionPrice: "65650",
     status: "MATCHING",
@@ -163,7 +189,7 @@ describe("SpotOrderForm", () => {
     expect(marketType.getAttribute("aria-selected")).toBe("false");
   });
 
-  it("renders Swap as a wallet product that consumes live spot depth", () => {
+  it("renders Swap with a balance slider, 0.5% slippage, and one fee breakdown", async () => {
     const view = render(<SpotOrderForm market={market} />);
 
     fireEvent.click(view.getByRole("tab", { name: "Swap" }));
@@ -173,23 +199,60 @@ describe("SpotOrderForm", () => {
     expect(view.getByText("CUSD")).toBeTruthy();
     expect(view.getAllByText("CBTC").length).toBeGreaterThan(0);
     expect(view.getByText(/actual fills update trades, volume, and candles/)).toBeTruthy();
-    expect(view.getByLabelText("Swap trading fee").textContent).toContain("— CBTC");
-    expect(view.getByLabelText("Swap gas fee").textContent).toContain("— CBTC");
+    expect(view.getByRole("slider", { name: "Swap percentage" })).toBeTruthy();
+    expect((view.getByLabelText("Swap slippage") as HTMLInputElement).value).toBe("0.5");
+    const fees = view.getByLabelText("Swap fees");
+    expect(within(fees).getByLabelText("Swap trading fee")).toBeTruthy();
+    expect(within(fees).getByLabelText("Swap gas fee")).toBeTruthy();
+    expect(within(fees).getByLabelText("Swap total fees")).toBeTruthy();
     expect(view.queryByText("1 USDT equivalent")).toBeNull();
-    expect(view.getByText("Deducted from CBTC received")).toBeTruthy();
+    expect(view.queryByText("Deducted from CBTC received")).toBeNull();
+    expect(view.queryByText("No CC balance required")).toBeNull();
+    await waitFor(() => expect(mFetchWalletBalances).toHaveBeenCalled());
     expect((view.getByRole("button", { name: /Swap to buy CBTC/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(mPlace).not.toHaveBeenCalled();
   });
 
-  it("shows chain gas in the asset received instead of USDT", () => {
+  it("shows chain gas and total fees in the asset received instead of USDT", async () => {
     const view = render(<SpotOrderForm market={market} />);
 
     fireEvent.click(view.getByRole("tab", { name: "Swap" }));
-    expect(view.getByLabelText("Swap gas fee").textContent).toContain("— CBTC");
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.001" } });
+    await waitFor(() => expect(view.getByLabelText("Swap gas fee").textContent).toContain("CBTC"));
+    expect(view.getByLabelText("Swap total fees").textContent).toContain("CBTC");
 
     fireEvent.click(view.getByRole("button", { name: "Sell CBTC" }));
-    expect(view.getByLabelText("Swap gas fee").textContent).toContain("1 CUSD");
+    await waitFor(() => expect(view.getByLabelText("Swap gas fee").textContent).toContain("1 CUSD"));
+    expect(view.getByLabelText("Swap total fees").textContent).toContain("CUSD");
     expect(view.queryByText(/USDT/)).toBeNull();
+  });
+
+  it("sizes Swap amount from the connected wallet balance", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect((view.getByRole("slider", { name: "Swap percentage" }) as HTMLInputElement).disabled).toBe(false));
+
+    fireEvent.change(view.getByRole("slider", { name: "Swap percentage" }), { target: { value: "50" } });
+    expect((view.getByLabelText("Swap amount (CBTC)") as HTMLInputElement).value).toBe("0.76923076");
+    expect((view.getByLabelText("Swap percentage input") as HTMLInputElement).value).toBe("50");
+  });
+
+  it("refreshes wallet balance on click and blocks a Swap that became unaffordable", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect(mFetchWalletBalances).toHaveBeenCalledTimes(1));
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.001" } });
+    mFetchWalletBalances.mockResolvedValueOnce({
+      ...walletBalances,
+      balances: walletBalances.balances.map((balance) =>
+        balance.symbol === "CUSD" ? { ...balance, amount: "1" } : balance,
+      ),
+    });
+
+    fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
+    await waitFor(() => expect(view.getByRole("button", { name: /Insufficient CUSD balance/ })).toBeTruthy());
+    expect(mEnsureMemberAuth).not.toHaveBeenCalled();
+    expect(mCreateSwap).not.toHaveBeenCalled();
   });
 
   it("requires a second confirmation after first-use wallet authorization", async () => {
@@ -209,7 +272,7 @@ describe("SpotOrderForm", () => {
       symbol: market.apiSymbol,
       side: "BUY",
       amount: "0.1",
-      slippageBps: 100,
+      slippageBps: 50,
     });
   });
 
