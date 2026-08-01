@@ -173,6 +173,8 @@ describe("SpotOrderForm", () => {
     expect(view.getByText("CUSD")).toBeTruthy();
     expect(view.getAllByText("CBTC").length).toBeGreaterThan(0);
     expect(view.getByText(/actual fills update trades, volume, and candles/)).toBeTruthy();
+    expect(view.getByText("1 USDT equivalent")).toBeTruthy();
+    expect(view.getByText("Deducted from CBTC received")).toBeTruthy();
     expect((view.getByRole("button", { name: /Swap to buy CBTC/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(mPlace).not.toHaveBeenCalled();
   });

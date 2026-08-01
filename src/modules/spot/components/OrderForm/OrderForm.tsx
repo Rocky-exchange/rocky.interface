@@ -108,6 +108,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
         : "";
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
+  const swapOutputAsset = side === "BUY" ? base : quote;
   const summary = useMemo(() => calculateOrderSummary(side, effectivePrice, amount), [amount, effectivePrice, side]);
 
   const selectSide = (nextSide: Side) => {
@@ -490,6 +491,24 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                 Amount is the maximum base asset quantity. The backend may reduce it to available depth and balances;
                 actual fills update trades, volume, and candles.
               </Trans>
+            </div>
+
+            <div className={styles.swapFee} aria-label="Swap gas fee">
+              <span>
+                <Trans>Network execution cost</Trans>
+              </span>
+              <strong>
+                <Trans>1 USDT equivalent</Trans>
+              </strong>
+              <small>
+                <Trans>Deducted from {swapOutputAsset} received</Trans>
+                {activeSwap?.gasFeeAmount && activeSwap.gasFeeAsset
+                  ? ` · ≈ ${activeSwap.gasFeeAmount} ${activeSwap.gasFeeAsset}`
+                  : ""}
+              </small>
+              <small>
+                <Trans>No CC balance required</Trans>
+              </small>
             </div>
 
             {wallet.connected ? (

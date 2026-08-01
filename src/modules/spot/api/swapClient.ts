@@ -12,6 +12,9 @@ export type SwapOrder = {
   protectionPrice: string;
   status: string;
   filledBase?: string | null;
+  gasFeeUsd?: string | null;
+  gasFeeAsset?: string | null;
+  gasFeeAmount?: string | null;
   amountIn?: string | null;
   amountOut?: string | null;
   cantonUpdateId?: string | null;
