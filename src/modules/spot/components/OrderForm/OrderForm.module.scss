@@ -225,6 +225,11 @@
   line-height: 1.45;
 }
 
+.swapFees {
+  display: grid;
+  gap: 7px;
+}
+
 .swapFee {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -245,6 +250,8 @@
     color: var(--ltr-text-primary);
     font-size: 11px;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   small {

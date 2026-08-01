@@ -173,10 +173,23 @@ describe("SpotOrderForm", () => {
     expect(view.getByText("CUSD")).toBeTruthy();
     expect(view.getAllByText("CBTC").length).toBeGreaterThan(0);
     expect(view.getByText(/actual fills update trades, volume, and candles/)).toBeTruthy();
-    expect(view.getByText("1 USDT equivalent")).toBeTruthy();
+    expect(view.getByLabelText("Swap trading fee").textContent).toContain("— CBTC");
+    expect(view.getByLabelText("Swap gas fee").textContent).toContain("— CBTC");
+    expect(view.queryByText("1 USDT equivalent")).toBeNull();
     expect(view.getByText("Deducted from CBTC received")).toBeTruthy();
     expect((view.getByRole("button", { name: /Swap to buy CBTC/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(mPlace).not.toHaveBeenCalled();
+  });
+
+  it("shows chain gas in the asset received instead of USDT", () => {
+    const view = render(<SpotOrderForm market={market} />);
+
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    expect(view.getByLabelText("Swap gas fee").textContent).toContain("— CBTC");
+
+    fireEvent.click(view.getByRole("button", { name: "Sell CBTC" }));
+    expect(view.getByLabelText("Swap gas fee").textContent).toContain("1 CUSD");
+    expect(view.queryByText(/USDT/)).toBeNull();
   });
 
   it("requires a second confirmation after first-use wallet authorization", async () => {

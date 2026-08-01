@@ -22,6 +22,7 @@ type OrderType = "LIMIT" | "MARKET" | "SWAP";
 
 const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 const MARKET_BAND = new Decimal("1.05");
+const SWAP_TAKER_FEE_RATE = new Decimal("0.001");
 
 type PercentOrderInput = {
   side: Side;
@@ -126,6 +127,33 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const availableValue = side === "BUY" ? quoteFree : baseFree;
   const availableAsset = side === "BUY" ? quote : base;
   const swapOutputAsset = side === "BUY" ? base : quote;
+  const swapEstimatedPrice = useMemo(
+    () => estimatedFillPrice(side === "BUY" ? depth?.asks : depth?.bids, amount),
+    [amount, depth?.asks, depth?.bids, side]
+  );
+  const swapFeePreview = useMemo(() => {
+    const parsedAmount = positiveDecimal(amount);
+    const parsedPrice = positiveDecimal(swapEstimatedPrice);
+    const tradingFee =
+      parsedAmount === null
+        ? null
+        : side === "BUY"
+          ? parsedAmount.times(SWAP_TAKER_FEE_RATE)
+          : parsedPrice?.times(parsedAmount).times(SWAP_TAKER_FEE_RATE) ?? null;
+    const one = new Decimal(1);
+    const gasFee = side === "SELL" ? one : parsedPrice?.gt(0) ? one.div(parsedPrice) : null;
+
+    return {
+      tradingFee: tradingFee?.toFixed() ?? null,
+      gasFee: gasFee?.toFixed() ?? null,
+    };
+  }, [amount, side, swapEstimatedPrice]);
+  const matchingActiveSwap =
+    activeSwap?.symbol === market.apiSymbol && activeSwap.side === side ? activeSwap : null;
+  const tradingFeeAsset = matchingActiveSwap?.feeAsset || swapOutputAsset;
+  const tradingFeeAmount = matchingActiveSwap?.fee || swapFeePreview.tradingFee;
+  const gasFeeAsset = matchingActiveSwap?.gasFeeAsset || swapOutputAsset;
+  const gasFeeAmount = matchingActiveSwap?.gasFeeAmount || swapFeePreview.gasFee;
   const summary = useMemo(() => calculateOrderSummary(side, displayPrice, amount), [amount, displayPrice, side]);
 
   const selectSide = (nextSide: Side) => {
@@ -510,22 +538,32 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               </Trans>
             </div>
 
-            <div className={styles.swapFee} aria-label="Swap gas fee">
-              <span>
-                <Trans>Network execution cost</Trans>
-              </span>
-              <strong>
-                <Trans>1 USDT equivalent</Trans>
-              </strong>
-              <small>
-                <Trans>Deducted from {swapOutputAsset} received</Trans>
-                {activeSwap?.gasFeeAmount && activeSwap.gasFeeAsset
-                  ? ` · ≈ ${activeSwap.gasFeeAmount} ${activeSwap.gasFeeAsset}`
-                  : ""}
-              </small>
-              <small>
-                <Trans>No CC balance required</Trans>
-              </small>
+            <div className={styles.swapFees} aria-label="Swap fees">
+              <div className={styles.swapFee} aria-label="Swap trading fee">
+                <span>
+                  <Trans>Trading fee</Trans>
+                </span>
+                <strong>
+                  {tradingFeeAmount ? `≈ ${formatSpotAssetAmount(tradingFeeAmount, tradingFeeAsset, precisions)}` : "—"}{" "}
+                  {tradingFeeAsset}
+                </strong>
+                <small>0.1%</small>
+              </div>
+              <div className={styles.swapFee} aria-label="Swap gas fee">
+                <span>
+                  <Trans>Network Fee</Trans>
+                </span>
+                <strong>
+                  {gasFeeAmount ? `≈ ${formatSpotAssetAmount(gasFeeAmount, gasFeeAsset, precisions)}` : "—"}{" "}
+                  {gasFeeAsset}
+                </strong>
+                <small>
+                  <Trans>Deducted from {swapOutputAsset} received</Trans>
+                </small>
+                <small>
+                  <Trans>No CC balance required</Trans>
+                </small>
+              </div>
             </div>
 
             {wallet.connected ? (
