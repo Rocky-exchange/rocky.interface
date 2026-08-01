@@ -216,12 +216,8 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Ranking Rules": "排名規則",
   "This is a real-funds trading competition. Only eligible accounts enter the leaderboard, ranked by total qualified trading volume in descending order.":
     "本活動為真實資金交易競賽。僅符合資格的帳戶可進入排行榜，並按有效總交易量由高至低排名。",
-  "Eligibility requires time-weighted average equity of at least $200, at least $2,000 in qualified notional trading volume, 10 effective trades, and activity on 2 or more trading days.":
-    "參賽資格要求時間加權平均權益不少於 200 美元、有效名義交易量不少於 2,000 美元、至少 10 筆有效交易，且交易日不少於 2 天。",
-  "Wash trading, related-account self-dealing, and other abnormal activity are excluded and may result in disqualification.":
-    "對敲交易、關聯帳戶自成交及其他異常行為將不計入，並可能導致取消資格。",
-  "The leaderboard closes at 24:00 UTC+8 on Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking.":
-    "排行榜於第 14 天 UTC+8 24:00 截止。僅截止前完成的合格交易會計入最終交易量排名。",
+  "The campaign runs for three weeks. The leaderboard closes at 00:00 UTC immediately after Day 21. Only qualifying trades completed before the deadline count toward the final volume ranking.":
+    "活動為期 3 週。排行榜於第 21 天結束後的 UTC 00:00 截止。僅截止前完成的合格交易會計入最終交易量排名。",
   "The Top 50 share 56,500,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds.":
     "前 50 名依上述級距共享 56,500,000 枚 R 鑽石。未進入前 50 名、但在至少 2 個交易日完成 10 筆有效交易的交易者，可獲得 500 枚 R 鑽石。",
   "Coming Soon": "即將推出",
@@ -2009,17 +2005,7 @@ function LeaderboardContent() {
           </li>
           <li>
             {copy(
-              "Eligibility requires time-weighted average equity of at least $200, at least $2,000 in qualified notional trading volume, 10 effective trades, and activity on 2 or more trading days."
-            )}
-          </li>
-          <li>
-            {copy(
-              "Wash trading, related-account self-dealing, and other abnormal activity are excluded and may result in disqualification."
-            )}
-          </li>
-          <li>
-            {copy(
-              "The leaderboard closes at 24:00 UTC+8 on Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking."
+              "The campaign runs for three weeks. The leaderboard closes at 00:00 UTC immediately after Day 21. Only qualifying trades completed before the deadline count toward the final volume ranking."
             )}
           </li>
           <li>
