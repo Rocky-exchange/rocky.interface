@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   bindOgInvitationCode,
   claimMission,
+  getLeaderboard,
   getOgBenefits,
   getMissions,
   getRewards,
@@ -92,6 +93,29 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     vi.clearAllMocks();
     i18n.load("en", {});
     i18n.activate("en");
+  });
+
+  it("spans the empty leaderboard message across every table column", async () => {
+    vi.mocked(getLeaderboard).mockResolvedValue({
+      page: 1,
+      pageSize: 50,
+      total: 0,
+      entries: [],
+    });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0?tab=leaderboard"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    const emptyCell = await screen.findByRole("cell", { name: "No qualified traders yet." });
+    expect(emptyCell.getAttribute("aria-colspan")).toBe("4");
+    expect(emptyCell.className).toContain("emptyLeaderboardCell");
   });
 
   it("renders OG invitation codes with generated ornament and crystal artwork", async () => {

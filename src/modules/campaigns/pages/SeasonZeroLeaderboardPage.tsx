@@ -1912,7 +1912,12 @@ function LeaderboardContent() {
         <div className={styles.leaderboard} role="table" aria-label={copy("Season 0 leaderboard")}>
           {pageEntries.length === 0 ? (
             <div className={styles.row} role="row">
-              <span className={styles.userCell} role="cell">
+              <span
+                className={styles.emptyLeaderboardCell}
+                role="cell"
+                aria-colspan={4}
+                data-testid="leaderboard-empty-cell"
+              >
                 {copy("No qualified traders yet.")}
               </span>
             </div>
