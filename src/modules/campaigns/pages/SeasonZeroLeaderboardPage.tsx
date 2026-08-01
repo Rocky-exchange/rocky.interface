@@ -2111,7 +2111,6 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
   const taskRewards = rewards?.taskRewards ?? "0";
   const campaignRewards = rewards?.campaignRewards ?? "0";
   const referralRewards = rewards?.referralRewards ?? "0";
-  const claimable = rewards?.claimable ?? "0";
   const isBadgeEligible = rewards?.badge.status === "eligible" || rewards?.badge.status === "approved";
 
   return (
@@ -2170,16 +2169,6 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
                 </span>
                 <strong>{formatInteger(referralRewards)}</strong>
               </span>
-            </div>
-            <div className={styles.claimPanel}>
-              <span>
-                <small>{copy("Claimable")}</small>
-                <strong>{formatInteger(claimable)}</strong>
-              </span>
-              <button type="button" className={styles.primaryButton}>
-                {copy("Claim")}
-                <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" />
-              </button>
             </div>
           </div>
         </article>
