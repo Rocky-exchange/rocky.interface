@@ -2050,6 +2050,10 @@ msgstr "暫無歷史記錄"
 msgid "Docs"
 msgstr "文件"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Amount is below the minimum Swap amount"
+msgstr "兑换数量低于最小值"
+
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Connect to inspect your bonus ledger"
 msgstr ""
@@ -2378,6 +2382,10 @@ msgstr "訂單的執行價格。"
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Trial funds"
 msgstr "體驗金"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Includes trading fee and network fee"
+msgstr "已包含交易手续费和链上网络费"
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
 msgid "Partial Position"
@@ -3203,6 +3211,10 @@ msgstr "更新限價"
 msgid "Date"
 msgstr "日期"
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Below minimum Swap amount"
+msgstr "低于最小兑换数量"
+
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
@@ -3650,6 +3662,10 @@ msgstr "錢包授權已完成。請查看重新整理後的市場，並再次確
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Balance unavailable."
 msgstr ""
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Minimum Swap amount"
+msgstr "最小兑换数量"
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdrawal submitted"

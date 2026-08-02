@@ -29,6 +29,9 @@ export type SwapCapacity = {
   outputAsset: string;
   custodyBalance: string;
   custodyUsableBalance: string;
+  configuredMinBase: string;
+  feeAdjustedMinBase: string;
+  effectiveMinBase: string;
   maxBase: string;
 };
 

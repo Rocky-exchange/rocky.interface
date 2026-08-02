@@ -142,6 +142,9 @@ beforeEach(() => {
     outputAsset: side === "BUY" ? "CBTC" : "CUSD",
     custodyBalance: "10",
     custodyUsableBalance: "8",
+    configuredMinBase: "0.00001",
+    feeAdjustedMinBase: "0.00001577",
+    effectiveMinBase: "0.00001577",
     maxBase: "8",
   }));
   const swap: SwapOrder = {
@@ -252,6 +255,9 @@ describe("SpotOrderForm", () => {
       outputAsset: "CBTC",
       custodyBalance: "0.5",
       custodyUsableBalance: "0.4",
+      configuredMinBase: "0.00001",
+      feeAdjustedMinBase: "0.00001577",
+      effectiveMinBase: "0.00001577",
       maxBase: "0.4",
     });
     const view = render(<SpotOrderForm market={market} />);
@@ -260,6 +266,19 @@ describe("SpotOrderForm", () => {
 
     fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.40000001" } });
     const submit = view.getByRole("button", { name: /Exceeds single Swap limit/ }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    expect(mCreateSwap).not.toHaveBeenCalled();
+  });
+
+  it("blocks amounts below the backend effective Swap minimum", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    fireEvent.click(view.getByRole("button", { name: "Sell CBTC" }));
+    await waitFor(() => expect(view.getByText("0.00001577 CBTC")).toBeTruthy());
+
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.00000351" } });
+
+    const submit = view.getByRole("button", { name: /Below minimum Swap amount/ }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     expect(mCreateSwap).not.toHaveBeenCalled();
   });
@@ -289,6 +308,9 @@ describe("SpotOrderForm", () => {
       outputAsset: "CBTC",
       custodyBalance: "0.5",
       custodyUsableBalance: "0.4",
+      configuredMinBase: "0.00001",
+      feeAdjustedMinBase: "0.00001577",
+      effectiveMinBase: "0.00001577",
       maxBase: "0.4",
     });
 
@@ -305,6 +327,9 @@ describe("SpotOrderForm", () => {
       outputAsset: "CBTC",
       custodyBalance: "0",
       custodyUsableBalance: "0",
+      configuredMinBase: "0.00001",
+      feeAdjustedMinBase: "0.00001577",
+      effectiveMinBase: "0.00001577",
       maxBase: "0",
     });
     const view = render(<SpotOrderForm market={market} />);
@@ -326,11 +351,37 @@ describe("SpotOrderForm", () => {
       outputAsset: "CBTC",
       custodyBalance: "0.1",
       custodyUsableBalance: "0.08",
+      configuredMinBase: "0.00001",
+      feeAdjustedMinBase: "0.00001577",
+      effectiveMinBase: "0.00001577",
       maxBase: "0.08",
     });
 
     fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
     await waitFor(() => expect(view.getByText("Amount exceeds the single Swap maximum")).toBeTruthy());
+    expect(mEnsureMemberAuth).not.toHaveBeenCalled();
+    expect(mCreateSwap).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the effective minimum on click before creating a Swap", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect(mSwapCapacity).toHaveBeenCalled());
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.1" } });
+    mSwapCapacity.mockResolvedValueOnce({
+      symbol: market.apiSymbol,
+      side: "BUY",
+      outputAsset: "CBTC",
+      custodyBalance: "10",
+      custodyUsableBalance: "8",
+      configuredMinBase: "0.00001",
+      feeAdjustedMinBase: "0.2",
+      effectiveMinBase: "0.2",
+      maxBase: "8",
+    });
+
+    fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
+    await waitFor(() => expect(view.getByText("Amount is below the minimum Swap amount")).toBeTruthy());
     expect(mEnsureMemberAuth).not.toHaveBeenCalled();
     expect(mCreateSwap).not.toHaveBeenCalled();
   });

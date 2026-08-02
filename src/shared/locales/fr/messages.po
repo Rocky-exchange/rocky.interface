@@ -2050,6 +2050,10 @@ msgstr "Aucun historique"
 msgid "Docs"
 msgstr ""
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Amount is below the minimum Swap amount"
+msgstr ""
+
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 msgid "Connect to inspect your bonus ledger"
 msgstr ""
@@ -2377,6 +2381,10 @@ msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Trial funds"
+msgstr ""
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Includes trading fee and network fee"
 msgstr ""
 
 #: src/modules/lighter/components/BottomTabs/TpSlPositionModal.tsx
@@ -3203,6 +3211,10 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Below minimum Swap amount"
+msgstr ""
+
 #: src/modules/lighter/components/OrderFormPanel/AdvancedOrderForm.tsx
 #: src/modules/lighter/features/orderForm/desktop/AdvancedOrderForm.tsx
 #: src/modules/lighter/mobile/TradePage/OrderBottomSheet/MobileAdvancedForm.tsx
@@ -3649,6 +3661,10 @@ msgstr ""
 #: src/modules/lighter/features/bonus/pages/BonusPage.tsx
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Balance unavailable."
+msgstr ""
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Minimum Swap amount"
 msgstr ""
 
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
