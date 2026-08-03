@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 
+import { abbreviateWalletAddress } from "./addressFormat";
 import { CANTON_FUNDING_ASSETS, walletFacingAssetSymbol } from "./assets";
 import { fileToAvatarDataUrl } from "./avatarImage";
 import {
@@ -45,6 +46,7 @@ import {
   type PlatformAccountBalances,
 } from "./funds";
 import { hydrateOwnProfile, setAvatar, SetAvatarError, setDisplayName, SetDisplayNameError } from "./profile";
+import { hasPendingSpotTransferIntent } from "./spotTransferIntentRegistry";
 import cbtcIconSrc from "./token-icons/cBTC.webp";
 import ccIconSrc from "./token-icons/CC.webp";
 import cethIconSrc from "./token-icons/cETH.webp";
@@ -52,7 +54,6 @@ import cusdIconSrc from "./token-icons/CUSD.png";
 import { useCantonSession } from "./useCantonSession";
 import { useCantonWallet } from "./useCantonWallet";
 import { getWalletProviderLogo } from "./walletLogos";
-import { hasPendingSpotTransferIntent } from "./spotTransferIntentRegistry";
 import { hasPendingWithdrawalIntent } from "./withdrawalIntentRegistry";
 
 type Props = {
@@ -772,7 +773,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                 {avatarError ? <span className={styles.inlineError}>{avatarError}</span> : null}
                 {walletParty ? (
                   <div className={styles.brandParty}>
-                    <span title={walletParty}>{abbreviateMiddle(walletParty, 30)}</span>
+                    <span title={walletParty}>{abbreviateWalletAddress(walletParty, 30)}</span>
                     <button
                       type="button"
                       onClick={() => copyValue(walletParty, "header-party")}
@@ -1091,7 +1092,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                   <>
                     <div className={styles.detailLine}>
                       <span>{i18n._(t`Destination`)}</span>
-                      <strong title={walletParty || ""}>{abbreviateMiddle(walletParty, 34)}</strong>
+                      <strong title={walletParty || ""}>{abbreviateWalletAddress(walletParty, 34)}</strong>
                     </div>
                     <div className={styles.detailLine}>
                       <span>{i18n._(t`Estimated Network Fee`)}</span>
@@ -1505,7 +1506,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                     </div>
                     <div className={styles.destinationLine}>
                       <span>{i18n._(t`Destination`)}</span>
-                      <strong title={walletParty || ""}>{abbreviateMiddle(walletParty, 42)}</strong>
+                      <strong title={walletParty || ""}>{abbreviateWalletAddress(walletParty, 42)}</strong>
                     </div>
                     <div className={styles.destinationLine}>
                       <span>{i18n._(t`Fee`)}</span>
@@ -1603,7 +1604,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                             target="_blank"
                             rel="noreferrer"
                           >
-                            <span className={styles.referenceText}>{abbreviateMiddle(item.reference, 22)}</span>
+                            <span className={styles.referenceText}>{abbreviateWalletAddress(item.reference, 22)}</span>
                             <ExternalIcon />
                           </a>
                         ) : item.reference ? (
@@ -1615,7 +1616,7 @@ export function CantonFundsModal({ open, onClose }: Props) {
                             <span className={styles.referenceText}>
                               {copiedKey === `history-${item.id}`
                                 ? i18n._(t`Copied`)
-                                : abbreviateMiddle(item.reference, 22)}
+                                : abbreviateWalletAddress(item.reference, 22)}
                             </span>
                             <CopyIcon />
                           </button>
@@ -1751,7 +1752,7 @@ function ReferenceLine({
   return (
     <div className={styles.referenceLine}>
       <span>{label}</span>
-      <strong title={value}>{abbreviateMiddle(value, 44)}</strong>
+      <strong title={value}>{abbreviateWalletAddress(value, 44)}</strong>
       <button type="button" onClick={onCopy}>
         {copied ? i18n._(t`Copied`) : i18n._(t`Copy`)}
       </button>
@@ -1901,13 +1902,6 @@ function withdrawalFeeAmountForAsset(quote: CantonWithdrawalFeeQuote | null, ass
 function withdrawalFeeLabel(quote: CantonWithdrawalFeeQuote | null, asset: CantonFundsAsset): string {
   const amount = withdrawalFeeAmountForAsset(quote, asset);
   return amount === null ? "-" : `${amount} ${asset}`;
-}
-
-function abbreviateMiddle(value: string | undefined, max = 28): string {
-  if (!value) return "-";
-  if (value.length <= max) return value;
-  const edge = Math.max(4, Math.floor((max - 3) / 2));
-  return `${value.slice(0, edge)}...${value.slice(-edge)}`;
 }
 
 function getCantonScanPartyUrl(party: string | undefined): string {

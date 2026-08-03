@@ -1,4 +1,5 @@
 import { exchangeSessionHeaders } from "./session";
+import type { WalletProviderId } from "./types";
 import { notifyCantonSessionChange } from "./useCantonSession";
 
 export type SetDisplayNameErrorCode = "name_taken" | "invalid_name" | "unauthorized" | "unknown";
@@ -180,4 +181,58 @@ export async function resolveNames(parties: string[]): Promise<Record<string, st
   const data = await res.json().catch(() => ({}));
   const names = data?.names;
   return names && typeof names === "object" ? (names as Record<string, string>) : {};
+}
+
+export type PublicWalletProfile = {
+  address: string;
+  provider: WalletProviderId | "";
+  displayName: string;
+  avatar: string;
+};
+
+/** Resolve one leaderboard page of user ids to their public wallet profiles. */
+export async function resolveUserProfiles(userIds: string[]): Promise<Record<string, PublicWalletProfile>> {
+  const unique = Array.from(new Set(userIds.filter(Boolean))).slice(0, 50);
+  if (unique.length === 0) return {};
+
+  try {
+    const res = await fetch("/v1/profile/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ user_ids: unique }),
+    });
+    if (!res.ok) return {};
+
+    const data = await res.json().catch(() => ({}));
+    const rawProfiles = data?.profiles;
+    if (!rawProfiles || typeof rawProfiles !== "object" || Array.isArray(rawProfiles)) return {};
+
+    const profiles: Record<string, PublicWalletProfile> = {};
+    for (const [userId, rawProfile] of Object.entries(rawProfiles as Record<string, unknown>)) {
+      if (!rawProfile || typeof rawProfile !== "object" || Array.isArray(rawProfile)) continue;
+      const profile = rawProfile as Record<string, unknown>;
+      const address = typeof profile.address === "string" ? profile.address : "";
+      const displayName = typeof profile.display_name === "string" ? profile.display_name : "";
+      const provider = normalizePublicWalletProvider(profile.provider);
+      if (!address || !displayName || !provider) continue;
+      profiles[userId] = {
+        address,
+        provider,
+        displayName,
+        avatar: typeof profile.avatar === "string" ? profile.avatar : "",
+      };
+    }
+    return profiles;
+  } catch (_error) {
+    return {};
+  }
+}
+
+function normalizePublicWalletProvider(value: unknown): WalletProviderId | "" {
+  return value === "rocky" || value === "loop" || value === "console" || value === "send" || value === "other"
+    ? value
+    : "";
 }

@@ -17,7 +17,10 @@ import {
   type MissionList,
   verifyMission,
 } from "@/modules/campaigns/api/campaign.api";
+import { abbreviateWalletAddress } from "@/shared/lib/canton-wallet/addressFormat";
+import { resolveUserProfiles } from "@/shared/lib/canton-wallet/profile";
 import { helperToast } from "@/shared/lib/helperToast";
+
 import SeasonZeroLeaderboardPage from "./SeasonZeroLeaderboardPage";
 
 vi.mock("@/modules/campaigns/api/campaign.api", () => ({
@@ -60,6 +63,10 @@ vi.mock("@/shared/lib/canton-wallet/cantonConnect", () => ({
   openCantonConnect: vi.fn(),
 }));
 
+vi.mock("@/shared/lib/canton-wallet/profile", () => ({
+  resolveUserProfiles: vi.fn(),
+}));
+
 vi.mock("@/shared/lib/canton-wallet/useCantonSession", () => ({
   useCantonSession: () => ({
     connected: true,
@@ -91,14 +98,20 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(resolveUserProfiles).mockResolvedValue({});
     i18n.load("en", {});
     i18n.activate("en");
   });
 
   it("spans the empty leaderboard message across every table column", async () => {
     vi.mocked(getLeaderboard).mockResolvedValue({
+      status: "live",
+      stale: false,
       page: 1,
-      pageSize: 50,
+      pageSize: 10,
+      snapshotId: null,
+      snapshotAt: null,
+      checksum: null,
       total: 0,
       entries: [],
     });
@@ -110,12 +123,63 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const emptyCell = await screen.findByRole("cell", { name: "No qualified traders yet." });
     expect(emptyCell.getAttribute("aria-colspan")).toBe("4");
     expect(emptyCell.className).toContain("emptyLeaderboardCell");
+  });
+
+  it("renders the wallet profile name, avatar, and abbreviated party address", async () => {
+    const partyAddress = "rockywallet-joe::1220efefd33dd0d3fc7cc452232e462304c6ea2ecdcb7ed791373c40610131372895";
+    vi.mocked(getLeaderboard).mockResolvedValue({
+      status: "live",
+      stale: false,
+      page: 1,
+      pageSize: 10,
+      snapshotId: "11111111-1111-4111-8111-111111111111",
+      snapshotAt: "2026-08-03T00:00:00.000Z",
+      checksum: "a".repeat(64),
+      total: 1,
+      entries: [
+        {
+          rank: 1,
+          profileKey: "3917bf24-b4da-46c9-85ae-1df5f23b664c",
+          wallet: "h1_1801bd…0100",
+          roi: "0.1",
+          pnlUsd: "10",
+          effectiveVolume: "270.64",
+          effectiveTradeCount: "2",
+          volumeReachedAt: "2026-08-03T00:00:00.000Z",
+          volume: "270.64",
+          estimatedReward: "5000000",
+        },
+      ],
+    });
+    vi.mocked(resolveUserProfiles).mockResolvedValue({
+      "3917bf24-b4da-46c9-85ae-1df5f23b664c": {
+        address: partyAddress,
+        provider: "rocky",
+        displayName: "Joe",
+        avatar: "data:image/png;base64,aGVsbG8=",
+      },
+    });
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemoryRouter initialEntries={["/campaigns/season-0?tab=leaderboard"]}>
+          <Route path="/campaigns/season-0">
+            <SeasonZeroLeaderboardPage />
+          </Route>
+        </MemoryRouter>
+      </I18nProvider>
+    );
+
+    expect(await screen.findByText("Joe")).toBeTruthy();
+    expect(screen.getByText(abbreviateWalletAddress(partyAddress, 30))).toBeTruthy();
+    expect(document.querySelector('img[src="data:image/png;base64,aGVsbG8="]')).toBeTruthy();
+    expect(resolveUserProfiles).toHaveBeenCalledWith(["3917bf24-b4da-46c9-85ae-1df5f23b664c"]);
   });
 
   it("renders OG invitation codes with generated ornament and crystal artwork", async () => {
@@ -146,14 +210,12 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const region = await screen.findByLabelText("OG invitation codes");
     expect(within(region).getAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(2);
-    expect(
-      Array.from(region.querySelectorAll("img")).map((image) => image.getAttribute("src")),
-    ).toEqual([
+    expect(Array.from(region.querySelectorAll("img")).map((image) => image.getAttribute("src"))).toEqual([
       "/campaign/og-invite/header-ornament-v2.png",
       "/campaign/og-invite/crystal-amber.png",
       "/campaign/og-invite/crystal-blue.png",
@@ -195,7 +257,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const card = await screen.findByLabelText("Rewards invitation codes");
@@ -238,7 +300,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const card = await screen.findByLabelText("Rewards invitation codes");
@@ -246,9 +308,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     expect(within(card).queryAllByRole("button", { name: /Copy invitation code/ })).toHaveLength(0);
     expect(await screen.findByText("Ineligible")).not.toBeNull();
     expect(screen.getByText("Limited 500")).not.toBeNull();
-    expect(screen.getByAltText("Rocky OG badge").getAttribute("src")).toBe(
-      "/campaign/og-badge-ineligible.png"
-    );
+    expect(screen.getByAltText("Rocky OG badge").getAttribute("src")).toBe("/campaign/og-badge-ineligible.png");
   });
 
   it("refreshes OG benefits after binding and immediately shows both second-level invitation codes", async () => {
@@ -301,7 +361,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const panel = await screen.findByLabelText("Bind OG invitation code");
@@ -326,7 +386,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     vi.mocked(getMissions).mockReturnValue(
       new Promise((resolve) => {
         resolveMissions = resolve;
-      }) as ReturnType<typeof getMissions>,
+      }) as ReturnType<typeof getMissions>
     );
 
     render(
@@ -336,7 +396,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     expect((screen.getByRole("button", { name: "Loading..." }) as HTMLButtonElement).disabled).toBe(true);
@@ -357,21 +417,17 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
 
     render(
       <I18nProvider i18n={i18n}>
-        <MemoryRouter
-          initialEntries={[
-            "/campaigns/season-0?x=error&x_error=X_IDENTITY_IMMUTABLE",
-          ]}
-        >
+        <MemoryRouter initialEntries={["/campaigns/season-0?x=error&x_error=X_IDENTITY_IMMUTABLE"]}>
           <Route path="/campaigns/season-0">
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     await waitFor(() => {
       expect(helperToast.error).toHaveBeenCalledWith(
-        "This wallet is already connected to another X account. Please authorize the previously connected X account.",
+        "This wallet is already connected to another X account. Please authorize the previously connected X account."
       );
     });
   });
@@ -400,16 +456,14 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Join Community");
     const mission = title.closest("article");
-    expect(
-      await within(mission as HTMLElement).findByRole("button", { name: "Claim" }),
-    ).not.toBeNull();
+    expect(await within(mission as HTMLElement).findByRole("button", { name: "Claim" })).not.toBeNull();
     expect(helperToast.success).toHaveBeenCalledWith(
-      "Discord connected. Join the Rocky community, then verify the mission.",
+      "Discord connected. Join the Rocky community, then verify the mission."
     );
   });
 
@@ -434,7 +488,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Like Launch Post");
@@ -446,7 +500,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       expect(openSpy).toHaveBeenCalledWith(
         "https://x.com/Rocky_exchange/status/2081771534134530514",
         "_blank",
-        "noopener,noreferrer",
+        "noopener,noreferrer"
       );
     });
     openSpy.mockRestore();
@@ -478,7 +532,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Join Community");
@@ -486,16 +540,10 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Start" }));
 
     await waitFor(() => {
-      expect(openSpy).toHaveBeenCalledWith(
-        "https://discord.gg/Wu5VmFfjSn",
-        "_blank",
-        "noopener,noreferrer",
-      );
+      expect(openSpy).toHaveBeenCalledWith("https://discord.gg/Wu5VmFfjSn", "_blank", "noopener,noreferrer");
     });
     expect(startWalletBoundDiscordOAuth).not.toHaveBeenCalled();
-    expect(
-      within(mission as HTMLElement).getByRole("button", { name: "Verify" }),
-    ).not.toBeNull();
+    expect(within(mission as HTMLElement).getByRole("button", { name: "Verify" })).not.toBeNull();
     openSpy.mockRestore();
   });
 
@@ -524,7 +572,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <div>Trading screen</div>
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Complete Your First Perpetual Trade");
@@ -566,7 +614,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <div>Trading screen</div>
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Complete Your First Perpetual Trade");
@@ -602,7 +650,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Complete Your First Perpetual Trade");
@@ -612,7 +660,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     await waitFor(() => {
       expect(verifyMission).toHaveBeenCalledWith("FIRST_TRADE");
       expect(helperToast.info).toHaveBeenCalledWith(
-        "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.",
+        "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again."
       );
     });
     expect(helperToast.error).not.toHaveBeenCalled();
@@ -640,7 +688,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Complete Your First Perpetual Trade");
@@ -649,7 +697,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
 
     await waitFor(() => {
       expect(helperToast.info).toHaveBeenCalledWith(
-        "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.",
+        "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again."
       );
     });
     expect(helperToast.error).not.toHaveBeenCalled();
@@ -672,7 +720,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Quote Launch Post");
@@ -685,10 +733,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => {
-      expect(submitMission).toHaveBeenCalledWith(
-        "QUOTE_LAUNCH",
-        "https://x.com/rocky_user/status/2222222222222222222",
-      );
+      expect(submitMission).toHaveBeenCalledWith("QUOTE_LAUNCH", "https://x.com/rocky_user/status/2222222222222222222");
     });
     expect(verifyMission).not.toHaveBeenCalled();
   });
@@ -729,7 +774,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Submit Post" }));
@@ -740,12 +785,9 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
 
     await waitFor(() => {
       expect(startMission).toHaveBeenCalledWith("ORIGINAL_TWEET");
-      expect(submitMission).toHaveBeenCalledWith(
-        "ORIGINAL_TWEET",
-        "https://x.com/leo/status/3333333333333333333",
-      );
+      expect(submitMission).toHaveBeenCalledWith("ORIGINAL_TWEET", "https://x.com/leo/status/3333333333333333333");
     });
-    expect((await screen.findByRole("button", { name: "Pending" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(((await screen.findByRole("button", { name: "Pending" })) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
   });
 
@@ -764,7 +806,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     });
     vi.mocked(startMission).mockResolvedValue({ state: "verifying" });
     vi.mocked(submitMission).mockRejectedValue(
-      Object.assign(new Error("outside campaign"), { code: "SOCIAL_POST_OUTSIDE_CAMPAIGN" }),
+      Object.assign(new Error("outside campaign"), { code: "SOCIAL_POST_OUTSIDE_CAMPAIGN" })
     );
 
     render(
@@ -774,7 +816,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Submit Post" }));
@@ -784,7 +826,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe(
-      "Only posts published during this campaign can be submitted.",
+      "Only posts published during this campaign can be submitted."
     );
   });
 
@@ -823,7 +865,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Claim" }));
@@ -851,7 +893,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Like Launch Post");
@@ -880,7 +922,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Join Community");
@@ -892,9 +934,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     });
     expect(startMission).not.toHaveBeenCalled();
     expect(startWalletBoundDiscordOAuth).not.toHaveBeenCalled();
-    expect(helperToast.success).toHaveBeenCalledWith(
-      "Mission verified. Reward is ready to claim.",
-    );
+    expect(helperToast.success).toHaveBeenCalledWith("Mission verified. Reward is ready to claim.");
   });
 
   it("restarts Discord OAuth only when verification requires a bound identity", async () => {
@@ -909,9 +949,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       code: "DISCORD_IDENTITY_REQUIRED",
       message: "Discord identity must be connected first",
     });
-    vi.mocked(startWalletBoundDiscordOAuth).mockResolvedValue(
-      "https://discord.com/oauth2/authorize?client_id=test",
-    );
+    vi.mocked(startWalletBoundDiscordOAuth).mockResolvedValue("https://discord.com/oauth2/authorize?client_id=test");
 
     render(
       <I18nProvider i18n={i18n}>
@@ -920,7 +958,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Join Community");
@@ -951,7 +989,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Like Launch Post");
@@ -980,7 +1018,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Quote Launch Post");
@@ -1004,7 +1042,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
     });
     vi.mocked(verifyMission).mockRejectedValue(
-      Object.assign(new Error("dependency unavailable"), { code: "DEPENDENCY_UNAVAILABLE" }),
+      Object.assign(new Error("dependency unavailable"), { code: "DEPENDENCY_UNAVAILABLE" })
     );
 
     render(
@@ -1014,7 +1052,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Like Launch Post");
@@ -1026,7 +1064,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     });
     expect((cooldownButton as HTMLButtonElement).disabled).toBe(true);
     expect(helperToast.error).toHaveBeenCalledWith(
-      "X verification is temporarily unavailable. Please try again shortly.",
+      "X verification is temporarily unavailable. Please try again shortly."
     );
 
     fireEvent.click(cooldownButton);
@@ -1042,7 +1080,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
       progress: { completedCount: 1, claimableCount: 0, totalCount: 7 },
     });
     vi.mocked(submitMission).mockRejectedValue(
-      Object.assign(new Error("invalid submission"), { code: "MISSION_SUBMISSION_INVALID" }),
+      Object.assign(new Error("invalid submission"), { code: "MISSION_SUBMISSION_INVALID" })
     );
 
     render(
@@ -1052,7 +1090,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
             <SeasonZeroLeaderboardPage />
           </Route>
         </MemoryRouter>
-      </I18nProvider>,
+      </I18nProvider>
     );
 
     const title = await screen.findByText("Quote Launch Post");
@@ -1064,7 +1102,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe(
-      "This X post link is invalid. Check the URL and try again.",
+      "This X post link is invalid. Check the URL and try again."
     );
     const urlInput = screen.getByRole("textbox", { name: "Your X URL" });
     const submitPanel = urlInput.closest('[class*="missionSubmitPanel"]');

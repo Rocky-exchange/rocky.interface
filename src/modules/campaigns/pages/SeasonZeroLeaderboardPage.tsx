@@ -23,9 +23,12 @@ import {
   type RewardSummary,
 } from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
+import { abbreviateWalletAddress } from "@/shared/lib/canton-wallet/addressFormat";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+import { resolveUserProfiles, type PublicWalletProfile } from "@/shared/lib/canton-wallet/profile";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { useCantonWallet } from "@/shared/lib/canton-wallet/useCantonWallet";
+import { getWalletProviderLogo, type WalletLogoFit } from "@/shared/lib/canton-wallet/walletLogos";
 import { helperToast } from "@/shared/lib/helperToast";
 import { ModalWithPortal, TooltipWithPortal } from "@/shared/ui";
 
@@ -50,6 +53,7 @@ type DisplayLeaderboardEntry = {
   volume: string;
   reward: string;
   avatar?: string;
+  avatarFit?: WalletLogoFit;
 };
 
 type Mission = {
@@ -128,8 +132,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Rewards are distributed after review": "審核通過後發放獎勵",
   Submit: "提交",
   "Submitting...": "提交中...",
-  "X verification is temporarily unavailable. Please try again shortly.":
-    "X 驗證服務暫時無法使用，請稍後再試。",
+  "X verification is temporarily unavailable. Please try again shortly.": "X 驗證服務暫時無法使用，請稍後再試。",
   "Too many attempts. Please wait before trying again.": "嘗試次數過多，請稍候再試。",
   "This X post link is invalid. Check the URL and try again.": "X 貼文連結無效，請檢查後再試。",
   "This post belongs to another X account.": "此貼文不屬於目前連接的 X 帳號。",
@@ -137,8 +140,7 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "This post could not be found or is not public.": "找不到此貼文，或貼文並非公開。",
   "Only posts published during this campaign can be submitted.": "只能提交在本次活動期間內發佈的貼文。",
   "X authorization expired. Reconnect X and try again.": "X 授權已失效，請重新連接 X 後再試。",
-  "The requirement was not detected yet. Check it and retry shortly.":
-    "尚未偵測到任務要求，請確認完成後稍候再試。",
+  "The requirement was not detected yet. Check it and retry shortly.": "尚未偵測到任務要求，請確認完成後稍候再試。",
   "No perpetual fill was detected. Place a perpetual order, wait for it to fill, then verify again.":
     "尚未偵測到合約成交。請完成一筆合約下單並等待成交，再重新驗證。",
   "Submission received. Verification is pending.": "已收到提交，正在等待驗證。",
@@ -277,9 +279,7 @@ function useCampaignCopy() {
 
 function campaignActionError(copy: (text: string) => string, error: unknown) {
   const code =
-    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
-      ? error.code
-      : "";
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string" ? error.code : "";
   switch (code) {
     case "DEPENDENCY_UNAVAILABLE":
       return copy("X verification is temporarily unavailable. Please try again shortly.");
@@ -305,9 +305,7 @@ function campaignActionError(copy: (text: string) => string, error: unknown) {
 
 function ogInvitationError(error: unknown): string {
   const code =
-    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
-      ? error.code
-      : "";
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string" ? error.code : "";
   switch (code) {
     case "OG_INVITATION_CODE_NOT_FOUND":
       return "Invitation code not found.";
@@ -538,9 +536,7 @@ function CampaignHero({
   campaignEndsAt: string | null;
   connected: boolean;
   ogBenefits: OgBenefits | null;
-  onInvitationBound: (
-    binding: NonNullable<OgBenefits["invitationBinding"]>
-  ) => Promise<void>;
+  onInvitationBound: (binding: NonNullable<OgBenefits["invitationBinding"]>) => Promise<void>;
   onTabChange: (tab: CampaignTab) => void;
 }) {
   const history = useHistory();
@@ -555,9 +551,7 @@ function CampaignHero({
   const showOgInvitePanel =
     connected &&
     ogBenefits !== null &&
-    (ogBenefits.role === "NORMAL" ||
-      invitationCodes.length > 0 ||
-      ogBenefits.invitationBinding !== null);
+    (ogBenefits.role === "NORMAL" || invitationCodes.length > 0 || ogBenefits.invitationBinding !== null);
 
   const handleInvitationBind = async () => {
     const normalized = invitationCode.trim().toLowerCase();
@@ -639,11 +633,7 @@ function CampaignHero({
           {invitationCodes.length > 0 ? (
             <div className={styles.ogInviteCodes} aria-label="OG invitation codes">
               <div className={styles.ogInviteHeading}>
-                <img
-                  src="/campaign/og-invite/header-ornament-v2.png"
-                  alt=""
-                  aria-hidden="true"
-                />
+                <img src="/campaign/og-invite/header-ornament-v2.png" alt="" aria-hidden="true" />
                 <span>OG INVITE CODE</span>
               </div>
               <div className={styles.ogInviteCodeList}>
@@ -656,11 +646,7 @@ function CampaignHero({
                     >
                       <img
                         className={styles.ogInviteCrystal}
-                        src={
-                          isAmber
-                            ? "/campaign/og-invite/crystal-amber.png"
-                            : "/campaign/og-invite/crystal-blue.png"
-                        }
+                        src={isAmber ? "/campaign/og-invite/crystal-amber.png" : "/campaign/og-invite/crystal-blue.png"}
                         alt=""
                         aria-hidden="true"
                       />
@@ -690,22 +676,12 @@ function CampaignHero({
           ) : showOgInvitePanel ? (
             <div className={styles.ogInviteCodes} aria-label="Bind OG invitation code">
               <div className={styles.ogInviteHeading}>
-                <img
-                  src="/campaign/og-invite/header-ornament-v2.png"
-                  alt=""
-                  aria-hidden="true"
-                />
-                <span>
-                  {ogBenefits?.invitationBinding ? "INVITE CODE BOUND" : "BIND OG INVITE CODE"}
-                </span>
+                <img src="/campaign/og-invite/header-ornament-v2.png" alt="" aria-hidden="true" />
+                <span>{ogBenefits?.invitationBinding ? "INVITE CODE BOUND" : "BIND OG INVITE CODE"}</span>
               </div>
               {ogBenefits?.invitationBinding ? (
                 <div className={styles.ogInviteBound}>
-                  <img
-                    src="/campaign/og-invite/crystal-blue.png"
-                    alt=""
-                    aria-hidden="true"
-                  />
+                  <img src="/campaign/og-invite/crystal-blue.png" alt="" aria-hidden="true" />
                   <span>
                     <strong>RELATION RECORDED</strong>
                     <small>Relation recorded only. No OG status or trial funds are granted.</small>
@@ -722,15 +698,9 @@ function CampaignHero({
                     void handleInvitationBind();
                   }}
                 >
-                  <label htmlFor="og-invitation-code">
-                    Enter the invitation code shared by a Rocky OG
-                  </label>
+                  <label htmlFor="og-invitation-code">Enter the invitation code shared by a Rocky OG</label>
                   <div className={styles.ogInviteInputRow}>
-                    <img
-                      src="/campaign/og-invite/crystal-amber.png"
-                      alt=""
-                      aria-hidden="true"
-                    />
+                    <img src="/campaign/og-invite/crystal-amber.png" alt="" aria-hidden="true" />
                     <input
                       id="og-invitation-code"
                       aria-describedby={invitationError ? "og-invitation-error" : undefined}
@@ -741,16 +711,11 @@ function CampaignHero({
                       spellCheck={false}
                       value={invitationCode}
                       onChange={(event) => {
-                        setInvitationCode(
-                          event.target.value.replace(/[^a-zA-Z0-9]/gu, "").toUpperCase()
-                        );
+                        setInvitationCode(event.target.value.replace(/[^a-zA-Z0-9]/gu, "").toUpperCase());
                         setInvitationError(null);
                       }}
                     />
-                    <button
-                      type="submit"
-                      disabled={isBindingInvitation || invitationCode.length !== 16}
-                    >
+                    <button type="submit" disabled={isBindingInvitation || invitationCode.length !== 16}>
                       {isBindingInvitation ? "BINDING..." : "BIND"}
                     </button>
                   </div>
@@ -1223,13 +1188,7 @@ function OriginalPostsModule({
   const qualifiedCount = Math.min(progress.approvedToday, dailyLimit);
   const isDailyComplete = qualifiedCount >= dailyLimit;
   let status: OriginalPostStatus = "idle";
-  if (
-    isSubmitting ||
-    isClaiming ||
-    locallyPending ||
-    progress.pendingToday > 0 ||
-    missionState === "pending"
-  ) {
+  if (isSubmitting || isClaiming || locallyPending || progress.pendingToday > 0 || missionState === "pending") {
     status = "pending";
   } else if (missionState === "claimable") {
     status = "claimable";
@@ -1538,7 +1497,7 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
     () => () => {
       Object.values(cooldownTimersRef.current).forEach((timer) => window.clearTimeout(timer));
     },
-    [],
+    []
   );
 
   const updateTaskStatus = (missionId: string, status: TaskStatus) => {
@@ -1576,10 +1535,7 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
       ? error.retryAfterSeconds
       : undefined;
   const errorCode = (error: unknown) =>
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof error.code === "string"
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
       ? error.code
       : undefined;
 
@@ -1644,9 +1600,7 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
       } catch (error) {
         if (
           mission.id === "join-discord" &&
-          ["DISCORD_IDENTITY_REQUIRED", "DISCORD_REAUTH_REQUIRED"].includes(
-            errorCode(error) ?? ""
-          )
+          ["DISCORD_IDENTITY_REQUIRED", "DISCORD_REAUTH_REQUIRED"].includes(errorCode(error) ?? "")
         ) {
           try {
             if (locked) await unlock();
@@ -1777,9 +1731,9 @@ function MissionsContent({ refreshNonce }: { refreshNonce: number }) {
                   ? "Connecting..."
                   : connected && !hasLoadedMissions
                     ? "Loading..."
-                  : connected
-                    ? "Connect X"
-                    : "Connect Wallet First"
+                    : connected
+                      ? "Connect X"
+                      : "Connect Wallet First"
             )}
           </span>
           {!isXConnected ? <img src="/campaign/arrow-up-right.svg" alt="" aria-hidden="true" /> : null}
@@ -1881,10 +1835,11 @@ function LeaderboardContent() {
   useEffect(() => {
     let active = true;
     void getLeaderboard(currentPage)
-      .then((page) => {
+      .then(async (page) => {
+        const profiles = await resolveUserProfiles(page.entries.map((entry) => entry.profileKey));
         if (!active) return;
         setTotalEntries(page.total);
-        setPageEntries(page.entries.map(toDisplayLeaderboardEntry));
+        setPageEntries(page.entries.map((entry) => toDisplayLeaderboardEntry(entry, profiles[entry.profileKey])));
       })
       .catch(() => {
         if (active) setPageEntries([]);
@@ -1930,7 +1885,14 @@ function LeaderboardContent() {
               </div>
               <div className={styles.userCell} role="cell">
                 <span className={styles.avatar}>
-                  {entry.avatar ? <img src={entry.avatar} alt="" aria-hidden="true" /> : null}
+                  {entry.avatar ? (
+                    <img
+                      className={entry.avatarFit === "contain" ? styles.avatarContain : undefined}
+                      src={entry.avatar}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  ) : null}
                 </span>
                 <span className={styles.userCopy}>
                   <strong>{entry.name}</strong>
@@ -2025,13 +1987,19 @@ function LeaderboardContent() {
   );
 }
 
-function toDisplayLeaderboardEntry(entry: ActivityLeaderboardEntry): DisplayLeaderboardEntry {
+function toDisplayLeaderboardEntry(
+  entry: ActivityLeaderboardEntry,
+  profile?: PublicWalletProfile
+): DisplayLeaderboardEntry {
+  const walletLogo = profile ? getWalletProviderLogo(profile.provider) : undefined;
   return {
     rank: entry.rank,
-    name: `Trader #${entry.rank}`,
-    address: entry.wallet,
+    name: profile?.displayName || `Trader #${entry.rank}`,
+    address: profile ? abbreviateWalletAddress(profile.address, 30) : entry.wallet,
     volume: `$${formatDecimal(entry.effectiveVolume)}`,
     reward: formatInteger(entry.estimatedReward),
+    avatar: profile?.avatar || walletLogo?.src,
+    avatarFit: profile?.avatar ? "cover" : walletLogo?.fit,
   };
 }
 
@@ -2200,10 +2168,7 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
           </div>
         </article>
 
-        <article
-          className={`${styles.dashboardCard} ${styles.referralLinkCard}`}
-          aria-label="Rewards invitation codes"
-        >
+        <article className={`${styles.dashboardCard} ${styles.referralLinkCard}`} aria-label="Rewards invitation codes">
           <h3>{copy("OG Invite Codes")}</h3>
           {invitationCodes.length > 0 ? (
             <div className={styles.ogInviteCodeList}>
@@ -2216,11 +2181,7 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
                   >
                     <img
                       className={styles.ogInviteCrystal}
-                      src={
-                        isAmber
-                          ? "/campaign/og-invite/crystal-amber.png"
-                          : "/campaign/og-invite/crystal-blue.png"
-                      }
+                      src={isAmber ? "/campaign/og-invite/crystal-amber.png" : "/campaign/og-invite/crystal-blue.png"}
                       alt=""
                       aria-hidden="true"
                     />
@@ -2293,9 +2254,7 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
             <span className={`${styles.badgeCopy} ${isBadgeEligible ? styles.badgeCopyEligible : ""}`}>
               <strong>
                 {copy(isBadgeEligible ? "Eligible" : "Ineligible")}
-                {isBadgeEligible ? (
-                  <img src="/campaign/eligible-check.svg" alt="" aria-hidden="true" />
-                ) : null}
+                {isBadgeEligible ? <img src="/campaign/eligible-check.svg" alt="" aria-hidden="true" /> : null}
               </strong>
               <p>{copy("Eligible OG users will receive the badge after the activity review.")}</p>
               <em>
@@ -2389,7 +2348,7 @@ export default function SeasonZeroLeaderboardPage() {
         ? CAMPAIGN_ZH_TW[
             "This wallet is already connected to another X account. Please authorize the previously connected X account."
           ]
-        : "This wallet is already connected to another X account. Please authorize the previously connected X account.",
+        : "This wallet is already connected to another X account. Please authorize the previously connected X account."
     );
     params.delete("x");
     params.delete("x_error");
@@ -2430,15 +2389,11 @@ export default function SeasonZeroLeaderboardPage() {
     history.push({ pathname: location.pathname, search });
   };
 
-  const handleInvitationBound = async (
-    binding: NonNullable<OgBenefits["invitationBinding"]>
-  ) => {
-    setOgBenefits((current) =>
-      current ? { ...current, invitationBinding: binding } : current
-    );
+  const handleInvitationBound = async (binding: NonNullable<OgBenefits["invitationBinding"]>) => {
+    setOgBenefits((current) => (current ? { ...current, invitationBinding: binding } : current));
     try {
       setOgBenefits(await getOgBenefits());
-    } catch {
+    } catch (_error) {
       // The binding succeeded; retain the confirmed binding if the refresh is temporarily unavailable.
     }
   };

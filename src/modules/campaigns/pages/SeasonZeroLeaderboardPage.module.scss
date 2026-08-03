@@ -948,6 +948,11 @@
   object-fit: cover;
 }
 
+.avatar img.avatarContain {
+  object-fit: contain;
+  padding: 4px;
+}
+
 .leaderboardContent .avatar {
   width: 48px;
   height: 48px;

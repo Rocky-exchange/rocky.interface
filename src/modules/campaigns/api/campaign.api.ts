@@ -43,6 +43,7 @@ export type MissionList = {
 
 export type LeaderboardEntry = {
   rank: number;
+  profileKey: string;
   wallet: string;
   roi: string;
   pnlUsd: string;
@@ -200,9 +201,7 @@ export async function startWalletBoundXOAuth(): Promise<string> {
 }
 
 export async function startDiscordOAuth(): Promise<string> {
-  const result = await activityRequest<{ authorizationUrl: string }>(
-    "/v1/social/discord/oauth/start"
-  );
+  const result = await activityRequest<{ authorizationUrl: string }>("/v1/social/discord/oauth/start");
   return result.authorizationUrl;
 }
 
@@ -256,16 +255,11 @@ export function getOgBenefits(): Promise<OgBenefits> {
   return activityRequest<OgBenefits>("/v1/me/og-benefits");
 }
 
-export function bindOgInvitationCode(
-  code: string
-): Promise<NonNullable<OgBenefits["invitationBinding"]>> {
-  return activityRequest<NonNullable<OgBenefits["invitationBinding"]>>(
-    "/v1/me/og-benefits/invitation/bind",
-    {
-      method: "POST",
-      body: { code },
-    }
-  );
+export function bindOgInvitationCode(code: string): Promise<NonNullable<OgBenefits["invitationBinding"]>> {
+  return activityRequest<NonNullable<OgBenefits["invitationBinding"]>>("/v1/me/og-benefits/invitation/bind", {
+    method: "POST",
+    body: { code },
+  });
 }
 
 export function claimOgTrialFund(): Promise<OgBenefits["trialFund"]> {
