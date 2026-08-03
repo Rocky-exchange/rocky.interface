@@ -3254,16 +3254,29 @@
 }
 
 .badgeCopy em {
+  display: flex;
   width: fit-content;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
   padding: 10px;
-  color: #f5a85f;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid #f5a85f;
+  font-style: normal;
+}
+
+.badgeCopy em span {
+  color: transparent;
+  background: linear-gradient(90deg, #f5a85f 0%, #b0d6ea 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-family: Aldrich, "Chakra Petch", Inter, sans-serif;
   font-size: 12px;
-  font-style: normal;
+  font-weight: 400;
   letter-spacing: 1px;
   line-height: 20px;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 

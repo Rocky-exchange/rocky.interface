@@ -235,7 +235,8 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   CLAIMED: "已領取",
   "Referral Rewards": "推薦獎勵",
   "About referral rewards": "關於推薦獎勵",
-  "Earned from successful referrals.": "來自成功推薦。",
+  "Referral R Diamond rewards are settled and distributed together after the season ends, rather than daily.":
+    "邀請獎勵的 R 鑽石將於賽季結束後統一結算並發放，不按日結算。",
   "R Points (Future)": "R Points（未來）",
   "Total R Points": "R Points 總數",
   "Your Referrals": "你的推薦",
@@ -2155,7 +2156,9 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
                   <small>{copy("Referral Rewards")}</small>
                   <RewardInfoTooltip
                     ariaLabel={copy("About referral rewards")}
-                    content={copy("Earned from successful referrals.")}
+                    content={copy(
+                      "Referral R Diamond rewards are settled and distributed together after the season ends, rather than daily."
+                    )}
                   />
                 </span>
                 <strong>{formatInteger(referralRewards)}</strong>
@@ -2295,7 +2298,9 @@ function MyRewardsContent({ ogBenefits }: { ogBenefits: OgBenefits | null }) {
                 ) : null}
               </strong>
               <p>{copy("Eligible OG users will receive the badge after the activity review.")}</p>
-              <em>{copy("Limited 500")}</em>
+              <em>
+                <span>{copy("Limited 500")}</span>
+              </em>
             </span>
           </div>
         </article>
