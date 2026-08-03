@@ -14,6 +14,15 @@ async function resolveConfig(): Promise<UserConfig> {
 }
 
 describe("Vite development proxy", () => {
+  it("targets the isolated test backend in local development", async () => {
+    const config = await resolveConfig();
+    const apiProxy = config.server?.proxy?.["/v1"];
+    const spotProxy = config.server?.proxy?.["/api/v3"];
+
+    expect(apiProxy).toMatchObject({ target: "https://api.rockytest.xyz" });
+    expect(spotProxy).toMatchObject({ target: "https://api.rockytest.xyz" });
+  });
+
   it("forwards the same-origin activity API path instead of serving the SPA shell", async () => {
     const config = await resolveConfig();
     const activityProxy = config.server?.proxy?.["/external-active"];

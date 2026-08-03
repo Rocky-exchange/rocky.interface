@@ -19,7 +19,7 @@ import { formatSpotAssetAmount, spotAssetPrecision } from "../../model/assetPrec
 import type { SpotMarket } from "../../model/spotMarkets";
 
 type Side = "BUY" | "SELL";
-type OrderType = "LIMIT" | "MARKET" | "SWAP";
+export type SpotOrderType = "LIMIT" | "MARKET" | "SWAP";
 
 const Decimal = BigNumber.clone({ DECIMAL_PLACES: 40, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 const MARKET_BAND = new Decimal("1.05");
@@ -138,7 +138,13 @@ function marketPrice(side: Side, bestAsk: string | undefined, bestBid: string | 
     : source.times(new Decimal(2).minus(MARKET_BAND)).toFixed();
 }
 
-export function SpotOrderForm({ market }: { market: SpotMarket }) {
+export function SpotOrderForm({
+  market,
+  onOrderTypeChange,
+}: {
+  market: SpotMarket;
+  onOrderTypeChange?: (orderType: SpotOrderType) => void;
+}) {
   const { i18n } = useLingui();
   const { ready, account, err: accountError, refetch } = useSpotAccount();
   const wallet = useCantonSession();
@@ -149,7 +155,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const activeSwapRequest = useRef<number | null>(null);
   const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
-  const [orderType, setOrderType] = useState<OrderType>("LIMIT");
+  const [orderType, setOrderType] = useState<SpotOrderType>("LIMIT");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [percent, setPercent] = useState(0);
@@ -288,8 +294,9 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setMsg(null);
   };
 
-  const selectOrderType = (nextType: OrderType) => {
+  const selectOrderType = (nextType: SpotOrderType) => {
     if (nextType !== orderType) invalidateSwapRequest();
+    onOrderTypeChange?.(nextType);
     if (nextType === "SWAP") {
       setOrderType(nextType);
       setAmount("");
@@ -402,6 +409,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     };
     setSide("BUY");
     setOrderType("LIMIT");
+    onOrderTypeChange?.("LIMIT");
     setPrice("");
     setAmount("");
     setPercent(0);
@@ -413,7 +421,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     swapRequestGeneration.current += 1;
     activeSwapRequest.current = null;
     swapIntent.current = null;
-  }, [market.apiSymbol]);
+  }, [market.apiSymbol, onOrderTypeChange]);
 
   useEffect(() => {
     if (!activeSwap || activeSwap.swapId !== activeSwapId) return;

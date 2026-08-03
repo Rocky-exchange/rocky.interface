@@ -13,7 +13,7 @@ import { SpotChart } from "../components/Chart/SpotChart";
 import { SpotDepthChart } from "../components/Chart/SpotDepthChart";
 import { SpotMarketDetails } from "../components/Chart/SpotMarketDetails";
 import { SpotOrderBookPanel } from "../components/OrderBook/OrderBook";
-import { SpotOrderForm } from "../components/OrderForm/OrderForm";
+import { SpotOrderForm, type SpotOrderType } from "../components/OrderForm/OrderForm";
 import { SpotSymbolBar } from "../components/SymbolBar/SymbolBar";
 import { resolveSpotMarket } from "../model/spotMarkets";
 
@@ -148,7 +148,9 @@ export default function SpotTradePage() {
   const [splitLayout, setSplitLayout] = useState<SplitLayout>("1");
   const [splitMenuOpen, setSplitMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [orderType, setOrderType] = useState<SpotOrderType>("LIMIT");
   const activeTabId = topTab === "price" ? "spot-chart-tab" : "spot-details-tab";
+  const isSwapMode = orderType === "SWAP";
 
   // Mint / clear per-user HMAC credentials when the Canton wallet connects
   // or disconnects. Downstream components read via useSpotAuthReady().
@@ -197,7 +199,7 @@ export default function SpotTradePage() {
   }, []);
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${isSwapMode ? styles.pageSwap : ""}`}>
       <main className={styles.primary} data-testid="spot-primary-workspace">
         <section className={styles.chartWorkspace} data-testid="spot-market-workspace">
           <SpotSymbolBar market={market} />
@@ -355,16 +357,18 @@ export default function SpotTradePage() {
           <SpotOrderBookPanel market={market} />
         </aside>
         <aside className={styles.orderform} data-testid="spot-orderform-region">
-          <SpotOrderForm market={market} />
+          <SpotOrderForm market={market} onOrderTypeChange={setOrderType} />
         </aside>
       </main>
       <section className={styles.bottom} data-testid="spot-bottom-workspace">
         <div className={styles.tabs}>
           <SpotBottomTabs market={market} />
         </div>
-        <aside className={styles.accounts}>
-          <SpotAccountsPanel market={market} />
-        </aside>
+        {!isSwapMode && (
+          <aside className={styles.accounts}>
+            <SpotAccountsPanel market={market} />
+          </aside>
+        )}
       </section>
     </div>
   );

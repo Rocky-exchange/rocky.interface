@@ -4,10 +4,12 @@ import { Router, Route } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import SpotTradePage from "./SpotTradePage";
+import type { SpotOrderType } from "../components/OrderForm/OrderForm";
 import type { SpotMarket } from "../model/spotMarkets";
 import { renderWithI18n as render } from "../test/renderWithI18n";
 
 type MarketProps = { market?: SpotMarket };
+type OrderFormProps = MarketProps & { onOrderTypeChange?: (orderType: SpotOrderType) => void };
 
 function MarketProbe({ market, name }: MarketProps & { name: string }) {
   return (
@@ -52,7 +54,20 @@ vi.mock("../components/OrderBook/OrderBook", () => ({
 }));
 
 vi.mock("../components/OrderForm/OrderForm", () => ({
-  SpotOrderForm: (props: MarketProps) => <MarketProbe {...props} name="orderform" />,
+  SpotOrderForm: ({ onOrderTypeChange, ...props }: OrderFormProps) => (
+    <div>
+      <MarketProbe {...props} name="orderform" />
+      <button type="button" onClick={() => onOrderTypeChange?.("MARKET")}>
+        mock market mode
+      </button>
+      <button type="button" onClick={() => onOrderTypeChange?.("LIMIT")}>
+        mock limit mode
+      </button>
+      <button type="button" onClick={() => onOrderTypeChange?.("SWAP")}>
+        mock swap mode
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("../components/Accounts/Accounts", () => ({
@@ -89,6 +104,27 @@ describe("SpotTradePage", () => {
     expect(within(primary).getByTestId("spot-orderform-region")).not.toBeNull();
     expect(within(bottom).getByTestId("bottom-tabs-probe")).not.toBeNull();
     expect(within(bottom).getByTestId("spot-standalone-account")).not.toBeNull();
+  });
+
+  it("lets Swap occupy the full right column and restores Spot Account for Market and Limit", () => {
+    renderSpotRoute("/spot/CBTC-CUSD");
+
+    const page = screen.getByTestId("spot-primary-workspace").parentElement;
+    expect(page?.className).not.toContain("pageSwap");
+    expect(screen.getByTestId("spot-standalone-account")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "mock swap mode" }));
+
+    expect(page?.className).toContain("pageSwap");
+    expect(screen.queryByTestId("spot-standalone-account")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "mock limit mode" }));
+    expect(page?.className).not.toContain("pageSwap");
+    expect(screen.getByTestId("spot-standalone-account")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "mock market mode" }));
+    expect(page?.className).not.toContain("pageSwap");
+    expect(screen.getByTestId("spot-standalone-account")).not.toBeNull();
   });
 
   it("uses the futures market-header, favorites, and chart row order", () => {

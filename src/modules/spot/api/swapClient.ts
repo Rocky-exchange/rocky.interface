@@ -55,12 +55,16 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
       ...(init.headers || {}),
     },
   });
-  const body = (await response.json().catch(() => ({}))) as { code?: string; message?: string };
+  const body = (await response.json().catch(() => ({}))) as {
+    code?: string | number;
+    message?: string;
+    msg?: string;
+  };
   if (!response.ok)
     throw new SwapApiError(
       response.status,
-      body.code || "swap_failed",
-      body.message || `Swap failed (${response.status})`
+      body.code == null ? "swap_failed" : String(body.code),
+      body.message || body.msg || `Swap failed (${response.status})`
     );
   return body as T;
 }
