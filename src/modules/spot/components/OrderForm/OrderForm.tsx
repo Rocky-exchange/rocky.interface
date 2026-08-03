@@ -244,9 +244,6 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const custodyMaximumSwapBase = nonNegativeDecimal(matchingSwapCapacity?.maxBase ?? "");
   const effectiveMinimumSwapBase = positiveDecimal(matchingSwapCapacity?.effectiveMinBase ?? "");
   const swapBasePrecision = spotAssetPrecision(base, precisions);
-  const sliderMinimumSwapBase = effectiveMinimumSwapBase
-    ?.plus(new Decimal(1).shiftedBy(-swapBasePrecision))
-    .decimalPlaces(swapBasePrecision, BigNumber.ROUND_UP);
   const swapSizingMaximumBase = useMemo(
     () => minimumDecimal(walletMaximumSwapBase, custodyMaximumSwapBase),
     [custodyMaximumSwapBase, walletMaximumSwapBase]
@@ -364,15 +361,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   };
 
   const updateSwapPercent = (value: number) => {
-    let nextPercent = Math.max(0, Math.min(100, value));
-    if (nextPercent > 0 && swapSizingMaximumBase?.gt(0) && effectiveMinimumSwapBase?.gt(0)) {
-      const minimumPercent = (sliderMinimumSwapBase ?? effectiveMinimumSwapBase)
-        .div(swapSizingMaximumBase)
-        .times(100)
-        .integerValue(BigNumber.ROUND_CEIL)
-        .toNumber();
-      nextPercent = Math.min(100, Math.max(nextPercent, minimumPercent));
-    }
+    const nextPercent = Math.max(0, Math.min(100, value));
     setPercent(nextPercent);
     if (!swapSizingMaximumBase?.gt(0) || nextPercent === 0) {
       setAmount("");
@@ -382,11 +371,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
       .times(nextPercent)
       .div(100)
       .decimalPlaces(swapBasePrecision, BigNumber.ROUND_DOWN);
-    const executableAmount =
-      effectiveMinimumSwapBase && sizedAmount.lte(effectiveMinimumSwapBase)
-        ? sliderMinimumSwapBase ?? effectiveMinimumSwapBase
-        : sizedAmount;
-    setAmount(executableAmount.toFixed());
+    setAmount(sizedAmount.toFixed());
   };
 
   useEffect(() => {

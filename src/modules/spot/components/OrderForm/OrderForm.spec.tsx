@@ -541,6 +541,44 @@ describe("SpotOrderForm", () => {
     expect((view.getByLabelText("Swap percentage input") as HTMLInputElement).disabled).toBe(false);
   });
 
+  it("lets the Swap slider move below the executable minimum without snapping back", async () => {
+    mFetchWalletBalances.mockResolvedValue({
+      ...walletBalances,
+      balances: walletBalances.balances.map((balance) =>
+        balance.symbol === "CC" ? { ...balance, amount: "20" } : balance
+      ),
+    });
+    mDepth.mockResolvedValue({
+      lastUpdateId: 2,
+      asks: [["0.115", "100"]],
+      bids: [["0.1148", "100"]],
+    });
+    mSwapCapacity.mockResolvedValue({
+      symbol: "CC-CUSD",
+      side: "SELL",
+      outputAsset: "CUSD",
+      custodyBalance: "15.6851321425",
+      custodyUsableBalance: "12.5481057142",
+      configuredMinBase: "0.00001",
+      feeAdjustedMinBase: "8.7702132053",
+      effectiveMinBase: "8.7702132053",
+      maxBase: "12.5481057142",
+    });
+    const view = render(<SpotOrderForm market={resolveSpotMarket("CC-CUSD")} />);
+
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    fireEvent.click(view.getByRole("button", { name: "Sell CC" }));
+    await waitFor(() => expect(view.getByText("12.5481057142 CC")).toBeTruthy());
+
+    const slider = view.getByRole("slider", { name: "Swap percentage" }) as HTMLInputElement;
+    fireEvent.change(slider, { target: { value: "70" } });
+    fireEvent.change(slider, { target: { value: "20" } });
+
+    expect(slider.value).toBe("20");
+    expect((view.getByLabelText("Swap percentage input") as HTMLInputElement).value).toBe("20");
+    expect(view.getByRole("button", { name: /Below minimum Swap amount/ })).toBeTruthy();
+  });
+
   it("shows a capacity request failure instead of silently rendering empty Swap limits", async () => {
     mFetchWalletBalances.mockResolvedValue({
       ...walletBalances,
