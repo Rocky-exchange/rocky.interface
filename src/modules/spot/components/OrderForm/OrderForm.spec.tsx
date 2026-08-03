@@ -9,7 +9,7 @@ import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import { SpotOrderForm } from "./OrderForm";
 import { spotApi, type Account, type SpotOrder, SpotApiError } from "../../api/spotClient";
-import { swapApi, type SwapOrder } from "../../api/swapClient";
+import { swapApi, SwapApiError, type SwapOrder } from "../../api/swapClient";
 import { useSpotAccount } from "../../hooks/useSpotAccount";
 import { resolveSpotMarket } from "../../model/spotMarkets";
 import { renderWithI18n as render } from "../../test/renderWithI18n";
@@ -406,6 +406,40 @@ describe("SpotOrderForm", () => {
     expect(mCreateSwap).not.toHaveBeenCalled();
   });
 
+  it("drops an in-flight Swap preflight when the user changes side", async () => {
+    const view = render(<SpotOrderForm market={market} />);
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    await waitFor(() => expect(mSwapCapacity).toHaveBeenCalled());
+    fireEvent.change(view.getByLabelText("Swap amount (CBTC)"), { target: { value: "0.1" } });
+    await waitFor(() =>
+      expect((view.getByRole("button", { name: /Swap to buy CBTC/ }) as HTMLButtonElement).disabled).toBe(false)
+    );
+
+    let resolveDepth!: (value: { lastUpdateId: number; asks: [string, string][]; bids: [string, string][] }) => void;
+    const pendingDepth = new Promise<{ lastUpdateId: number; asks: [string, string][]; bids: [string, string][] }>(
+      (resolve) => {
+        resolveDepth = resolve;
+      }
+    );
+    mDepth.mockReturnValueOnce(pendingDepth);
+
+    fireEvent.click(view.getByRole("button", { name: /Swap to buy CBTC/ }));
+    await waitFor(() => expect(mDepth).toHaveBeenCalledTimes(2));
+    fireEvent.click(view.getByRole("button", { name: "Sell CBTC" }));
+
+    await act(async () => {
+      resolveDepth({
+        lastUpdateId: 2,
+        asks: [["65000", "10"]],
+        bids: [["64000", "10"]],
+      });
+      await pendingDepth;
+    });
+
+    expect(mEnsureMemberAuth).not.toHaveBeenCalled();
+    expect(mCreateSwap).not.toHaveBeenCalled();
+  });
+
   it("requires a second confirmation after first-use wallet authorization", async () => {
     mEnsureMemberAuth.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     const view = render(<SpotOrderForm market={market} />);
@@ -494,6 +528,37 @@ describe("SpotOrderForm", () => {
     expect(sellSliderBlock).toContain("var(--ltr-trade-sell-gradient-start)");
     expect(sellSliderBlock).toContain("var(--ltr-trade-sell-gradient-end)");
     expect(sellSliderBlock).toContain("var(--ltr-trade-sell-bright)");
+  });
+
+  it("keeps the Swap percentage slider enabled while balance and capacity data load", () => {
+    mFetchWalletBalances.mockImplementation(() => new Promise(() => undefined));
+    mSwapCapacity.mockImplementation(() => new Promise(() => undefined));
+    const view = render(<SpotOrderForm market={market} />);
+
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+
+    expect((view.getByRole("slider", { name: "Swap percentage" }) as HTMLInputElement).disabled).toBe(false);
+    expect((view.getByLabelText("Swap percentage input") as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it("shows a capacity request failure instead of silently rendering empty Swap limits", async () => {
+    mFetchWalletBalances.mockResolvedValue({
+      ...walletBalances,
+      balances: walletBalances.balances.map((balance) =>
+        balance.symbol === "CC" ? { ...balance, amount: "5" } : balance
+      ),
+    });
+    mSwapCapacity.mockRejectedValue(
+      new SwapApiError(503, "swap_unavailable", "Swap is temporarily unavailable")
+    );
+    const view = render(<SpotOrderForm market={resolveSpotMarket("CC-CUSD")} />);
+
+    fireEvent.click(view.getByRole("tab", { name: "Swap" }));
+    fireEvent.click(view.getByRole("button", { name: "Sell CC" }));
+
+    await waitFor(() =>
+      expect(view.getByRole("status").textContent).toContain("Swap is temporarily unavailable")
+    );
   });
 
   it("matches the futures Connect Wallet CTA while keeping the spot connection action", () => {

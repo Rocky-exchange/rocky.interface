@@ -145,6 +145,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const precisions = useSpotAssetPrecisions();
   const marketSession = useRef({ symbol: market.apiSymbol, generation: 0 });
   const swapIntent = useRef<{ key: string; clientSwapId: string } | null>(null);
+  const swapRequestGeneration = useRef(0);
+  const activeSwapRequest = useRef<number | null>(null);
   const sideTabRefs = useRef<Record<Side, HTMLButtonElement | null>>({ BUY: null, SELL: null });
   const [side, setSide] = useState<Side>("BUY");
   const [orderType, setOrderType] = useState<OrderType>("LIMIT");
@@ -170,7 +172,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   const { data: activeSwap } = usePolling(() => swapApi.get(activeSwapId as string), 1000, [activeSwapId], {
     enabled: activeSwapId !== null,
   });
-  const { data: swapCapacity } = usePolling(
+  const { data: swapCapacity, err: swapCapacityError } = usePolling(
     () => swapApi.capacity(market.apiSymbol, side, swapSlippageBps),
     5000,
     [market.apiSymbol, side, swapSlippageBps],
@@ -261,7 +263,17 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     parsedSwapAmount !== null && effectiveMinimumSwapBase !== null && parsedSwapAmount.lte(effectiveMinimumSwapBase);
   const summary = useMemo(() => calculateOrderSummary(side, displayPrice, amount), [amount, displayPrice, side]);
 
+  const invalidateSwapRequest = () => {
+    swapRequestGeneration.current += 1;
+    swapIntent.current = null;
+    if (activeSwapRequest.current !== null) {
+      activeSwapRequest.current = null;
+      setBusy(false);
+    }
+  };
+
   const selectSide = (nextSide: Side) => {
+    if (nextSide !== side) invalidateSwapRequest();
     const nextEffectivePrice =
       orderType === "LIMIT" ? price : marketPrice(nextSide, depth?.asks?.[0]?.[0], depth?.bids?.[0]?.[0]);
     setSide(nextSide);
@@ -280,6 +292,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   };
 
   const selectOrderType = (nextType: OrderType) => {
+    if (nextType !== orderType) invalidateSwapRequest();
     if (nextType === "SWAP") {
       setOrderType(nextType);
       setAmount("");
@@ -412,6 +425,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
     setMsg(null);
     setBusy(false);
     setActiveSwapId(null);
+    swapRequestGeneration.current += 1;
+    activeSwapRequest.current = null;
     swapIntent.current = null;
   }, [market.apiSymbol]);
 
@@ -493,11 +508,16 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
   };
 
   const submitSwap = async () => {
-    if (!canSubmitSwap) return;
+    if (!canSubmitSwap || activeSwapRequest.current !== null) return;
     const submittedSession = marketSession.current;
+    const requestGeneration = swapRequestGeneration.current + 1;
+    swapRequestGeneration.current = requestGeneration;
+    activeSwapRequest.current = requestGeneration;
     const isCurrentSession = () =>
       marketSession.current.symbol === submittedSession.symbol &&
-      marketSession.current.generation === submittedSession.generation;
+      marketSession.current.generation === submittedSession.generation &&
+      swapRequestGeneration.current === requestGeneration &&
+      activeSwapRequest.current === requestGeneration;
     setBusy(true);
     setMsg(null);
     try {
@@ -573,7 +593,15 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
             : String(error);
       setMsg({ kind: "err", text });
     } finally {
-      if (isCurrentSession()) setBusy(false);
+      if (activeSwapRequest.current === requestGeneration) {
+        activeSwapRequest.current = null;
+        if (
+          marketSession.current.symbol === submittedSession.symbol &&
+          marketSession.current.generation === submittedSession.generation
+        ) {
+          setBusy(false);
+        }
+      }
     }
   };
 
@@ -721,11 +749,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                 step="1"
                 value={percent}
                 onChange={(event) => updateSwapPercent(Number(event.target.value))}
-                disabled={
-                  busy ||
-                  !swapSizingMaximumBase?.gt(0) ||
-                  (effectiveMinimumSwapBase !== null && effectiveMinimumSwapBase.gte(swapSizingMaximumBase))
-                }
+                disabled={busy}
               />
               <div className={styles.percentInput}>
                 <input
@@ -737,11 +761,7 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
                     const next = Number(event.target.value.replace(/[^0-9]/g, ""));
                     if (!Number.isNaN(next)) updateSwapPercent(next);
                   }}
-                  disabled={
-                    busy ||
-                    !swapSizingMaximumBase?.gt(0) ||
-                    (effectiveMinimumSwapBase !== null && effectiveMinimumSwapBase.gte(swapSizingMaximumBase))
-                  }
+                  disabled={busy}
                 />
                 <span aria-hidden="true">%</span>
               </div>
@@ -861,6 +881,11 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               <button type="button" className={`${styles.submit} ${styles.connect}`} onClick={openCantonConnect}>
                 <Trans>Connect Wallet</Trans>
               </button>
+            )}
+            {!msg && swapCapacityError && (
+              <div className={`${styles.msg} ${styles.msgErr}`} role="status">
+                {swapCapacityError}
+              </div>
             )}
             {msg && (
               <div className={`${styles.msg} ${msg.kind === "ok" ? styles.msgOk : styles.msgErr}`} role="status">
