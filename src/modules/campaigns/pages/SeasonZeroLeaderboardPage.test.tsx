@@ -129,6 +129,21 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     const emptyCell = await screen.findByRole("cell", { name: "No qualified traders yet." });
     expect(emptyCell.getAttribute("aria-colspan")).toBe("4");
     expect(emptyCell.className).toContain("emptyLeaderboardCell");
+    expect(
+      screen.getByText(
+        "Eligible accounts are ranked by total qualified trading volume in descending order. Qualified volume generated using campaign trial funds is also included in the leaderboard."
+      )
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "The campaign runs for two weeks. The leaderboard closes at 00:00 UTC immediately after Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking."
+      )
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "The Top 50 share 60,000,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds."
+      )
+    ).toBeTruthy();
   });
 
   it("renders the wallet profile name, avatar, and abbreviated party address", async () => {

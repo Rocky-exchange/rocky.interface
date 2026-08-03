@@ -216,12 +216,12 @@ const CAMPAIGN_ZH_TW: Record<string, string> = {
   "Top 11 – 20": "第 11–20 名",
   "Top 21 – 50": "第 21–50 名",
   "Ranking Rules": "排名規則",
-  "This is a real-funds trading competition. Only eligible accounts enter the leaderboard, ranked by total qualified trading volume in descending order.":
-    "本活動為真實資金交易競賽。僅符合資格的帳戶可進入排行榜，並按有效總交易量由高至低排名。",
-  "The campaign runs for three weeks. The leaderboard closes at 00:00 UTC immediately after Day 21. Only qualifying trades completed before the deadline count toward the final volume ranking.":
-    "活動為期 3 週。排行榜於第 21 天結束後的 UTC 00:00 截止。僅截止前完成的合格交易會計入最終交易量排名。",
-  "The Top 50 share 56,500,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds.":
-    "前 50 名依上述級距共享 56,500,000 枚 R 鑽石。未進入前 50 名、但在至少 2 個交易日完成 10 筆有效交易的交易者，可獲得 500 枚 R 鑽石。",
+  "Eligible accounts are ranked by total qualified trading volume in descending order. Qualified volume generated using campaign trial funds is also included in the leaderboard.":
+    "符合資格的帳戶按有效總交易量由高至低排名；使用本活動體驗金產生的合格交易量同樣計入排行榜。",
+  "The campaign runs for two weeks. The leaderboard closes at 00:00 UTC immediately after Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking.":
+    "活動為期 2 週。排行榜於第 14 天結束後的 UTC 00:00 截止。僅截止前完成的合格交易會計入最終交易量排名。",
+  "The Top 50 share 60,000,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds.":
+    "前 50 名依上述級距共享 60,000,000 枚 R 鑽石。未進入前 50 名、但在至少 2 個交易日完成 10 筆有效交易的交易者，可獲得 500 枚 R 鑽石。",
   "Coming Soon": "即將推出",
   "Track your rewards, status, and exclusive benefits.": "追蹤你的獎勵、狀態與專屬權益。",
   "（Reward Breakdown）": "（獎勵明細）",
@@ -1968,17 +1968,17 @@ function LeaderboardContent() {
         <ul>
           <li>
             {copy(
-              "This is a real-funds trading competition. Only eligible accounts enter the leaderboard, ranked by total qualified trading volume in descending order."
+              "Eligible accounts are ranked by total qualified trading volume in descending order. Qualified volume generated using campaign trial funds is also included in the leaderboard."
             )}
           </li>
           <li>
             {copy(
-              "The campaign runs for three weeks. The leaderboard closes at 00:00 UTC immediately after Day 21. Only qualifying trades completed before the deadline count toward the final volume ranking."
+              "The campaign runs for two weeks. The leaderboard closes at 00:00 UTC immediately after Day 14. Only qualifying trades completed before the deadline count toward the final volume ranking."
             )}
           </li>
           <li>
             {copy(
-              "The Top 50 share 56,500,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds."
+              "The Top 50 share 60,000,000 R Diamonds by the tiers above. Traders with at least 10 effective trades across 2 trading days who finish outside the Top 50 receive 500 R Diamonds."
             )}
           </li>
         </ul>
