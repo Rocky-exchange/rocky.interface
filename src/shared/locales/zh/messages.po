@@ -1143,10 +1143,6 @@ msgstr "最大部分數量：{MAX_TWAP_NUMBER_OF_PARTS}"
 msgid "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 msgstr "AVAX 不足以支付 gas（約需 0.001 AVAX）。"
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update."
-msgstr "兌換會消耗現貨即時訂單簿，隨後兩種錢包資產會在同一筆更新中原子結算。"
-
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "01 / CLAIM"
 msgstr ""
@@ -3415,6 +3411,10 @@ msgstr "增加"
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Principal"
 msgstr "本金"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Your swap is matched against available market liquidity. Review the estimated amount and price before confirming."
+msgstr "兌換會根據當前可用的市場流動性進行撮合。請在確認前查看預估數量與價格。"
 
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "take profit"

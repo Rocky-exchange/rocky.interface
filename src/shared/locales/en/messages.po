@@ -1143,10 +1143,6 @@ msgstr "Max number of parts: {MAX_TWAP_NUMBER_OF_PARTS}"
 msgid "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 msgstr "Not enough AVAX to pay gas (need ≈ 0.001 AVAX)."
 
-#: src/modules/spot/components/OrderForm/OrderForm.tsx
-msgid "Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update."
-msgstr "Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update."
-
 #: src/modules/lighter/features/bonus/pages/RedeemCodePage.tsx
 msgid "01 / CLAIM"
 msgstr "01 / CLAIM"
@@ -3415,6 +3411,10 @@ msgstr "Increase"
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Principal"
 msgstr "Principal"
+
+#: src/modules/spot/components/OrderForm/OrderForm.tsx
+msgid "Your swap is matched against available market liquidity. Review the estimated amount and price before confirming."
+msgstr "Your swap is matched against available market liquidity. Review the estimated amount and price before confirming."
 
 #: src/modules/lighter/domain/synthetics/positions/utils.ts
 msgid "take profit"

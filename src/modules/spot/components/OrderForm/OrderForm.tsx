@@ -662,7 +662,8 @@ export function SpotOrderForm({ market }: { market: SpotMarket }) {
               </strong>
               <p>
                 <Trans>
-                  Your Swap consumes the live spot order book, then both wallet assets settle atomically in one update.
+                  Your swap is matched against available market liquidity. Review the estimated amount and price before
+                  confirming.
                 </Trans>
               </p>
             </div>

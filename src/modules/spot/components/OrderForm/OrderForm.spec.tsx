@@ -204,7 +204,9 @@ describe("SpotOrderForm", () => {
     fireEvent.click(view.getByRole("tab", { name: "Swap" }));
 
     expect(view.getByRole("tablist", { name: "Swap side" })).toBeTruthy();
+    expect(view.getByText("Onchain atomic swap")).toBeTruthy();
     expect(view.getByText("Swap directly from your wallet")).toBeTruthy();
+    expect(view.getByText(/Your swap is matched against available market liquidity/)).toBeTruthy();
     expect(view.getByText("CUSD")).toBeTruthy();
     expect(view.getAllByText("CBTC").length).toBeGreaterThan(0);
     expect(view.getByText(/Actual fills update trades, volume, and candles/)).toBeTruthy();
