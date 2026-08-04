@@ -7,6 +7,7 @@ import { useChainId } from "lib/chains";
 import { helperToast } from "lib/helperToast";
 
 import { cancelOrder, closePosition, createOrder, createTriggerOrder, type CreateOrderResponse } from "./client";
+import { getMarketExecutablePrice } from "./marketOrderProtection";
 import { acquirePendingOrderIntentKey, type OrderIntentScope } from "./orderIntentRegistry";
 import { useApiOrders } from "./useApiOrders";
 import type {
@@ -108,17 +109,6 @@ export function formatOrderSubmitError(error: any): string {
   return error?.message || "Failed to submit order";
 }
 
-const DEFAULT_MARKET_AGGRESSION = 0.005;
-
-function resolveMarketAggression(maxSlippage?: string): number {
-  if (maxSlippage === undefined) return DEFAULT_MARKET_AGGRESSION;
-  const parsed = Number(maxSlippage);
-  if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
-    throw new Error("maxSlippage must be greater than 0 and less than 1");
-  }
-  return parsed;
-}
-
 export function buildCreateOrderRequest(
   params: PrimitOrderParams,
   intentScope: OrderIntentScope
@@ -164,8 +154,7 @@ export function buildCreateOrderRequest(
       if (!Number.isFinite(referencePrice) || referencePrice <= 0) {
         throw new Error("Market order requires a positive reference price");
       }
-      const aggression = resolveMarketAggression(params.maxSlippage);
-      executablePrice = (referencePrice * (params.isLong ? 1 + aggression : 1 - aggression)).toFixed(6);
+      executablePrice = getMarketExecutablePrice(referencePrice, params.isLong, params.maxSlippage).toFixed(6);
     }
 
     const intent: Omit<CreateOrderRequest, "idempotency_key"> = {

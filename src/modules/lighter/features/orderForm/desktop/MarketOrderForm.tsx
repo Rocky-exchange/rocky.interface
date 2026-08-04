@@ -2,15 +2,17 @@ import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
+
 import { getCurrentOrderFormPosition, getProjectedOrderFormPositionValue } from "./orderFormPosition";
 import { formatPreviewFeeRatePercent } from "./orderPreviewFeeFormat";
+import { useOrderGate } from "./useOrderGate";
 import { useAvailableBalanceAdapter } from "../../../adapters/useAvailableBalanceAdapter";
 import { useMarketInfoAdapter } from "../../../adapters/useMarketInfoAdapter";
 import { useOrderPreviewAdapter, usePreviewErrorMessage } from "../../../adapters/useOrderPreviewAdapter";
 import { usePlaceOrderAdapter } from "../../../adapters/usePlaceOrderAdapter";
 import { usePositionsAdapter } from "../../../adapters/usePositionsAdapter";
-import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
-import { useOrderGate } from "./useOrderGate";
+import { getSafeMarketBuyingPowerUsd } from "../../../api/custom/marketOrderProtection";
 import { PercentSlider } from "../../../components/PercentSlider/PercentSlider";
 
 /** slippage override 超过该阈值时展示一条黄色警示(只提示,不阻断)。*/
@@ -82,54 +84,64 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
   // 不再在 USD 换算失败时回退成 rawAmount —— 那会把 USD 数值当成 BTC 发出去(曾让 /orders 发出 amount=13.70 "BTC")
   const amountNum =
     amountUnit === "USD" ? (effectivePrice && effectivePrice > 0 ? rawAmount / effectivePrice : 0) : rawAmount;
-  const amountReady = amountNum > 0 && effectivePrice != null && effectivePrice > 0;
   const p = tentativePreview.data;
   const availableBalance = p?.available_balance ? Number(p.available_balance) : available ?? 0;
-  const buyingPowerUsd = availableBalance > 0 ? availableBalance * leverage : 0;
-  const previewErrorMessage = usePreviewErrorMessage(tentativePreview);
-
-  // 杠杆变化时按当前百分比重算 amount。
-  // buyingPowerUsd = availableBalance × leverage 每次 render 都会跟着 leverage 变,
-  // 但 amount 是受控 state,只在输入框/单位/滑块的 onChange 里写过 —— 没有任何地方
-  // 在 leverage 改变后重算它。结果:100x→1x 后 buyingPowerUsd 掉 100 倍,Amount 却
-  // 仍冻结在旧值,百分比滑块也停在旧的 100%。
-  // pct(百分比滑块)是用户的下单意图来源,杠杆改变就按 pct 重新折算金额,
-  // 公式与 PercentSlider onChange 完全一致。用 ref 把"只在 leverage 真变时执行"
-  // 收口,避免 preview 每 2s 刷新带动 buyingPowerUsd 抖动时反复 setAmount。
-  const prevLeverageRef = useRef(leverage);
-  useEffect(() => {
-    if (prevLeverageRef.current === leverage) return;
-    prevLeverageRef.current = leverage;
-    if (pct <= 0 || buyingPowerUsd <= 0) return;
-    const price = market.markPrice ?? (p?.est_price ? Number(p.est_price) : null);
-    if (amountUnit === "USD") {
-      setAmount((buyingPowerUsd * (pct / 100)).toFixed(2));
-      resnapConversionPrice();
-    } else if (price != null && price > 0) {
-      setAmount(((buyingPowerUsd * (pct / 100)) / price).toFixed(5));
-      resnapConversionPrice();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leverage, pct, buyingPowerUsd, amountUnit, market.markPrice, p?.est_price]);
-
-  const fmtUsd = (s?: string) =>
-    s ? `$${Number(s).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
-  const fmtPct = (s?: string) => (s ? `${(Number(s) * 100).toFixed(2)}%` : "-");
 
   // 解析 slippage override(用户输入的是百分比,后端吃 0~1 的 decimal)。
-  // 空 / 非法 → undefined,回退到后端默认。
+  // 空 / 非法 → undefined,与订单提交边界共享默认 0.5% 保护价格。
   const slippageOverridePct = Number(slippageOverride);
   const slippageOverrideValid =
     slippageOverride !== "" &&
     Number.isFinite(slippageOverridePct) &&
     slippageOverridePct > 0 &&
     slippageOverridePct <= 50;
+  const previewMaxSlippage = p?.max_slippage ? Number(p.max_slippage) : NaN;
+  const previewMaxSlippageValid =
+    Number.isFinite(previewMaxSlippage) && previewMaxSlippage > 0 && previewMaxSlippage < 1;
   const effectiveMaxSlippage = slippageOverrideValid
     ? slippageOverridePct / 100
-    : p?.max_slippage
-      ? Number(p.max_slippage)
+    : previewMaxSlippageValid
+      ? previewMaxSlippage
       : undefined;
   const slippageWarn = slippageOverrideValid && slippageOverridePct > SLIPPAGE_WARN_THRESHOLD_PCT;
+
+  // 后端按 crossing/protection price × qty ÷ leverage 锁仓。BUY 的保护价格高于
+  // reference price，若仍用 available × leverage 作为 100%，必然触发 409。
+  // 这里与订单提交共享完全相同的保护价函数，并且不让 SELL 超过名义 buying power。
+  const buyingPowerUsd = getSafeMarketBuyingPowerUsd({
+    availableBalance,
+    leverage,
+    referencePrice: effectivePrice,
+    isLong: side === "buy",
+    maxSlippage: effectiveMaxSlippage,
+  });
+  const requestedOrderValueUsd = effectivePrice && effectivePrice > 0 ? amountNum * effectivePrice : 0;
+  const exceedsBuyingPower =
+    requestedOrderValueUsd > 0 && (buyingPowerUsd <= 0 || requestedOrderValueUsd - buyingPowerUsd > 0.000001);
+  const amountReady = amountNum > 0 && effectivePrice != null && effectivePrice > 0 && !exceedsBuyingPower;
+  const previewErrorMessage = usePreviewErrorMessage(tentativePreview);
+
+  // 杠杆、可用余额或保护价格变化时，按当前百分比重算 amount。手动输入只会
+  // 改 pct，不应反过来被 effect 覆盖，所以用上一次容量作为变化闸门。
+  const previousCapacityRef = useRef({ buyingPowerUsd, amountUnit, effectivePrice });
+  useEffect(() => {
+    const previous = previousCapacityRef.current;
+    previousCapacityRef.current = { buyingPowerUsd, amountUnit, effectivePrice };
+    if (
+      previous.buyingPowerUsd === buyingPowerUsd &&
+      previous.amountUnit === amountUnit &&
+      previous.effectivePrice === effectivePrice
+    ) {
+      return;
+    }
+    if (pct <= 0 || buyingPowerUsd <= 0) return;
+    const nextAmount = formatPercentageAmount(buyingPowerUsd, pct, amountUnit, effectivePrice);
+    if (nextAmount !== null) setAmount((current) => (current === nextAmount ? current : nextAmount));
+  }, [pct, buyingPowerUsd, amountUnit, effectivePrice]);
+
+  const fmtUsd = (s?: string) =>
+    s ? `$${Number(s).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+  const fmtPct = (s?: string) => (s ? `${(Number(s) * 100).toFixed(2)}%` : "-");
 
   // Bonus pre-check gate. Non-bonus users get a single Pass round-trip
   // (the backend short-circuits when no bonus row exists); bonus users
@@ -221,14 +233,9 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
           value={pct}
           onChange={(next) => {
             setPct(next);
-            const price = market.markPrice ?? (p?.est_price ? Number(p.est_price) : null);
-            if (buyingPowerUsd > 0 && price != null && price > 0) {
-              // 余额是 USD;USD 模式直接用 bal×pct,SYMBOL 模式换算为代币数量
-              const newAmount =
-                amountUnit === "USD"
-                  ? (buyingPowerUsd * (next / 100)).toFixed(2)
-                  : ((buyingPowerUsd * (next / 100)) / price).toFixed(5);
-              setAmount(newAmount);
+            if (buyingPowerUsd > 0 && effectivePrice != null && effectivePrice > 0) {
+              const newAmount = formatPercentageAmount(buyingPowerUsd, next, amountUnit, effectivePrice);
+              if (newAmount !== null) setAmount(newAmount);
             }
             // 百分比滑动即视作一次显式改动,刷新换算快照
             resnapConversionPrice();
@@ -294,6 +301,11 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
           }
         />
         {previewErrorMessage && <div className="ltr-form__note ltr-form__note--error">{previewErrorMessage}</div>}
+        {exceedsBuyingPower && (
+          <div role="alert" className="ltr-form__note ltr-form__note--error">
+            <Trans>Amount exceeds the available balance after market price protection.</Trans>
+          </div>
+        )}
       </div>
 
       {isConnected && (
@@ -325,6 +337,23 @@ export function MarketOrderForm({ side, isConnected, leverage, marginMode }: Pro
       )}
     </div>
   );
+}
+
+function formatPercentageAmount(
+  buyingPowerUsd: number,
+  percentage: number,
+  amountUnit: "SYMBOL" | "USD",
+  referencePrice: number | null
+): string | null {
+  const usdAmount = buyingPowerUsd * (percentage / 100);
+  if (amountUnit === "USD") return floorFixed(usdAmount, 2);
+  if (referencePrice === null || !Number.isFinite(referencePrice) || referencePrice <= 0) return null;
+  return floorFixed(usdAmount / referencePrice, 5);
+}
+
+function floorFixed(value: number, digits: number): string {
+  const factor = 10 ** digits;
+  return (Math.floor(value * factor) / factor).toFixed(digits);
 }
 
 export function UnsupportedBasicOrderOptions() {
