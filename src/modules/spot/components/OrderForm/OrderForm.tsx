@@ -6,6 +6,7 @@ import { type CSSProperties, type KeyboardEvent, useEffect, useLayoutEffect, use
 import { fetchWalletBalanceSnapshot, type WalletBalanceSnapshot } from "@/shared/lib/canton-wallet/balances";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { ensureSpotMemberAuth } from "@/shared/lib/canton-wallet/memberAuth";
+import { RockyPreparedSigningUnavailableError } from "@/shared/lib/canton-wallet/rocky";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 
 import styles from "./OrderForm.module.scss";
@@ -578,6 +579,10 @@ export function SpotOrderForm({
       swapIntent.current = null;
     } catch (error: unknown) {
       if (!isCurrentSession()) return;
+      if (error instanceof RockyPreparedSigningUnavailableError) {
+        setMsg(null);
+        return;
+      }
       const text =
         error instanceof SwapApiError
           ? `[${error.code}] ${error.message}`

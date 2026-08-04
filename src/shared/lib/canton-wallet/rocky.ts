@@ -28,6 +28,13 @@ type RockyPreparedHashProvider = {
   }): Promise<{ signature?: string } | string | undefined>;
 };
 
+export class RockyPreparedSigningUnavailableError extends Error {
+  constructor() {
+    super("Rocky Wallet prepared transaction signing is unavailable");
+    this.name = "RockyPreparedSigningUnavailableError";
+  }
+}
+
 export type RockyWalletBalanceResult = {
   party: string;
   network: string;
@@ -115,9 +122,7 @@ export async function signRockyPreparedTransactionHash(
     ? (window as Window & { rockyWallet?: RockyPreparedHashProvider }).rockyWallet
     : undefined);
   if (!provider?.signPreparedTransactionHash) {
-    throw new Error(
-      "Rocky Wallet must be updated before it can authorize spot settlement",
-    );
+    throw new RockyPreparedSigningUnavailableError();
   }
   const account = await provider.getPrimaryAccount();
   if (account?.partyId !== partyId) {
