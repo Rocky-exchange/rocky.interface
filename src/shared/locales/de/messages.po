@@ -117,6 +117,10 @@ msgid "Execute Market Swap"
 msgstr ""
 
 #: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Each eligible OG user can claim trial funds once. Claim within seven days; once claimed, the trial funds can be used throughout the campaign."
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
 msgid "Next page"
 msgstr ""
 
@@ -178,16 +182,16 @@ msgstr ""
 msgid "Amount is below the minimum withdraw."
 msgstr ""
 
+#: src/modules/lighter/features/orderForm/desktop/MarketOrderForm.tsx
+msgid "Amount exceeds the available balance after market price protection."
+msgstr ""
+
 #: src/shared/components/TVChartContainer/constants.ts
 msgid "Stop Market - Short Inc."
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
 msgid "Failed Take Profit"
-msgstr ""
-
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Trial funds are valid for seven days and cannot be withdrawn."
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/FundingPanel.tsx
@@ -1749,10 +1753,6 @@ msgstr ""
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 #: src/shared/lib/canton-wallet/CantonFundsModal.tsx
 msgid "Withdraw"
-msgstr ""
-
-#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
-msgid "Each eligible OG user can claim trial funds once. Trial funds are valid for seven days."
 msgstr ""
 
 #: src/shared/components/TradeHistory/keys.ts
@@ -3947,6 +3947,10 @@ msgstr ""
 
 #: src/modules/spot/components/OrderForm/OrderForm.tsx
 msgid "Your wallet"
+msgstr ""
+
+#: src/modules/lighter/features/bonus/components/BonusInviteModal.tsx
+msgid "Trial funds must be claimed within seven days. Once claimed, they can be used throughout the campaign and cannot be withdrawn."
 msgstr ""
 
 #: src/modules/lighter/components/ChartPanel/ChartPanel.tsx

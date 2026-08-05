@@ -110,7 +110,9 @@ describe("BonusInviteModal localization", () => {
     expect(screen.getAllByText("暫無資格")).toHaveLength(2);
     expect(screen.getByRole("button", { name: /查看規則/ })).not.toBeNull();
     expect(
-      screen.getByText("每位符合資格的 OG 用戶可領取一次體驗金。體驗金有效期為七天。")
+      screen.getByText(
+        "每位符合資格的 OG 用戶可領取一次體驗金。請在七天內完成領取；領取後可在整個活動期間使用。"
+      )
     ).not.toBeNull();
   });
 });

@@ -1,11 +1,7 @@
 import { t, Trans } from "@lingui/macro";
 import { ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import {
-  claimOgTrialFund,
-  getOgBenefits,
-  type OgBenefits,
-} from "@/modules/campaigns/api/campaign.api";
+import { claimOgTrialFund, getOgBenefits, type OgBenefits } from "@/modules/campaigns/api/campaign.api";
 import { openCantonConnect } from "@/shared/lib/canton-wallet/cantonConnect";
 import { useCantonSession } from "@/shared/lib/canton-wallet/useCantonSession";
 import { ModalWithPortal } from "@/shared/ui";
@@ -68,9 +64,10 @@ export function BonusInviteModal({ open, onClose }: Props) {
 
   useEffect(() => {
     let active = true;
-    if (!open || !session.connected || status.data?.has_bonus) return () => {
-      active = false;
-    };
+    if (!open || !session.connected || status.data?.has_bonus)
+      return () => {
+        active = false;
+      };
     setBenefitsLoading(true);
     void getOgBenefits()
       .then((result) => {
@@ -140,7 +137,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
       contentPadding={false}
       disableOverflowHandling
       className={styles.modalRoot}
-      contentClassName={styles.modalPanel}
+      contentClassName={`${styles.modalPanel} ${view === "invite" ? styles.claimModalPanel : ""}`}
       primitSize="big"
     >
       {open && view === "history" ? (
@@ -160,7 +157,7 @@ export function BonusInviteModal({ open, onClose }: Props) {
         <div className={styles.layout}>
           <section className={styles.formPane} aria-labelledby={`${titleId}-visible`}>
             <div className={styles.eyebrow} aria-hidden="true">
-              RX BONUS
+              <span>RX</span> BONUS // OG ACCESS
             </div>
             <h2 id={`${titleId}-visible`} className={styles.title}>
               <Trans>Claim trial funds</Trans>
@@ -173,11 +170,11 @@ export function BonusInviteModal({ open, onClose }: Props) {
 
             <div className={styles.form}>
               <div className={styles.claimAmount}>
-                <span><Trans>TRIAL FUNDS</Trans></span>
+                <span>
+                  <Trans>TRIAL FUNDS</Trans>
+                </span>
                 <strong>20U</strong>
-                <small>
-                  {benefits?.eligible ? <Trans>OG ELIGIBLE</Trans> : <Trans>Not eligible</Trans>}
-                </small>
+                <small>{benefits?.eligible ? <Trans>OG ELIGIBLE</Trans> : <Trans>Not eligible</Trans>}</small>
               </div>
               {!session.connected ? (
                 <button type="button" className={styles.connectBonus} onClick={openCantonConnect}>
@@ -190,7 +187,13 @@ export function BonusInviteModal({ open, onClose }: Props) {
                 onClick={() => void handleClaim()}
                 disabled={!session.connected || pending || benefitsLoading || !benefits?.eligible}
               >
-                {pending ? <Trans>Claiming…</Trans> : benefits?.eligible ? <Trans>Claim 20U</Trans> : <Trans>Not eligible</Trans>}
+                {pending ? (
+                  <Trans>Claiming…</Trans>
+                ) : benefits?.eligible ? (
+                  <Trans>Claim 20U</Trans>
+                ) : (
+                  <Trans>Not eligible</Trans>
+                )}
                 <ArrowRightIcon className={styles.submitIcon} aria-hidden="true" />
               </button>
               <div className={styles.feedback} aria-live="polite">
@@ -216,7 +219,10 @@ export function BonusInviteModal({ open, onClose }: Props) {
                 <InfoIcon className={styles.infoIcon} aria-hidden="true" />
                 <ul>
                   <li>
-                    <Trans>Each eligible OG user can claim trial funds once. Trial funds are valid for seven days.</Trans>
+                    <Trans>
+                      Each eligible OG user can claim trial funds once. Claim within seven days; once claimed, the
+                      trial funds can be used throughout the campaign.
+                    </Trans>
                   </li>
                   <li>
                     <Trans>Trial funds can be used as perpetual contract margin and cannot be withdrawn.</Trans>
@@ -230,7 +236,13 @@ export function BonusInviteModal({ open, onClose }: Props) {
           </section>
 
           <aside className={styles.artPane} aria-hidden="true">
-            <img className={styles.art} src="/images/bonus/invite-code-gift.png" alt="" width="1122" height="1402" />
+            <img
+              className={styles.art}
+              src="/images/bonus/trial-funds-chest.png"
+              alt=""
+              width="1122"
+              height="1402"
+            />
           </aside>
         </div>
       ) : null}
@@ -292,7 +304,10 @@ function BonusOverview({
               {detail === "attribution" ? (
                 <Trans>Eligible trading costs use trial funds first; principal covers any remaining amount.</Trans>
               ) : (
-                <Trans>Trial funds are valid for seven days and cannot be withdrawn.</Trans>
+                <Trans>
+                  Trial funds must be claimed within seven days. Once claimed, they can be used throughout the
+                  campaign and cannot be withdrawn.
+                </Trans>
               )}
             </p>
           </div>
