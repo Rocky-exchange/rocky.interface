@@ -570,7 +570,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
           key: "FIRST_TRADE",
           state: "not_started",
           title: "Complete Your First Perpetual Trade",
-          reward: "100",
+          reward: "1000",
         },
       ],
       progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
@@ -594,6 +594,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
     const mission = title.closest("article");
     expect(mission).not.toBeNull();
     expect(within(mission as HTMLElement).getByText("06")).toBeTruthy();
+    expect(within(mission as HTMLElement).getByText("+1,000")).toBeTruthy();
     expect(screen.getByRole("img", { name: "0 of 6 missions completed" })).toBeTruthy();
 
     fireEvent.click(within(mission as HTMLElement).getByRole("button", { name: "Start" }));
@@ -612,7 +613,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
           key: "FIRST_TRADE",
           state: "not_started",
           title: "Complete Your First Perpetual Trade",
-          reward: "100",
+          reward: "1000",
         },
       ],
       progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
@@ -651,7 +652,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
           key: "FIRST_TRADE",
           state: "verifying",
           title: "Complete Your First Perpetual Trade",
-          reward: "100",
+          reward: "1000",
         },
       ],
       progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },
@@ -689,7 +690,7 @@ describe("SeasonZeroLeaderboardPage X binding", () => {
           key: "FIRST_TRADE",
           state: "verifying",
           title: "Complete Your First Perpetual Trade",
-          reward: "100",
+          reward: "1000",
         },
       ],
       progress: { completedCount: 1, claimableCount: 0, totalCount: 8 },

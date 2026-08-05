@@ -419,7 +419,7 @@ const MISSIONS: Mission[] = [
     title: "Complete Your First Perpetual Trade",
     description:
       "Deposit funds from your wallet, open a perpetual position according to your trading plan, and close it when appropriate to complete the mission.",
-    reward: "+100",
+    reward: "+1,000",
     iconText: "💰",
   },
 ];
