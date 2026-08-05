@@ -2,7 +2,7 @@ import { Trans, t } from "@lingui/macro";
 import { useLingui } from "@lingui/react";
 import cx from "classnames";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 import { BonusBadge } from "@/modules/lighter/features/bonus/components/BonusBadge";
 import { BonusInviteModal } from "@/modules/lighter/features/bonus/components/BonusInviteModal";
@@ -27,13 +27,18 @@ export function TopNav({
   transparent?: boolean;
 } = {}) {
   const { i18n } = useLingui();
+  const { pathname } = useLocation();
   const { connected, locked, username, party, avatar, provider } = useCantonSession();
   const { unlock, connecting } = useCantonWallet();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [isCampaignOpen, setIsCampaignOpen] = useState(false);
   const [isLanguageSwitching, setIsLanguageSwitching] = useState(false);
   const [bonusInviteOpen, setBonusInviteOpen] = useState(false);
   const [fundsOpen, setFundsOpen] = useState(false);
   const languageRef = useRef<HTMLDivElement>(null);
+  const campaignRef = useRef<HTMLDivElement>(null);
+  const isCampaignActive = pathname.startsWith("/campaigns");
+  const isTraditionalChinese = i18n.locale === "zh";
 
   const walletLabel = locked
     ? connecting
@@ -58,7 +63,13 @@ export function TopNav({
   }, [connected, locked, unlock]);
 
   const handleLanguageToggle = useCallback(() => {
+    setIsCampaignOpen(false);
     setIsLanguageOpen((prev) => !prev);
+  }, []);
+
+  const handleCampaignToggle = useCallback(() => {
+    setIsLanguageOpen(false);
+    setIsCampaignOpen((prev) => !prev);
   }, []);
 
   const handleLanguageSelect = useCallback(
@@ -80,17 +91,24 @@ export function TopNav({
   );
 
   useEffect(() => {
-    if (!isLanguageOpen) return;
+    if (!isLanguageOpen && !isCampaignOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
       if (!languageRef.current?.contains(event.target as Node)) {
         setIsLanguageOpen(false);
       }
+      if (!campaignRef.current?.contains(event.target as Node)) {
+        setIsCampaignOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [isLanguageOpen]);
+  }, [isCampaignOpen, isLanguageOpen]);
+
+  useEffect(() => {
+    setIsCampaignOpen(false);
+  }, [pathname]);
 
   return (
     <nav className={cx(styles.root, transparent && styles.transparent)}>
@@ -114,14 +132,71 @@ export function TopNav({
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Futures</Trans>
         </NavLink>
-        <NavLink
-          to="/campaigns/season-0"
-          className={styles.link}
-          activeClassName={styles.active}
-          isActive={(_match, location) => location.pathname.startsWith("/campaigns")}
-        >
-          <Trans>Campaigns</Trans>
-        </NavLink>
+        <div className={styles.campaignMenuWrap} ref={campaignRef}>
+          <button
+            type="button"
+            className={cx(styles.link, styles.campaignTrigger, isCampaignActive && styles.active)}
+            aria-haspopup="menu"
+            aria-expanded={isCampaignOpen}
+            onClick={handleCampaignToggle}
+          >
+            <Trans>Campaigns</Trans>
+            <svg
+              className={cx(styles.navCaret, isCampaignOpen && styles.caretOpen)}
+              width="12"
+              height="12"
+              viewBox="0 0 256 256"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
+            </svg>
+          </button>
+          {isCampaignOpen ? (
+            <div className={styles.campaignMenu} role="menu" aria-label="Campaigns">
+              <NavLink
+                exact
+                to="/campaigns/season-0"
+                role="menuitem"
+                className={styles.campaignItem}
+                activeClassName={styles.campaignItemActive}
+                onClick={() => setIsCampaignOpen(false)}
+              >
+                <span className={styles.campaignIcon}>
+                  <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+                </span>
+                <span className={styles.campaignText}>
+                  <strong>Season 0</strong>
+                  <small>
+                    {isTraditionalChinese
+                      ? "完成任務、參與排行榜並獲得 R 鑽石"
+                      : "Complete missions, rank, and earn R Diamonds"}
+                  </small>
+                </span>
+                <em>LIVE</em>
+              </NavLink>
+              <NavLink
+                exact
+                to="/campaigns/cbtc-spot"
+                role="menuitem"
+                className={styles.campaignItem}
+                activeClassName={styles.campaignItemActive}
+                onClick={() => setIsCampaignOpen(false)}
+              >
+                <span className={styles.campaignIcon}>
+                  <img src="/campaign/cbtc-logo.svg" alt="" aria-hidden="true" />
+                </span>
+                <span className={styles.campaignText}>
+                  <strong>Rocky × CBTC Spot Campaign</strong>
+                  <small>
+                    {isTraditionalChinese ? "交易 CBTC 現貨並獲得 CC 獎勵" : "Trade CBTC spot and earn CC rewards"}
+                  </small>
+                </span>
+                <em>NEW</em>
+              </NavLink>
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className={styles.right}>
         <BonusBadge onClick={() => setBonusInviteOpen(true)} />

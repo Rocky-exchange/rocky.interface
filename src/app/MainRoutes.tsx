@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Route, Switch, useLocation } from "react-router-dom";
 
+import CbtcSpotCampaignPage from "@/modules/campaigns/pages/CbtcSpotCampaignPage";
 import SeasonZeroLeaderboardPage from "@/modules/campaigns/pages/SeasonZeroLeaderboardPage";
 import LighterPortfolioPage from "@/modules/lighter/pages/LighterPortfolioPage";
 import LighterTradePage from "@/modules/lighter/pages/LighterTradePage";
@@ -21,8 +22,6 @@ const RedeemCodePage = lazy(() =>
     default: RedeemCodePage,
   }))
 );
-
-const CAMPAIGN_ROUTES = ["/campaigns", "/campaigns/season-0"];
 
 export function MainRoutes({ openSettings: _openSettings }: { openSettings: () => void }) {
   const { pathname } = useLocation();
@@ -82,8 +81,16 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
         </LighterTradeRuntimeProviders>
       </Route>
 
-      <Route exact path={CAMPAIGN_ROUTES}>
+      <Route exact path="/campaigns">
+        <RedirectWithQuery to="/campaigns/season-0" />
+      </Route>
+
+      <Route exact path="/campaigns/season-0">
         <SeasonZeroLeaderboardPage />
+      </Route>
+
+      <Route exact path="/campaigns/cbtc-spot">
+        <CbtcSpotCampaignPage />
       </Route>
 
       <Route>

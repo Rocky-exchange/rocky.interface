@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const root = path.dirname(fileURLToPath(import.meta.url));
   const env = loadEnv(mode, root, "");
+  const activityTarget = env.VITE_PROXY_ACTIVITY_URL || "https://app.rockytest.xyz";
+  const activityUsesTls = activityTarget.startsWith("https://");
   // Node 25 intermittently resets TLS 1.3 handshakes to the API upstream
   // behind common local network proxies. TLS 1.2 is supported by the API and
   // keeps Vite's same-origin development proxy stable.
@@ -67,12 +69,14 @@ export default defineConfig(({ mode }) => {
           agent: upstreamAgent,
         },
         // Season 0 activity backend. Keep /external-active in the forwarded
-        // path so local development matches the production nginx route.
+        // path for the hosted backend. A local HTTP activity service exposes
+        // the same routes directly at /v1, so strip the nginx-only prefix.
         "/external-active": {
-          target: env.VITE_PROXY_ACTIVITY_URL || "https://app.rockytest.xyz",
+          target: activityTarget,
           changeOrigin: true,
-          secure: true,
-          agent: upstreamAgent,
+          secure: activityUsesTls,
+          ...(activityUsesTls ? { agent: upstreamAgent } : {}),
+          rewrite: activityUsesTls ? undefined : (requestPath) => requestPath.replace(/^\/external-active/, ""),
           configure: (proxy) => {
             proxy.on("proxyReq", (proxyRequest) => {
               // The browser request is same-origin with Vite. Forwarding its

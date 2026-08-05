@@ -262,6 +262,101 @@ export function bindOgInvitationCode(code: string): Promise<NonNullable<OgBenefi
   });
 }
 
+/* ── CBTC spot campaign (season 1) ──────────────────────────────────────── */
+
+export type CbtcPhase = "upcoming" | "active" | "review" | "settled";
+
+export type CbtcCampaignSummary = {
+  campaignId: string;
+  phase: CbtcPhase;
+  serverTime: string;
+  startsAt: string;
+  endsAt: string;
+  reviewEndsAt: string;
+  symbol: string;
+  quoteAsset: string;
+  minNotionalUsd: string;
+  requiredActiveDays: number;
+  pools: { totalUsd: string; firstTradeUsd: string; leaderboardUsd: string; contentUsd: string };
+  participants: number;
+  qualifiedParticipants: number;
+  totalQualifyingVolumeUsd: string;
+  firstTradeRemaining: number;
+};
+
+export type CbtcLeaderboardEntry = {
+  rank: number;
+  profileKey: string;
+  wallet: string;
+  qualifyingVolumeUsd: string;
+  activeDays: number;
+  eligible: boolean;
+  estimatedRewardUsd: string;
+};
+
+export type CbtcLeaderboardPage = {
+  phase: CbtcPhase;
+  page: number;
+  pageSize: number;
+  total: number;
+  rankedPositions: number;
+  entries: CbtcLeaderboardEntry[];
+};
+
+export type CbtcRewardTiers = {
+  leaderboard: Array<{ from: number; to: number; winners: number; rewardUsd: string }>;
+  firstTrade: { rewardUsd: string; capacity: number };
+  content: { rewardUsd: string; maxApprovedPosts: number };
+};
+
+export type CbtcUserView = {
+  eligibility: "pending" | "qualified" | "disqualified";
+  qualifyingVolumeUsd: string;
+  activeDays: number;
+  requiredActiveDays: number;
+  rank: number | null;
+  firstTrade: {
+    status: "not_started" | "qualified" | "over_capacity";
+    position: number | null;
+    rewardUsd: string;
+  };
+  content: {
+    status: "not_submitted" | "pending" | "approved" | "rejected";
+    approvedCount: number;
+    rewardUsd: string;
+  };
+  rewardValueUsd: string;
+  finalCc: { status: "pending_settlement" | "settled"; amount: string | null };
+};
+
+export function getCbtcCampaign(): Promise<CbtcCampaignSummary> {
+  return activityRequest<CbtcCampaignSummary>("/v1/campaigns/cbtc-spot", { authenticated: false });
+}
+
+export function getCbtcRewardTiers(): Promise<CbtcRewardTiers> {
+  return activityRequest<CbtcRewardTiers>("/v1/campaigns/cbtc-spot/reward-tiers", {
+    authenticated: false,
+  });
+}
+
+export function getCbtcLeaderboard(page: number): Promise<CbtcLeaderboardPage> {
+  return activityRequest<CbtcLeaderboardPage>(`/v1/campaigns/cbtc-spot/leaderboard?page=${page}`, {
+    authenticated: false,
+  });
+}
+
+export function getCbtcUserView(): Promise<CbtcUserView> {
+  return activityRequest<CbtcUserView>("/v1/me/cbtc-spot");
+}
+
+export function submitCbtcContent(url: string): Promise<{ status: "pending"; submittedAt: string }> {
+  return activityRequest("/v1/me/cbtc-spot/content/submissions", {
+    method: "POST",
+    body: { url },
+    idempotencyKey: crypto.randomUUID(),
+  });
+}
+
 export function claimOgTrialFund(): Promise<OgBenefits["trialFund"]> {
   return activityRequest<OgBenefits["trialFund"]>("/v1/me/og-benefits/trial-fund/claim", {
     method: "POST",

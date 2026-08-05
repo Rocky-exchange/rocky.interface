@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -64,14 +64,19 @@ describe("TopNav", () => {
     expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-CUSD");
   });
 
-  it("links Campaigns to the Season 0 activity page", () => {
+  it("opens the Campaigns menu with Season 0 and CBTC activity links", () => {
     render(
       <MemoryRouter>
         <TopNav />
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("link", { name: "Campaigns" }).getAttribute("href")).toBe("/campaigns/season-0");
+    fireEvent.click(screen.getByRole("button", { name: "Campaigns" }));
+
+    expect(screen.getByRole("menuitem", { name: /Season 0/ }).getAttribute("href")).toBe("/campaigns/season-0");
+    expect(screen.getByRole("menuitem", { name: /Rocky × CBTC Spot Campaign/ }).getAttribute("href")).toBe(
+      "/campaigns/cbtc-spot"
+    );
   });
 
   it("labels an existing Send session as sendwallet", () => {
