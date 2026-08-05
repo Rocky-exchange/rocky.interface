@@ -99,8 +99,10 @@
 
 .brandText {
   display: grid;
+  flex: 1 1 auto;
   gap: 8px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .nameRow {
@@ -323,16 +325,20 @@
 .nameEditor {
   display: grid;
   gap: 5px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .nameEditorRow {
   display: flex;
   gap: 6px;
   align-items: center;
+  min-width: 0;
 }
 
 .nameInput {
   width: 160px;
+  min-width: 0;
   height: 40px;
   padding: 0 12px;
   color: var(--text-primary);
@@ -1362,6 +1368,22 @@
 
   .brandParty {
     max-width: 220px;
+  }
+
+  .nameEditorRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nameInput {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .saveNameButton,
+  .cancelNameButton {
+    width: 100%;
+    padding: 0 8px;
   }
 
   .headerIconButton,

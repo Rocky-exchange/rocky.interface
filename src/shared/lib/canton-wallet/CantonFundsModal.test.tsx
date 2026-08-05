@@ -301,6 +301,16 @@ describe("CantonFundsModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("shows dedicated save and cancel controls while editing the display name", () => {
+    render(<CantonFundsModal open onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit display name" }));
+
+    expect(screen.getByPlaceholderText("Display name")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+  });
+
   it("opens operation pages inside the existing modal and returns to Assets", () => {
     const onClose = vi.fn();
     render(<CantonFundsModal open onClose={onClose} />);

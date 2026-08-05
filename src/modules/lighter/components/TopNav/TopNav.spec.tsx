@@ -64,14 +64,14 @@ describe("TopNav", () => {
     expect(screen.getByRole("link", { name: "Spot" }).getAttribute("href")).toBe("/spot/CBTC-CUSD");
   });
 
-  it("opens the Campaigns menu with Season 0 and CBTC activity links", () => {
+  it("opens the Campaigns menu on hover with Season 0 and CBTC activity links", () => {
     render(
       <MemoryRouter>
         <TopNav />
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Campaigns" }));
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Campaigns" }));
 
     expect(screen.getByRole("menuitem", { name: /Season 0/ }).getAttribute("href")).toBe("/campaigns/season-0");
     expect(screen.getByRole("menuitem", { name: /Rocky × CBTC Spot Campaign/ }).getAttribute("href")).toBe(

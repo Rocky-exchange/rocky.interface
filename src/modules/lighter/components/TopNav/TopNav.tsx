@@ -132,7 +132,12 @@ export function TopNav({
         <NavLink to="/trade" className={styles.link} activeClassName={styles.active}>
           <Trans>Futures</Trans>
         </NavLink>
-        <div className={styles.campaignMenuWrap} ref={campaignRef}>
+        <div
+          className={styles.campaignMenuWrap}
+          ref={campaignRef}
+          onMouseEnter={() => setIsCampaignOpen(true)}
+          onMouseLeave={() => setIsCampaignOpen(false)}
+        >
           <button
             type="button"
             className={cx(styles.link, styles.campaignTrigger, isCampaignActive && styles.active)}
@@ -152,50 +157,55 @@ export function TopNav({
               <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z" />
             </svg>
           </button>
-          {isCampaignOpen ? (
-            <div className={styles.campaignMenu} role="menu" aria-label="Campaigns">
-              <NavLink
-                exact
-                to="/campaigns/season-0"
-                role="menuitem"
-                className={styles.campaignItem}
-                activeClassName={styles.campaignItemActive}
-                onClick={() => setIsCampaignOpen(false)}
-              >
-                <span className={styles.campaignIcon}>
-                  <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
-                </span>
-                <span className={styles.campaignText}>
-                  <strong>Season 0</strong>
-                  <small>
-                    {isTraditionalChinese
-                      ? "完成任務、參與排行榜並獲得 R 鑽石"
-                      : "Complete missions, rank, and earn R Diamonds"}
-                  </small>
-                </span>
-                <em>LIVE</em>
-              </NavLink>
-              <NavLink
-                exact
-                to="/campaigns/cbtc-spot"
-                role="menuitem"
-                className={styles.campaignItem}
-                activeClassName={styles.campaignItemActive}
-                onClick={() => setIsCampaignOpen(false)}
-              >
-                <span className={styles.campaignIcon}>
-                  <img src="/campaign/cbtc-logo.svg" alt="" aria-hidden="true" />
-                </span>
-                <span className={styles.campaignText}>
-                  <strong>Rocky × CBTC Spot Campaign</strong>
-                  <small>
-                    {isTraditionalChinese ? "交易 CBTC 現貨並獲得 CC 獎勵" : "Trade CBTC spot and earn CC rewards"}
-                  </small>
-                </span>
-                <em>NEW</em>
-              </NavLink>
-            </div>
-          ) : null}
+          <div
+            className={cx(styles.campaignMenu, isCampaignOpen && styles.campaignMenuOpen)}
+            role="menu"
+            aria-label="Campaigns"
+            aria-hidden={!isCampaignOpen}
+          >
+            <NavLink
+              exact
+              to="/campaigns/season-0"
+              role="menuitem"
+              tabIndex={isCampaignOpen ? 0 : -1}
+              className={styles.campaignItem}
+              activeClassName={styles.campaignItemActive}
+              onClick={() => setIsCampaignOpen(false)}
+            >
+              <span className={styles.campaignIcon}>
+                <img src="/campaign/r-diamond.png" alt="" aria-hidden="true" />
+              </span>
+              <span className={styles.campaignText}>
+                <strong>Season 0</strong>
+                <small>
+                  {isTraditionalChinese
+                    ? "完成任務、參與排行榜並獲得 R 鑽石"
+                    : "Complete missions, rank, and earn R Diamonds"}
+                </small>
+              </span>
+              <em>LIVE</em>
+            </NavLink>
+            <NavLink
+              exact
+              to="/campaigns/cbtc-spot"
+              role="menuitem"
+              tabIndex={isCampaignOpen ? 0 : -1}
+              className={styles.campaignItem}
+              activeClassName={styles.campaignItemActive}
+              onClick={() => setIsCampaignOpen(false)}
+            >
+              <span className={styles.campaignIcon}>
+                <img src="/campaign/cbtc-logo.svg" alt="" aria-hidden="true" />
+              </span>
+              <span className={styles.campaignText}>
+                <strong>Rocky × CBTC Spot Campaign</strong>
+                <small>
+                  {isTraditionalChinese ? "交易 CBTC 現貨並獲得 CC 獎勵" : "Trade CBTC spot and earn CC rewards"}
+                </small>
+              </span>
+              <em>NEW</em>
+            </NavLink>
+          </div>
         </div>
       </div>
       <div className={styles.right}>
