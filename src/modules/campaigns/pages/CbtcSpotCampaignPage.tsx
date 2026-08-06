@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react";
-import { type FormEvent, type MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -193,6 +193,136 @@ const leaderboardEntries = [
 
 const cbtcLogo = "/campaign/cbtc-logo.svg";
 const CAMPAIGN_START_DATE = "2026.08.12";
+const CAMPAIGN_END_DATE = "2026.09.12";
+
+function CbtcRotatingCoin() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("CanvasRenderingContext2D" in window)) return;
+
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+
+    const logicalSize = 214;
+    const center = logicalSize / 2;
+    const radius = 87;
+    const halfDepth = 9;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const logo = new Image();
+    let animationFrame = 0;
+    let disposed = false;
+    let animationStart: number | null = null;
+
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = logicalSize * pixelRatio;
+    canvas.height = logicalSize * pixelRatio;
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    const drawEllipse = (centerX: number, radiusX: number, fill: CanvasGradient | string) => {
+      context.beginPath();
+      context.ellipse(centerX, center, Math.max(radiusX, 0.75), radius, 0, 0, Math.PI * 2);
+      context.fillStyle = fill;
+      context.fill();
+    };
+
+    const drawFace = (centerX: number, scaleX: number, opacity: number) => {
+      context.save();
+      context.globalAlpha = opacity;
+      context.translate(centerX, center);
+      context.scale(Math.max(scaleX, 0.012), 1);
+
+      const faceGradient = context.createLinearGradient(-radius, -radius, radius, radius);
+      faceGradient.addColorStop(0, "#ffab83");
+      faceGradient.addColorStop(0.38, "#f26633");
+      faceGradient.addColorStop(1, "#a72a0d");
+
+      context.beginPath();
+      context.arc(0, 0, radius, 0, Math.PI * 2);
+      context.fillStyle = faceGradient;
+      context.fill();
+
+      context.save();
+      context.clip();
+      context.drawImage(logo, -radius + 8, -radius + 8, (radius - 8) * 2, (radius - 8) * 2);
+      context.restore();
+
+      context.beginPath();
+      context.arc(0, 0, radius - 2, 0, Math.PI * 2);
+      context.lineWidth = 4;
+      context.strokeStyle = "#d74a22";
+      context.stroke();
+
+      context.beginPath();
+      context.arc(0, 0, radius - 8, 0, Math.PI * 2);
+      context.lineWidth = 2;
+      context.strokeStyle = "rgba(255, 197, 169, 0.82)";
+      context.stroke();
+      context.restore();
+    };
+
+    const drawFrame = (timestamp: number) => {
+      if (disposed) return;
+      if (animationStart === null) animationStart = timestamp;
+
+      const elapsed = reducedMotion ? 250 : (timestamp - animationStart) % 5000;
+      const angle = (elapsed / 5000) * Math.PI * 2;
+      const faceScale = Math.abs(Math.cos(angle));
+      const radiusX = Math.max(radius * faceScale, 0.75);
+      const depthOffset = Math.sin(angle) * halfDepth;
+      const depthSpan = Math.abs(depthOffset);
+      const faceCenterX = center + Math.sin(angle) * Math.cos(angle) * halfDepth;
+      const faceOpacity = Math.min(1, faceScale * 10);
+
+      context.clearRect(0, 0, logicalSize, logicalSize);
+
+      context.save();
+      context.shadowColor = "rgba(0, 0, 0, 0.48)";
+      context.shadowBlur = 28;
+      context.shadowOffsetY = 14;
+      drawEllipse(center, radiusX + depthSpan, "rgba(92, 18, 2, 0.96)");
+      context.restore();
+
+      const sideGradient = context.createLinearGradient(center - radius, 0, center + radius, 0);
+      sideGradient.addColorStop(0, "#571202");
+      sideGradient.addColorStop(0.2, "#a82a0d");
+      sideGradient.addColorStop(0.4, "#f17146");
+      sideGradient.addColorStop(0.5, "#ffac86");
+      sideGradient.addColorStop(0.72, "#bf3715");
+      sideGradient.addColorStop(1, "#511001");
+
+      const leftCenterX = center - depthSpan;
+      const rightCenterX = center + depthSpan;
+      const sideRadius = radius + 0.75;
+      context.beginPath();
+      context.moveTo(leftCenterX, center - sideRadius);
+      context.lineTo(rightCenterX, center - sideRadius);
+      context.ellipse(rightCenterX, center, radiusX + 0.35, sideRadius, 0, -Math.PI / 2, Math.PI / 2);
+      context.lineTo(leftCenterX, center + sideRadius);
+      context.ellipse(leftCenterX, center, radiusX + 0.35, sideRadius, 0, Math.PI / 2, (Math.PI * 3) / 2);
+      context.closePath();
+      context.fillStyle = sideGradient;
+      context.fill();
+
+      drawFace(faceCenterX, faceScale, faceOpacity);
+
+      if (!reducedMotion) animationFrame = window.requestAnimationFrame(drawFrame);
+    };
+
+    logo.addEventListener("load", () => {
+      if (!disposed) animationFrame = window.requestAnimationFrame(drawFrame);
+    });
+    logo.src = cbtcLogo;
+
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className={styles.coinCanvas} aria-hidden="true" />;
+}
 
 type CampaignData = {
   campaign: CbtcCampaignSummary | null;
@@ -255,13 +385,6 @@ function formatUsd(value: string | undefined): string {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}`;
-}
-
-function formatUtcDate(value: string | undefined): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime())) return null;
-  return parsed.toISOString().slice(0, 10).replace(/-/g, ".");
 }
 
 function isValidPublicContentUrl(value: string): boolean {
@@ -660,23 +783,8 @@ export default function CbtcSpotCampaignPage() {
                 <span className={styles.orbitOuter} />
                 <span className={styles.orbitInner} />
                 <span className={styles.orbitAxis} />
-                <div className={styles.tokenHalo} />
                 <div className={styles.heroToken}>
-                  <div className={styles.coin}>
-                    {Array.from({ length: 15 }, (_, index) => (
-                      <span
-                        key={index}
-                        className={styles.coinRimLayer}
-                        style={{ transform: `translateZ(${index - 7}px)` }}
-                      />
-                    ))}
-                    <span className={`${styles.coinFace} ${styles.coinFront}`}>
-                      <img src={cbtcLogo} alt="" />
-                    </span>
-                    <span className={`${styles.coinFace} ${styles.coinBack}`}>
-                      <img src={cbtcLogo} alt="" />
-                    </span>
-                  </div>
+                  <CbtcRotatingCoin />
                 </div>
                 <div className={`${styles.signalCard} ${styles.signalCardTop}`}>
                   <span>01</span>
@@ -695,13 +803,7 @@ export default function CbtcSpotCampaignPage() {
               <dl className={styles.heroMeta}>
                 <div>
                   <dt>{isZh ? "活動週期" : "CAMPAIGN PERIOD"}</dt>
-                  <dd>
-                    {campaign
-                      ? `${formatUtcDate(campaign.startsAt)} – ${formatUtcDate(campaign.endsAt)} UTC`
-                      : isZh
-                        ? "30 天 · UTC 日期待定"
-                        : "30 DAYS · UTC DATES TBC"}
-                  </dd>
+                  <dd>{`${CAMPAIGN_START_DATE} – ${CAMPAIGN_END_DATE} UTC`}</dd>
                 </div>
                 <div>
                   <dt>{isZh ? "現貨市場" : "SPOT MARKET"}</dt>

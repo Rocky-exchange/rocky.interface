@@ -343,11 +343,11 @@
 }
 
 .orbitOuter,
-.orbitInner,
-.orbitAxis {
+.orbitInner {
   position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.17);
+  border: 1px solid transparent;
   border-radius: 50%;
+  filter: drop-shadow(0 0 5px rgba(255, 102, 51, 0.24));
 }
 
 .orbitOuter {
@@ -362,23 +362,19 @@
   width: 330px;
   height: 330px;
   border-top-color: var(--accent);
+  border-left-color: rgba(255, 102, 51, 0.3);
   animation: orbitSpin 20s linear infinite reverse;
 }
 
 .orbitAxis {
+  position: absolute;
   width: 420px;
   height: 172px;
   border-color: rgba(255, 102, 51, 0.32);
-  transform: rotate(-27deg);
-}
-
-.tokenHalo {
-  position: absolute;
-  width: 270px;
-  height: 270px;
-  background: radial-gradient(circle, rgba(255, 102, 51, 0.2), transparent 67%);
+  border-style: solid;
+  border-width: 1px;
   border-radius: 50%;
-  box-shadow: 0 0 90px rgba(214, 58, 15, 0.2);
+  transform: rotate(-27deg);
 }
 
 .heroToken {
@@ -388,61 +384,12 @@
   width: 214px;
   height: 214px;
   place-items: center;
-  border: 1px solid rgba(255, 102, 51, 0.48);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 11px rgba(255, 102, 51, 0.04),
-    0 34px 80px rgba(0, 0, 0, 0.46);
-  perspective: 900px;
 }
 
-.coin {
-  position: relative;
-  width: 174px;
-  height: 174px;
-  transform-style: preserve-3d;
-  animation: coinTurn 5s linear infinite;
-  will-change: transform;
-}
-
-.coinFace {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: #f26633;
-  border: 3px solid rgba(255, 185, 153, 0.88);
-  border-radius: 50%;
-  backface-visibility: hidden;
-  box-shadow:
-    inset 13px 0 18px rgba(255, 255, 255, 0.2),
-    inset -15px 0 22px rgba(96, 18, 0, 0.3),
-    0 18px 32px rgba(0, 0, 0, 0.46);
-}
-
-.coinFace img {
-  width: 100%;
-  height: 100%;
-}
-
-.coinFront {
-  transform: translateZ(8px);
-}
-
-.coinBack {
-  transform: rotateY(180deg) translateZ(8px);
-}
-
-.coinRimLayer {
-  position: absolute;
-  inset: 2px;
-  background: linear-gradient(90deg, #6f1b07 0%, #b83312 24%, #ff966e 50%, #bd3513 76%, #641704 100%);
-  border: 2px solid rgba(255, 173, 138, 0.52);
-  border-radius: 50%;
-  box-shadow:
-    inset 7px 0 10px rgba(255, 255, 255, 0.1),
-    inset -8px 0 12px rgba(63, 11, 0, 0.34);
+.coinCanvas {
+  display: block;
+  width: 214px;
+  height: 214px;
 }
 
 .signalCard {
@@ -560,16 +507,6 @@
   }
 }
 
-@keyframes coinTurn {
-  from {
-    transform: rotateX(-5deg) rotateY(0deg);
-  }
-
-  to {
-    transform: rotateX(-5deg) rotateY(360deg);
-  }
-}
-
 @keyframes livePulse {
   50% {
     opacity: 0.45;
@@ -578,15 +515,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .coin,
   .orbitOuter,
   .orbitInner,
   .liveStatus span {
     animation: none;
-  }
-
-  .coin {
-    transform: rotateX(-5deg) rotateY(-18deg);
   }
 }
 
@@ -1817,19 +1749,14 @@
     height: 126px;
   }
 
-  .tokenHalo {
-    width: 210px;
-    height: 210px;
-  }
-
   .heroToken {
     width: 158px;
     height: 158px;
   }
 
-  .coin {
-    width: 132px;
-    height: 132px;
+  .coinCanvas {
+    width: 158px;
+    height: 158px;
   }
 
   .signalCard {
