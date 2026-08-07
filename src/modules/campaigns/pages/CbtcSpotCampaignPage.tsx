@@ -51,10 +51,10 @@ const rewardTracks = [
     reward: "TOP 50",
     rewardLabel: { en: "QUALIFIED TRADERS", zh: "名有效交易者" },
     description: {
-      en: "Ranked by qualified CBTC spot volume. Trade on at least five different UTC calendar days to qualify.",
-      zh: "按有效 CBTC 現貨累計成交量排名。需在至少 5 個不同的 UTC 自然日完成交易。",
+      en: "Ranked by qualified CBTC spot volume. Trade on at least one UTC calendar day to qualify.",
+      zh: "按有效 CBTC 現貨累計成交量排名。需在至少 1 個 UTC 自然日完成交易。",
     },
-    status: { en: "0 / 5 ACTIVE DAYS", zh: "0 / 5 個活躍日" },
+    status: { en: "0 / 1 ACTIVE DAY", zh: "0 / 1 個活躍日" },
     action: { en: "VIEW LEADERBOARD", zh: "查看排行榜" },
     href: "#leaderboard",
   },
@@ -609,7 +609,7 @@ export default function CbtcSpotCampaignPage() {
     ? Math.max(1, Math.round((Date.parse(campaign.endsAt) - Date.parse(campaign.startsAt)) / 86_400_000))
     : 30;
 
-  const requiredDays = me?.requiredActiveDays ?? campaign?.requiredActiveDays ?? 5;
+  const requiredDays = me?.requiredActiveDays ?? campaign?.requiredActiveDays ?? 1;
 
   const liveStats = useMemo(() => {
     const trackStatus = (kind: "first" | "volume" | "content"): LocaleCopy => {
@@ -941,8 +941,8 @@ export default function CbtcSpotCampaignPage() {
               <h2>{isZh ? "CBTC 交易量排行榜" : "CBTC VOLUME LEADERBOARD"}</h2>
               <span>
                 {isZh
-                  ? "按有效 CBTC 現貨累計成交量排名。需完成至少 5 個 UTC 活躍交易日。"
-                  : "Ranked by qualified CBTC spot volume. At least five active UTC trading days are required."}
+                  ? "按有效 CBTC 現貨累計成交量排名。需完成至少 1 個 UTC 活躍交易日。"
+                  : "Ranked by qualified CBTC spot volume. At least one active UTC trading day is required."}
               </span>
             </header>
 
