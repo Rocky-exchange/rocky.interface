@@ -1052,12 +1052,25 @@
   width: 42px;
   height: 42px;
   flex: 0 0 auto;
+  overflow: hidden;
   place-items: center;
   border: 1px solid rgba(255, 102, 51, 0.58);
   border-radius: 50%;
   color: #fff;
   background: radial-gradient(circle at 35% 30%, rgba(255, 102, 51, 0.42), transparent 34%), #161616;
   font-size: 14px;
+}
+
+.rankingAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rankingAvatar img.rankingAvatarContain {
+  box-sizing: border-box;
+  padding: 6px;
+  object-fit: contain;
 }
 
 .rankingUser > span:last-child {

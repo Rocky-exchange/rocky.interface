@@ -10,6 +10,22 @@ vi.mock("@/modules/lighter/components/TopNav/TopNav", () => ({
   TopNav: () => <nav>Top Navigation</nav>,
 }));
 
+vi.mock("@/modules/campaigns/api/campaign.api", async () => {
+  const actual = await vi.importActual<typeof import("@/modules/campaigns/api/campaign.api")>(
+    "@/modules/campaigns/api/campaign.api"
+  );
+  return { ...actual, getCbtcLeaderboard: vi.fn() };
+});
+
+vi.mock("@/shared/lib/canton-wallet/profile", () => ({
+  resolveUserProfiles: vi.fn(),
+}));
+
+import { getCbtcLeaderboard } from "@/modules/campaigns/api/campaign.api";
+import { abbreviateWalletAddress } from "@/shared/lib/canton-wallet/addressFormat";
+import { resolveUserProfiles } from "@/shared/lib/canton-wallet/profile";
+import { getWalletProviderLogo } from "@/shared/lib/canton-wallet/walletLogos";
+
 import CbtcSpotCampaignPage from "./CbtcSpotCampaignPage";
 
 describe("CbtcSpotCampaignPage", () => {
@@ -20,6 +36,8 @@ describe("CbtcSpotCampaignPage", () => {
   beforeEach(() => {
     document.documentElement.className = "";
     document.body.className = "";
+    vi.mocked(getCbtcLeaderboard).mockRejectedValue(new Error("offline"));
+    vi.mocked(resolveUserProfiles).mockResolvedValue({});
   });
 
   it("renders the proposal reward structure and independent CC ledger", () => {
@@ -65,6 +83,52 @@ describe("CbtcSpotCampaignPage", () => {
     expect(screen.getByText("SatoshiNova")).toBeDefined();
     expect(screen.getByText("$482,760.42")).toBeDefined();
     expect(screen.getAllByText("QUALIFIED")).toHaveLength(10);
+  });
+
+  it("renders the Profile name, avatar, and party address for live leaderboard users", async () => {
+    const userId = "efa9d668-a6c0-4f16-bc49-3acb18e65ec1";
+    const partyAddress = "rockywallet-leo::1220b203f8a6385f3eb7520fe8078972aa6830e3d676af1fed675e0f9e19b547f5fb";
+    vi.mocked(getCbtcLeaderboard).mockResolvedValue({
+      phase: "active",
+      page: 1,
+      pageSize: 10,
+      total: 1,
+      rankedPositions: 50,
+      entries: [
+        {
+          rank: 1,
+          profileKey: userId,
+          wallet: "rockywallet-e...5EC1",
+          qualifyingVolumeUsd: "11.69",
+          activeDays: 1,
+          eligible: true,
+          estimatedRewardUsd: "1000.00",
+        },
+      ],
+    });
+    vi.mocked(resolveUserProfiles).mockResolvedValue({
+      [userId]: {
+        address: partyAddress,
+        provider: "rocky",
+        displayName: "Leo",
+        avatar: "",
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <CbtcSpotCampaignPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Leo")).toBeDefined();
+    expect(screen.getByText(abbreviateWalletAddress(partyAddress, 30))).toBeDefined();
+    expect(
+      Array.from(document.querySelectorAll("img")).some(
+        (image) => image.getAttribute("src") === getWalletProviderLogo("rocky").src
+      )
+    ).toBe(true);
+    expect(resolveUserProfiles).toHaveBeenCalledWith([userId]);
   });
 
   it("smoothly scrolls the campaign action links to their sections", () => {

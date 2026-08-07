@@ -15,8 +15,11 @@ import {
   type CbtcUserView,
 } from "@/modules/campaigns/api/campaign.api";
 import { TopNav } from "@/modules/lighter/components/TopNav/TopNav";
+import { abbreviateWalletAddress } from "@/shared/lib/canton-wallet/addressFormat";
+import { resolveUserProfiles, type PublicWalletProfile } from "@/shared/lib/canton-wallet/profile";
 import { getExchangeSessionToken } from "@/shared/lib/canton-wallet/session";
 import ccIcon from "@/shared/lib/canton-wallet/token-icons/CC.webp";
+import { getWalletProviderLogo } from "@/shared/lib/canton-wallet/walletLogos";
 import { ModalWithPortal } from "@/shared/ui";
 
 import "@/modules/lighter/styles/global.scss";
@@ -328,6 +331,7 @@ type CampaignData = {
   campaign: CbtcCampaignSummary | null;
   tiers: CbtcRewardTiers | null;
   board: CbtcLeaderboardPage | null;
+  profiles: Record<string, PublicWalletProfile>;
   me: CbtcUserView | null;
   offline: boolean;
 };
@@ -336,6 +340,7 @@ const EMPTY_DATA: CampaignData = {
   campaign: null,
   tiers: null,
   board: null,
+  profiles: {},
   me: null,
   offline: false,
 };
@@ -360,8 +365,11 @@ function useCbtcCampaignData(): { data: CampaignData; reload: () => void } {
         getCbtcLeaderboard(1).catch(() => null),
         hasSession ? getCbtcUserView().catch(() => null) : Promise.resolve(null),
       ]);
+      const profiles = board
+        ? await resolveUserProfiles(board.entries.map((entry) => entry.profileKey))
+        : {};
       if (cancelled) return;
-      setData({ campaign, tiers, board, me, offline: campaign === null });
+      setData({ campaign, tiers, board, profiles, me, offline: campaign === null });
     };
     void load();
     return () => {
@@ -578,7 +586,7 @@ export default function CbtcSpotCampaignPage() {
   const isZh = i18n.locale === "zh";
   const copy = (value: LocaleCopy) => (isZh ? value.zh : value.en);
   const { data, reload } = useCbtcCampaignData();
-  const { campaign, tiers, board, me } = data;
+  const { campaign, tiers, board, profiles, me } = data;
   const [isContentSubmitOpen, setIsContentSubmitOpen] = useState(false);
 
   const handleSmoothScroll = useCallback((event: MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -688,17 +696,23 @@ export default function CbtcSpotCampaignPage() {
   const displayRows = useMemo(
     () =>
       boardRows
-        ? boardRows.map((entry) => ({
-            rank: entry.rank,
-            name: `Trader #${String(entry.rank).padStart(3, "0")}`,
-            wallet: entry.wallet,
-            volume: formatUsd(entry.qualifyingVolumeUsd),
-            activeDays: `${entry.activeDays} / ${requiredDays}`,
-            reward: formatUsd(entry.estimatedRewardUsd),
-            qualified: entry.eligible,
-          }))
+        ? boardRows.map((entry) => {
+            const profile = profiles[entry.profileKey];
+            const walletLogo = profile ? getWalletProviderLogo(profile.provider) : undefined;
+            return {
+              rank: entry.rank,
+              name: profile?.displayName || `Trader #${String(entry.rank).padStart(3, "0")}`,
+              wallet: profile ? abbreviateWalletAddress(profile.address, 30) : entry.wallet,
+              volume: formatUsd(entry.qualifyingVolumeUsd),
+              activeDays: `${entry.activeDays} / ${requiredDays}`,
+              reward: formatUsd(entry.estimatedRewardUsd),
+              qualified: entry.eligible,
+              avatar: profile?.avatar || walletLogo?.src,
+              avatarFit: profile?.avatar ? "cover" : walletLogo?.fit,
+            };
+          })
         : leaderboardEntries.map((entry) => ({ ...entry, qualified: true })),
-    [boardRows, requiredDays]
+    [boardRows, profiles, requiredDays]
   );
 
   useEffect(() => {
@@ -1024,7 +1038,18 @@ export default function CbtcSpotCampaignPage() {
                           )}
                         </div>
                         <div className={styles.rankingUser} role="cell">
-                          <span className={styles.rankingAvatar}>{entry.name.slice(0, 1)}</span>
+                          <span className={styles.rankingAvatar}>
+                            {entry.avatar ? (
+                              <img
+                                className={entry.avatarFit === "contain" ? styles.rankingAvatarContain : undefined}
+                                src={entry.avatar}
+                                alt=""
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              entry.name.slice(0, 1)
+                            )}
+                          </span>
                           <span>
                             <strong>{entry.name}</strong>
                             <small>{entry.wallet}</small>
