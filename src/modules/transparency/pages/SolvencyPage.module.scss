@@ -1,0 +1,146 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.main {
+  width: min(920px, 100% - 32px);
+  margin: 0 auto;
+  padding: 24px 0 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  h1 {
+    font-size: 24px;
+    margin: 8px 0;
+  }
+}
+
+.sub {
+  color: var(--color-text-secondary, #8a8fa8);
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+.panel {
+  border: 1px solid var(--color-border, rgba(128, 128, 148, 0.25));
+  border-radius: 10px;
+  padding: 16px 18px;
+  background: var(--color-surface, rgba(128, 128, 148, 0.06));
+
+  h2 {
+    font-size: 15px;
+    margin: 0 0 12px;
+  }
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px 20px;
+
+  label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary, #8a8fa8);
+    margin-bottom: 3px;
+  }
+}
+
+.rootHash {
+  grid-column: 1 / -1;
+
+  code {
+    font-size: 12px;
+    word-break: break-all;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    text-align: right;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--color-border, rgba(128, 128, 148, 0.18));
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+  }
+
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary, #8a8fa8);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.muted {
+  color: var(--color-text-secondary, #8a8fa8);
+}
+
+.footnote {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #8a8fa8);
+}
+
+.verifyButton {
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, rgba(128, 128, 148, 0.35));
+  background: var(--color-accent, #2145c9);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.verifyResult {
+  margin-top: 14px;
+}
+
+.checks {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.ok {
+  color: var(--color-positive, #1a9c6b);
+}
+
+.fail {
+  color: var(--color-negative, #d64545);
+}

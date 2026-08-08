@@ -22,6 +22,12 @@ const RedeemCodePage = lazy(() =>
   }))
 );
 
+const SolvencyPage = lazy(() =>
+  import("@/modules/transparency/pages/SolvencyPage").then(({ SolvencyPage }) => ({
+    default: SolvencyPage,
+  }))
+);
+
 const CAMPAIGN_ROUTES = ["/campaigns", "/campaigns/season-0"];
 
 export function MainRoutes({ openSettings: _openSettings }: { openSettings: () => void }) {
@@ -78,6 +84,14 @@ export function MainRoutes({ openSettings: _openSettings }: { openSettings: () =
         <LighterTradeRuntimeProviders>
           <Suspense fallback={null}>
             <RedeemCodePage />
+          </Suspense>
+        </LighterTradeRuntimeProviders>
+      </Route>
+
+      <Route exact path="/solvency">
+        <LighterTradeRuntimeProviders>
+          <Suspense fallback={null}>
+            <SolvencyPage />
           </Suspense>
         </LighterTradeRuntimeProviders>
       </Route>

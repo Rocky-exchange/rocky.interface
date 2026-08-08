@@ -122,6 +122,9 @@ export function TopNav({
         >
           <Trans>Campaigns</Trans>
         </NavLink>
+        <NavLink to="/solvency" className={styles.link} activeClassName={styles.active}>
+          <Trans>Transparency</Trans>
+        </NavLink>
       </div>
       <div className={styles.right}>
         <BonusBadge onClick={() => setBonusInviteOpen(true)} />
